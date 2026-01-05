@@ -51,12 +51,12 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
-<<<<<<< Updated upstream
+
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-=======
+
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat) // XML 테마를 위해 appcompat 추가
@@ -69,7 +69,6 @@ dependencies {
     implementation(libs.androidx.compose.material) // M2 Compose
     implementation(libs.androidx.material.icons.extended)
 
->>>>>>> Stashed changes
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
