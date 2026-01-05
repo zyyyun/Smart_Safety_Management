@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="sans-serif-black"
+        android:text="중대재해예방 플랫폼"
+        android:textColor="#FF5722"
+        android:textSize="60sp"
+        android:textStyle="bold"
+        android:visibility="visible"
+        tools:layout_editor_absoluteX="196dp"
+        tools:layout_editor_absoluteY="439dp"
+        tools:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="99dp"
+        android:layout_height="108dp"
+        app:srcCompat="@drawable/_2026_01_05_15_18_02_removebg_preview"
+        tools:layout_editor_absoluteX="97dp"
+        tools:layout_editor_absoluteY="430dp" />
+
+    <Button
+        android:id="@+id/button"
+        android:layout_width="740dp"
+        android:layout_height="116dp"
+        android:backgroundTint="#FF5722"
+        android:text="회원가입"
+        android:textColorLink="#E91E63"
+        android:textSize="48sp"
+        app:cornerRadius="16dp"
+        tools:layout_editor_absoluteX="30dp"
+        tools:layout_editor_absoluteY="950dp" />
+
+    <Button
+        android:id="@+id/button3"
+        android:layout_width="740dp"
+        android:layout_height="116dp"
+        android:backgroundTint="#FFFFFF"
+        android:text="로그인"
+        android:textColor="#FF5722"
+        android:textColorLink="#5F2139"
+        android:textSize="48sp"
+        app:cornerRadius="16dp"
+        app:strokeColor="#FF5722"
+        app:strokeWidth="3dp"
+        tools:layout_editor_absoluteX="30dp"
+        tools:layout_editor_absoluteY="1087dp" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
