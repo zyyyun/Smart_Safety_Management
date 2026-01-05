@@ -1,14 +1,21 @@
 [versions]
-agp = "8.13.2"
-kotlin = "2.0.21"
-coreKtx = "1.10.1"
+agp = "8.5.0"
+kotlin = "1.9.22"
+coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.1.5"
 espressoCore = "3.5.1"
 appcompat = "1.6.1"
+<<<<<<< Updated upstream
 material = "1.10.0"
 activity = "1.8.0"
 constraintlayout = "2.1.4"
+=======
+material = "1.12.0"
+activityCompose = "1.9.0"
+composeBom = "2024.05.00"
+lifecycleRuntimeKtx = "2.8.0"
+>>>>>>> Stashed changes
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -20,7 +27,22 @@ material = { group = "com.google.android.material", name = "material", version.r
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+
+# Compose BOM
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-compose-material = { group = "androidx.compose.material", name = "material" } # M2 Compose 라이브러리
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+
+# Test dependencies
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-

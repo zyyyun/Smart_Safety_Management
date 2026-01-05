@@ -32,12 +32,21 @@
         android:layout_height="wrap_content"
         android:text="중대재해예방 플랫폼"
         android:textColor="#FF5722"
+<<<<<<< Updated upstream
         android:textSize="44sp"
         android:fontFamily="sans-serif-black"
         app:layout_constraintTop_toTopOf="@id/imageView"
         app:layout_constraintBottom_toBottomOf="@id/imageView"
         app:layout_constraintStart_toEndOf="@id/imageView"
         app:layout_constraintEnd_toEndOf="parent"/>
+=======
+        android:textSize="60sp"
+        android:textStyle="bold"
+        android:visibility="visible"
+        tools:layout_editor_absoluteX="0dp"
+        tools:layout_editor_absoluteY="321dp"
+        tools:visibility="visible" />
+>>>>>>> Stashed changes
 
     <!-- 로고+제목 체인 (가운데 정렬 핵심) -->
     <androidx.constraintlayout.widget.ConstraintLayout
