@@ -1,3 +1,5 @@
+package com.example.smart_safety_management
+
 import android.app.DatePickerDialog
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
@@ -8,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Photo
@@ -24,7 +27,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Calendar
-import java.util.Date
 
 @Preview
 @Composable
@@ -72,7 +74,7 @@ fun DailyListScreen() {
                 navigationIcon = {
                     IconButton(onClick = { /* Handle back navigation */ }) {
                         Icon(
-                            Icons.Filled.ArrowBack,
+                            Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = Color.Black // M2에서는 아이콘 색상(tint)을 직접 지정해야 합니다.
                         )
