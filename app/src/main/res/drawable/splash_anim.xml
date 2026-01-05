@@ -3,7 +3,7 @@
 
     <item
         android:drawable="@drawable/splash_1"
-        android:duration="500" />
+        android:duration="1000" />
 
     <item
         android:drawable="@drawable/splash_2"
