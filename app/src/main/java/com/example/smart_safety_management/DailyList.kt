@@ -30,7 +30,13 @@ import java.util.Calendar
 @Preview
 @Composable
 fun DailyListScreen() {
-    var date by remember { mutableStateOf("") }
+    // Calendar 인스턴스를 먼저 생성하여 기본 날짜로 사용
+    val calendar = Calendar.getInstance()
+    val year = calendar.get(Calendar.YEAR)
+    val month = calendar.get(Calendar.MONTH)
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+    var date by remember { mutableStateOf("$year-${month + 1}-$day") }
     var location by remember { mutableStateOf("") }
     var riskFactor by remember { mutableStateOf("") }
     var safetyMeasure by remember { mutableStateOf("") }
@@ -43,12 +49,8 @@ fun DailyListScreen() {
             safetyMeasure.isNotBlank() &&
             attachedPhotos.isNotEmpty()
 
-    // DatePickerDialog를 위한 Context와 Calendar 인스턴스
+    // DatePickerDialog를 위한 Context
     val context = LocalContext.current
-    val calendar = Calendar.getInstance()
-    val year = calendar.get(Calendar.YEAR)
-    val month = calendar.get(Calendar.MONTH)
-    val day = calendar.get(Calendar.DAY_OF_MONTH)
 
     val datePickerDialog = remember {
         DatePickerDialog(
