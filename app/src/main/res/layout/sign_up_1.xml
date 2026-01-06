@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -30,11 +31,11 @@
         app:layout_constraintBottom_toBottomOf="@id/imageButton"
         android:layout_marginStart="8dp"/>
 
-    <!-- 카드형 버튼 -->
+    <!-- 근로자 카드형 버튼 -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btn_worker"
-        android:layout_width="0dp"
-        android:layout_height="64dp"
+        android:layout_width="384dp"
+        android:layout_height="128dp"
         android:layout_margin="16dp"
         android:layout_marginTop="32dp"
         android:background="#F8F6F6"
@@ -47,8 +48,8 @@
         <!-- 왼쪽 아이콘 -->
         <ImageView
             android:id="@+id/icon_worker"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="74dp"
+            android:layout_height="71dp"
             android:layout_marginStart="16dp"
             android:src="@drawable/worker"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -62,7 +63,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
             android:text="근로자"
-            android:textSize="16sp"
+            android:textSize="25sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@id/icon_worker"
@@ -74,7 +75,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="로 가입하기"
-            android:textSize="16sp"
+            android:textSize="25sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@id/txt_worker"
             app:layout_constraintTop_toTopOf="parent" />
@@ -82,8 +83,70 @@
         <!-- 오른쪽 화살표 -->
         <ImageView
             android:id="@+id/icon_arrow"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="35dp"
+            android:layout_height="33dp"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/right_arrow"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- 관리자 카드형 버튼 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/btn_manager"
+        android:layout_width="384dp"
+        android:layout_height="128dp"
+        android:layout_margin="16dp"
+        android:layout_marginTop="180dp"
+        android:background="#F8F6F6"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btn_worker">
+
+        <!-- 왼쪽 아이콘 -->
+        <ImageView
+            android:id="@+id/icon_manager"
+            android:layout_width="74dp"
+            android:layout_height="71dp"
+            android:layout_marginStart="16dp"
+            android:src="@drawable/manager"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- 근로자 텍스트 -->
+        <TextView
+            android:id="@+id/txt_manager"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:text="관리자"
+            android:textSize="25sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/icon_manager"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- 로 가입하기 텍스트 -->
+        <TextView
+            android:id="@+id/txt_to_manager"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="로 가입하기"
+            android:textSize="25sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/txt_manager"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- 오른쪽 화살표 -->
+        <ImageView
+            android:id="@+id/icon_arrow2"
+            android:layout_width="35dp"
+            android:layout_height="33dp"
             android:layout_marginEnd="16dp"
             android:src="@drawable/right_arrow"
             app:layout_constraintBottom_toBottomOf="parent"
