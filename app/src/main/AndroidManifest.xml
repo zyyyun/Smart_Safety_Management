@@ -47,6 +47,10 @@
         <activity
             android:name=".LogInActivity" />
 
+        <!-- 아이디 찾기 화면 -->
+        <activity
+            android:name=".FindIdActivity" />
+
     </application>
 
 </manifest>
