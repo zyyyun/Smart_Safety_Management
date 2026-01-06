@@ -35,6 +35,10 @@
         <activity
             android:name=".SignUp2Activity" />
 
+        <!-- 회원가입 화면3 (아이디, 비밀번호 입력)-->
+        <activity
+            android:name=".SignUp3Activity" />
+
     </application>
 
 </manifest>
