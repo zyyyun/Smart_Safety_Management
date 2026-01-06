@@ -39,6 +39,10 @@
         <activity
             android:name=".SignUp3Activity" />
 
+        <!-- 회원가입 화면4 (가입완료)-->
+        <activity
+            android:name=".SignUp4Activity" />
+
     </application>
 
 </manifest>

@@ -110,6 +110,7 @@
             android:padding="20dp" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- 인증 버튼 -->
     <Button
         android:id="@+id/verify_button"
         android:layout_width="115dp"
@@ -123,6 +124,7 @@
         app:layout_constraintTop_toTopOf="@id/til_write_verify"
         app:layout_constraintBottom_toBottomOf="@id/til_write_verify" />
 
+    <!-- 다음 버튼 -->
     <Button
         android:id="@+id/next_button"
         android:layout_width="375dp"
@@ -136,6 +138,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>
