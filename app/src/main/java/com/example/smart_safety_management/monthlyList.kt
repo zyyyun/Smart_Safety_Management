@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Divider
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.OutlinedTextField
@@ -71,6 +72,7 @@ fun MonthlyListScreen() {
                 onMonthChange = { newMonth -> currentYearMonth = newMonth }
             )
             DateRangeSelector(yearMonth = currentYearMonth)
+            Divider(color = Color.LightGray, modifier = Modifier.padding(vertical = 8.dp))
         }
     }
 }
@@ -142,12 +144,12 @@ fun DateRangeSelector(yearMonth: YearMonth) {
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         OutlinedTextField(
             value = startDate,
             onValueChange = { startDate = it },
-            label = { Text("시작일") },
             modifier = Modifier.weight(1f),
             trailingIcon = {
                 IconButton(onClick = { showDatePicker(isStartDate = true) }) {
@@ -156,10 +158,10 @@ fun DateRangeSelector(yearMonth: YearMonth) {
             },
             readOnly = true
         )
+        Text(text = "-")
         OutlinedTextField(
             value = endDate,
             onValueChange = { endDate = it },
-            label = { Text("종료일") },
             modifier = Modifier.weight(1f),
             trailingIcon = {
                 IconButton(onClick = { showDatePicker(isStartDate = false) }) {
