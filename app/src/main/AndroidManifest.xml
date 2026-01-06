@@ -27,9 +27,13 @@
         <activity
             android:name=".TitleActivity" />
 
-        <!-- 회원가입 화면 -->
+        <!-- 회원가입 화면1 (근로자 or 관리자 선택) -->
         <activity
             android:name=".SignUp1Activity" />
+
+        <!-- 회원가입 화면2 (본인인증) -->
+        <activity
+            android:name=".SignUp2Activity" />
 
     </application>
 
