@@ -19,5 +19,12 @@ class TitleActivity : AppCompatActivity() {
             val intent = Intent(this, SignUp1Activity::class.java)
             startActivity(intent)
         }
+
+        // 로그인
+        val logInButton = findViewById<Button>(R.id.button2)
+        logInButton.setOnClickListener {
+            val intent = Intent(this, LogInActivity::class.java)
+            startActivity(intent)
+        }
     }
 }
