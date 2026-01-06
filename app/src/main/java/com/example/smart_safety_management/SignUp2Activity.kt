@@ -3,6 +3,7 @@ package com.example.smart_safety_management
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
+import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 
 class SignUp2Activity : AppCompatActivity() {
@@ -13,8 +14,14 @@ class SignUp2Activity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.sign_up_2)
 
-        val nextButton = findViewById<Button>(R.id.next_button)
+        // 뒤로가기 버튼
+        val backBtn = findViewById<ImageButton>(R.id.imageButton)
+        backBtn.setOnClickListener {
+            finish()
+        }
 
+        // 다음 버튼
+        val nextButton = findViewById<Button>(R.id.next_button)
         nextButton.setOnClickListener {
             val intent = Intent(this, SignUp3Activity::class.java)
             startActivity(intent)
