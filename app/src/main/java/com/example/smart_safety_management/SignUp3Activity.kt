@@ -3,6 +3,7 @@ package com.example.smart_safety_management
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
+import android.widget.EditText
 import android.widget.ImageButton
 import androidx.appcompat.app.AppCompatActivity
 
@@ -31,8 +32,12 @@ class SignUp3Activity : AppCompatActivity() {
     }
 
     private fun moveToSignUp4() {
+        val id = findViewById<EditText>(R.id.et_id).text.toString()
+
         val intent = Intent(this, SignUp4Activity::class.java)
-        intent.putExtra(EXTRA_USER_ROLE, userRole.name) // enum 유지
+        intent.putExtra("EXTRA_USER_ID", id)   // 아이디 전달
+        intent.putExtra(EXTRA_USER_ROLE, userRole.name) // 기존 enum 유지
         startActivity(intent)
     }
+
 }

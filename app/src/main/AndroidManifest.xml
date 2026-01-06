@@ -43,6 +43,10 @@
         <activity
             android:name=".SignUp4Activity" />
 
+        <!-- 로그인 화면 -->
+        <activity
+            android:name=".LogInActivity" />
+
     </application>
 
 </manifest>
