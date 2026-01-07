@@ -12,7 +12,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.NestedScrollView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.appbar.MaterialToolbar
+import java.util.Calendar
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 
 class HomeActivity : AppCompatActivity() {
 
@@ -61,27 +63,79 @@ class HomeActivity : AppCompatActivity() {
         // ===============================
         // 달력 더미 데이터 채우기
         // ===============================
-        fillCalendarDummy()
+        fillCalendarReal()
     }
+    private var selectedDay: Int? = null
 
-    /**
-     * 달력 GridLayout에 1~31 더미 날짜 채우기
-     */
-    private fun fillCalendarDummy() {
+    private fun fillCalendarReal() {
         val grid = findViewById<GridLayout>(R.id.calendar_grid)
+        val tvMonth = findViewById<TextView>(R.id.tv_month)
+
         grid.removeAllViews()
 
-        for (day in 1..31) {
+        val calendar = Calendar.getInstance()
+
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH) // 0부터 시작
+        val today = calendar.get(Calendar.DAY_OF_MONTH)
+
+        // 상단 "2026년 1월" 오늘 날짜 월 표시
+        tvMonth.text = "${year}년 ${month + 1}월"
+
+        // 이번 달 1일로 이동
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+
+        val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) // 1=일요일
+        val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+        // 빈 칸 채우기 (1일 시작 요일 맞추기)
+        for (i in 1 until firstDayOfWeek) {
+            val empty = TextView(this).apply {
+                layoutParams = GridLayout.LayoutParams().apply {
+                    width = 0
+                    height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                    rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                }
+            }
+            grid.addView(empty)
+        }
+
+        // 날짜 채우기
+        for (day in 1..daysInMonth) {
             val tv = TextView(this).apply {
                 text = day.toString()
                 gravity = Gravity.CENTER
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-                setPadding(0, 14, 0, 14)
+                setPadding(0, 20, 0, 10)
+
+                layoutParams = GridLayout.LayoutParams().apply {
+                    width = 0
+                    height = ViewGroup.LayoutParams.WRAP_CONTENT
+                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                    rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                }
+
+                setOnClickListener {
+                    selectedDay = day
+                    fillCalendarReal()
+                }
             }
+
+            // 선택된 날짜
+            if (day == selectedDay) {
+                tv.background = circleDrawable("#FF5722")
+                tv.setTextColor(Color.WHITE)
+            }
+
             grid.addView(tv)
         }
     }
+
+    private fun circleDrawable(color: String): GradientDrawable {
+        return GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(Color.parseColor(color))
+        }
+    }
+
 }
