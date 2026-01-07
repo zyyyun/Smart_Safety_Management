@@ -3,6 +3,7 @@ package com.example.smart_safety_management
 import android.content.Intent
 import android.graphics.Paint
 import android.os.Bundle
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -29,6 +30,13 @@ class LogInActivity : AppCompatActivity() {
         val backBtn = findViewById<ImageButton>(R.id.backButton)
         backBtn.setOnClickListener {
             finish()
+        }
+
+        // 로그인 버튼
+        val loginBtn = findViewById<Button>(R.id.log_in_button)
+        loginBtn.setOnClickListener {
+            val intent = Intent(this, MainHomeActivity::class.java)
+            startActivity(intent)
         }
     }
 }

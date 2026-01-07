@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/home"
+        android:title="안전점검" />
+    <item
+        android:id="@+id/nav_ai"
+        android:icon="@drawable/ai"
+        android:title="AI감지" />
+    <item
+        android:id="@+id/nav_live"
+        android:icon="@drawable/live"
+        android:title="실시간상황" />
+
+    <item
+        android:id="@+id/nav_history"
+        android:icon="@drawable/history"
+        android:title="이력" />
+
+    <item
+        android:id="@+id/nav_location"
+        android:icon="@drawable/location"
+        android:title="위치정보" />
+</menu>

@@ -63,6 +63,9 @@
         <!-- 비밀번호 수정 완료 화면 -->
         <activity android:name=".PasswordChangedActivity"/>
 
+        <!-- 메인 홈 화면 -->
+        <activity android:name=".MainHomeActivity"/>
+
     </application>
 
 </manifest>
