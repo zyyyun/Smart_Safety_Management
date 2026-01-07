@@ -24,7 +24,7 @@ class HomeActivity : AppCompatActivity() {
         setContentView(R.layout.main_home)
 
         // 월별로 가기 버튼
-        findViewById<View>(R.id.layout_monthly_header).setOnClickListener {
+        findViewById<View>(R.id.layout_monthly_action).setOnClickListener {
             val intent = Intent(this, MonthlyListActivity::class.java)
             startActivity(intent)
         }

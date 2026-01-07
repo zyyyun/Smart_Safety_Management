@@ -17,11 +17,12 @@
             android:id="@+id/layout_monthly_header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
             android:clickable="true"
-            android:focusable="true">
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
+            <!-- 왼쪽: 월 텍스트 (클릭 X) -->
             <TextView
                 android:id="@+id/tv_month"
                 android:layout_width="wrap_content"
@@ -31,28 +32,39 @@
                 android:textSize="30sp"
                 android:textStyle="bold" />
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginEnd="4dp"
-                android:scaleType="centerInside"
-                android:src="@drawable/calendar"
-                android:tint="#666666" />
-
-            <TextView
-                android:id="@+id/tv_monthly_view"
+            <!-- 오른쪽: 클릭 영역 -->
+            <LinearLayout
+                android:id="@+id/layout_monthly_action"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="월별로 보기"
-                android:textSize="16sp"/>
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginStart="4dp"
-                android:scaleType="centerInside"
-                android:src="@drawable/right_arrow"
-                android:tint="#666666" />
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="4dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/calendar"
+                    android:tint="#666666" />
+
+                <TextView
+                    android:id="@+id/tv_monthly_view"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="월별로 보기"
+                    android:textSize="16sp" />
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginStart="4dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/right_arrow"
+                    android:tint="#666666" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- 요일 -->
@@ -62,13 +74,33 @@
             android:layout_marginTop="12dp"
             android:orientation="horizontal">
 
-            <TextView style="@style/DayOfWeek" android:text="일"/>
-            <TextView style="@style/DayOfWeek" android:text="월"/>
-            <TextView style="@style/DayOfWeek" android:text="화"/>
-            <TextView style="@style/DayOfWeek" android:text="수"/>
-            <TextView style="@style/DayOfWeek" android:text="목"/>
-            <TextView style="@style/DayOfWeek" android:text="금"/>
-            <TextView style="@style/DayOfWeek" android:text="토"/>
+            <TextView
+                style="@style/DayOfWeek"
+                android:text="일" />
+
+            <TextView
+                style="@style/DayOfWeek"
+                android:text="월" />
+
+            <TextView
+                style="@style/DayOfWeek"
+                android:text="화" />
+
+            <TextView
+                style="@style/DayOfWeek"
+                android:text="수" />
+
+            <TextView
+                style="@style/DayOfWeek"
+                android:text="목" />
+
+            <TextView
+                style="@style/DayOfWeek"
+                android:text="금" />
+
+            <TextView
+                style="@style/DayOfWeek"
+                android:text="토" />
         </LinearLayout>
 
         <!-- 달력 그리드(일단 UI용 더미) -->
@@ -77,7 +109,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:columnCount="7"/>
+            android:columnCount="7" />
 
     </LinearLayout>
 
