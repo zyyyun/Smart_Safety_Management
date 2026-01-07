@@ -66,6 +66,11 @@
         <!-- 메인 홈 화면 -->
         <activity android:name=".HomeActivity"/>
 
+        <!-- 월별로 보기 화면 -->
+        <activity
+            android:name=".MonthlyListActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>

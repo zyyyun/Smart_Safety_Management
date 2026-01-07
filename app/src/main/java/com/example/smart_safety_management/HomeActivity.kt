@@ -15,12 +15,19 @@ import androidx.recyclerview.widget.RecyclerView
 import java.util.Calendar
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.content.Intent
 
 class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_home)
+
+        // 월별로 가기 버튼
+        findViewById<View>(R.id.layout_monthly_header).setOnClickListener {
+            val intent = Intent(this, MonthlyListActivity::class.java)
+            startActivity(intent)
+        }
 
         // ===============================
         // RecyclerView 설정
@@ -106,7 +113,8 @@ class HomeActivity : AppCompatActivity() {
             val tv = TextView(this).apply {
                 text = day.toString()
                 gravity = Gravity.CENTER
-                setPadding(0, 20, 0, 10)
+                setPadding(0, 40, 0, 40)
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
 
                 layoutParams = GridLayout.LayoutParams().apply {
                     width = 0

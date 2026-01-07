@@ -14,26 +14,45 @@
 
         <!-- 상단 월 + 버튼 -->
         <LinearLayout
+            android:id="@+id/layout_monthly_header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:clickable="true"
+            android:focusable="true">
 
             <TextView
                 android:id="@+id/tv_month"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="2026년 5월"
-                android:textSize="18sp"
-                android:textStyle="bold"/>
+                android:textSize="30sp"
+                android:textStyle="bold" />
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginEnd="4dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/calendar"
+                android:tint="#666666" />
 
             <TextView
                 android:id="@+id/tv_monthly_view"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="월별로 보기"
-                android:textSize="12sp"/>
+                android:textSize="16sp"/>
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="4dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/right_arrow"
+                android:tint="#666666" />
         </LinearLayout>
 
         <!-- 요일 -->
