@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
@@ -173,6 +174,7 @@ fun DailyReportItemsCard(report: DailyInspectionReport) {
 
 @Composable
 fun InspectionItemView(item: InspectionItem) {
+    var showDialog by remember { mutableStateOf(false) }
     val itemBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) Color(0xFFFFF8E1) else Color.Transparent
     val buttonBackgroundColor: Color
     val buttonContentColor: Color
@@ -186,6 +188,19 @@ fun InspectionItemView(item: InspectionItem) {
     }
 
     val buttonText = if (item.status == InspectionStatus.UNCHECKED) "미점검" else "점검완료"
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("점검요청 재알림", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
+            text = { Text("세부 내용을 입력하세요.") },
+            confirmButton = {
+                Button(onClick = { showDialog = false }) {
+                    Text("확인")
+                }
+            }
+        )
+    }
 
     Row(
         modifier = Modifier
@@ -202,7 +217,11 @@ fun InspectionItemView(item: InspectionItem) {
 
         Box {
             Button(
-                onClick = { /* Status change */ },
+                onClick = {
+                    if (item.status == InspectionStatus.UNCHECKED) {
+                        showDialog = true
+                    }
+                },
                 colors = ButtonDefaults.buttonColors(
                     backgroundColor = buttonBackgroundColor,
                     contentColor = buttonContentColor
