@@ -2,6 +2,7 @@ package com.example.smart_safety_management
 
 import android.app.DatePickerDialog
 import android.os.Build
+import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
@@ -104,6 +105,7 @@ val mockReports = listOf(
 @Preview
 @Composable
 fun MonthlyListScreen() {
+    val activity = LocalContext.current as? ComponentActivity
     var currentYearMonth by remember { mutableStateOf(YearMonth.of(2026, 1)) }
     var startDate by remember { mutableStateOf(currentYearMonth.atDay(1)) }
     var endDate by remember { mutableStateOf(currentYearMonth.atEndOfMonth()) }
@@ -124,10 +126,10 @@ fun MonthlyListScreen() {
         topBar = {
             TopAppBar(
                 title = { Text("월별로 보기", fontWeight = FontWeight.Bold, color = Color.Black) },
-                navigationIcon = { IconButton(onClick = { /* Handle back */ }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.Black) } },
+                navigationIcon = { IconButton(onClick = { activity?.onBackPressedDispatcher?.onBackPressed() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.Black) } },
                 backgroundColor = Color.White
             )
-        }
+        },
     ) { paddingValues ->
         Column(
             modifier = Modifier
