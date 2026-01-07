@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="24dp"
+    android:background="@drawable/bg_dialog_round">
+
+    <!-- 제목 -->
+    <TextView
+        android:id="@+id/tv_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="초대코드 입력"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#000000"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <!-- 설명 -->
+    <TextView
+        android:id="@+id/tv_desc"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="문자로 받은 초대코드가 있으신가요?"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@id/tv_title"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="8dp"/>
+
+    <!-- 입력창 -->
+    <EditText
+        android:id="@+id/et_invite_code"
+        android:layout_width="0dp"
+        android:layout_height="60dp"
+        android:hint="여기에 초대코드를 입력해주세요"
+        android:background="@drawable/bg_edittext"
+        android:paddingHorizontal="12dp"
+        android:inputType="textPassword"
+        app:layout_constraintTop_toBottomOf="@id/tv_desc"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"/>
+
+    <!-- 에러 메시지 -->
+    <TextView
+        android:id="@+id/tv_error"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="초대코드는 정확히 입력해야 등록할 수 있습니다."
+        android:textSize="12sp"
+        android:textColor="#FF5722"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/et_invite_code"
+        app:layout_constraintStart_toStartOf="@id/et_invite_code"
+        android:layout_marginTop="6dp"/>
+
+    <!-- 알림 메시지 -->
+    <TextView
+        android:id="@+id/tv_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:background="#FFF4EA"
+        android:text="초대코드는 설정 메뉴에서도 등록할 수 있습니다."
+        android:textColor="#FF5722"
+        android:textSize="12sp"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_error" />
+
+    <!-- 등록 버튼 -->
+    <Button
+        android:id="@+id/btn_submit"
+        android:layout_width="0dp"
+        android:layout_height="60dp"
+        android:text="등록하기"
+        android:textSize="18dp"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#FF7A00"
+        app:layout_constraintTop_toBottomOf="@id/tv_message"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp"/>
+
+    <!-- 초대코드없이 진행 텍스트 -->
+    <TextView
+        android:id="@+id/tv_skip_invite_code"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="초대코드없이 진행"
+        android:textSize="14sp"
+        android:textColor="#8E8E8E"
+        android:clickable="true"
+        android:focusable="true"
+        android:layout_marginTop="12dp"
+        app:layout_constraintTop_toBottomOf="@id/btn_submit"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

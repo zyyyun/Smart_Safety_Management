@@ -16,12 +16,22 @@ import java.util.Calendar
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.content.Intent
+import android.graphics.Paint
+
+private const val PREF_NAME = "onboarding_prefs"
+private const val KEY_INVITE_DONE = "invite_code_done"
 
 class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_home)
+
+        // 초대코드 창 리셋
+        resetInviteForTest()
+
+        // 초대코드 창 띄우기 여부 확인
+        checkInviteCodeDialog()
 
         // 월별로 가기 버튼
         findViewById<View>(R.id.layout_monthly_action).setOnClickListener {
@@ -145,5 +155,72 @@ class HomeActivity : AppCompatActivity() {
             setColor(Color.parseColor(color))
         }
     }
+
+    private fun checkInviteCodeDialog() {
+        val prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE)
+        val isInviteDone = prefs.getBoolean(KEY_INVITE_DONE, false)
+
+        if (!isInviteDone) {
+            showInviteCodeDialog()
+        }
+    }
+
+    private fun showInviteCodeDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.invite_code, null)
+
+        val etInviteCode = dialogView.findViewById<TextView>(R.id.et_invite_code)
+        val btnSubmit = dialogView.findViewById<View>(R.id.btn_submit)
+        val tvError = dialogView.findViewById<View>(R.id.tv_error)
+
+        val tvSkip = dialogView.findViewById<TextView>(R.id.tv_skip_invite_code)
+
+        // 초대코드없이 진행 텍스트 밑줄 추가
+        tvSkip.paintFlags =
+            tvSkip.paintFlags or Paint.UNDERLINE_TEXT_FLAG
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(false) // ❗ 뒤로가기 + 바깥 터치 막기
+            .create()
+
+        btnSubmit.setOnClickListener {
+            val inputCode = etInviteCode.text.toString().trim()
+
+            if (inputCode.isEmpty()) {
+                tvError.visibility = View.VISIBLE
+                return@setOnClickListener
+            }
+
+            // TODO: 실제 서버 검증 위치
+            if (inputCode == "1234") { // 임시 성공 코드
+                saveInviteDone()
+                dialog.dismiss()
+            } else {
+                tvError.visibility = View.VISIBLE
+            }
+        }
+
+        // 초대코드 없이 진행
+        tvSkip.setOnClickListener {
+            saveInviteDone()   // 다시 안 뜨게 처리
+            dialog.dismiss()   // 창 닫기
+        }
+
+        dialog.show()
+    }
+
+    private fun saveInviteDone() {
+        val prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE)
+        prefs.edit()
+            .putBoolean(KEY_INVITE_DONE, true)
+            .apply()
+    }
+
+    // 초대코드 창 테스트용 리셋
+    private fun resetInviteForTest() {
+        val prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE)
+        prefs.edit().clear().apply()
+    }
+
 
 }
