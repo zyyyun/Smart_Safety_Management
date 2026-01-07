@@ -3,8 +3,16 @@ package com.example.smart_safety_management
 import android.app.DatePickerDialog
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,12 +26,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
 import androidx.compose.material.Divider
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.OutlinedTextField
@@ -40,6 +49,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,18 +57,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.util.Calendar
+import kotlin.math.roundToInt
 
 enum class InspectionStatus { CHECKED, UNCHECKED }
 
@@ -71,7 +85,7 @@ val mockReports = listOf(
     DailyInspectionReport(
         date = LocalDate.of(2026, 1, 7),
         items = listOf(
-            InspectionItem("E구역 7열", "조명 미점검으로 인한 안전 문제 발생", InspectionStatus.UNCHECKED, "누르면 근로자에게 알림이 가요"),
+            InspectionItem("E구역 7열", "조명 미점검으로 인한 안전 문제 발생", InspectionStatus.UNCHECKED, "🔉 누르면 근로자에게 알림이 가요"),
             InspectionItem("F구역 12열", "환풍기 작동 불량으로 공기 순환 필요", InspectionStatus.CHECKED),
             InspectionItem("G구역 2열", "소화 장비 부족으로 긴급 보충 요망", InspectionStatus.CHECKED)
         )
@@ -93,6 +107,16 @@ fun MonthlyListScreen() {
     var currentYearMonth by remember { mutableStateOf(YearMonth.of(2026, 1)) }
     var startDate by remember { mutableStateOf(currentYearMonth.atDay(1)) }
     var endDate by remember { mutableStateOf(currentYearMonth.atEndOfMonth()) }
+    var lastUserInteraction by remember { mutableStateOf(0L) }
+    val listState = rememberLazyListState()
+
+    val isScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
+
+    LaunchedEffect(isScrolling) {
+        if (isScrolling) {
+            lastUserInteraction = System.currentTimeMillis()
+        }
+    }
 
     val filteredReports = mockReports.filter { it.date in startDate..endDate }
 
@@ -105,18 +129,26 @@ fun MonthlyListScreen() {
             )
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)) {
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        lastUserInteraction = System.currentTimeMillis()
+                    })
+                }
+        ) {
             YearMonthSelector(yearMonth = currentYearMonth, onMonthChange = { newMonth -> currentYearMonth = newMonth })
             DateRangeSelector(yearMonth = currentYearMonth, onDateChange = { start, end ->
                 startDate = start
                 endDate = end
             })
             Divider(color = Color.LightGray, modifier = Modifier.padding(vertical = 8.dp))
-            LazyColumn(modifier = Modifier.padding(horizontal = 16.dp)) {
+            LazyColumn(state = listState, modifier = Modifier.padding(horizontal = 16.dp)) {
                 items(filteredReports) { report ->
                     ReportHeader(report = report)
                     Spacer(modifier = Modifier.height(8.dp)) // 헤더와 카드 사이 간격 조정
-                    DailyReportItemsCard(report = report)
+                    DailyReportItemsCard(report = report, lastUserInteraction = lastUserInteraction)
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
@@ -159,47 +191,122 @@ fun ReportHeader(report: DailyInspectionReport) {
 }
 
 @Composable
-fun DailyReportItemsCard(report: DailyInspectionReport) {
+fun DailyReportItemsCard(report: DailyInspectionReport, lastUserInteraction: Long) {
     Card(elevation = 4.dp, shape = RoundedCornerShape(8.dp)) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             report.items.forEach { item ->
-                InspectionItemView(item = item)
+                InspectionItemView(item = item, lastUserInteraction = lastUserInteraction)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterialApi::class)
+@Composable
+private fun InspectionItemActions(
+    item: InspectionItem,
+    tooltipVisible: Boolean,
+    onShowDialog: () -> Unit,
+    onTooltipTap: () -> Unit,
+    buttonBackgroundColor: Color,
+    buttonContentColor: Color,
+    buttonText: String
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "tooltip_animation")
+    val floatingOffset by infiniteTransition.animateFloat(
+        initialValue = -5f,
+        targetValue = 5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "floating_offset"
+    )
+
+    Box {
+        Button(
+            onClick = {
+                if (item.status == InspectionStatus.UNCHECKED) {
+                    onShowDialog()
+                }
+            },
+            elevation = ButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
+            colors = ButtonDefaults.buttonColors(
+                backgroundColor = buttonBackgroundColor,
+                contentColor = buttonContentColor
+            ),
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.align(Alignment.CenterEnd)
+        ) {
+            val icon = if (item.status == InspectionStatus.UNCHECKED) Icons.Default.Notifications else Icons.Default.Check
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(text = buttonText, fontWeight = FontWeight.Black)
+        }
+
+        if (item.specialNote != null && item.status == InspectionStatus.UNCHECKED) {
+            AnimatedVisibility(
+                visible = tooltipVisible,
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(y = (-32).dp)
+                    .offset { IntOffset(0, floatingOffset.roundToInt()) }
+            ) {
+                Surface(
+                    onClick = onTooltipTap,
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color.DarkGray,
+                    elevation = 2.dp
+                ) {
+                    Text(
+                        text = item.specialNote,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontSize = 12.sp,
+                        color = Color.White
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun InspectionItemView(item: InspectionItem) {
+fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long) {
     var showDialog by remember { mutableStateOf(false) }
-    val itemBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) Color(0xFFFFF8E1) else Color.Transparent
+    var dialogWasOpened by remember { mutableStateOf(false) }
+    val creationTime = remember { System.currentTimeMillis() }
+    var tooltipVisible by remember { mutableStateOf(true) }
+
+    LaunchedEffect(lastUserInteraction) {
+        if (lastUserInteraction > creationTime) {
+            tooltipVisible = false
+        }
+    }
+
+    val itemBackgroundColor = if (item.status == InspectionStatus.UNCHECKED && !dialogWasOpened) Color(0x1FFB923C) else Color.Transparent
     val buttonBackgroundColor: Color
     val buttonContentColor: Color
 
     if (item.status == InspectionStatus.UNCHECKED) {
-        buttonContentColor = Color(0xFFFFA726)
+        buttonContentColor = Color(0xFFF96316)
         buttonBackgroundColor = Color(0xFFFFF8E1)
     } else {
-        buttonContentColor = Color(0xFF66BB6A)
-        buttonBackgroundColor = Color(0xFFE8F5E9)
+        buttonContentColor = Color(0xFF04BC93)
+        buttonBackgroundColor = Color(0xFFE0F2F1)
     }
 
     val buttonText = if (item.status == InspectionStatus.UNCHECKED) "미점검" else "점검완료"
 
     if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text("점검요청 재알림", fontWeight = FontWeight.Bold, fontSize = 20.sp) },
-            text = { Text("세부 내용을 입력하세요.") },
-            confirmButton = {
-                Button(onClick = { showDialog = false }) {
-                    Text("확인")
-                }
-            }
-        )
+        UncheckedItemDialog(onDismissRequest = { showDialog = false })
     }
 
     Row(
@@ -215,49 +322,85 @@ fun InspectionItemView(item: InspectionItem) {
         }
         Spacer(modifier = Modifier.width(8.dp))
 
-        Box {
-            Button(
-                onClick = {
-                    if (item.status == InspectionStatus.UNCHECKED) {
-                        showDialog = true
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = buttonBackgroundColor,
-                    contentColor = buttonContentColor
-                ),
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.align(Alignment.CenterEnd)
-            ) {
-                val icon = if (item.status == InspectionStatus.UNCHECKED) Icons.Default.Notifications else Icons.Default.Check
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(text = buttonText, fontWeight = FontWeight.Black)
-            }
+        InspectionItemActions(
+            item = item,
+            tooltipVisible = tooltipVisible,
+            onShowDialog = {
+                showDialog = true
+                dialogWasOpened = true
+                tooltipVisible = false
+            },
+            onTooltipTap = { tooltipVisible = false },
+            buttonBackgroundColor = buttonBackgroundColor,
+            buttonContentColor = buttonContentColor,
+            buttonText = buttonText
+        )
+    }
+}
 
-            if (item.specialNote != null && item.status == InspectionStatus.UNCHECKED) {
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color.DarkGray,
-                    elevation = 2.dp,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(y = (-32).dp)
-                ) {
-                    Text(
-                        text = item.specialNote,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        fontSize = 12.sp,
-                        color = Color.White
+@Preview(showBackground = true, name = "Unchecked Item Dialog Preview")
+@Composable
+fun InspectionItemViewPreview() {
+    val uncheckedItem = InspectionItem("E구역 7열", "조명 미점검", InspectionStatus.UNCHECKED, "참고 사항")
+    Box(modifier = Modifier.padding(16.dp)) {
+        InspectionItemView(item = uncheckedItem, 0L)
+    }
+}
+
+
+@Composable
+fun UncheckedItemDialog(onDismissRequest: () -> Unit) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            elevation = 8.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(vertical = 24.dp, horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = "Notification Icon",
+                    tint = Color(0xFFF97316),
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "점검요청 재알림",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "근로자에게 점검요청 재알림을 발송하였습니다.",
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick = onDismissRequest,
+                    modifier = Modifier.fillMaxWidth(0.8f),
+                    elevation = ButtonDefaults.elevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = Color(0xFFF97316),
+                        contentColor = Color.White
                     )
+                ) {
+                    Text("확인")
                 }
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun UncheckedItemDialogPreview() {
+    UncheckedItemDialog(onDismissRequest = {})
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
