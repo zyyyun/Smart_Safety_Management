@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
@@ -26,31 +29,57 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun AIEventDetectScreen() {
     Scaffold(
-        // topBar에 Column을 사용하여 여러 개의 상단바를 배치합니다.
         topBar = {
             Column {
                 MyTopAppBar()
-                MySecondaryTopAppBar() // 여기에 두 번째 상단바를 추가합니다.
+                MySecondaryTopAppBar()
             }
         },
-        bottomBar = { MyBottomNavigation() }
+        bottomBar = { MyBottomNavigation() },
+        backgroundColor = Color(0xFFFF7A00) // Scaffold 배경을 상단바와 동일한 색으로 설정
     ) { paddingValues ->
         Surface(
             modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize(),
-            color = Color.White
+                .fillMaxSize()
+                .padding(paddingValues), // 상단바/하단바 영역을 제외한 나머지 공간을 채움
+            color = Color.White,
+            // 상단 모서리만 둥글게 처리하여 곡선 효과를 줍니다.
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
-            // 배경을 흰색으로 채웁니다.
+            // 향후 콘텐츠를 담을 Column
+            Column(modifier = Modifier.padding(16.dp)) {
+                CurrentDateText()
+            }
         }
     }
+}
+
+@Composable
+fun CurrentDateText() {
+    val currentDate = Date()
+    val formatter = SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREAN)
+    val formattedDate = formatter.format(currentDate)
+
+    Text(
+        text = formattedDate,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        textAlign = TextAlign.Start, // 중앙 정렬에서 왼쪽 정렬로 변경
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold
+    )
 }
 
 @Composable
@@ -97,6 +126,8 @@ fun MyTopAppBar() {
  */
 @Composable
 fun MySecondaryTopAppBar() {
+    var selectedFilter by remember { mutableStateOf("전체") }
+
     TopAppBar(
         backgroundColor = Color(0xFFFF7A00),
         contentColor = Color.White,
@@ -105,14 +136,31 @@ fun MySecondaryTopAppBar() {
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
         ) {
-            Text(
-                text = "하위 메뉴 또는 필터 영역",
-                fontSize = 16.sp
-            )
-            // 여기에 다른 버튼이나 UI 요소를 추가할 수 있습니다.
+            FilterButton("전체", selectedFilter == "전체") { selectedFilter = "전체" }
+            FilterButton("위험", selectedFilter == "위험") { selectedFilter = "위험" }
+            FilterButton("경고", selectedFilter == "경고") { selectedFilter = "경고" }
+            FilterButton("주의", selectedFilter == "주의") { selectedFilter = "주의" }
         }
+    }
+}
+
+@Composable
+fun FilterButton(text: String, isSelected: Boolean, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = Color.Transparent,
+            contentColor = if (isSelected) Color.White else Color.Gray
+        ),
+        elevation = ButtonDefaults.elevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp
+        ),
+    ) {
+        Text(text = text, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 
