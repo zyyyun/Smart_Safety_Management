@@ -48,10 +48,10 @@
             android:layout_height="30dp"
             android:layout_marginEnd="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/alarm"
+            android:contentDescription="알림"
             android:scaleType="centerInside"
-            android:tint="#FFFFFF"
-            android:contentDescription="알림"/>
+            android:src="@drawable/alarm"
+            android:tint="#FFFFFF" />
 
         <ImageButton
             android:id="@+id/btn_setting"
