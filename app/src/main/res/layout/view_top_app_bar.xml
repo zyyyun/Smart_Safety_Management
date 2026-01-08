@@ -22,7 +22,7 @@
             android:layout_height="35dp"
             android:contentDescription="로고"
             android:src="@drawable/_2026_01_05_15_18_02_removebg_preview"
-            android:tint="@color/white" />
+            app:tint="@color/white" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -51,7 +51,7 @@
             android:contentDescription="알림"
             android:scaleType="centerInside"
             android:src="@drawable/alarm"
-            android:tint="#FFFFFF" />
+            app:tint="#FFFFFF" />
 
         <ImageButton
             android:id="@+id/btn_setting"
@@ -61,7 +61,7 @@
             android:contentDescription="설정"
             android:src="@drawable/setting"
             android:scaleType="centerInside"
-            android:tint="#FFFFFF" />
+            app:tint="#FFFFFF" />
     </LinearLayout>
 
 </com.google.android.material.appbar.MaterialToolbar>
