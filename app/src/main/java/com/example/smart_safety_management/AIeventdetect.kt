@@ -1,14 +1,18 @@
 package com.example.smart_safety_management
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
 import androidx.compose.material.Button
@@ -37,8 +41,27 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+enum class EventStatus {
+    PENDING,
+    COMPLETED,
+    FALSE_DETECTION
+}
+
 @Composable
 fun AIEventDetectScreen() {
+    val pendingEvents = listOf(
+        EventData(accidentType = "위험", location = "C구역 2열", content = "화재사고가 감지되었습니다."),
+        EventData(accidentType = "경고", location = "C구역 2열", content = "쓰러짐이 감지되었습니다."),
+        EventData(accidentType = "주의", location = "C구역 2열", content = "이동경로 미정돈이 감지되었습니다.")
+    )
+    val completedEvents = listOf(
+        EventData(accidentType = "주의", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다."),
+        EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.")
+    )
+    val falseDetectionEvents = listOf(
+        EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.")
+    )
+
     Scaffold(
         topBar = {
             Column {
@@ -58,8 +81,102 @@ fun AIEventDetectScreen() {
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
             // 향후 콘텐츠를 담을 Column
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+            ) {
                 CurrentDateText()
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("조치대기", fontWeight = FontWeight.Bold)
+                    pendingEvents.forEach { event ->
+                        EventItem(event, EventStatus.PENDING)
+                    }
+                    Text("조치완료", fontWeight = FontWeight.Bold)
+                    completedEvents.forEach { event ->
+                        EventItem(event, EventStatus.COMPLETED)
+                    }
+                    Text("오탐처리", fontWeight = FontWeight.Bold)
+                    falseDetectionEvents.forEach { event ->
+                        EventItem(event, EventStatus.FALSE_DETECTION)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EventItem(event: EventData, status: EventStatus) {
+    val isPending = status == EventStatus.PENDING
+
+    val buttonColor = if (isPending) {
+        when (event.accidentType) {
+            "위험" -> Color(0x1FEF4444)
+            "경고" -> Color(0x1FFB923C)
+            "주의" -> Color(0x1FFFB114)
+            else -> Color.LightGray
+        }
+    } else {
+        Color(0xFFF4F5F6) // A light gray for completed/false-positive
+    }
+
+    val borderColor = if (isPending) {
+        when (event.accidentType) {
+            "위험" -> Color(0xFFEF4444)
+            "경고" -> Color(0xFFFB923C)
+            "주의" -> Color(0xFFFFB114)
+            else -> Color.Gray
+        }
+    } else {
+        Color(0xFFE6E8EA)
+    }
+
+    val iconTint = if (isPending) Color.Unspecified else Color(0xFFB1B8BE)
+    val textColor = if (isPending) Color.DarkGray else Color.Gray
+    val locationColor = if (isPending) Color.Black else Color.Gray
+
+    Button(
+        onClick = { /* TODO: Handle event click */ },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.buttonColors(backgroundColor = buttonColor),
+        elevation = ButtonDefaults.elevation(0.dp, 0.dp),
+        border = BorderStroke(1.dp, borderColor)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val iconRes = when (event.accidentType) {
+                "위험" -> R.drawable.danger_icon
+                "경고" -> R.drawable.warning_icon
+                "주의" -> R.drawable.caution_icon
+                else -> 0
+            }
+
+            if (iconRes != 0) {
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = event.accidentType,
+                    modifier = Modifier.padding(end = 8.dp)
+                        .offset(x= (-5).dp, y = 5.dp),
+                    tint = iconTint
+                )
+            }
+            Column(
+                horizontalAlignment = Alignment.Start
+            ) {
+                Text("${event.location}", color = locationColor, fontWeight = FontWeight.Bold)
+                Text("${event.content}", color = textColor)
             }
         }
     }
@@ -121,7 +238,7 @@ fun MyTopAppBar() {
 }
 
 /**
- * 두 번째 상단바 Composable. 
+ * 두 번째 상단바 Composable.
  * 필터나 하위 메뉴 등을 배치하는 용도로 사용할 수 있습니다.
  */
 @Composable
@@ -135,7 +252,9 @@ fun MySecondaryTopAppBar() {
         elevation = 0.dp // 그림자 효과 제거
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
@@ -193,6 +312,15 @@ fun MyBottomNavigation() {
 }
 
 data class BottomNavItem(val title: String, @DrawableRes val iconResId: Int, val screenRoute: String)
+
+data class EventData(
+    val accidentType: String, // 사고유형
+    val location: String, // 위치
+    val content: String, // 내용
+    val occurrenceTime: String = "", // 발생시간
+    val deviceName: String = "", // 장치명
+    val accuracy: String = "" // 정확도
+)
 
 @Preview(showBackground = true)
 @Composable
