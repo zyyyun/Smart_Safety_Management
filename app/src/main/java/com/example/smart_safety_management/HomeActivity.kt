@@ -17,6 +17,8 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.content.Intent
 import android.graphics.Paint
+import android.widget.EditText
+import androidx.core.widget.doAfterTextChanged
 
 private const val PREF_NAME = "onboarding_prefs"
 private const val KEY_INVITE_DONE = "invite_code_done"
@@ -168,7 +170,7 @@ class HomeActivity : AppCompatActivity() {
     private fun showInviteCodeDialog() {
         val dialogView = layoutInflater.inflate(R.layout.invite_code, null)
 
-        val etInviteCode = dialogView.findViewById<TextView>(R.id.et_invite_code)
+        val etInviteCode = dialogView.findViewById<EditText>(R.id.et_invite_code)
         val btnSubmit = dialogView.findViewById<View>(R.id.btn_submit)
         val tvError = dialogView.findViewById<View>(R.id.tv_error)
 
@@ -186,18 +188,26 @@ class HomeActivity : AppCompatActivity() {
         btnSubmit.setOnClickListener {
             val inputCode = etInviteCode.text.toString().trim()
 
+            // 비어있을 때
             if (inputCode.isEmpty()) {
                 tvError.visibility = View.VISIBLE
+                etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
                 return@setOnClickListener
             }
 
-            // TODO: 실제 서버 검증 위치
+            // 코드 검증
             if (inputCode == "1234") { // 임시 성공 코드
                 saveInviteDone()
                 dialog.dismiss()
             } else {
                 tvError.visibility = View.VISIBLE
+                etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
             }
+        }
+
+        etInviteCode.doAfterTextChanged {
+            tvError.visibility = View.GONE
+            etInviteCode.setBackgroundResource(R.drawable.bg_edittext)
         }
 
         // 초대코드 없이 진행
