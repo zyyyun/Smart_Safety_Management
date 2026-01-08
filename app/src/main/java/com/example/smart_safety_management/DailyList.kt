@@ -99,6 +99,7 @@ fun DailyListScreen() {
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
                 trailingIcon = {
+
                     IconButton(onClick = { datePickerDialog.show() }) {
                         Icon(Icons.Default.DateRange, contentDescription = "Open Calendar")
                     }

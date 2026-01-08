@@ -49,24 +49,32 @@ enum class EventStatus {
 
 @Composable
 fun AIEventDetectScreen() {
-    val pendingEvents = listOf(
+    var selectedFilter by remember { mutableStateOf("전체") }
+
+    val allPendingEvents = listOf(
         EventData(accidentType = "위험", location = "C구역 2열", content = "화재사고가 감지되었습니다."),
         EventData(accidentType = "경고", location = "C구역 2열", content = "쓰러짐이 감지되었습니다."),
         EventData(accidentType = "주의", location = "C구역 2열", content = "이동경로 미정돈이 감지되었습니다.")
     )
-    val completedEvents = listOf(
+    val allCompletedEvents = listOf(
         EventData(accidentType = "주의", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다."),
         EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.")
     )
-    val falseDetectionEvents = listOf(
+    val allFalseDetectionEvents = listOf(
         EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.")
     )
+
+    val filteredPendingEvents = if (selectedFilter == "전체") allPendingEvents else allPendingEvents.filter { it.accidentType == selectedFilter }
+    val filteredCompletedEvents = if (selectedFilter == "전체") allCompletedEvents else allCompletedEvents.filter { it.accidentType == selectedFilter }
+    val filteredFalseDetectionEvents = if (selectedFilter == "전체") allFalseDetectionEvents else allFalseDetectionEvents.filter { it.accidentType == selectedFilter }
 
     Scaffold(
         topBar = {
             Column {
                 MyTopAppBar()
-                MySecondaryTopAppBar()
+                MySecondaryTopAppBar(selectedFilter) { newFilter ->
+                    selectedFilter = newFilter
+                }
             }
         },
         bottomBar = { MyBottomNavigation() },
@@ -81,9 +89,10 @@ fun AIEventDetectScreen() {
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
             // 향후 콘텐츠를 담을 Column
-            Column(modifier = Modifier
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
                 CurrentDateText()
                 Column(
@@ -93,16 +102,51 @@ fun AIEventDetectScreen() {
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text("조치대기", fontWeight = FontWeight.Bold)
-                    pendingEvents.forEach { event ->
-                        EventItem(event, EventStatus.PENDING)
+                    if (filteredPendingEvents.isEmpty()) {
+                        Text(
+                            text = "지난 내역은 이력 탭에서 확인하세요.",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp),
+                            textAlign = TextAlign.Center,
+                            color = Color.Gray
+                        )
+                    } else {
+                        filteredPendingEvents.forEach { event ->
+                            EventItem(event, EventStatus.PENDING)
+                        }
                     }
+
                     Text("조치완료", fontWeight = FontWeight.Bold)
-                    completedEvents.forEach { event ->
-                        EventItem(event, EventStatus.COMPLETED)
+                    if (filteredCompletedEvents.isEmpty()) {
+                        Text(
+                            text = "지난 내역은 이력 탭에서 확인하세요.",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp),
+                            textAlign = TextAlign.Center,
+                            color = Color.Gray
+                        )
+                    } else {
+                        filteredCompletedEvents.forEach { event ->
+                            EventItem(event, EventStatus.COMPLETED)
+                        }
                     }
+
                     Text("오탐처리", fontWeight = FontWeight.Bold)
-                    falseDetectionEvents.forEach { event ->
-                        EventItem(event, EventStatus.FALSE_DETECTION)
+                    if (filteredFalseDetectionEvents.isEmpty()) {
+                        Text(
+                            text = "지난 내역은 이력 탭에서 확인하세요.",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp),
+                            textAlign = TextAlign.Center,
+                            color = Color.Gray
+                        )
+                    } else {
+                        filteredFalseDetectionEvents.forEach { event ->
+                            EventItem(event, EventStatus.FALSE_DETECTION)
+                        }
                     }
                 }
             }
@@ -167,8 +211,9 @@ fun EventItem(event: EventData, status: EventStatus) {
                 Icon(
                     painter = painterResource(id = iconRes),
                     contentDescription = event.accidentType,
-                    modifier = Modifier.padding(end = 8.dp)
-                        .offset(x= (-5).dp, y = 5.dp),
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .offset(x = (-5).dp, y = 5.dp),
                     tint = iconTint
                 )
             }
@@ -242,9 +287,7 @@ fun MyTopAppBar() {
  * 필터나 하위 메뉴 등을 배치하는 용도로 사용할 수 있습니다.
  */
 @Composable
-fun MySecondaryTopAppBar() {
-    var selectedFilter by remember { mutableStateOf("전체") }
-
+fun MySecondaryTopAppBar(selectedFilter: String, onFilterChange: (String) -> Unit) {
     TopAppBar(
         backgroundColor = Color(0xFFFF7A00),
         contentColor = Color.White,
@@ -258,10 +301,10 @@ fun MySecondaryTopAppBar() {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
-            FilterButton("전체", selectedFilter == "전체") { selectedFilter = "전체" }
-            FilterButton("위험", selectedFilter == "위험") { selectedFilter = "위험" }
-            FilterButton("경고", selectedFilter == "경고") { selectedFilter = "경고" }
-            FilterButton("주의", selectedFilter == "주의") { selectedFilter = "주의" }
+            FilterButton("전체", selectedFilter == "전체") { onFilterChange("전체") }
+            FilterButton("위험", selectedFilter == "위험") { onFilterChange("위험") }
+            FilterButton("경고", selectedFilter == "경고") { onFilterChange("경고") }
+            FilterButton("주의", selectedFilter == "주의") { onFilterChange("주의") }
         }
     }
 }
@@ -319,7 +362,7 @@ data class EventData(
     val content: String, // 내용
     val occurrenceTime: String = "", // 발생시간
     val deviceName: String = "", // 장치명
-    val accuracy: String = "" // 정확도
+    val accuracy: String = ""
 )
 
 @Preview(showBackground = true)
