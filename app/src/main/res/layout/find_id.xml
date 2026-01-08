@@ -8,14 +8,14 @@
     <!-- 뒤로가기 버튼 -->
     <ImageButton
         android:id="@+id/backButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="23dp"
+        android:layout_height="29dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="12dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        app:srcCompat="?attr/homeAsUpIndicator"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginStart="12dp"
-        android:layout_marginTop="12dp"/>
+        app:srcCompat="@drawable/icon_back" />
 
     <!-- 아이디 찾기 텍스트 -->
     <TextView
