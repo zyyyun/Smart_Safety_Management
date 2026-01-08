@@ -221,6 +221,4 @@ class HomeActivity : AppCompatActivity() {
         val prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE)
         prefs.edit().clear().apply()
     }
-
-
 }
