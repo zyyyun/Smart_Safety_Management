@@ -2,32 +2,14 @@ package com.example.smart_safety_management
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.BottomNavigation
-import androidx.compose.material.BottomNavigationItem
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,11 +25,30 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+// --- 1. 데이터 모델 및 Enum (중복 방지를 위해 상단 정리) ---
+
 enum class EventStatus {
     PENDING,
     COMPLETED,
     FALSE_DETECTION
 }
+
+data class EventData(
+    val accidentType: String,
+    val location: String,
+    val content: String,
+    val occurrenceTime: String = "",
+    val deviceName: String = "",
+    val accuracy: String = ""
+)
+
+data class BottomNavItem(
+    val title: String, 
+    @DrawableRes val iconResId: Int, 
+    val screenRoute: String
+)
+
+// --- 2. 메인 화면 ---
 
 @Composable
 fun AIEventDetectScreen() {
@@ -66,6 +67,14 @@ fun AIEventDetectScreen() {
         EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.")
     )
 
+    val allEvents = allPendingEvents + allCompletedEvents + allFalseDetectionEvents
+    val counts = mapOf(
+        "전체" to allEvents.size,
+        "위험" to allEvents.count { it.accidentType == "위험" },
+        "경고" to allEvents.count { it.accidentType == "경고" },
+        "주의" to allEvents.count { it.accidentType == "주의" }
+    )
+
     val filteredPendingEvents = if (selectedFilter == "전체") allPendingEvents else allPendingEvents.filter { it.accidentType == selectedFilter }
     val filteredCompletedEvents = if (selectedFilter == "전체") allCompletedEvents else allCompletedEvents.filter { it.accidentType == selectedFilter }
     val filteredFalseDetectionEvents = if (selectedFilter == "전체") allFalseDetectionEvents else allFalseDetectionEvents.filter { it.accidentType == selectedFilter }
@@ -75,23 +84,21 @@ fun AIEventDetectScreen() {
             topBar = {
                 Column {
                     MyTopAppBar()
-                    MySecondaryTopAppBar(selectedFilter) { newFilter ->
+                    MySecondaryTopAppBar(selectedFilter, counts) { newFilter ->
                         selectedFilter = newFilter
                     }
                 }
             },
             bottomBar = { MyBottomNavigation() },
-            backgroundColor = Color(0xFFFF7A00) // Scaffold 배경을 상단바와 동일한 색으로 설정
+            backgroundColor = Color(0xFFFF7A00)
         ) { paddingValues ->
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues), // 상단바/하단바 영역을 제외한 나머지 공간을 채움
+                    .padding(paddingValues),
                 color = Color.White,
-                // 상단 모서리만 둥글게 처리하여 곡선 효과를 줍니다.
                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
-                // 향후 콘텐츠를 담을 Column
                 Column(
                     modifier = Modifier
                         .padding(16.dp)
@@ -108,9 +115,7 @@ fun AIEventDetectScreen() {
                         if (filteredPendingEvents.isEmpty()) {
                             Text(
                                 text = "지난 내역은 이력 탭에서 확인하세요.",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 16.dp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                                 textAlign = TextAlign.Center,
                                 color = Color.Gray
                             )
@@ -124,9 +129,7 @@ fun AIEventDetectScreen() {
                         if (filteredCompletedEvents.isEmpty()) {
                             Text(
                                 text = "지난 내역은 이력 탭에서 확인하세요.",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 16.dp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                                 textAlign = TextAlign.Center,
                                 color = Color.Gray
                             )
@@ -140,9 +143,7 @@ fun AIEventDetectScreen() {
                         if (filteredFalseDetectionEvents.isEmpty()) {
                             Text(
                                 text = "지난 내역은 이력 탭에서 확인하세요.",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 16.dp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                                 textAlign = TextAlign.Center,
                                 color = Color.Gray
                             )
@@ -158,6 +159,8 @@ fun AIEventDetectScreen() {
     }
 }
 
+// --- 3. UI 컴포넌트 ---
+
 @Composable
 fun EventItem(event: EventData, status: EventStatus) {
     val isPending = status == EventStatus.PENDING
@@ -170,7 +173,7 @@ fun EventItem(event: EventData, status: EventStatus) {
             else -> Color.LightGray
         }
     } else {
-        Color(0xFFF4F5F6) // A light gray for completed/false-positive
+        Color(0xFFF4F5F6)
     }
 
     val borderColor = if (isPending) {
@@ -189,19 +192,15 @@ fun EventItem(event: EventData, status: EventStatus) {
     val locationColor = if (isPending) Color.Black else Color.Gray
 
     Button(
-        onClick = { /* TODO: Handle event click */ },
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        onClick = { /* Handle event click */ },
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(backgroundColor = buttonColor),
         elevation = ButtonDefaults.elevation(0.dp, 0.dp),
         border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
+            modifier = Modifier.fillMaxWidth().padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             val iconRes = when (event.accidentType) {
@@ -215,17 +214,13 @@ fun EventItem(event: EventData, status: EventStatus) {
                 Icon(
                     painter = painterResource(id = iconRes),
                     contentDescription = event.accidentType,
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .offset(x = (-5).dp, y = 5.dp),
+                    modifier = Modifier.padding(end = 8.dp).offset(x = (-5).dp, y = 5.dp),
                     tint = iconTint
                 )
             }
-            Column(
-                horizontalAlignment = Alignment.Start
-            ) {
-                Text("${event.location}", color = locationColor, fontWeight = FontWeight.SemiBold)
-                Text("${event.content}", color = textColor)
+            Column(horizontalAlignment = Alignment.Start) {
+                Text(event.location, color = locationColor, fontWeight = FontWeight.SemiBold)
+                Text(event.content, color = textColor)
             }
         }
     }
@@ -239,10 +234,8 @@ fun CurrentDateText() {
 
     Text(
         text = formattedDate,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        textAlign = TextAlign.Start, // 중앙 정렬에서 왼쪽 정렬로 변경
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        textAlign = TextAlign.Start,
         fontSize = 18.sp,
         fontWeight = FontWeight.Bold
     )
@@ -254,16 +247,13 @@ fun MyTopAppBar() {
         backgroundColor = Color(0xFFFF7A00),
         contentColor = Color.White,
         modifier = Modifier.height(64.dp),
-        elevation = 0.dp // 그림자 효과 제거
+        elevation = 0.dp
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().offset(y = 6.dp).padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // 좌측: 타이틀
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "AI 이벤트 감지",
@@ -275,12 +265,19 @@ fun MyTopAppBar() {
                 )
             }
 
-            // 우측: 아이콘 영역
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { /* 알림 버튼 클릭 */ }) {
-                    Icon(painter = painterResource(id = R.drawable.alarm), contentDescription = "알림", tint = Color.White)
+                Box {
+                    IconButton(onClick = { }) {
+                        Icon(painter = painterResource(id = R.drawable.alarm), contentDescription = "알림", tint = Color.White)
+                    }
+                    Icon(
+                        painter = painterResource(id = R.drawable.dot_icon),
+                        contentDescription = null,
+                        tint = Color(0xFFFFCE69),
+                        modifier = Modifier.align(Alignment.TopEnd).offset(x = (-10).dp, y = 10.dp).size(6.dp)
+                    )
                 }
-                IconButton(onClick = { /* 설정 버튼 클릭 */ }) {
+                IconButton(onClick = { }) {
                     Icon(painter = painterResource(id = R.drawable.setting), contentDescription = "설정", tint = Color.White)
                 }
             }
@@ -288,50 +285,55 @@ fun MyTopAppBar() {
     }
 }
 
-/**
- * 두 번째 상단바 Composable.
- * 필터나 하위 메뉴 등을 배치하는 용도로 사용할 수 있습니다.
- */
 @Composable
-fun MySecondaryTopAppBar(selectedFilter: String, onFilterChange: (String) -> Unit) {
+fun MySecondaryTopAppBar(selectedFilter: String, counts: Map<String, Int>, onFilterChange: (String) -> Unit) {
     TopAppBar(
         backgroundColor = Color(0xFFFF7A00),
         contentColor = Color.White,
         modifier = Modifier.height(56.dp),
-        elevation = 0.dp // 그림자 효과 제거
+        elevation = 0.dp
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
-            FilterButton("전체", selectedFilter == "전체") { onFilterChange("전체") }
-            FilterButton("위험", selectedFilter == "위험") { onFilterChange("위험") }
-            FilterButton("경고", selectedFilter == "경고") { onFilterChange("경고") }
-            FilterButton("주의", selectedFilter == "주의") { onFilterChange("주의") }
+            FilterButton("전체", counts["전체"] ?: 0, selectedFilter == "전체") { onFilterChange("전체") }
+            FilterButton("위험", counts["위험"] ?: 0, selectedFilter == "위험") { onFilterChange("위험") }
+            FilterButton("경고", counts["경고"] ?: 0, selectedFilter == "경고") { onFilterChange("경고") }
+            FilterButton("주의", counts["주의"] ?: 0, selectedFilter == "주의") { onFilterChange("주의") }
         }
     }
 }
 
 @Composable
-fun FilterButton(text: String, isSelected: Boolean, onClick: () -> Unit) {
+fun FilterButton(text: String, count: Int, isSelected: Boolean, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
             backgroundColor = Color.Transparent,
-            contentColor = if (isSelected) Color.White else Color.Gray
+            contentColor = if (isSelected) Color(0xFFFFFFFF) else Color(0xFFFFAF6E)
         ),
-        elevation = ButtonDefaults.elevation(
-            defaultElevation = 0.dp,
-            pressedElevation = 0.dp
-        ),
+        elevation = ButtonDefaults.elevation(0.dp, 0.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp)
     ) {
-        Text(text = text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.width(6.dp))
+            Box(
+                modifier = Modifier.size(20.dp).background(color = if (isSelected) Color.White else Color(0xFFFFAF6E), shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = count.toString(),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isSelected) Color(0xFFFF7A00) else Color(0xFFF97316)
+                )
+            }
+        }
     }
 }
-
 
 @Composable
 fun MyBottomNavigation() {
@@ -344,9 +346,7 @@ fun MyBottomNavigation() {
     )
     var selectedItem by remember { mutableStateOf("nav_ai") }
 
-    BottomNavigation(
-        backgroundColor = Color.White
-    ) {
+    BottomNavigation(backgroundColor = Color.White) {
         items.forEach { item ->
             BottomNavigationItem(
                 icon = { Icon(painter = painterResource(id = item.iconResId), contentDescription = item.title) },
@@ -359,17 +359,6 @@ fun MyBottomNavigation() {
         }
     }
 }
-
-data class BottomNavItem(val title: String, @DrawableRes val iconResId: Int, val screenRoute: String)
-
-data class EventData(
-    val accidentType: String, // 사고유형
-    val location: String, // 위치
-    val content: String, // 내용
-    val occurrenceTime: String = "", // 발생시간
-    val deviceName: String = "", // 장치명
-    val accuracy: String = ""
-)
 
 @Preview(showBackground = true)
 @Composable

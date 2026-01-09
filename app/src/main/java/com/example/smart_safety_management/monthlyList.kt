@@ -258,7 +258,7 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
 
         if (item.specialNote != null && item.status == InspectionStatus.UNCHECKED) {
             AnimatedVisibility(visible = tooltipVisible, exit = fadeOut(), modifier = Modifier.align(Alignment.TopEnd).offset(y = (-40).dp).offset { IntOffset(0, floatingOffset.roundToInt()) }.zIndex(10f)) {
-                Surface(onClick = onTooltipTap, shape = TooltipShape, color = Color(0xFFE6E8EA), elevation = 2.dp) {
+                Surface(onClick = onTooltipTap, shape = TooltipShape, color = Color(0xFFE6E8EA).copy(alpha = 0.9f), elevation = 2.dp) {
                     Text(text = item.specialNote,modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp), fontSize = 12.sp,fontWeight = FontWeight.Normal, color = Color(0xFF000000))
                 }
             }
