@@ -9,42 +9,70 @@
     app:cardCornerRadius="12dp"
     app:cardBackgroundColor="#1FFB923C">
 
-    <LinearLayout
+    <!-- 카드 전체를 감싸는 레이어 -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="14dp">
+        android:layout_height="wrap_content">
 
+        <!-- 실제 콘텐츠 영역 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:padding="14dp">
 
+            <!-- 제목 -->
             <TextView
                 android:id="@+id/tv_title"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:text="A구역 4일"
-                android:textStyle="bold"/>
+                android:textStyle="bold"
+                android:textSize="14sp"
+                android:textColor="#111111"/>
+
+            <!-- 설명 -->
+            <TextView
+                android:id="@+id/tv_desc"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="정리미흡으로 안전사고 발생 우려"
+                android:textColor="#555555"
+                android:textSize="12sp" />
+
+        </LinearLayout>
+
+        <!-- 상태 배지 -->
+        <LinearLayout
+            android:id="@+id/layout_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="14dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"
+            android:background="@drawable/bg_status_unchecked"
+            android:elevation="2dp">
+
+            <ImageView
+                android:id="@+id/img_status"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:src="@drawable/orange_bell"
+                android:layout_marginEnd="4dp"/>
 
             <TextView
                 android:id="@+id/tv_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="미점검"
-                android:textSize="12sp"/>
+                android:textSize="11sp"
+                android:textColor="#FB923C"/>
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tv_desc"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="정리미흡으로 인적사고 발생 우려"
-            android:textSize="12sp"/>
-
-    </LinearLayout>
+    </FrameLayout>
 
 </androidx.cardview.widget.CardView>
