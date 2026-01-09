@@ -74,6 +74,11 @@
                         android:layout_height="wrap_content"
                         android:nestedScrollingEnabled="false" />
 
+                    <View
+                        android:id="@+id/rv_spacer"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp" />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

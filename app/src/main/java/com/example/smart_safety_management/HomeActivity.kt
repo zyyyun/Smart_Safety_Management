@@ -97,12 +97,33 @@ class HomeActivity : AppCompatActivity() {
         // 달력 더미 데이터 채우기
         // ===============================
         fillCalendarReal()
+
+        // 날짜 선택 안 된 초기 상태도 리스트 처리
+        updateDailyCheckList(null)
     }
 
     /** 날짜 클릭 시 리스트 갱신 */
     private fun updateDailyCheckList(day: Int?) {
         val list = dailyCheckMap[day] ?: emptyList()
         dailyAdapter.updateList(list)
+
+        // 리스트 높이 체크해서 부족하면 늘리기
+        adjustRecyclerMinHeight()
+    }
+
+    private fun adjustRecyclerMinHeight() {
+        val rv = findViewById<RecyclerView>(R.id.rv_daily_check)
+        val spacer = findViewById<View>(R.id.rv_spacer)
+        val scroll = findViewById<NestedScrollView>(R.id.home_scroll)
+
+        rv.post {
+            val rvBottom = rv.bottom
+            val scrollBottom = scroll.bottom
+            val gap = scrollBottom - rvBottom
+
+            spacer.layoutParams.height = if (gap > 0) gap else 0
+            spacer.requestLayout()
+        }
     }
 
     private fun fillCalendarReal() {
@@ -153,7 +174,7 @@ class HomeActivity : AppCompatActivity() {
                 setOnClickListener {
                     selectedDay = day
                     fillCalendarReal()
-                    updateDailyCheckList(day)
+                    updateDailyCheckList(selectedDay)
                 }
             }
 
