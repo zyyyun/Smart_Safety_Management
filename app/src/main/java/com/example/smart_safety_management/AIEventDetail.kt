@@ -131,11 +131,11 @@ fun AIEventDetailScreen(onBackClick: () -> Unit = {}) {
 
                                 // 상세 정보 필드들 (사용자 설정 색상 0xFF33363D 유지)
                                 val detailItems = listOf(
-                                    "감지 이벤트" to "-",
-                                    "발생 시간" to "-",
-                                    "장치명" to "-",
-                                    "발생 위치" to "-",
-                                    "정확도" to "-"
+                                    "감지 이벤트" to "쓰러짐",
+                                    "발생 시간" to "2025-05-07 16:05:20",
+                                    "장치명" to "CAM03",
+                                    "발생 위치" to "D구역 1열",
+                                    "정확도" to "80%"
                                 )
 
                                 detailItems.forEach { (label, value) ->
