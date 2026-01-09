@@ -8,7 +8,7 @@
     android:gravity="center_vertical"
     android:padding="16dp"
     android:paddingBottom="32dp"
-    android:background="#FF7A00"
+    android:background="#F97316"
     app:layout_scrollFlags="scroll">
 
     <!-- 원 프로필 -->
