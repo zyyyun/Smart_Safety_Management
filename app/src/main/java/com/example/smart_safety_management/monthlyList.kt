@@ -82,6 +82,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -147,25 +148,27 @@ fun MonthlyListScreen() {
 
     val filteredReports = mockReports.filter { it.date in startDate..endDate }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(text = "월별로 보기", fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.offset(x = (-20).dp)) },
-                navigationIcon = { IconButton(onClick = { activity?.onBackPressedDispatcher?.onBackPressed() }) { Icon(painter = painterResource(id = R.drawable.backicon), contentDescription = "Back", tint = Color.Black) } },
-                backgroundColor = Color.White
-            )
-        },
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).pointerInput(Unit) { detectTapGestures(onTap = { lastUserInteraction = System.currentTimeMillis() }) }) {
-            YearMonthSelector(yearMonth = currentYearMonth, onMonthChange = { newMonth -> currentYearMonth = newMonth })
-            DateRangeSelector(yearMonth = currentYearMonth, onDateChange = { start, end -> startDate = start; endDate = end })
-            Divider(color = Color.LightGray, modifier = Modifier.padding(vertical = 8.dp))
-            LazyColumn(state = listState, modifier = Modifier.padding(horizontal = 16.dp)) {
-                items(filteredReports) { report ->
-                    ReportHeader(report = report)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    DailyReportItemsCard(report = report, lastUserInteraction = lastUserInteraction)
-                    Spacer(modifier = Modifier.height(16.dp))
+    Smart_Safety_ManagementTheme {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(text = "월별로 보기", fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.offset(x = (-20).dp)) },
+                    navigationIcon = { IconButton(onClick = { activity?.onBackPressedDispatcher?.onBackPressed() }) { Icon(painter = painterResource(id = R.drawable.backicon), contentDescription = "Back", tint = Color.Black) } },
+                    backgroundColor = Color.White
+                )
+            },
+        ) { paddingValues ->
+            Column(modifier = Modifier.padding(paddingValues).pointerInput(Unit) { detectTapGestures(onTap = { lastUserInteraction = System.currentTimeMillis() }) }) {
+                YearMonthSelector(yearMonth = currentYearMonth, onMonthChange = { newMonth -> currentYearMonth = newMonth })
+                DateRangeSelector(yearMonth = currentYearMonth, onDateChange = { start, end -> startDate = start; endDate = end })
+                Divider(color = Color.LightGray, modifier = Modifier.padding(vertical = 8.dp))
+                LazyColumn(state = listState, modifier = Modifier.padding(horizontal = 16.dp)) {
+                    items(filteredReports) { report ->
+                        ReportHeader(report = report)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        DailyReportItemsCard(report = report, lastUserInteraction = lastUserInteraction)
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
                 }
             }
         }
@@ -180,7 +183,7 @@ fun ReportHeader(report: DailyInspectionReport) {
     val allChecked = checkedCount == totalCount
 
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp)) {
-        Text(text = "${report.date.dayOfMonth}일", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text(text = "${report.date.dayOfMonth}일", fontWeight = FontWeight.Medium, fontSize = 18.sp)
         Spacer(modifier = Modifier.width(8.dp))
         Box(modifier = Modifier.background(color = Color.White, shape = RoundedCornerShape(percent = 50)).border(width = 1.dp, color = Color.LightGray, shape = RoundedCornerShape(percent = 50)).padding(horizontal = 12.dp, vertical = 4.dp)) {
             Text(text = buildAnnotatedString {
@@ -250,13 +253,13 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
             val icon = if (item.status == InspectionStatus.UNCHECKED) Icons.Default.Notifications else Icons.Default.Check
             Icon(icon, null, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(4.dp))
-            Text(text = buttonText, fontWeight = FontWeight.Black, fontSize = 12.sp)
+            Text(text = buttonText, fontWeight = FontWeight.Medium, fontSize = 12.sp)
         }
 
         if (item.specialNote != null && item.status == InspectionStatus.UNCHECKED) {
             AnimatedVisibility(visible = tooltipVisible, exit = fadeOut(), modifier = Modifier.align(Alignment.TopEnd).offset(y = (-40).dp).offset { IntOffset(0, floatingOffset.roundToInt()) }.zIndex(10f)) {
-                Surface(onClick = onTooltipTap, shape = TooltipShape, color = Color(0xFFE6E8EA), elevation = 4.dp) {
-                    Text(text = item.specialNote, modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp), fontSize = 12.sp, color = Color(0xFF000000))
+                Surface(onClick = onTooltipTap, shape = TooltipShape, color = Color(0xFFE6E8EA), elevation = 2.dp) {
+                    Text(text = item.specialNote,modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp), fontSize = 12.sp,fontWeight = FontWeight.Normal, color = Color(0xFF000000))
                 }
             }
         }
@@ -281,7 +284,7 @@ fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: S
 
     Row(modifier = Modifier.fillMaxWidth().background(itemBackgroundColor, shape = shape).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = item.location, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(text = item.location, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
             Text(text = item.description, fontSize = 14.sp)
         }
         Spacer(modifier = Modifier.width(8.dp))
@@ -302,7 +305,7 @@ fun UncheckedItemDialog(onDismissRequest: () -> Unit) {
                 Text(text = "근로자에게 점검요청 재알림을 발송하였습니다.", color = Color(0xFF58616A), fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(onClick = onDismissRequest, modifier = Modifier.width(260.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF97316), contentColor = Color.White), shape = RoundedCornerShape(12.dp)) {
-                    Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }

@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import java.util.Calendar
 
 @Preview
@@ -84,187 +85,189 @@ fun DailyListScreen() {
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "일일안전점검 작성",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black, // M2에서는 컨텐츠 색상을 직접 지정해야 합니다.
-                        modifier = Modifier.offset(x = (-16).dp)
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { /* Handle back navigation */ }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.backicon),
-                            contentDescription = "Back",
-                            tint = Color.Black // M2에서는 아이콘 색상(tint)을 직접 지정해야 합니다.
-                        )
-                    }
-                },
-                backgroundColor = Color.White // M3의 containerColor 대신 backgroundColor 사용
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Text(text = "작성일", fontSize = 14.sp, color = Color(0xFF58616A))
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = date,
-                onValueChange = { date = it },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                trailingIcon = {
-
-                    IconButton(onClick = { datePickerDialog.show() }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.calendar2),
-                            contentDescription = "Select date",
-                            tint = Color(0xFF33363D)
-                        )
-                    }
-                },
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    unfocusedBorderColor = Color(0xFFCDD1D5)
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(text = "위치", fontSize = 14.sp, color = Color(0xFF58616A))
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = location,
-                onValueChange = { location = it },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    unfocusedBorderColor = Color(0xFFCDD1D5)
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(text = "위험요인", fontSize = 14.sp, color = Color(0xFF58616A))
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = riskFactor,
-                onValueChange = { riskFactor = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    unfocusedBorderColor = Color(0xFFCDD1D5)
-                )
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(text = "안전대책", fontSize = 14.sp, color = Color(0xFF58616A))
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
-                value = safetyMeasure,
-                onValueChange = { safetyMeasure = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    unfocusedBorderColor = Color(0xFFCDD1D5)
-                )
-
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(text = "현장사진", fontSize = 14.sp, color = Color(0xFF58616A))
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // '사진첨부' 버튼을 항상 왼쪽에 고정
-                Box(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .clickable {
-                            // 새 사진 URI 추가 시뮬레이션
-                            attachedPhotos = attachedPhotos + "photoUri_${System.currentTimeMillis()}"
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
-                        drawRoundRect(
-                            color = Color.Gray,
-                            style = Stroke(width = 1.dp.toPx(), pathEffect = pathEffect),
-                            cornerRadius = CornerRadius(8.dp.toPx())
-                        )
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.camera_icon),
-                            contentDescription = "사진첨부",
-                            tint = Color.Gray
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
+    Smart_Safety_ManagementTheme {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
                         Text(
-                            text = "사진첨부",
-                            color = Color.Gray,
-                            fontSize = 14.sp
+                            text = "일일안전점검 작성",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black, // M2에서는 컨텐츠 색상을 직접 지정해야 합니다.
+                            modifier = Modifier.offset(x = (-16).dp)
                         )
-                    }
-                }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { /* Handle back navigation */ }) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.backicon),
+                                contentDescription = "Back",
+                                tint = Color.Black // M2에서는 아이콘 색상(tint)을 직접 지정해야 합니다.
+                            )
+                        }
+                    },
+                    backgroundColor = Color.White // M3의 containerColor 대신 backgroundColor 사용
+                )
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(text = "작성일", fontSize = 14.sp, color = Color(0xFF58616A))
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = date,
+                    onValueChange = { date = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    trailingIcon = {
 
-                // 버튼 오른쪽에 첨부된 사진들을 표시 (가장 최근 사진이 버튼 바로 옆)
-                attachedPhotos.reversed().forEach { photoUri ->
-                    Spacer(modifier = Modifier.width(8.dp))
+                        IconButton(onClick = { datePickerDialog.show() }) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.calendar2),
+                                contentDescription = "Select date",
+                                tint = Color(0xFF33363D)
+                            )
+                        }
+                    },
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        unfocusedBorderColor = Color(0xFFCDD1D5)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(text = "위치", fontSize = 14.sp, color = Color(0xFF58616A))
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { location = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        unfocusedBorderColor = Color(0xFFCDD1D5)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(text = "위험요인", fontSize = 14.sp, color = Color(0xFF58616A))
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = riskFactor,
+                    onValueChange = { riskFactor = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        unfocusedBorderColor = Color(0xFFCDD1D5)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(text = "안전대책", fontSize = 14.sp, color = Color(0xFF58616A))
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = safetyMeasure,
+                    onValueChange = { safetyMeasure = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        unfocusedBorderColor = Color(0xFFCDD1D5)
+                    )
+
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(text = "현장사진", fontSize = 14.sp, color = Color(0xFF58616A))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // '사진첨부' 버튼을 항상 왼쪽에 고정
                     Box(
                         modifier = Modifier
                             .size(100.dp)
-                            .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            .clickable {
+                                // 새 사진 URI 추가 시뮬레이션
+                                attachedPhotos = attachedPhotos + "photoUri_${System.currentTimeMillis()}"
+                            },
                         contentAlignment = Alignment.Center
                     ) {
-                        // 실제 앱에서는 Coil이나 Glide를 사용하여 이미지 표시
-                        Icon(Icons.Filled.Photo, contentDescription = "Attached Photo: $photoUri", tint = Color.Gray)
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
+                            drawRoundRect(
+                                color = Color.Gray,
+                                style = Stroke(width = 1.dp.toPx(), pathEffect = pathEffect),
+                                cornerRadius = CornerRadius(8.dp.toPx())
+                            )
+                        }
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.camera_icon),
+                                contentDescription = "사진첨부",
+                                tint = Color.Gray
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "사진첨부",
+                                color = Color.Gray,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+
+                    // 버튼 오른쪽에 첨부된 사진들을 표시 (가장 최근 사진이 버튼 바로 옆)
+                    attachedPhotos.reversed().forEach { photoUri ->
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // 실제 앱에서는 Coil이나 Glide를 사용하여 이미지 표시
+                            Icon(Icons.Filled.Photo, contentDescription = "Attached Photo: $photoUri", tint = Color.Gray)
+                        }
                     }
                 }
-            }
 
-            // This spacer will push the button to the bottom
-            Spacer(modifier = Modifier.weight(1f))
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = { /* 작성 완료 로직 */ },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                enabled = isFormComplete, // 조건에 따라 버튼 활성화
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = Color(0xFFF97316), // 활성화 시 주황색 배경
-                    contentColor = Color.White,            // 활성화 시 흰색 글씨
-                    disabledBackgroundColor = Color(0xFFF4F5F6), // 비활성화 시 회색 배경
-                    disabledContentColor = Color(0xFF8A949E)          // 비활성화 시 진한 회색 글씨
-                )
-            ) {
-                Text(
-                    text = "작성 완료",
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
+                // This spacer will push the button to the bottom
+                Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = { /* 작성 완료 로직 */ },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = isFormComplete, // 조건에 따라 버튼 활성화
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = Color(0xFFF97316), // 활성화 시 주황색 배경
+                        contentColor = Color.White,            // 활성화 시 흰색 글씨
+                        disabledBackgroundColor = Color(0xFFF4F5F6), // 비활성화 시 회색 배경
+                        disabledContentColor = Color(0xFF8A949E)          // 비활성화 시 진한 회색 글씨
+                    )
+                ) {
+                    Text(
+                        text = "작성 완료",
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
             }
         }
     }

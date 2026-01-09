@@ -20,6 +20,10 @@ val Pretendard = FontFamily(
     Font(R.font.pretendard_black, FontWeight.Black)
 )
 
+val ClipartKorea = FontFamily(
+    Font(R.font.clipartkorea_medium, FontWeight.Medium)
+)
+
 // Set of Material typography styles to start with
 val Typography = Typography(
     defaultFontFamily = Pretendard,
@@ -27,5 +31,11 @@ val Typography = Typography(
         fontFamily = Pretendard,
         fontWeight = FontWeight.Normal,
         fontSize = 16.sp
+    ),
+    h1 = TextStyle(
+        fontFamily = ClipartKorea,
+        fontWeight = FontWeight.Medium,
+        fontSize = 30.sp
     )
+    // 필요에 따라 ClipartKorea를 사용하는 다른 스타일을 추가할 수 있습니다.
 )

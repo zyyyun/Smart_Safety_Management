@@ -25,7 +25,6 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 
 data class Contact(val name: String, val phoneNumber: String)
 
@@ -53,7 +53,6 @@ val mockContacts = listOf(
 
 @Preview(
     showBackground = true,
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
 fun EmergencyContactScreen() {
@@ -69,95 +68,97 @@ fun EmergencyContactScreen() {
         }
     }
 
-    Scaffold(
-        topBar = {
-            Column {
-                TopAppBar(
-                    backgroundColor = MaterialTheme.colors.surface,
-                    elevation = 0.dp,
-                    modifier = Modifier.height(40.dp),
-                    title = {
-                        Text(
-                            text = "비상연락",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colors.onSurface,
-                            modifier = Modifier.offset(x = (-24).dp)
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { }) {
-                            Icon(
-                                painter = painterResource(id= R.drawable.backicon),
-                                contentDescription = "Back",
-                                tint = MaterialTheme.colors.onSurface
+    Smart_Safety_ManagementTheme {
+        Scaffold(
+            topBar = {
+                Column {
+                    TopAppBar(
+                        backgroundColor = MaterialTheme.colors.surface,
+                        elevation = 0.dp,
+                        modifier = Modifier.height(40.dp),
+                        title = {
+                            Text(
+                                text = "비상연락",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colors.onSurface,
+                                modifier = Modifier.offset(x = (-24).dp)
                             )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { isSearchActive = !isSearchActive }) {
-                            if (isSearchActive) {
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = { }) {
                                 Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = "Close Search",
-                                    tint = MaterialTheme.colors.onSurface
-                                )
-                            } else {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.search),
-                                    contentDescription = "Search",
+                                    painter = painterResource(id = R.drawable.backicon),
+                                    contentDescription = "Back",
                                     tint = MaterialTheme.colors.onSurface
                                 )
                             }
-                        }
-                    }
-                )
-
-                AnimatedVisibility(visible = isSearchActive) {
-                    Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colors.surface) {
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            modifier = Modifier
-                                .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp)
-                                .fillMaxWidth(),
-                            textStyle = TextStyle(
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colors.onSurface
-                            ),
-                            singleLine = true,
-                            decorationBox = { innerTextField ->
-                                Box(
-                                    modifier = Modifier
-                                        .height(40.dp)
-                                        .border(
-                                            width = 1.dp,
-                                            color = MaterialTheme.colors.onSurface.copy(alpha = 0.3f),
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                        .padding(horizontal = 12.dp),
-                                    contentAlignment = Alignment.CenterStart
-                                ) {
-                                    if (searchQuery.isEmpty()) {
-                                        Text(
-                                            text = "이름 또는 전화번호를 입력하세요.",
-                                            fontSize = 14.sp,
-                                            color = Color(0xFFB1B8BE)
-                                        )
-                                    }
-                                    innerTextField()
+                        },
+                        actions = {
+                            IconButton(onClick = { isSearchActive = !isSearchActive }) {
+                                if (isSearchActive) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Close Search",
+                                        tint = MaterialTheme.colors.onSurface
+                                    )
+                                } else {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.search),
+                                        contentDescription = "Search",
+                                        tint = MaterialTheme.colors.onSurface
+                                    )
                                 }
                             }
-                        )
+                        }
+                    )
+
+                    AnimatedVisibility(visible = isSearchActive) {
+                        Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colors.surface) {
+                            BasicTextField(
+                                value = searchQuery,
+                                onValueChange = { searchQuery = it },
+                                modifier = Modifier
+                                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp)
+                                    .fillMaxWidth(),
+                                textStyle = TextStyle(
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colors.onSurface
+                                ),
+                                singleLine = true,
+                                decorationBox = { innerTextField ->
+                                    Box(
+                                        modifier = Modifier
+                                            .height(40.dp)
+                                            .border(
+                                                width = 1.dp,
+                                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.3f),
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 12.dp),
+                                        contentAlignment = Alignment.CenterStart
+                                    ) {
+                                        if (searchQuery.isEmpty()) {
+                                            Text(
+                                                text = "이름 또는 전화번호를 입력하세요.",
+                                                fontSize = 16.sp,
+                                                color = Color(0xFFB1B8BE)
+                                            )
+                                        }
+                                        innerTextField()
+                                    }
+                                }
+                            )
+                        }
                     }
+                    Divider()
                 }
-                Divider()
             }
-        }
-    ) { paddingValues ->
-        LazyColumn(modifier = Modifier.padding(paddingValues)) {
-            items(filteredContacts) { contact ->
-                ContactListItem(contact = contact)
+        ) { paddingValues ->
+            LazyColumn(modifier = Modifier.padding(paddingValues)) {
+                items(filteredContacts) { contact ->
+                    ContactListItem(contact = contact)
+                }
             }
         }
     }
@@ -173,7 +174,7 @@ fun ContactListItem(contact: Contact) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Text(text = contact.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colors.onSurface)
+            Text(text = contact.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = MaterialTheme.colors.onSurface)
             Spacer(modifier = Modifier.width(8.dp))
             Text(text = contact.phoneNumber, fontSize = 14.sp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f))
         }

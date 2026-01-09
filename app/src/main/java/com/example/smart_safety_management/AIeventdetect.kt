@@ -37,6 +37,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.smart_safety_management.ui.theme.ClipartKorea
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -68,84 +70,86 @@ fun AIEventDetectScreen() {
     val filteredCompletedEvents = if (selectedFilter == "전체") allCompletedEvents else allCompletedEvents.filter { it.accidentType == selectedFilter }
     val filteredFalseDetectionEvents = if (selectedFilter == "전체") allFalseDetectionEvents else allFalseDetectionEvents.filter { it.accidentType == selectedFilter }
 
-    Scaffold(
-        topBar = {
-            Column {
-                MyTopAppBar()
-                MySecondaryTopAppBar(selectedFilter) { newFilter ->
-                    selectedFilter = newFilter
+    Smart_Safety_ManagementTheme {
+        Scaffold(
+            topBar = {
+                Column {
+                    MyTopAppBar()
+                    MySecondaryTopAppBar(selectedFilter) { newFilter ->
+                        selectedFilter = newFilter
+                    }
                 }
-            }
-        },
-        bottomBar = { MyBottomNavigation() },
-        backgroundColor = Color(0xFFFF7A00) // Scaffold 배경을 상단바와 동일한 색으로 설정
-    ) { paddingValues ->
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues), // 상단바/하단바 영역을 제외한 나머지 공간을 채움
-            color = Color.White,
-            // 상단 모서리만 둥글게 처리하여 곡선 효과를 줍니다.
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-        ) {
-            // 향후 콘텐츠를 담을 Column
-            Column(
+            },
+            bottomBar = { MyBottomNavigation() },
+            backgroundColor = Color(0xFFFF7A00) // Scaffold 배경을 상단바와 동일한 색으로 설정
+        ) { paddingValues ->
+            Surface(
                 modifier = Modifier
-                    .padding(16.dp)
-                    .verticalScroll(rememberScrollState())
+                    .fillMaxSize()
+                    .padding(paddingValues), // 상단바/하단바 영역을 제외한 나머지 공간을 채움
+                color = Color.White,
+                // 상단 모서리만 둥글게 처리하여 곡선 효과를 줍니다.
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
             ) {
-                CurrentDateText()
+                // 향후 콘텐츠를 담을 Column
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(16.dp)
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    Text("조치대기", fontWeight = FontWeight.Bold)
-                    if (filteredPendingEvents.isEmpty()) {
-                        Text(
-                            text = "지난 내역은 이력 탭에서 확인하세요.",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp),
-                            textAlign = TextAlign.Center,
-                            color = Color.Gray
-                        )
-                    } else {
-                        filteredPendingEvents.forEach { event ->
-                            EventItem(event, EventStatus.PENDING)
+                    CurrentDateText()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("조치대기", fontWeight = FontWeight.Medium, color = Color(0xFF58616A))
+                        if (filteredPendingEvents.isEmpty()) {
+                            Text(
+                                text = "지난 내역은 이력 탭에서 확인하세요.",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                textAlign = TextAlign.Center,
+                                color = Color.Gray
+                            )
+                        } else {
+                            filteredPendingEvents.forEach { event ->
+                                EventItem(event, EventStatus.PENDING)
+                            }
                         }
-                    }
 
-                    Text("조치완료", fontWeight = FontWeight.Bold)
-                    if (filteredCompletedEvents.isEmpty()) {
-                        Text(
-                            text = "지난 내역은 이력 탭에서 확인하세요.",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp),
-                            textAlign = TextAlign.Center,
-                            color = Color.Gray
-                        )
-                    } else {
-                        filteredCompletedEvents.forEach { event ->
-                            EventItem(event, EventStatus.COMPLETED)
+                        Text("조치완료", fontWeight = FontWeight.Medium, color = Color(0xFF58616A))
+                        if (filteredCompletedEvents.isEmpty()) {
+                            Text(
+                                text = "지난 내역은 이력 탭에서 확인하세요.",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                textAlign = TextAlign.Center,
+                                color = Color.Gray
+                            )
+                        } else {
+                            filteredCompletedEvents.forEach { event ->
+                                EventItem(event, EventStatus.COMPLETED)
+                            }
                         }
-                    }
 
-                    Text("오탐처리", fontWeight = FontWeight.Bold)
-                    if (filteredFalseDetectionEvents.isEmpty()) {
-                        Text(
-                            text = "지난 내역은 이력 탭에서 확인하세요.",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp),
-                            textAlign = TextAlign.Center,
-                            color = Color.Gray
-                        )
-                    } else {
-                        filteredFalseDetectionEvents.forEach { event ->
-                            EventItem(event, EventStatus.FALSE_DETECTION)
+                        Text("오탐처리", fontWeight = FontWeight.Medium, color = Color(0xFF58616A))
+                        if (filteredFalseDetectionEvents.isEmpty()) {
+                            Text(
+                                text = "지난 내역은 이력 탭에서 확인하세요.",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                textAlign = TextAlign.Center,
+                                color = Color.Gray
+                            )
+                        } else {
+                            filteredFalseDetectionEvents.forEach { event ->
+                                EventItem(event, EventStatus.FALSE_DETECTION)
+                            }
                         }
                     }
                 }
@@ -171,17 +175,17 @@ fun EventItem(event: EventData, status: EventStatus) {
 
     val borderColor = if (isPending) {
         when (event.accidentType) {
-            "위험" -> Color(0xFFEF4444)
-            "경고" -> Color(0xFFFB923C)
-            "주의" -> Color(0xFFFFB114)
-            else -> Color.Gray
+            "위험" -> Color(0x1FEF4444)
+            "경고" -> Color(0x1FFB923C)
+            "주의" -> Color(0x1FFFB114)
+            else -> Color(0xFFE6E8EA)
         }
     } else {
         Color(0xFFE6E8EA)
     }
 
     val iconTint = if (isPending) Color.Unspecified else Color(0xFFB1B8BE)
-    val textColor = if (isPending) Color.DarkGray else Color.Gray
+    val textColor = if (isPending) Color(0xFF58616A) else Color(0xFFB1B8BE)
     val locationColor = if (isPending) Color.Black else Color.Gray
 
     Button(
@@ -220,7 +224,7 @@ fun EventItem(event: EventData, status: EventStatus) {
             Column(
                 horizontalAlignment = Alignment.Start
             ) {
-                Text("${event.location}", color = locationColor, fontWeight = FontWeight.Bold)
+                Text("${event.location}", color = locationColor, fontWeight = FontWeight.SemiBold)
                 Text("${event.content}", color = textColor)
             }
         }
@@ -263,9 +267,11 @@ fun MyTopAppBar() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = "AI 이벤트 감지",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 8.dp)
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(start = 8.dp),
+                    color = Color(0xFFFFFFFF),
+                    fontFamily = ClipartKorea
                 )
             }
 
@@ -322,7 +328,7 @@ fun FilterButton(text: String, isSelected: Boolean, onClick: () -> Unit) {
             pressedElevation = 0.dp
         ),
     ) {
-        Text(text = text, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(text = text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
     }
 }
 
