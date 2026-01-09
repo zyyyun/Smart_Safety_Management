@@ -18,12 +18,22 @@ import android.graphics.drawable.GradientDrawable
 import android.content.Intent
 import android.graphics.Paint
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
 import androidx.core.widget.doAfterTextChanged
 
 private const val PREF_NAME = "onboarding_prefs"
 private const val KEY_INVITE_DONE = "invite_code_done"
 
 private val dailyCheckMap = mapOf(
+    7 to listOf(
+        DailyCheckItem("B구역 1열", "정리미흡으로 안전사고 발생 우려", "미점검"),
+        DailyCheckItem("C구역 3열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
+    ),
+    12 to listOf(
+        DailyCheckItem("A구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
+    ),
     15 to listOf(
         DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
@@ -32,10 +42,10 @@ private val dailyCheckMap = mapOf(
         DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
     25 to listOf(
-        DailyCheckItem("C구역 2일", "정리미흡으로 안전사고 발생 우려", "미점검")
+        DailyCheckItem("C구역 2열", "정리미흡으로 안전사고 발생 우려", "미점검")
     ),
     26 to listOf(
-        DailyCheckItem("A구역 4일", "정리미흡으로 인적사고 발생 우려", "미점검")
+        DailyCheckItem("A구역 4열", "정리미흡으로 인적사고 발생 우려", "미점검")
     )
 )
 
@@ -126,6 +136,11 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
+    private fun hasUncheckedItem(day: Int): Boolean {
+        val list = dailyCheckMap[day] ?: return false
+        return list.any { it.status == "미점검" }
+    }
+
     private fun fillCalendarReal() {
         val grid = findViewById<GridLayout>(R.id.calendar_grid)
         val tvMonth = findViewById<TextView>(R.id.tv_month)
@@ -158,18 +173,33 @@ class HomeActivity : AppCompatActivity() {
 
         // 날짜 채우기
         for (day in 1..daysInMonth) {
-            val tv = TextView(this).apply {
-                text = day.toString()
-                gravity = Gravity.CENTER
-                setPadding(0, 40, 0, 40)
-                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
 
+            // 날짜 + 점 컨테이너
+            val dayContainer = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
                 layoutParams = GridLayout.LayoutParams().apply {
                     width = 0
-                    height = ViewGroup.LayoutParams.WRAP_CONTENT
                     columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                     rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                 }
+            }
+
+            val daySize = (resources.displayMetrics.density * 36).toInt()
+
+            val dayFrame = FrameLayout(this).apply {
+                layoutParams = LinearLayout.LayoutParams(daySize, daySize)
+            }
+
+            val tv = TextView(this).apply {
+                text = day.toString()
+                gravity = Gravity.CENTER
+                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
+
+                layoutParams = FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
 
                 setOnClickListener {
                     selectedDay = day
@@ -178,17 +208,33 @@ class HomeActivity : AppCompatActivity() {
                 }
             }
 
-            // 선택된 날짜
+            // 알림 점
+            val alarmDot = ImageView(this).apply {
+                setImageResource(R.drawable.ellipse_alram)
+                visibility = if (hasUncheckedItem(day)) View.VISIBLE else View.INVISIBLE
+
+                val size = (resources.displayMetrics.density * 6).toInt()
+                layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                    topMargin = (resources.displayMetrics.density * 4).toInt()
+                }
+            }
+
+            // 선택된 날짜 스타일
             if (day == selectedDay) {
                 tv.background = circleDrawable("#FF5722")
                 tv.setTextColor(Color.WHITE)
             }
 
-            grid.addView(tv)
+            // 여기 핵심
+            dayFrame.addView(tv)
+            dayContainer.addView(dayFrame)
+            dayContainer.addView(alarmDot)
+
+            grid.addView(dayContainer)
         }
     }
 
-    private fun circleDrawable(color: String): GradientDrawable {
+        private fun circleDrawable(color: String): GradientDrawable {
         return GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(Color.parseColor(color))
