@@ -27,7 +27,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="2026년 5월"
-                android:textSize="30sp"
+                android:textSize="24sp"
                 android:textStyle="bold" />
 
             <!-- 오른쪽: 클릭 영역 -->
@@ -53,7 +53,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="월별로 보기"
-                    android:textSize="16sp" />
+                    android:textSize="14sp" />
 
                 <ImageView
                     android:layout_width="24dp"
@@ -74,31 +74,38 @@
 
             <TextView
                 style="@style/DayOfWeek"
-                android:text="일" />
+                android:text="일"
+                android:textSize="14sp" />
 
             <TextView
                 style="@style/DayOfWeek"
-                android:text="월" />
+                android:text="월"
+                android:textSize="14sp" />
 
             <TextView
                 style="@style/DayOfWeek"
-                android:text="화" />
+                android:text="화"
+                android:textSize="14sp" />
 
             <TextView
                 style="@style/DayOfWeek"
-                android:text="수" />
+                android:text="수"
+                android:textSize="14sp"/>
 
             <TextView
                 style="@style/DayOfWeek"
-                android:text="목" />
+                android:text="목"
+                android:textSize="14sp"/>
 
             <TextView
                 style="@style/DayOfWeek"
-                android:text="금" />
+                android:text="금"
+                android:textSize="14sp"/>
 
             <TextView
                 style="@style/DayOfWeek"
-                android:text="토" />
+                android:text="토"
+                android:textSize="14sp"/>
         </LinearLayout>
 
         <!-- 달력 그리드(일단 UI용 더미) -->

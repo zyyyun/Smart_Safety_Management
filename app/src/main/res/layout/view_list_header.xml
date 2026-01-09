@@ -11,7 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="일일안전점검 리스트"
-        android:textSize="16sp"
+        android:textSize="18sp"
         android:textStyle="bold"/>
 
     <TextView
@@ -20,7 +20,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:text="4/5"
-        android:textSize="12sp"/>
+        android:textSize="14sp"/>
 
     <View
         android:layout_width="0dp"
@@ -30,7 +30,7 @@
     <Button
         android:id="@+id/btn_add"
         android:layout_width="wrap_content"
-        android:layout_height="36dp"
+        android:layout_height="wrap_content"
         android:backgroundTint="#FF5722"
         android:drawableEnd="@android:drawable/ic_input_add"
         android:drawablePadding="0dp"
@@ -39,6 +39,6 @@
         android:paddingEnd="8dp"
         android:text="추가"
         android:textColor="@android:color/white"
-        android:textSize="12sp" />
+        android:textSize="14sp" />
 
 </LinearLayout>

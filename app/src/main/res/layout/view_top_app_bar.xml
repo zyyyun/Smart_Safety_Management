@@ -18,8 +18,8 @@
         android:gravity="center_vertical">
 
         <ImageView
-            android:layout_width="39dp"
-            android:layout_height="35dp"
+            android:layout_width="22dp"
+            android:layout_height="23dp"
             android:contentDescription="로고"
             android:src="@drawable/_2026_01_05_15_18_02_removebg_preview"
             app:tint="@color/white" />
@@ -29,7 +29,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:text="중대재해예방 플랫폼"
-            android:textSize="25sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="#FFFFFF"/>
     </LinearLayout>
@@ -44,8 +44,8 @@
 
         <ImageButton
             android:id="@+id/btn_alarm"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="18dp"
+            android:layout_height="19dp"
             android:layout_marginEnd="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="알림"
@@ -55,8 +55,8 @@
 
         <ImageButton
             android:id="@+id/btn_setting"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="20dp"
+            android:layout_height="19dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="설정"
             android:src="@drawable/setting"
