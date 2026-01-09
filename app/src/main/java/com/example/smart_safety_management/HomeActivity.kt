@@ -23,7 +23,26 @@ import androidx.core.widget.doAfterTextChanged
 private const val PREF_NAME = "onboarding_prefs"
 private const val KEY_INVITE_DONE = "invite_code_done"
 
+private val dailyCheckMap = mapOf(
+    15 to listOf(
+        DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
+        DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
+        DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
+        DailyCheckItem("D구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
+        DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
+    ),
+    25 to listOf(
+        DailyCheckItem("C구역 2일", "정리미흡으로 안전사고 발생 우려", "미점검")
+    ),
+    26 to listOf(
+        DailyCheckItem("A구역 4일", "정리미흡으로 인적사고 발생 우려", "미점검")
+    )
+)
+
 class HomeActivity : AppCompatActivity() {
+
+    private lateinit var dailyAdapter: DailyCheckAdapter
+    private var selectedDay: Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,13 +65,8 @@ class HomeActivity : AppCompatActivity() {
         // ===============================
         val rv = findViewById<RecyclerView>(R.id.rv_daily_check)
         rv.layoutManager = LinearLayoutManager(this)
-        rv.adapter = DailyCheckAdapter(
-            listOf(
-                DailyCheckItem("A구역 4일", "정리미흡으로 인적사고 발생 우려", "미점검"),
-                DailyCheckItem("D구역 2일", "정리미흡으로 인적사고 발생 우려", "점검완료"),
-                DailyCheckItem("D구역 1일", "정리미흡으로 인적사고 발생 우려", "점검완료")
-            )
-        )
+        dailyAdapter = DailyCheckAdapter(emptyList())
+        rv.adapter = dailyAdapter
 
         // ===============================
         // Tooltip 처리
@@ -84,7 +98,12 @@ class HomeActivity : AppCompatActivity() {
         // ===============================
         fillCalendarReal()
     }
-    private var selectedDay: Int? = null
+
+    /** 날짜 클릭 시 리스트 갱신 */
+    private fun updateDailyCheckList(day: Int?) {
+        val list = dailyCheckMap[day] ?: emptyList()
+        dailyAdapter.updateList(list)
+    }
 
     private fun fillCalendarReal() {
         val grid = findViewById<GridLayout>(R.id.calendar_grid)
@@ -96,7 +115,6 @@ class HomeActivity : AppCompatActivity() {
 
         val year = calendar.get(Calendar.YEAR)
         val month = calendar.get(Calendar.MONTH) // 0부터 시작
-        val today = calendar.get(Calendar.DAY_OF_MONTH)
 
         // 상단 "2026년 1월" 오늘 날짜 월 표시
         tvMonth.text = "${year}년 ${month + 1}월"
@@ -109,15 +127,12 @@ class HomeActivity : AppCompatActivity() {
 
         // 빈 칸 채우기 (1일 시작 요일 맞추기)
         for (i in 1 until firstDayOfWeek) {
-            val empty = TextView(this).apply {
+            grid.addView(TextView(this).apply {
                 layoutParams = GridLayout.LayoutParams().apply {
                     width = 0
-                    height = ViewGroup.LayoutParams.WRAP_CONTENT
                     columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                    rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                 }
-            }
-            grid.addView(empty)
+            })
         }
 
         // 날짜 채우기
@@ -138,6 +153,7 @@ class HomeActivity : AppCompatActivity() {
                 setOnClickListener {
                     selectedDay = day
                     fillCalendarReal()
+                    updateDailyCheckList(day)
                 }
             }
 

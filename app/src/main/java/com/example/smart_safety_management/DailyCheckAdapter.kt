@@ -8,7 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 class DailyCheckAdapter(
-    private val items: List<DailyCheckItem>
+    private var items: List<DailyCheckItem>
 ) : RecyclerView.Adapter<DailyCheckAdapter.VH>() {
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
@@ -31,4 +31,9 @@ class DailyCheckAdapter(
     }
 
     override fun getItemCount() = items.size
+
+    fun updateList(newItems: List<DailyCheckItem>) {
+        items = newItems
+        notifyDataSetChanged()
+    }
 }
