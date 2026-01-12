@@ -43,12 +43,13 @@
         android:fillViewport="true"
         android:paddingTop="135dp">
 
-        <LinearLayout
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
-            <!-- 본문 -->
+        <!-- 본문 -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -72,8 +73,6 @@
 
                     <include layout="@layout/view_list_header" />
 
-                    <include layout="@layout/view_tooltip" />
-
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_daily_check"
                         android:layout_width="match_parent"
@@ -88,7 +87,7 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-        </LinearLayout>
+        </FrameLayout>
     </androidx.core.widget.NestedScrollView>
 
     <!-- ===================== -->

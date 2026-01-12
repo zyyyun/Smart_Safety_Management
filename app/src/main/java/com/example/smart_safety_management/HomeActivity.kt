@@ -78,23 +78,14 @@ class HomeActivity : AppCompatActivity() {
         dailyAdapter = DailyCheckAdapter(emptyList())
         rv.adapter = dailyAdapter
 
-        // ===============================
-        // Tooltip 처리
-        // ===============================
-        val tooltip = findViewById<View>(R.id.tooltip_container)
+        // RecyclerView 설정 직후 최초 툴팁 위치 계산
+        dailyAdapter.initTooltip()
+
+        // [수정] NestedScrollView에서 스크롤 이벤트를 받아 툴팁 위치를 갱신합니다.
         val scroll = findViewById<NestedScrollView>(R.id.home_scroll)
-
-        // 스크롤 시작 시 툴팁 숨김
-        scroll.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
-            if (scrollY != oldScrollY) {
-                tooltip.visibility = View.GONE
-            }
-        }
-
-        // 툴팁 클릭 시 숨김
-        tooltip.setOnClickListener {
-            tooltip.visibility = View.GONE
-        }
+        scroll.setOnScrollChangeListener(NestedScrollView.OnScrollChangeListener { _, _, _, _, _ ->
+            dailyAdapter.updateTooltipPosition()
+        })
 
         // ===============================
         // "추가" 버튼
