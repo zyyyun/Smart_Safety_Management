@@ -30,10 +30,10 @@
                 android:id="@+id/tv_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:fontFamily="@font/pretendard_semibold"
                 android:text="A구역 4일"
-                android:textStyle="bold"
-                android:textSize="14sp"
-                android:textColor="#111111"/>
+                android:textColor="#000000"
+                android:textSize="14sp" />
 
             <!-- 설명 -->
             <TextView
@@ -41,8 +41,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
+                android:fontFamily="@font/pretendard_regular"
                 android:text="정리미흡으로 안전사고 발생 우려"
-                android:textColor="#555555"
+                android:textColor="#33363D"
                 android:textSize="12sp" />
 
         </LinearLayout>
@@ -72,9 +73,10 @@
                 android:id="@+id/tv_status"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:fontFamily="@font/pretendard_medium"
                 android:text="미점검"
-                android:textSize="11sp"
-                android:textColor="#FB923C"/>
+                android:textColor="#F97316"
+                android:textSize="11sp" />
         </LinearLayout>
     </FrameLayout>
 </androidx.cardview.widget.CardView>

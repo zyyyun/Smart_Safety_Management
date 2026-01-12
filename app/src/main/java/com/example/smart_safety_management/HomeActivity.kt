@@ -199,6 +199,9 @@ class HomeActivity : AppCompatActivity() {
                 }
             }
 
+            // 날짜 색 지정
+            tv.setTextColor(Color.parseColor("#58616A"))
+
             // 알림 점
             val alarmDot = ImageView(this).apply {
                 setImageResource(R.drawable.ellipse_alram)

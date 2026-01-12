@@ -28,10 +28,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
+            android:fontFamily="@font/clipartkorea_medium"
             android:text="중대재해예방 플랫폼"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF"/>
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"/>
     </LinearLayout>
 
     <!-- 우측: 아이콘 영역 -->

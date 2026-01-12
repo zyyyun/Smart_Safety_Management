@@ -41,18 +41,19 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="@font/pretendard_bold"
             android:text="안정우 관리자님"
-            android:textSize="17sp"
             android:textColor="#FFFFFF"
-            android:textStyle="bold"/>
+            android:textSize="17sp" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:fontFamily="@font/pretendard_regular"
             android:text="오늘도 안전한 하루되세요"
-            android:textSize="15sp"
             android:textColor="#FFE9D9"
-            android:layout_marginTop="2dp"/>
+            android:textSize="15sp" />
     </LinearLayout>
 
 </LinearLayout>

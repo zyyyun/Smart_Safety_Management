@@ -26,9 +26,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:fontFamily="@font/pretendard_bold"
                 android:text="2026년 5월"
-                android:textSize="24sp"
-                android:textStyle="bold" />
+                android:textColor="#131416"
+                android:textSize="24sp" />
 
             <!-- 오른쪽: 클릭 영역 -->
             <LinearLayout
@@ -52,7 +53,9 @@
                     android:id="@+id/tv_monthly_view"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:fontFamily="@font/pretendard_regular"
                     android:text="월별로 보기"
+                    android:textColor="#6D7882"
                     android:textSize="14sp" />
 
                 <ImageView
@@ -74,38 +77,52 @@
 
             <TextView
                 style="@style/DayOfWeek"
+                android:fontFamily="@font/pretendard_regular"
                 android:text="일"
+                android:textColor="#6D7882"
                 android:textSize="14sp" />
 
             <TextView
                 style="@style/DayOfWeek"
+                android:fontFamily="@font/pretendard_regular"
                 android:text="월"
+                android:textColor="#6D7882"
                 android:textSize="14sp" />
 
             <TextView
                 style="@style/DayOfWeek"
+                android:fontFamily="@font/pretendard_regular"
                 android:text="화"
+                android:textColor="#6D7882"
                 android:textSize="14sp" />
 
             <TextView
                 style="@style/DayOfWeek"
+                android:fontFamily="@font/pretendard_regular"
                 android:text="수"
-                android:textSize="14sp"/>
+                android:textColor="#6D7882"
+                android:textSize="14sp" />
 
             <TextView
                 style="@style/DayOfWeek"
+                android:fontFamily="@font/pretendard_regular"
                 android:text="목"
-                android:textSize="14sp"/>
+                android:textColor="#6D7882"
+                android:textSize="14sp" />
 
             <TextView
                 style="@style/DayOfWeek"
+                android:fontFamily="@font/pretendard_regular"
                 android:text="금"
-                android:textSize="14sp"/>
+                android:textColor="#6D7882"
+                android:textSize="14sp" />
 
             <TextView
                 style="@style/DayOfWeek"
+                android:fontFamily="@font/pretendard_regular"
                 android:text="토"
-                android:textSize="14sp"/>
+                android:textColor="#6D7882"
+                android:textSize="14sp" />
         </LinearLayout>
 
         <!-- 달력 그리드(일단 UI용 더미) -->

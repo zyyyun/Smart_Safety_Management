@@ -12,39 +12,42 @@
         android:id="@+id/tv_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:fontFamily="@font/pretendard_bold"
         android:text="초대코드 입력"
+        android:textColor="#33363D"
         android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="#000000"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- 설명 -->
     <TextView
         android:id="@+id/tv_desc"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="문자로 받은 초대코드가 있으신가요?"
-        android:textSize="14sp"
-        android:textColor="#666666"
+        android:layout_marginTop="8dp"
+        android:fontFamily="@font/pretendard_medium"
         android:gravity="center"
-        app:layout_constraintTop_toBottomOf="@id/tv_title"
+        android:text="문자로 받은 초대코드가 있으신가요?"
+        android:textColor="#58616A"
+        android:textSize="14sp"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="8dp"/>
+        app:layout_constraintTop_toBottomOf="@id/tv_title" />
 
     <!-- 입력창 -->
     <EditText
         android:id="@+id/et_invite_code"
         android:layout_width="0dp"
         android:layout_height="60dp"
-        android:hint="여기에 초대코드를 입력해주세요"
+        android:layout_marginTop="16dp"
         android:background="@drawable/bg_edittext"
-        android:paddingHorizontal="12dp"
+        android:fontFamily="@font/pretendard_medium"
+        android:hint="여기에 초대코드를 입력해주세요"
         android:inputType="textPassword"
-        app:layout_constraintTop_toBottomOf="@id/tv_desc"
-        app:layout_constraintStart_toStartOf="parent"
+        android:paddingHorizontal="12dp"
+        android:textColor="#000000"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_desc" />
 
     <!-- 에러 메시지 -->
     <TextView
@@ -65,14 +68,15 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:background="#FFF4EA"
-        android:text="초대코드는 설정 메뉴에서도 등록할 수 있습니다."
-        android:textColor="#FF5722"
-        android:textSize="12sp"
+        android:background="#1FFB923C"
+        android:fontFamily="@font/pretendard_medium"
         android:paddingStart="20dp"
-        android:paddingEnd="20dp"
         android:paddingTop="12dp"
+        android:paddingEnd="20dp"
         android:paddingBottom="12dp"
+        android:text="초대코드는 설정 메뉴에서도 등록할 수 있습니다."
+        android:textColor="#F97316"
+        android:textSize="12sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_error" />
@@ -82,28 +86,30 @@
         android:id="@+id/btn_submit"
         android:layout_width="0dp"
         android:layout_height="60dp"
+        android:layout_marginTop="16dp"
+        android:backgroundTint="#F97316"
+        android:fontFamily="@font/pretendard_semibold"
         android:text="등록하기"
-        android:textSize="18dp"
         android:textColor="#FFFFFF"
-        android:backgroundTint="#FF7A00"
-        app:layout_constraintTop_toBottomOf="@id/tv_message"
-        app:layout_constraintStart_toStartOf="parent"
+        android:textSize="18dp"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="16dp"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tv_message" />
 
     <!-- 초대코드없이 진행 텍스트 -->
     <TextView
         android:id="@+id/tv_skip_invite_code"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="초대코드없이 진행"
-        android:textSize="14sp"
-        android:textColor="#8E8E8E"
+        android:layout_marginTop="12dp"
         android:clickable="true"
         android:focusable="true"
-        android:layout_marginTop="12dp"
-        app:layout_constraintTop_toBottomOf="@id/btn_submit"
+        android:fontFamily="@font/pretendard_medium"
+        android:text="초대코드없이 진행"
+        android:textColor="#8A949E"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toBottomOf="@id/btn_submit" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
