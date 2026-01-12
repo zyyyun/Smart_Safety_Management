@@ -72,17 +72,17 @@ fun AIEventDetailScreen(onBackClick: () -> Unit = {}) {
                         Text(
                             text = "이벤트 내용",
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFF33363D),
+                            color = Color(0xFF58616A),
                             fontFamily = Pretendard,
-                            fontSize = 16.sp
+                            fontSize = 16.sp,
+                            modifier = Modifier.offset(x = 6.dp)
                         )
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // 이벤트 내용 영역
+                        // 이벤트 내용 영역 (가로 길이를 확장하기 위해 padding 제거)
                         Box(
                             modifier = Modifier
-                                .padding(horizontal = 20.dp)
                                 .fillMaxWidth()
                                 .wrapContentHeight()
                                 .background(Color(0xFFFFFFFF), shape = RoundedCornerShape(12.dp))
@@ -116,7 +116,8 @@ fun AIEventDetailScreen(onBackClick: () -> Unit = {}) {
                                             text = "쓰러짐이 감지되었습니다.",
                                             color = Color(0xFF58616A),
                                             fontSize = 14.sp,
-                                            fontFamily = Pretendard
+                                            fontFamily = Pretendard,
+                                            modifier = Modifier.offset(y = (4).dp) // y축 위치 조절을 위해 추가
                                         )
                                     }
                                 }
@@ -215,7 +216,7 @@ fun AIEventDetailScreen(onBackClick: () -> Unit = {}) {
                         Text(
                             text = "이벤트 캡처",
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFF33363D),
+                            color = Color(0xFF58616A),
                             fontFamily = Pretendard,
                             fontSize = 16.sp
                         )
@@ -236,7 +237,7 @@ fun AIEventDetailScreen(onBackClick: () -> Unit = {}) {
                         Text(
                             text = "발생 위치",
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFF33363D),
+                            color = Color(0xFF58616A),
                             fontFamily = Pretendard,
                             fontSize = 16.sp
                         )
@@ -257,14 +258,13 @@ fun AIEventDetailScreen(onBackClick: () -> Unit = {}) {
                         Text(
                             text = "실시간 화면",
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFF33363D),
+                            color = Color(0xFF58616A),
                             fontFamily = Pretendard,
                             fontSize = 16.sp
                         )
-                        
+
                         Spacer(modifier = Modifier.height(20.dp))
-                        
-                        // 실시간 화면 이미지 (모든 이미지 스타일 통일 및 짤림 방지)
+
                         Image(
                             painter = painterResource(id = R.drawable.cam),
                             contentDescription = "실시간 화면",
@@ -274,7 +274,6 @@ fun AIEventDetailScreen(onBackClick: () -> Unit = {}) {
                             contentScale = ContentScale.FillWidth
                         )
 
-                        // 하단 여유 공간 확보
                         Spacer(modifier = Modifier.height(60.dp))
                     }
                 }
