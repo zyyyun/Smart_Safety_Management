@@ -52,7 +52,7 @@
         android:id="@+id/btnLogin"
         android:layout_width="327dp"
         android:layout_height="52dp"
-        android:layout_marginBottom="12dp"
+        android:layout_marginBottom="30dp"
         android:backgroundTint="#FFFFFF"
         android:fontFamily="@font/pretendard_semibold"
         android:text="로그인"
