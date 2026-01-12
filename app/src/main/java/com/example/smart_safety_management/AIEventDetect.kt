@@ -111,7 +111,9 @@ fun AIEventDetectScreen() {
                             .padding(vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("조치대기", fontWeight = FontWeight.Medium, color = Color(0xFF58616A))
+                        Text("조치대기", fontWeight = FontWeight.Medium, color = Color(0xFF58616A),
+                            modifier = Modifier.padding(8.dp)
+                            )
                         if (filteredPendingEvents.isEmpty()) {
                             Text(
                                 text = "지난 내역은 이력 탭에서 확인하세요.",
@@ -193,7 +195,7 @@ fun EventItem(event: EventData, status: EventStatus) {
 
     Button(
         onClick = { /* Handle event click */ },
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp,horizontal = 8.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(backgroundColor = buttonColor),
         elevation = ButtonDefaults.elevation(0.dp, 0.dp),
@@ -234,7 +236,7 @@ fun CurrentDateText() {
 
     Text(
         text = formattedDate,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp,horizontal = 8.dp),
         textAlign = TextAlign.Start,
         fontSize = 18.sp,
         fontWeight = FontWeight.Bold
@@ -246,7 +248,7 @@ fun MyTopAppBar() {
     TopAppBar(
         backgroundColor = Color(0xFFFF7A00),
         contentColor = Color.White,
-        modifier = Modifier.height(64.dp),
+        modifier = Modifier.height(40 .dp),
         elevation = 0.dp
     ) {
         Row(
@@ -290,7 +292,7 @@ fun MySecondaryTopAppBar(selectedFilter: String, counts: Map<String, Int>, onFil
     TopAppBar(
         backgroundColor = Color(0xFFFF7A00),
         contentColor = Color.White,
-        modifier = Modifier.height(56.dp),
+        modifier = Modifier.height(47.dp),
         elevation = 0.dp
     ) {
         Row(
