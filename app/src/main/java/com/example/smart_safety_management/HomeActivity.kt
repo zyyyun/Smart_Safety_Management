@@ -17,6 +17,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.content.Intent
 import android.graphics.Paint
+import android.view.WindowManager
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -294,6 +295,14 @@ class HomeActivity : AppCompatActivity() {
         }
 
         dialog.show()
+
+        // 다이얼로그 배경을 투명하게 설정하여 둥근 모서리가 보이도록 함
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        // 창의 너비를 화면의 85% 수준으로 조정
+        val params = dialog.window?.attributes
+        params?.width = (resources.displayMetrics.widthPixels * 0.85).toInt()
+        dialog.window?.attributes = params
     }
 
     private fun saveInviteDone() {
