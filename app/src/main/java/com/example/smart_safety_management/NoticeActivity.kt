@@ -38,12 +38,12 @@ class NoticeActivity : AppCompatActivity() {
         // ===============================
 
         // ① 새 알림 있음
-        /*val noticeList = mutableListOf(
+        val noticeList = mutableListOf(
             NoticeItem("AI 이벤트 감지", "D구역 1열 쓰러짐 감지", "1분 전", false),
             NoticeItem("AI 이벤트 감지", "D구역 2열 쓰러짐 감지", "1분 전", false),
             NoticeItem("안전감시단", "[손흥민] D구역 1열 쓰러짐 감지", "1분 전", true),
             NoticeItem("AI 이벤트 감지", "D구역 4열 화재 감지", "5일 전", true),
-        )*/
+        )
 
         // ② 알림은 있으나 모두 읽음
         /*
@@ -54,7 +54,7 @@ class NoticeActivity : AppCompatActivity() {
         */
 
         // ③ 알림 없음
-        val noticeList = mutableListOf<NoticeItem>()
+        /*val noticeList = mutableListOf<NoticeItem>()*/
 
         // ===============================
         // RecyclerView 연결
