@@ -30,19 +30,24 @@
         android:layout_height="0dp"
         android:layout_weight="1"/>
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_add"
-        android:layout_width="wrap_content"
+        android:layout_width="73dp"
         android:layout_height="wrap_content"
-        android:backgroundTint="#FF5722"
-        android:drawableEnd="@android:drawable/ic_input_add"
-        android:drawablePadding="0dp"
-        android:drawableTint="@android:color/white"
+
+        android:backgroundTint="#F97316"
         android:fontFamily="@font/pretendard_semibold"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
+        android:paddingHorizontal="0dp"
+        android:paddingVertical="0dp"
+
         android:text="추가"
-        android:textColor="#FFFFFF"
-        android:textSize="14sp" />
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+
+        app:cornerRadius="6dp"
+        app:icon="@drawable/ic_add"
+
+        app:iconGravity="textEnd"
+        app:iconPadding="5dp" />
 
 </LinearLayout>

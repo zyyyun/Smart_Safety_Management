@@ -130,6 +130,7 @@
         android:text="인증"
         android:textColor="#FFFFFF"
         android:textSize="18sp"
+        app:cornerRadius="7dp"
         app:layout_constraintBottom_toBottomOf="@id/til_write_verify"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/til_write_verify"
@@ -138,8 +139,8 @@
     <!-- 다음 버튼 -->
     <Button
         android:id="@+id/next_button"
-        android:layout_width="375dp"
-        android:layout_height="61dp"
+        android:layout_width="357dp"
+        android:layout_height="65dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="24dp"
@@ -148,6 +149,7 @@
         android:text="다음"
         android:textColor="#FFFFFF"
         android:textSize="18sp"
+        app:cornerRadius="7dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
