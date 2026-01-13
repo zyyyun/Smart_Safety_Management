@@ -17,6 +17,9 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.content.Intent
 import android.graphics.Paint
+import android.text.Spannable
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import android.view.WindowManager
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -109,6 +112,38 @@ class HomeActivity : AppCompatActivity() {
         val list = dailyCheckMap[day] ?: emptyList()
         dailyAdapter.updateList(list)
 
+        // 리스트 개수 갱신 (미점검 개수 / 총 개수)
+        val totalCount = list.size
+        val uncheckedCount = list.count { it.status == "미점검" }
+        
+        val progressText = "$uncheckedCount/$totalCount"
+        val spannable = SpannableString(progressText)
+        
+        // 미점검 수 (주황색: #F97316)
+        val orangeColor = Color.parseColor("#F97316")
+        val grayColor = Color.parseColor("#6D7882")
+        
+        val separatorIndex = progressText.indexOf("/")
+        
+        if (separatorIndex != -1) {
+            // 미점검 수 부분 색상 적용
+            spannable.setSpan(
+                ForegroundColorSpan(orangeColor),
+                0,
+                separatorIndex,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+            // 슬래시와 총 개수 부분 색상 적용
+            spannable.setSpan(
+                ForegroundColorSpan(grayColor),
+                separatorIndex,
+                progressText.length,
+                Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+
+        findViewById<TextView>(R.id.tv_progress).text = spannable
+
         // 리스트 높이 체크해서 부족하면 늘리기
         adjustRecyclerMinHeight()
     }
@@ -153,58 +188,81 @@ class HomeActivity : AppCompatActivity() {
         val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK) // 1=일요일
         val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
 
-        // 빈 칸 채우기 (1일 시작 요일 맞추기)
+        // --- 1. 이전 달 날짜 채우기 (첫째 주 빈칸) ---
+        val prevCalendar = calendar.clone() as Calendar
+        prevCalendar.add(Calendar.MONTH, -1)
+        val prevMaxDay = prevCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+
         for (i in 1 until firstDayOfWeek) {
-            grid.addView(TextView(this).apply {
-                layoutParams = GridLayout.LayoutParams().apply {
-                    width = 0
-                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                }
-            })
+            val prevDay = prevMaxDay - (firstDayOfWeek - 1 - i)
+            addCalendarDay(grid, prevDay, false)
         }
 
-        // 날짜 채우기
+        // --- 2. 이번 달 날짜 채우기 ---
         for (day in 1..daysInMonth) {
+            addCalendarDay(grid, day, true)
+        }
 
-            // 날짜 + 점 컨테이너
-            val dayContainer = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                gravity = Gravity.CENTER
-                layoutParams = GridLayout.LayoutParams().apply {
-                    width = 0
-                    columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                    rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                }
+        // --- 3. 다음 달 날짜 채우기 (마지막 주 빈칸) ---
+        val totalCells = (firstDayOfWeek - 1) + daysInMonth
+        val nextDaysToShow = (7 - (totalCells % 7)) % 7
+        for (day in 1..nextDaysToShow) {
+            addCalendarDay(grid, day, false)
+        }
+    }
+
+    private fun addCalendarDay(grid: GridLayout, day: Int, isCurrentMonth: Boolean) {
+        // 날짜 + 점 컨테이너
+        val dayContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutParams = GridLayout.LayoutParams().apply {
+                width = 0
+                columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
             }
+        }
 
-            val daySize = (resources.displayMetrics.density * 36).toInt()
+        val daySize = (resources.displayMetrics.density * 36).toInt()
+        val dayFrame = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(daySize, daySize)
+        }
 
-            val dayFrame = FrameLayout(this).apply {
-                layoutParams = LinearLayout.LayoutParams(daySize, daySize)
-            }
+        val tv = TextView(this).apply {
+            text = day.toString()
+            gravity = Gravity.CENTER
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
 
-            val tv = TextView(this).apply {
-                text = day.toString()
-                gravity = Gravity.CENTER
-                setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
 
-                layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-
+            if (isCurrentMonth) {
                 setOnClickListener {
                     selectedDay = day
                     fillCalendarReal()
                     updateDailyCheckList(selectedDay)
                 }
             }
+        }
 
-            // 날짜 색 지정
+        // 날짜 색 지정
+        if (isCurrentMonth) {
             tv.setTextColor(Color.parseColor("#58616A"))
+            // 선택된 날짜 스타일
+            if (day == selectedDay) {
+                tv.background = circleDrawable("#FF5722")
+                tv.setTextColor(Color.WHITE)
+            }
+        } else {
+            // 지난달/다음달 날짜는 회색
+            tv.setTextColor(Color.parseColor("#BEC5CC"))
+        }
 
-            // 알림 점
-            val alarmDot = ImageView(this).apply {
+        // 알림 점
+        val alarmDot = if (isCurrentMonth) {
+            ImageView(this).apply {
                 setImageResource(R.drawable.ellipse_alram)
                 visibility = if (hasUncheckedItem(day)) View.VISIBLE else View.INVISIBLE
 
@@ -213,23 +271,24 @@ class HomeActivity : AppCompatActivity() {
                     topMargin = (resources.displayMetrics.density * 4).toInt()
                 }
             }
-
-            // 선택된 날짜 스타일
-            if (day == selectedDay) {
-                tv.background = circleDrawable("#FF5722")
-                tv.setTextColor(Color.WHITE)
+        } else {
+            // 다른 달 날짜인 경우 점 자리에 빈 공간만 차지하도록 함 (정렬 맞추기용)
+            View(this).apply {
+                val size = (resources.displayMetrics.density * 6).toInt()
+                layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                    topMargin = (resources.displayMetrics.density * 4).toInt()
+                }
             }
-
-            // 여기 핵심
-            dayFrame.addView(tv)
-            dayContainer.addView(dayFrame)
-            dayContainer.addView(alarmDot)
-
-            grid.addView(dayContainer)
         }
+
+        dayFrame.addView(tv)
+        dayContainer.addView(dayFrame)
+        dayContainer.addView(alarmDot)
+
+        grid.addView(dayContainer)
     }
 
-        private fun circleDrawable(color: String): GradientDrawable {
+    private fun circleDrawable(color: String): GradientDrawable {
         return GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(Color.parseColor(color))

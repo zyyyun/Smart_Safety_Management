@@ -53,7 +53,7 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:elevation="8dp"
+
                 android:backgroundTint="#FF7A00"
                 app:cardElevation="0dp"
                 app:cardUseCompatPadding="false"
