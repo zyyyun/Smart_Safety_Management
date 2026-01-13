@@ -23,6 +23,7 @@ import android.text.style.ForegroundColorSpan
 import android.view.WindowManager
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.core.widget.doAfterTextChanged
@@ -67,6 +68,15 @@ class HomeActivity : AppCompatActivity() {
 
         // 초대코드 창 띄우기 여부 확인
         checkInviteCodeDialog()
+
+        // 알림 버튼
+        val topBar = findViewById<View>(R.id.top_bar)
+        val btnAlarm = topBar.findViewById<ImageButton>(R.id.btn_alarm)
+
+        btnAlarm.setOnClickListener {
+            val intent = Intent(this, NoticeActivity::class.java)
+            startActivity(intent)
+        }
 
         // 월별로 가기 버튼
         findViewById<View>(R.id.layout_monthly_action).setOnClickListener {

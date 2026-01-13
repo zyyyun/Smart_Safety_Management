@@ -67,6 +67,11 @@
             android:name=".MonthlyListActivity"
             android:exported="false" />
 
+        <!-- 알림 화면 -->
+        <activity
+            android:name=".NoticeActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <!-- 뒤로가기 버튼 -->
+    <ImageButton
+        android:id="@+id/backButton"
+        android:layout_width="23dp"
+        android:layout_height="29dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="12dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/icon_back" />
+
+    <!-- 알림 텍스트 -->
+    <TextView
+        android:id="@+id/tv_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:fontFamily="@font/pretendard_bold"
+        android:text="알림"
+        android:textColor="#131416"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toBottomOf="@id/backButton"
+        app:layout_constraintStart_toEndOf="@id/backButton"
+        app:layout_constraintTop_toTopOf="@id/backButton" />
+
+    <!-- 새 알림 개수 뱃지 -->
+    <TextView
+        android:id="@+id/tv_unread_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/bg_notice_count"
+        android:fontFamily="@font/pretendard_medium"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
+        android:text="3"
+        android:textColor="#FB923C"
+        android:textSize="14sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/tv_title"
+        app:layout_constraintStart_toEndOf="@id/tv_title"
+        app:layout_constraintTop_toTopOf="@id/tv_title" />
+
+    <!-- 모두 읽음 -->
+    <TextView
+        android:id="@+id/tv_read_all"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="모두 읽음"
+        android:textColor="#F97316"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/tv_title"
+        app:layout_constraintBottom_toBottomOf="@id/tv_title"
+        android:layout_marginEnd="16dp"/>
+
+    <!-- ===================== -->
+    <!-- 알림 리스트 -->
+    <!-- ===================== -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_notice"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@id/tv_title"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- ===================== -->
+    <!-- 알림 없음 상태 -->
+    <!-- ===================== -->
+    <LinearLayout
+        android:id="@+id/layout_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:text="알림없음"
+            android:textSize="14sp"
+            android:textColor="#8A949E"
+            android:fontFamily="@font/pretendard_medium"
+            android:layout_height="match_parent"
+            android:layout_width="match_parent" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
