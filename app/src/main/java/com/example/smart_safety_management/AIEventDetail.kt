@@ -67,6 +67,7 @@ fun AIEventDetailScreen(
                     .padding(paddingValues),
                 color = Color.White
             ) {
+                // 스크롤 가능한 Column
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -74,7 +75,11 @@ fun AIEventDetailScreen(
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp) // 요청하신 8dp 수평 패딩 추가
+                    ) {
                         Spacer(modifier = Modifier.height(16.dp))
                         
                         Text(
@@ -86,7 +91,7 @@ fun AIEventDetailScreen(
                             modifier = Modifier.offset(x = 6.dp)
                         )
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
                         // 이벤트 내용 영역
                         Box(
@@ -252,7 +257,7 @@ fun AIEventDetailScreen(
                             fontSize = 16.sp
                         )
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
                         Image(
                             painter = painterResource(id = R.drawable.event),
@@ -273,7 +278,7 @@ fun AIEventDetailScreen(
                             fontSize = 16.sp
                         )
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
                         Image(
                             painter = painterResource(id = R.drawable.map),
@@ -294,7 +299,7 @@ fun AIEventDetailScreen(
                             fontSize = 16.sp
                         )
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
                         Image(
                             painter = painterResource(id = R.drawable.cam),
@@ -392,7 +397,7 @@ fun FalseDetectionDialogContent(onCancel: () -> Unit = {}, onConfirm: () -> Unit
                 }
 
                 Button(
-                    onClick = onConfirm,
+                    onClick = { onConfirm() },
                     modifier = Modifier.size(width = 144.dp, height = 52.dp),
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = Color(0xFFFF7A00),

@@ -97,7 +97,7 @@ fun AIEventDetectScreen() {
                     .fillMaxSize()
                     .padding(paddingValues),
                 color = Color.White,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                shape = RoundedCornerShape(topStart = 8.dp, topEnd = 24.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -119,7 +119,8 @@ fun AIEventDetectScreen() {
                                 text = "지난 내역은 이력 탭에서 확인하세요.",
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                                 textAlign = TextAlign.Center,
-                                color = Color.Gray
+                                fontSize = 14.sp,
+                                color = Color(0xFF8A949E)
                             )
                         } else {
                             filteredPendingEvents.forEach { event ->
@@ -127,13 +128,15 @@ fun AIEventDetectScreen() {
                             }
                         }
 
-                        Text("조치완료", fontWeight = FontWeight.Medium, color = Color(0xFF58616A))
+                        Text("조치완료", fontWeight = FontWeight.Medium, color = Color(0xFF58616A)
+                                ,modifier = Modifier.padding(8.dp))
                         if (filteredCompletedEvents.isEmpty()) {
                             Text(
                                 text = "지난 내역은 이력 탭에서 확인하세요.",
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                                 textAlign = TextAlign.Center,
-                                color = Color.Gray
+                                fontSize = 14.sp,
+                                color = Color(0xFF8A949E)
                             )
                         } else {
                             filteredCompletedEvents.forEach { event ->
@@ -141,13 +144,15 @@ fun AIEventDetectScreen() {
                             }
                         }
 
-                        Text("오탐처리", fontWeight = FontWeight.Medium, color = Color(0xFF58616A))
+                        Text("오탐처리", fontWeight = FontWeight.Medium, color = Color(0xFF58616A)
+                            ,modifier = Modifier.padding(8.dp))
                         if (filteredFalseDetectionEvents.isEmpty()) {
                             Text(
                                 text = "지난 내역은 이력 탭에서 확인하세요.",
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                                 textAlign = TextAlign.Center,
-                                color = Color.Gray
+                                fontSize = 14.sp,
+                                color = Color(0xFF8A949E)
                             )
                         } else {
                             filteredFalseDetectionEvents.forEach { event ->
@@ -221,8 +226,11 @@ fun EventItem(event: EventData, status: EventStatus) {
                 )
             }
             Column(horizontalAlignment = Alignment.Start) {
-                Text(event.location, color = locationColor, fontWeight = FontWeight.SemiBold)
-                Text(event.content, color = textColor)
+                Text(event.location, color = locationColor, fontWeight = FontWeight.SemiBold
+                ,fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(event.content, color = textColor,fontWeight = FontWeight.Normal,
+                    fontSize = 14.sp)
             }
         }
     }
@@ -248,7 +256,7 @@ fun MyTopAppBar() {
     TopAppBar(
         backgroundColor = Color(0xFFFF7A00),
         contentColor = Color.White,
-        modifier = Modifier.height(40 .dp),
+        modifier = Modifier.height(50 .dp),
         elevation = 0.dp
     ) {
         Row(
@@ -276,7 +284,7 @@ fun MyTopAppBar() {
                         painter = painterResource(id = R.drawable.dot_icon),
                         contentDescription = null,
                         tint = Color(0xFFFFCE69),
-                        modifier = Modifier.align(Alignment.TopEnd).offset(x = (-10).dp, y = 10.dp).size(6.dp)
+                        modifier = Modifier.align(Alignment.TopEnd).offset(x = (-8).dp, y = 7.dp).size(6.dp)
                     )
                 }
                 IconButton(onClick = { }) {
@@ -320,7 +328,11 @@ fun FilterButton(text: String, count: Int, isSelected: Boolean, onClick: () -> U
         contentPadding = PaddingValues(horizontal = 8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = text, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = text, 
+                fontSize = 18.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium // 요청하신 가변 FontWeight 적용
+            )
             Spacer(modifier = Modifier.width(6.dp))
             Box(
                 modifier = Modifier.size(20.dp).background(color = if (isSelected) Color.White else Color(0xFFFFAF6E), shape = CircleShape),
@@ -329,7 +341,7 @@ fun FilterButton(text: String, count: Int, isSelected: Boolean, onClick: () -> U
                 Text(
                     text = count.toString(),
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium ,
                     color = if (isSelected) Color(0xFFFF7A00) else Color(0xFFF97316)
                 )
             }
@@ -352,11 +364,11 @@ fun MyBottomNavigation() {
         items.forEach { item ->
             BottomNavigationItem(
                 icon = { Icon(painter = painterResource(id = item.iconResId), contentDescription = item.title) },
-                label = { Text(item.title, fontSize = 12.sp) },
+                label = { Text(item.title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
                 selected = selectedItem == item.screenRoute,
                 onClick = { selectedItem = item.screenRoute },
                 selectedContentColor = Color(0xFFFF7A00),
-                unselectedContentColor = Color.Gray
+                unselectedContentColor = Color(0xFFCDD1D5)
             )
         }
     }

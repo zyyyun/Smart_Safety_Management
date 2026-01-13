@@ -202,6 +202,14 @@ fun ActionDetailScreen(
                     
                     // 조치 유형 드롭다운 박스
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                        // 선택된 항목에 따른 아이콘 리소스 결정
+                        val selectedIconRes = when (actionType) {
+                            "조치공유" -> R.drawable.priority1
+                            "조치필요" -> R.drawable.priority2
+                            "즉시조치" -> R.drawable.priority3
+                            else -> null
+                        }
+
                         OutlinedTextField(
                             value = if (actionType.isEmpty()) "조치 유형 선택" else actionType,
                             onValueChange = { },
@@ -215,10 +223,28 @@ fun ActionDetailScreen(
                             ),
                             shape = RoundedCornerShape(8.dp),
                             trailingIcon = {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.dropbox),
-                                    contentDescription = null
-                                )
+                                Box(
+                                    modifier = Modifier.fillMaxHeight(),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(end = 12.dp)
+                                    ) {
+                                        if (selectedIconRes != null) {
+                                            Icon(
+                                                painter = painterResource(id = selectedIconRes),
+                                                contentDescription = null,
+                                                tint = Color.Unspecified
+                                            )
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                        }
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.dropbox),
+                                            contentDescription = null,
+                                        )
+                                    }
+                                }
                             },
                             colors = TextFieldDefaults.outlinedTextFieldColors(
                                 unfocusedBorderColor = Color(0xFFCDD1D5),
@@ -263,8 +289,7 @@ fun ActionDetailScreen(
                                             Icon(
                                                 painter = painterResource(id = iconRes),
                                                 contentDescription = null,
-                                                tint = Color.Unspecified,
-                                                modifier = Modifier.size(24.dp)
+                                                tint = Color.Unspecified
                                             )
                                         }
                                     }
@@ -358,7 +383,7 @@ fun ActionDetailScreen(
                             Canvas(modifier = Modifier.fillMaxSize()) {
                                 val pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
                                 drawRoundRect(
-                                    color = Color.Gray,
+                                    color = Color(0xFFCDD1D5),
                                     style = Stroke(width = 1.dp.toPx(), pathEffect = pathEffect),
                                     cornerRadius = CornerRadius(8.dp.toPx())
                                 )
@@ -369,13 +394,13 @@ fun ActionDetailScreen(
                                 Icon(
                                     painter = painterResource(id = R.drawable.camera_icon),
                                     contentDescription = "사진첨부",
-                                    tint = Color.Gray
+                                    tint = Color(0xFFB1B8BE)
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = "사진첨부",
-                                    color = Color.Gray,
-                                    fontSize = 14.sp
+                                    color = Color(0xFFB1B8BE),
+                                    fontSize = 18.sp
                                 )
                             }
                         }
@@ -403,16 +428,19 @@ fun ActionDetailScreen(
                         colors = ButtonDefaults.buttonColors(
                             backgroundColor = Color(0xFFF97316),
                             contentColor = Color(0xFFFFFFFF)
-                        )
+                        ),
+                        elevation = ButtonDefaults.elevation(0.dp, 0.dp)
+
+
                     ) {
                         Text(
-                            text = "작성 완료",
+                            text = "작성완료",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 18.sp,
                             fontFamily = Pretendard
                         )
                     }
-                    Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(60.dp))
                 }
             }
         }
@@ -480,7 +508,7 @@ fun ActionTypeItemsPreview() {
                                 Icon(
                                     painter = painterResource(id = iconRes),
                                     contentDescription = null,
-                                    tint = Color.Unspecified
+                                    tint = Color.Unspecified,
                                 )
                             }
                         }
