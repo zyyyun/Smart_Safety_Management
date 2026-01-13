@@ -1,8 +1,11 @@
 package com.example.smart_safety_management
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Rect
 import android.view.*
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.PopupWindow
 import androidx.core.view.doOnPreDraw
@@ -15,6 +18,8 @@ class TooltipPopup(private val context: Context) {
     
     private var cachedWidth: Int = 0
     private var cachedHeight: Int = 0
+
+    private var animator: ObjectAnimator? = null
 
     fun showAlways(anchorView: View, marginDp: Int = 8) {
         this.anchor = anchorView
@@ -33,12 +38,15 @@ class TooltipPopup(private val context: Context) {
                 cachedHeight,
                 false
             ).apply {
-                isTouchable = false
+                // 사용자가 화면 어디든 탭하면 사라지게 하기 위해, 팝업 자체가 터치를 가로채지 않도록 설정
+                isTouchable = false 
                 isOutsideTouchable = false
                 elevation = dp(4).toFloat()
                 setBackgroundDrawable(null)
                 isClippingEnabled = false
             }
+
+            startFloatingAnimation(tooltipView)
         }
 
         if (anchorView.isAttachedToWindow) {
@@ -47,6 +55,18 @@ class TooltipPopup(private val context: Context) {
             anchorView.doOnPreDraw {
                 updatePosition()
             }
+        }
+    }
+
+    private fun startFloatingAnimation(view: View) {
+        animator?.cancel()
+        // Y축 -5px ~ 5px 반복 애니메이션 (Floating Animation)
+        animator = ObjectAnimator.ofFloat(view, "translationY", -5f, 5f).apply {
+            duration = 1000
+            repeatMode = ValueAnimator.REVERSE
+            repeatCount = ValueAnimator.INFINITE
+            interpolator = AccelerateDecelerateInterpolator()
+            start()
         }
     }
 
@@ -65,19 +85,13 @@ class TooltipPopup(private val context: Context) {
         val anchorW = anchorView.width
         val anchorH = anchorView.height
 
-        // [수정] 앵커의 오른쪽 끝을 기준으로 툴팁을 배치합니다.
-        // 앵커의 오른쪽 끝(anchorX + anchorW)에서 툴팁 너비(cachedWidth)만큼 왼쪽으로 이동하고, 
-        // 추가로 8dp 정도 더 왼쪽으로 밀어줍니다.
         var x = (anchorX + anchorW) - cachedWidth
         var y = anchorY - cachedHeight - marginPx
 
         val windowRect = Rect()
         anchorView.getWindowVisibleDisplayFrame(windowRect)
 
-        // 화면 왼쪽 끝을 넘어가면 최소한 왼쪽 끝에 맞춤
         if (x < windowRect.left) x = windowRect.left
-        
-        // 화면 오른쪽 끝을 넘어가면 오른쪽 끝에 맞춤
         if (x + cachedWidth > windowRect.right) x = windowRect.right - cachedWidth
 
         if (y < windowRect.top) {
@@ -102,6 +116,8 @@ class TooltipPopup(private val context: Context) {
     }
 
     fun dismiss() {
+        animator?.cancel()
+        animator = null
         popup?.dismiss()
         popup = null
         anchor = null
