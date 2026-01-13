@@ -15,7 +15,10 @@ import androidx.compose.material.icons.filled.Photo
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -23,6 +26,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.ui.theme.Pretendard
@@ -37,6 +41,9 @@ fun ActionDetailScreen(
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
     var attachedPhotos by remember { mutableStateOf<List<String>>(emptyList()) }
+    
+    // 스크롤 상태 관리
+    val scrollState = rememberScrollState()
     
     // 드롭다운 확장 상태 관리
     var expanded by remember { mutableStateOf(initialExpanded) }
@@ -76,11 +83,13 @@ fun ActionDetailScreen(
                     .padding(paddingValues),
                 color = Color.White
             ) {
+                // 스크롤바가 포함된 Column
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp)
-                        .verticalScroll(rememberScrollState()),
+                        .verticalScrollbar(scrollState) // 커스텀 스크롤바 적용
+                        .verticalScroll(scrollState),
                     horizontalAlignment = Alignment.Start
                 ) {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -94,7 +103,7 @@ fun ActionDetailScreen(
                         modifier = Modifier.offset(x = 8.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(15.dp))
 
                     Box(
                         modifier = Modifier
@@ -168,7 +177,7 @@ fun ActionDetailScreen(
                                     )
                                     Text(
                                         text = value,
-                                        color = Color(0xFF33363D),
+                                        color = Color(0xFF131416),
                                         fontSize = 16.sp,
                                         fontFamily = Pretendard,
                                         fontWeight = FontWeight.Medium
@@ -189,7 +198,7 @@ fun ActionDetailScreen(
                         fontSize = 16.sp,
                         modifier = Modifier.offset(x = 8.dp)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(15.dp))
                     
                     // 조치 유형 드롭다운 박스
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
@@ -217,7 +226,7 @@ fun ActionDetailScreen(
                             )
                         )
                         
-                        // 드롭다운 메뉴 (에러 해결: maxWidth 직접 사용)
+                        // 드롭다운 메뉴
                         DropdownMenu(
                             expanded = expanded,
                             onDismissRequest = { expanded = false },
@@ -244,7 +253,6 @@ fun ActionDetailScreen(
                                             fontWeight = FontWeight.Medium,
                                             color = Color(0xFF131416)
                                         )
-                                        // 각 옵션에 맞는 아이콘 배치
                                         val iconRes = when(option) {
                                             "조치공유" -> R.drawable.priority1
                                             "조치필요" -> R.drawable.priority2
@@ -282,7 +290,7 @@ fun ActionDetailScreen(
                         fontSize = 16.sp,
                         modifier = Modifier.offset(x = 8.dp)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(15.dp))
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
@@ -306,13 +314,13 @@ fun ActionDetailScreen(
                         fontSize = 16.sp,
                         modifier = Modifier.offset(x = 8.dp)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(15.dp))
                     OutlinedTextField(
                         value = content,
                         onValueChange = { content = it },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(150.dp)
+                            .height(120.dp)
                             .padding(horizontal = 8.dp),
                         shape = RoundedCornerShape(8.dp),
                         textStyle = TextStyle(fontSize = 16.sp, fontFamily = Pretendard, color = Color(0xFF131416)),
@@ -335,7 +343,8 @@ fun ActionDetailScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
@@ -388,17 +397,18 @@ fun ActionDetailScreen(
 
                     Button(
                         onClick = { /* 작성 완료 로직 */ },
-                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        modifier = Modifier.fillMaxWidth().height(52.dp)
+                            .padding(horizontal = 8.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            backgroundColor = Color(0xFFFF7A00),
-                            contentColor = Color.White
+                            backgroundColor = Color(0xFFF97316),
+                            contentColor = Color(0xFFFFFFFF)
                         )
                     ) {
                         Text(
                             text = "작성 완료",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 18.sp,
                             fontFamily = Pretendard
                         )
                     }
@@ -406,6 +416,25 @@ fun ActionDetailScreen(
                 }
             }
         }
+    }
+}
+
+// 커스텀 세로 스크롤바 모디파이어
+fun Modifier.verticalScrollbar(
+    state: androidx.compose.foundation.ScrollState,
+    width: Dp = 4.dp,
+    color: Color = Color.Gray.copy(alpha = 0.5f)
+): Modifier = drawWithContent {
+    drawContent()
+    if (state.maxValue > 0) {
+        val scrollbarHeight = size.height * (size.height / (state.maxValue + size.height))
+        val scrollbarOffset = state.value * (size.height / (state.maxValue + size.height))
+        drawRoundRect(
+            color = color,
+            topLeft = Offset(size.width - width.toPx(), scrollbarOffset),
+            size = Size(width.toPx(), scrollbarHeight),
+            cornerRadius = CornerRadius(width.toPx() / 2)
+        )
     }
 }
 
@@ -451,7 +480,7 @@ fun ActionTypeItemsPreview() {
                                 Icon(
                                     painter = painterResource(id = iconRes),
                                     contentDescription = null,
-                                    tint = Color.Unspecified,
+                                    tint = Color.Unspecified
                                 )
                             }
                         }
