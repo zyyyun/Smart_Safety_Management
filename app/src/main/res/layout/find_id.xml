@@ -26,7 +26,7 @@
         android:layout_marginStart="8dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="아이디 찾기"
-        android:textColor="@color/gray_900"
+        android:textColor="@color/gray_900.gray_50"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="@id/backButton"
         app:layout_constraintStart_toEndOf="@id/backButton"
@@ -41,7 +41,7 @@
         android:layout_marginTop="16dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="아이디가 기억나지 않으세요?"
-        android:textColor="@color/gray_900"
+        android:textColor="@color/gray_900.gray_50"
         android:textSize="24sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/find_id" />

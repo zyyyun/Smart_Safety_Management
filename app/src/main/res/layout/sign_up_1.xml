@@ -16,7 +16,8 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/icon_back" />
+        app:srcCompat="@drawable/icon_back"
+        app:tint="@color/gray_900.gray_50"/>
 
     <!-- 회원가입 텍스트 -->
     <TextView
@@ -26,11 +27,11 @@
         android:layout_marginStart="8dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="회원가입"
-        android:textColor="@color/gray_900"
+        android:textColor="@color/gray_900.gray_50"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="@id/imageButton"
         app:layout_constraintStart_toEndOf="@id/imageButton"
-        app:layout_constraintTop_toTopOf="@id/imageButton" />
+        app:layout_constraintTop_toTopOf="@id/imageButton"/>
 
     <!-- 근로자 카드형 버튼 -->
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -39,7 +40,7 @@
         android:layout_height="92dp"
         android:layout_margin="16dp"
         android:layout_marginTop="32dp"
-        android:background="@color/gray_25"
+        android:background="@color/gray_50.gray_900"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground"
@@ -114,7 +115,7 @@
         android:layout_height="92dp"
         android:layout_margin="16dp"
         android:layout_marginTop="180dp"
-        android:background="@color/gray_25"
+        android:background="@color/gray_50.gray_900"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground"

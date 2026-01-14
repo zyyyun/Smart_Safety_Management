@@ -13,7 +13,7 @@
         android:layout_height="wrap_content"
         android:fontFamily="@font/pretendard_semibold"
         android:text="일일안전점검 리스트"
-        android:textColor="@color/gray_900"
+        android:textColor="@color/gray_900.gray_50"
         android:textSize="18sp" />
 
     <TextView

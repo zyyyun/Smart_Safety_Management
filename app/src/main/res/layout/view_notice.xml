@@ -27,7 +27,7 @@
             android:id="@+id/tv_title"
             android:text="AI 이벤트 감지"
             android:textSize="14sp"
-            android:textColor="@color/gray_900"
+            android:textColor="@color/gray_900.gray_50"
             android:fontFamily="@font/pretendard_semibold"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>

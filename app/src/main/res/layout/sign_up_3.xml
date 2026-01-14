@@ -16,7 +16,8 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/icon_back" />
+        app:srcCompat="@drawable/icon_back"
+        app:tint="@color/gray_900.gray_50"/>
 
     <!-- 회원가입 텍스트 -->
     <TextView
@@ -26,7 +27,7 @@
         android:layout_marginStart="8dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="회원가입"
-        android:textColor="@color/gray_900"
+        android:textColor="@color/gray_900.gray_50"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="@id/backButton"
         app:layout_constraintStart_toEndOf="@id/backButton"
@@ -67,13 +68,14 @@
             android:id="@+id/et_id"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            android:backgroundTint="@color/white.black"
+            android:backgroundTint="@color/gray_200.gray_900"
             android:fontFamily="@font/pretendard_medium"
             android:hint="사용하실 아이디를 입력해주세요"
             android:inputType="text"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black" />
+            android:textColor="@color/black"
+            android:textColorHint="@color/gray_500.gray_650"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- 비밀번호 라벨 -->
@@ -112,13 +114,14 @@
             android:id="@+id/et_password"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            android:backgroundTint="@color/white.black"
+            android:backgroundTint="@color/gray_200.gray_900"
             android:fontFamily="@font/pretendard_medium"
             android:hint="비밀번호를 입력해주세요"
             android:inputType="textPassword"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black" />
+            android:textColor="@color/black"
+            android:textColorHint="@color/gray_500.gray_650"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- 비밀번호 재입력 라벨 -->
@@ -157,13 +160,14 @@
             android:id="@+id/et_re_password"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            android:backgroundTint="@color/white.black"
+            android:backgroundTint="@color/gray_200.gray_900"
             android:fontFamily="@font/pretendard_medium"
             android:hint="비밀번호를 입력해주세요"
             android:inputType="textPassword"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black" />
+            android:textColor="@color/black"
+            android:textColorHint="@color/gray_500.gray_650"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- 완료 버튼 -->
@@ -173,7 +177,7 @@
         android:layout_height="65dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="24dp"
-        android:backgroundTint="@color/orange_500"
+        android:backgroundTint="#F97316"
         android:fontFamily="@font/pretendard_semibold"
         android:text="완료"
         android:textColor="@color/white.black"

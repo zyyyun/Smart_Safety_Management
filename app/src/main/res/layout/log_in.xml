@@ -17,7 +17,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/icon_back"
-        app:tint="@color/gray_900"/>
+        app:tint="@color/gray_900.gray_50"/>
 
     <!-- 로그인 텍스트 -->
     <TextView
@@ -27,7 +27,7 @@
         android:layout_marginStart="8dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="로그인"
-        android:textColor="@color/gray_900"
+        android:textColor="@color/gray_900.gray_50"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="@id/backButton"
         app:layout_constraintStart_toEndOf="@id/backButton"
