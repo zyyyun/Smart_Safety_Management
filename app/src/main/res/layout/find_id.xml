@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white">
+    android:background="@color/base">
 
     <!-- 뒤로가기 버튼 -->
     <ImageButton
@@ -153,7 +153,7 @@
         android:layout_marginEnd="16dp"
         android:backgroundTint="@color/orange_500"
         android:text="인증번호받기"
-        android:textColor="@color/text_on_orange"
+        android:textColor="@color/white"
         android:textSize="18sp"
         android:fontFamily="@font/pretendard_semibold"
         app:cornerRadius="7dp"
@@ -169,7 +169,7 @@
         android:layout_marginBottom="64dp"
         android:backgroundTint="@color/orange_500"
         android:text="다음"
-        android:textColor="@color/text_on_orange"
+        android:textColor="@color/white"
         android:textSize="18sp"
         android:fontFamily="@font/pretendard_semibold"
         app:cornerRadius="7dp"

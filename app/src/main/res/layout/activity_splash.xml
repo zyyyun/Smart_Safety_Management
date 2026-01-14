@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white">
+    android:background="@color/base">
 
     <!-- 로고 + 타이틀 -->
     <LinearLayout
@@ -29,7 +29,7 @@
             android:layout_height="wrap_content"
             android:text="중대재해예방 플랫폼"
             android:textSize="24sp"
-            android:textColor="@color/orange_500"
+            android:textColor="#F97316"
             android:fontFamily="@font/clipartkorea_medium"/>
     </LinearLayout>
 
@@ -38,7 +38,7 @@
         android:id="@+id/btnSignUp"
         android:layout_width="327dp"
         android:layout_height="52dp"
-        android:backgroundTint="@color/orange_500"
+        android:backgroundTint="#F97316"
         android:fontFamily="@font/pretendard_semibold"
         android:text="회원가입"
         android:textColor="@color/white"
@@ -57,7 +57,7 @@
         android:backgroundTint="@color/white"
         android:fontFamily="@font/pretendard_semibold"
         android:text="로그인"
-        android:textColor="@color/orange_500"
+        android:textColor="#F97316"
         android:textSize="18sp"
         app:cornerRadius="8dp"
         app:layout_constraintBottom_toBottomOf="parent"

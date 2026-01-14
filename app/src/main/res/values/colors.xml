@@ -9,6 +9,7 @@
     <color name="orange_600">#FF5722</color>
 
     <!-- gray -->
+    <color name="base">#FFFFFF</color>
     <color name="white">#FFFFFF</color>
 
     <color name="gray_25">#F8F6F6</color>

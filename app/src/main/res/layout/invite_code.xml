@@ -91,7 +91,7 @@
         android:backgroundTint="@color/orange_500"
         android:fontFamily="@font/pretendard_semibold"
         android:text="등록하기"
-        android:textColor="@color/text_on_orange"
+        android:textColor="@color/white"
         android:textSize="18dp"
         app:cornerRadius="7dp"
         app:layout_constraintEnd_toEndOf="parent"
