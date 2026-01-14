@@ -22,7 +22,7 @@
             android:layout_height="23dp"
             android:contentDescription="로고"
             android:src="@drawable/_2026_01_05_15_18_02_removebg_preview"
-            app:tint="@color/white" />
+            app:tint="@color/white.black" />
 
         <TextView
             android:layout_width="wrap_content"

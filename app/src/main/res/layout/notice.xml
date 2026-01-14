@@ -93,7 +93,7 @@
         <TextView
             android:text="알림없음"
             android:textSize="14sp"
-            android:textColor="@color/gray_400"
+            android:textColor="@color/gray_400.gray_700"
             android:fontFamily="@font/pretendard_medium"
             android:layout_height="match_parent"
             android:layout_width="match_parent" />

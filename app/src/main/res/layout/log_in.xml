@@ -16,7 +16,8 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/icon_back" />
+        app:srcCompat="@drawable/icon_back"
+        app:tint="@color/gray_900"/>
 
     <!-- 로그인 텍스트 -->
     <TextView
@@ -41,7 +42,7 @@
         android:layout_marginTop="32dp"
         android:fontFamily="@font/pretendard_medium"
         android:text="아이디"
-        android:textColor="@color/gray_700"
+        android:textColor="@color/gray_700.gray_400"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/backButton" />
@@ -67,7 +68,7 @@
             android:id="@+id/et_id"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            android:backgroundTint="@color/white"
+            android:backgroundTint="@color/white.black"
             android:fontFamily="@font/pretendard_medium"
             android:hint="아이디를 입력해주세요"
             android:inputType="text"
@@ -85,7 +86,7 @@
         android:layout_marginTop="24dp"
         android:fontFamily="@font/pretendard_medium"
         android:text="비밀번호"
-        android:textColor="@color/gray_700"
+        android:textColor="@color/gray_700.gray_400"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/til_write_id" />
@@ -112,7 +113,7 @@
             android:id="@+id/et_password"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            android:backgroundTint="@color/white"
+            android:backgroundTint="@color/white.black"
             android:fontFamily="@font/pretendard_medium"
             android:hint="비밀번호를 입력해주세요"
             android:inputType="textPassword"
@@ -131,7 +132,7 @@
         android:focusable="true"
         android:fontFamily="@font/pretendard_medium"
         android:text="아이디/비밀번호를 잊어버렸어요"
-        android:textColor="@color/gray_400"
+        android:textColor="@color/gray_400.gray_700"
         android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -145,10 +146,10 @@
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="24dp"
-        android:backgroundTint="@color/orange_500"
+        android:backgroundTint="#F97316"
         android:fontFamily="@font/pretendard_semibold"
         android:text="로그인"
-        android:textColor="@color/white"
+        android:textColor="@color/white.black"
         android:textSize="18sp"
         app:cornerRadius="7dp"
         app:layout_constraintBottom_toBottomOf="parent"

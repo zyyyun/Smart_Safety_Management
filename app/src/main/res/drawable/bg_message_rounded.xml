@@ -3,7 +3,7 @@
     android:shape="rectangle">
 
     <!-- 배경색 -->
-    <solid android:color="#1FFB923C"/>
+    <solid android:color="@color/orange_50_alpha.orange_200_alpha"/>
 
     <!-- 모서리 둥글기 -->
     <corners android:radius="10dp"/>

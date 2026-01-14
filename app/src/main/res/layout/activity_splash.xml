@@ -41,7 +41,7 @@
         android:backgroundTint="#F97316"
         android:fontFamily="@font/pretendard_semibold"
         android:text="회원가입"
-        android:textColor="@color/white"
+        android:textColor="@color/white.gray_950"
         android:textSize="18sp"
         app:cornerRadius="8dp"
         app:layout_constraintBottom_toTopOf="@id/btnLogin"
@@ -54,7 +54,7 @@
         android:layout_width="327dp"
         android:layout_height="52dp"
         android:layout_marginBottom="30dp"
-        android:backgroundTint="@color/white"
+        android:backgroundTint="@android:color/transparent"
         android:fontFamily="@font/pretendard_semibold"
         android:text="로그인"
         android:textColor="#F97316"
@@ -63,7 +63,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:strokeColor="@color/orange_500"
+        app:strokeColor="#F97316"
         app:strokeWidth="1dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
