@@ -25,7 +25,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// --- 1. 데이터 모델 및 Enum (중복 방지를 위해 상단 정리) ---
+// --- 1. 데이터 모델 및 Enum ---
 
 enum class EventStatus {
     PENDING,
@@ -89,7 +89,7 @@ fun AIEventDetectScreen() {
                     }
                 }
             },
-            bottomBar = { MyBottomNavigation() },
+            bottomBar = { MyBottomNavigation("nav_ai") }, // 경로를 전달
             backgroundColor = Color(0xFFFF7A00)
         ) { paddingValues ->
             Surface(
@@ -331,7 +331,7 @@ fun FilterButton(text: String, count: Int, isSelected: Boolean, onClick: () -> U
             Text(
                 text = text, 
                 fontSize = 18.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium // 요청하신 가변 FontWeight 적용
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
             )
             Spacer(modifier = Modifier.width(6.dp))
             Box(
@@ -350,7 +350,7 @@ fun FilterButton(text: String, count: Int, isSelected: Boolean, onClick: () -> U
 }
 
 @Composable
-fun MyBottomNavigation() {
+fun MyBottomNavigation(selectedRoute: String = "nav_ai") {
     val items = listOf(
         BottomNavItem("안전점검", R.drawable.home, "nav_home"),
         BottomNavItem("AI감지", R.drawable.ai, "nav_ai"),
@@ -358,15 +358,17 @@ fun MyBottomNavigation() {
         BottomNavItem("이력", R.drawable.history, "nav_history"),
         BottomNavItem("위치정보", R.drawable.location, "nav_location")
     )
-    var selectedItem by remember { mutableStateOf("nav_ai") }
 
-    BottomNavigation(backgroundColor = Color.White) {
+    BottomNavigation(
+        backgroundColor = Color(0xFFF4F5F6),
+        elevation = 10.dp
+    ) {
         items.forEach { item ->
             BottomNavigationItem(
                 icon = { Icon(painter = painterResource(id = item.iconResId), contentDescription = item.title) },
                 label = { Text(item.title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
-                selected = selectedItem == item.screenRoute,
-                onClick = { selectedItem = item.screenRoute },
+                selected = selectedRoute == item.screenRoute,
+                onClick = { /* 네비게이션 로직 */ },
                 selectedContentColor = Color(0xFFFF7A00),
                 unselectedContentColor = Color(0xFFCDD1D5)
             )
