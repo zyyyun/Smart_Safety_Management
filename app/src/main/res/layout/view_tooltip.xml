@@ -9,7 +9,8 @@
     android:background="@drawable/tooltip_box"
     android:paddingStart="12dp"
     android:paddingEnd="12dp"
-    android:paddingBottom="9dp">
+    android:paddingBottom="9dp"
+    android:backgroundTint="@color/gray_100.gray_950">
 
     <ImageView
         android:id="@+id/tooltip_icon"

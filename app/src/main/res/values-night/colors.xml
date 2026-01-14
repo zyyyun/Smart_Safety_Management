@@ -5,7 +5,7 @@
     <color name="orange_50_alpha.orange_200_alpha">#5CFB923C</color>
     <color name="orange_400">#5CFB923C</color>
     <color name="orange_500">#1E2124</color>
-    <color name="orange_550">#FF7A00</color>
+    <color name="orange_550.gray_950">#1E2124</color>
     <color name="orange_600">#FF5722</color>
 
     <!-- gray -->
@@ -16,6 +16,7 @@
 
     <color name="gray_25">#F8F6F6</color>
     <color name="gray_50.gray_900">#131416</color>
+    <color name="gray_100.gray_950">#1E2124</color>
     <color name="gray_200.gray_800">#33363D</color>
     <color name="gray_200.gray_900">#131416</color>
     <color name="gray_400.gray_700">#58616A</color>

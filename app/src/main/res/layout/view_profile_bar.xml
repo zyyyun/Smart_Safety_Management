@@ -18,7 +18,8 @@
         android:layout_marginStart="10dp"
         app:cardCornerRadius="25dp"
         app:cardElevation="0dp"
-        app:strokeWidth="0dp">
+        app:strokeWidth="0dp"
+        android:backgroundTint="#F4F5F6">
 
         <ImageView
             android:layout_width="match_parent"

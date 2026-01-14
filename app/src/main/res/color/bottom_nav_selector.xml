@@ -4,10 +4,10 @@
     <!-- 선택된 상태 -->
     <item
         android:state_checked="true"
-        android:color="#FF5722" />
+        android:color="#F97316" />
 
     <!-- 선택 안 된 상태 -->
     <item
-        android:color="#9E9E9E" />
+        android:color="@color/gray_200.gray_800" />
 
 </selector>
