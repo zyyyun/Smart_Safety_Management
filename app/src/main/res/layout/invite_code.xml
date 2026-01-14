@@ -44,7 +44,7 @@
         android:hint="여기에 초대코드를 입력해주세요"
         android:inputType="textPassword"
         android:paddingHorizontal="12dp"
-        android:textColor="@color/black"
+        android:textColor="@color/black.white"
         android:textColorHint="@color/gray_500.gray_650"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

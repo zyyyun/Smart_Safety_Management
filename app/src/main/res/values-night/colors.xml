@@ -11,9 +11,12 @@
     <!-- gray -->
     <color name="base">#000000</color>
     <color name="white.gray_950">#1E2124</color>
+    <color name="white.black">#000000</color>
+    <color name="white.gray_900">#131416</color>
 
     <color name="gray_25">#F8F6F6</color>
     <color name="gray_50.gray_900">#131416</color>
+    <color name="gray_200.gray_800">#33363D</color>
     <color name="gray_200.gray_900">#131416</color>
     <color name="gray_400.gray_700">#58616A</color>
     <color name="gray_450">#9AA3AB</color>
@@ -22,6 +25,6 @@
     <color name="gray_800.gray_200">#CDD1D5</color>
     <color name="gray_900.gray_50">#F4F5F6</color>
 
-    <color name="black">#FFFFFF</color>
+    <color name="black.white">#FFFFFF</color>
 
 </resources>

@@ -68,14 +68,15 @@
             android:id="@+id/et_name"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            android:backgroundTint="@color/gray_200.gray_900"
+            android:boxBackgroundColor="@color/white.gray_900"
+            android:backgroundTint="#FFFFFF"
             android:fontFamily="@font/pretendard_medium"
             android:hint="이름을 입력해주세요"
             android:inputType="text"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black"
-            android:textColorHint="@color/gray_500.gray_650"/>
+            android:textColor="@color/black.white"
+            android:textColorHint="@color/gray_500.gray_650" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- 인증번호 입력 라벨 -->
@@ -113,12 +114,13 @@
             android:id="@+id/et_verify"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            android:backgroundTint="@color/gray_200.gray_900"
+            android:boxBackgroundColor="@color/white.gray_900"
+            android:backgroundTint="#FFFFFF"
             android:fontFamily="@font/pretendard_medium"
             android:hint="인증번호를 입력해주세요"
             android:inputType="number"
             android:padding="20dp"
-            android:textColor="@color/black"
+            android:textColor="@color/black.white"
             android:textColorHint="@color/gray_500.gray_650"/>
     </com.google.android.material.textfield.TextInputLayout>
 
