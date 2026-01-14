@@ -1,6 +1,7 @@
 package com.example.smart_safety_management
 
 import android.app.DatePickerDialog
+import android.content.res.Configuration
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
@@ -14,54 +15,22 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.Card
-import androidx.compose.material.Divider
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
+import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -129,7 +98,8 @@ val TooltipShape = object : Shape {
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-@Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
+//@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
 @Composable
 fun MonthlyListScreen() {
     val activity = LocalContext.current as? ComponentActivity
@@ -146,18 +116,20 @@ fun MonthlyListScreen() {
 
     Smart_Safety_ManagementTheme {
         Scaffold(
+            backgroundColor = MaterialTheme.colors.background,
             topBar = {
                 TopAppBar(
-                    title = { Text(text = "월별로 보기", fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.offset(x = (-20).dp)) },
-                    navigationIcon = { IconButton(onClick = { activity?.onBackPressedDispatcher?.onBackPressed() }) { Icon(painter = painterResource(id = R.drawable.backicon), contentDescription = "Back", tint = Color.Black) } },
-                    backgroundColor = Color.White
+                    title = { Text(text = "월별로 보기", fontWeight = FontWeight.Bold, color = MaterialTheme.colors.onSurface, modifier = Modifier.offset(x = (-20).dp)) },
+                    navigationIcon = { IconButton(onClick = { activity?.onBackPressedDispatcher?.onBackPressed() }) { Icon(painter = painterResource(id = R.drawable.backicon), contentDescription = "Back", tint = MaterialTheme.colors.onSurface) } },
+                    backgroundColor = MaterialTheme.colors.surface,
+                    elevation = 0.dp
                 )
             },
         ) { paddingValues ->
             Column(modifier = Modifier.padding(paddingValues).pointerInput(Unit) { detectTapGestures(onTap = { lastUserInteraction = System.currentTimeMillis() }) }) {
                 YearMonthSelector(yearMonth = currentYearMonth, onMonthChange = { newMonth -> currentYearMonth = newMonth })
                 DateRangeSelector(yearMonth = currentYearMonth, onDateChange = { start, end -> startDate = start; endDate = end })
-                Divider(color = Color.LightGray, modifier = Modifier.padding(vertical = 8.dp))
+                Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), modifier = Modifier.padding(vertical = 8.dp))
                 LazyColumn(state = listState, modifier = Modifier.padding(horizontal = 16.dp)) {
                     items(filteredReports) { report ->
                         ReportHeader(report = report)
@@ -179,11 +151,11 @@ fun ReportHeader(report: DailyInspectionReport) {
     val allChecked = checkedCount == totalCount
 
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp)) {
-        Text(text = "${report.date.dayOfMonth}일", fontWeight = FontWeight.Medium, fontSize = 18.sp)
+        Text(text = "${report.date.dayOfMonth}일", fontWeight = FontWeight.Medium, fontSize = 18.sp, color = MaterialTheme.colors.onBackground)
         Spacer(modifier = Modifier.width(8.dp))
-        Box(modifier = Modifier.background(color = Color.White, shape = RoundedCornerShape(percent = 50)).border(width = 1.dp, color = Color.LightGray, shape = RoundedCornerShape(percent = 50)).padding(horizontal = 12.dp, vertical = 4.dp)) {
+        Box(modifier = Modifier.background(color = MaterialTheme.colors.surface, shape = RoundedCornerShape(percent = 50)).border(width = 1.dp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), shape = RoundedCornerShape(percent = 50)).padding(horizontal = 12.dp, vertical = 4.dp)) {
             Text(text = buildAnnotatedString {
-                withStyle(style = SpanStyle(color = if (allChecked) Color(0xFF6D7882) else Color(0xFFF97316))) { append(checkedCount.toString()) }
+                withStyle(style = SpanStyle(color = if (allChecked) Color(0xFF6D7882) else MaterialTheme.colors.primary)) { append(checkedCount.toString()) }
                 withStyle(style = SpanStyle(color = Color(0xFF6D7882))) { append(" / ${totalCount}") }
             }, fontSize = 16.sp)
         }
@@ -192,14 +164,12 @@ fun ReportHeader(report: DailyInspectionReport) {
 
 @Composable
 fun DailyReportItemsCard(report: DailyInspectionReport, lastUserInteraction: Long) {
-    val borderColor = Color(0xFFCDD1D5)
-    // 카드 경계선이 툴팁 위에 노출되는 문제를 해결하기 위해 레이어 구조를 변경합니다.
+    val borderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f)
     Box(modifier = Modifier.fillMaxWidth()) {
-        // 1. 배경과 테두리를 별도 레이어로 구성하여 가장 아래에 배치
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(Color.White, RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colors.surface, RoundedCornerShape(8.dp))
                 .border(1.dp, borderColor, RoundedCornerShape(8.dp))
         )
         
@@ -216,7 +186,6 @@ fun DailyReportItemsCard(report: DailyInspectionReport, lastUserInteraction: Lon
                     else -> RoundedCornerShape(0.dp)
                 }
                 
-                // 2. 툴팁이 있는 아이템에 높은 zIndex를 부여하여 다른 요소보다 위에 그려지도록 함
                 val itemZIndex = if (item.specialNote != null && item.status == InspectionStatus.UNCHECKED) 1f else 0f
                 
                 Box(modifier = Modifier.zIndex(itemZIndex)) {
@@ -224,7 +193,7 @@ fun DailyReportItemsCard(report: DailyInspectionReport, lastUserInteraction: Lon
                 }
                 
                 if (index < report.items.size - 1) {
-                    Divider(color = Color(0xFFF1F3F5), thickness = 1.dp)
+                    Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.08f), thickness = 1.dp)
                 }
             }
         }
@@ -254,8 +223,8 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
 
         if (item.specialNote != null && item.status == InspectionStatus.UNCHECKED) {
             AnimatedVisibility(visible = tooltipVisible, exit = fadeOut(), modifier = Modifier.align(Alignment.TopEnd).offset(y = (-40).dp).offset { IntOffset(0, floatingOffset.roundToInt()) }.zIndex(10f)) {
-                Surface(onClick = onTooltipTap, shape = TooltipShape, color = Color(0xFFE6E8EA).copy(alpha = 0.9f), elevation = 2.dp) {
-                    Text(text = item.specialNote,modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp), fontSize = 12.sp,fontWeight = FontWeight.Normal, color = Color(0xFF000000))
+                Surface(onClick = onTooltipTap, shape = TooltipShape, color = MaterialTheme.colors.onSurface.copy(alpha = 0.9f), elevation = 2.dp) {
+                    Text(text = item.specialNote, modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp), fontSize = 12.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colors.surface)
                 }
             }
         }
@@ -271,17 +240,17 @@ fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: S
 
     LaunchedEffect(lastUserInteraction) { if (lastUserInteraction > creationTime) tooltipVisible = false }
 
-    val itemBackgroundColor = if (item.status == InspectionStatus.UNCHECKED && !dialogWasOpened) Color(0x1FFB923C) else Color.Transparent
-    val buttonBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) Color(0x33FB923C) else Color(0x3306D6A0)
-    val buttonContentColor = if (item.status == InspectionStatus.UNCHECKED) Color(0xFFF97316) else Color(0xFF04BC93)
+    val itemBackgroundColor = if (item.status == InspectionStatus.UNCHECKED && !dialogWasOpened) MaterialTheme.colors.primary.copy(alpha = 0.1f) else Color.Transparent
+    val buttonBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) MaterialTheme.colors.primary.copy(alpha = 0.2f) else Color(0xFF06D6A0).copy(alpha = 0.2f)
+    val buttonContentColor = if (item.status == InspectionStatus.UNCHECKED) MaterialTheme.colors.primary else Color(0xFF04BC93)
     val buttonText = if (item.status == InspectionStatus.UNCHECKED) "미점검" else "점검완료"
 
     if (showDialog) UncheckedItemDialog(onDismissRequest = { showDialog = false })
 
     Row(modifier = Modifier.fillMaxWidth().background(itemBackgroundColor, shape = shape).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = item.location, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-            Text(text = item.description, fontSize = 14.sp)
+            Text(text = item.location, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = MaterialTheme.colors.onSurface)
+            Text(text = item.description, fontSize = 14.sp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f))
         }
         Spacer(modifier = Modifier.width(8.dp))
         InspectionItemActions(item, tooltipVisible, { showDialog = true; dialogWasOpened = true; tooltipVisible = false }, { tooltipVisible = false }, buttonBackgroundColor, buttonContentColor, buttonText)
@@ -290,17 +259,16 @@ fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: S
 
 @Composable
 fun UncheckedItemDialog(onDismissRequest: () -> Unit) {
-    val borderColor = Color(0xFFCDD1D5)
     Dialog(onDismissRequest = onDismissRequest) {
-        Card(modifier = Modifier.width(330.dp).height(290.dp).border(1.dp, borderColor, RoundedCornerShape(16.dp)), shape = RoundedCornerShape(16.dp), elevation = 0.dp) {
+        Card(modifier = Modifier.width(330.dp).height(290.dp).border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.12f), RoundedCornerShape(16.dp)), shape = RoundedCornerShape(16.dp), elevation = 0.dp, backgroundColor = MaterialTheme.colors.surface) {
             Column(modifier = Modifier.fillMaxSize().padding(vertical = 24.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Icon(painter = painterResource(id = R.drawable.bell_icon), null, tint = Color(0xFFF97316), modifier = Modifier.size(48.dp))
+                Icon(painter = painterResource(id = R.drawable.bell_icon), null, tint = MaterialTheme.colors.primary, modifier = Modifier.size(48.dp))
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "점검요청 재알림", fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center)
+                Text(text = "점검요청 재알림", fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center, color = MaterialTheme.colors.onSurface)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "근로자에게 점검요청 재알림을 발송하였습니다.", color = Color(0xFF58616A), fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center)
+                Text(text = "근로자에게 점검요청 재알림을 발송하였습니다.", color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center)
                 Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = onDismissRequest, modifier = Modifier.width(260.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF97316), contentColor = Color.White), shape = RoundedCornerShape(12.dp)) {
+                Button(onClick = onDismissRequest, modifier = Modifier.width(260.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(12.dp)) {
                     Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
@@ -313,7 +281,7 @@ fun UncheckedItemDialog(onDismissRequest: () -> Unit) {
 fun YearMonthSelector(yearMonth: YearMonth, onMonthChange: (YearMonth) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { onMonthChange(yearMonth.minusMonths(1)) }) { Icon(painter = painterResource(id = R.drawable.left), null, tint = Color.Unspecified, modifier = Modifier.offset(x = 50.dp)) }
-        Text(text = "${yearMonth.year}년 ${yearMonth.monthValue}월", fontSize = 23.sp, fontWeight = FontWeight.Bold)
+        Text(text = "${yearMonth.year}년 ${yearMonth.monthValue}월", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colors.onBackground)
         IconButton(onClick = { onMonthChange(yearMonth.plusMonths(1)) }) { Icon(painter = painterResource(id = R.drawable.right), null, tint = Color.Unspecified, modifier = Modifier.offset(x = (-50).dp)) }
     }
 }
@@ -338,8 +306,30 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
         }, date.year, date.monthValue - 1, date.dayOfMonth).show()
     }
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(value = startDateStr, onValueChange = {}, modifier = Modifier.weight(1f).height(50.dp), readOnly = true, trailingIcon = { IconButton(onClick = { showDatePicker(true, LocalDate.parse(startDateStr, formatter)) }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = Color.Unspecified) } })
-        Icon(painter = painterResource(id = R.drawable.underbar), null, tint = Color.Unspecified)
-        OutlinedTextField(value = endDateStr, onValueChange = {}, modifier = Modifier.weight(1f).height(50.dp), readOnly = true, trailingIcon = { IconButton(onClick = { showDatePicker(false, LocalDate.parse(endDateStr, formatter)) }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = Color.Unspecified) } })
+        OutlinedTextField(
+            value = startDateStr, 
+            onValueChange = {}, 
+            modifier = Modifier.weight(1f).height(50.dp), 
+            readOnly = true, 
+            trailingIcon = { IconButton(onClick = { showDatePicker(true, LocalDate.parse(startDateStr, formatter)) }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = Color.Unspecified) } },
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = MaterialTheme.colors.primary,
+                unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f),
+                textColor = MaterialTheme.colors.onSurface
+            )
+        )
+        Icon(painter = painterResource(id = R.drawable.underbar), null, tint = MaterialTheme.colors.onSurface)
+        OutlinedTextField(
+            value = endDateStr, 
+            onValueChange = {}, 
+            modifier = Modifier.weight(1f).height(50.dp), 
+            readOnly = true, 
+            trailingIcon = { IconButton(onClick = { showDatePicker(false, LocalDate.parse(endDateStr, formatter)) }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = Color.Unspecified) } },
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = MaterialTheme.colors.primary,
+                unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f),
+                textColor = MaterialTheme.colors.onSurface
+            )
+        )
     }
 }
