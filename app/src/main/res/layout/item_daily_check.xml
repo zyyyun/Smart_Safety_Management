@@ -9,7 +9,7 @@
     android:clipToPadding="false"
     app:cardElevation="0dp"
     app:cardCornerRadius="12dp"
-    app:cardBackgroundColor="@color/orange_50_alpha.orange_200_alpha">
+    app:cardBackgroundColor="@color/orange50alpha_orange200alpha">
 
     <!-- 카드 전체를 감싸는 레이어 -->
     <FrameLayout
@@ -32,7 +32,7 @@
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/pretendard_semibold"
                 android:text="A구역 4일"
-                android:textColor="@color/black.white"
+                android:textColor="@color/black_white"
                 android:textSize="14sp" />
 
             <!-- 설명 -->
@@ -43,7 +43,7 @@
                 android:layout_marginTop="6dp"
                 android:fontFamily="@font/pretendard_regular"
                 android:text="정리미흡으로 안전사고 발생 우려"
-                android:textColor="@color/gray_800.gray_200"
+                android:textColor="@color/gray800_gray200"
                 android:textSize="12sp" />
 
         </LinearLayout>

@@ -41,7 +41,7 @@
         android:backgroundTint="#F97316"
         android:fontFamily="@font/pretendard_semibold"
         android:text="회원가입"
-        android:textColor="@color/white.gray_950"
+        android:textColor="@color/white_gray950"
         android:textSize="18sp"
         app:cornerRadius="8dp"
         app:layout_constraintBottom_toTopOf="@id/btnLogin"

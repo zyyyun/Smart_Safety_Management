@@ -2,8 +2,8 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- 포커스됨 -->
     <item android:state_focused="true"
-        android:color="@color/gray_200.gray_800"/>
+        android:color="@color/gray200_gray800"/>
 
     <!-- 기본 -->
-    <item android:color="@color/gray_200.gray_800"/>
+    <item android:color="@color/gray200_gray800"/>
 </selector>

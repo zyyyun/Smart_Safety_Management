@@ -30,7 +30,7 @@
                 android:layout_weight="1"
                 android:fontFamily="@font/pretendard_bold"
                 android:text="2026년 5월"
-                android:textColor="@color/gray_900.gray_50"
+                android:textColor="@color/gray900_gray50"
                 android:textSize="24sp" />
 
             <!-- 오른쪽: 클릭 영역 -->

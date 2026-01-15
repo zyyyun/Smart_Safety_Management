@@ -3,41 +3,41 @@
 
     <!-- Orange -->
     <color name="orange50">#FFE9D9</color>
-    <color name="orange_50_alpha.orange_200_alpha">#1FFB923C</color>
-    <color name="orange_200_alpha.orange_400">#33FB923C</color>
-    <color name="orange_400">#FB923C</color>
+    <color name="orange50alpha_orange200alpha">#1FFB923C</color>
+    <color name="orange200alpha_orange400">#33FB923C</color>
+    <color name="orange400">#FB923C</color>
     <color name="orange400alpha36">#5CFB923C</color>
-    <color name="orange_400_alpha_12.orange_400_alpha_36">#1FFB923C</color>
+    <color name="orange400alpha12_orange400alpha36">#1FFB923C</color>
     <color name="orange500">#F97316</color>
     <color name="orange500_gray950">#F97316</color>
-    <color name="orange_500.black">#F97316</color>
-    <color name="orange_550.gray_950">#FF7A00</color>
-    <color name="orange_600">#FF5722</color>
+    <color name="orange500_black">#F97316</color>
+    <color name="orange550_gray950">#FF7A00</color>
+    <color name="orange600">#FF5722</color>
 
     <!-- teal -->
-    <color name="teal_500">#04BC93</color>
+    <color name="teal500">#04BC93</color>
 
     <!-- gray -->
     <color name="base">#FFFFFF</color>
     <color name="white">#FFFFFF</color>
-    <color name="white.gray_950">#FFFFFF</color>
-    <color name="white.black">#FFFFFF</color>
-    <color name="white.gray_900">#FFFFFF</color>
+    <color name="white_gray950">#FFFFFF</color>
+    <color name="white_black">#FFFFFF</color>
+    <color name="white_gray900">#FFFFFF</color>
 
-    <color name="gray_25">#F8F6F6</color>
-    <color name="gray_50.gray_900">#F4F5F6</color>
-    <color name="gray_100.gray_950">#E6E8EA</color>
-    <color name="gray_200.gray_800">#CDD1D5</color>
-    <color name="gray_200.gray_900">#CDD1D5</color>
-    <color name="gray_400.gray_700">#8A949E</color>
-    <color name="gray_450">#9AA3AB</color>
-    <color name="gray_500.gray_650">#B1B8BE</color>
-    <color name="gray_700.gray_400">#58616A</color>
-    <color name="gray_800.gray_200">#33363D</color>
+    <color name="gray25">#F8F6F6</color>
+    <color name="gray50_gray900">#F4F5F6</color>
+    <color name="gray100_gray950">#E6E8EA</color>
+    <color name="gray200_gray800">#CDD1D5</color>
+    <color name="gray200_gray900">#CDD1D5</color>
+    <color name="gray400_gray700">#8A949E</color>
+    <color name="gray450">#9AA3AB</color>
+    <color name="gray500_gray650">#B1B8BE</color>
+    <color name="gray700_gray400">#58616A</color>
+    <color name="gray800_gray200">#33363D</color>
     <color name="gray900">#131416</color>
-    <color name="gray_900.gray_50">#131416</color>
+    <color name="gray900_gray50">#131416</color>
 
     <color name="black">#000000</color>
-    <color name="black.white">#000000</color>
+    <color name="black_white">#000000</color>
 
 </resources>

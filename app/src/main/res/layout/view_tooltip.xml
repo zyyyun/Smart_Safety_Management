@@ -10,7 +10,7 @@
     android:paddingStart="12dp"
     android:paddingEnd="12dp"
     android:paddingBottom="9dp"
-    android:backgroundTint="@color/gray_100.gray_950">
+    android:backgroundTint="@color/gray50_gray900">
 
     <ImageView
         android:id="@+id/tooltip_icon"
@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:fontFamily="@font/pretendard_regular"
         android:text="누르면 근로자에게 알림이 가요"
-        android:textColor="@color/black.white"
+        android:textColor="@color/black_white"
         android:textSize="14sp"/>
 
 </LinearLayout>

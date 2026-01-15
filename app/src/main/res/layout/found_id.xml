@@ -17,7 +17,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/icon_back"
-        app:tint="@color/gray_900.gray_50"/>
+        app:tint="@color/gray900_gray50"/>
 
     <!-- 아이디 찾기 텍스트 -->
     <TextView
@@ -27,7 +27,7 @@
         android:layout_marginStart="8dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="아이디 찾기"
-        android:textColor="@color/gray_900.gray_50"
+        android:textColor="@color/gray900_gray50"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="@id/backButton"
         app:layout_constraintStart_toEndOf="@id/backButton"
@@ -42,7 +42,7 @@
         android:layout_marginTop="24dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="아이디 찾기 성공"
-        android:textColor="@color/gray_900.gray_50"
+        android:textColor="@color/gray900_gray50"
         android:textSize="24sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/txt_find_id" />
@@ -56,7 +56,7 @@
         android:layout_marginTop="8dp"
         android:fontFamily="@font/pretendard_medium"
         android:text="회원님의 아이디는 아래와 같습니다"
-        android:textColor="@color/gray_700.gray_400"
+        android:textColor="@color/gray700_gray400"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/txt_message1" />
@@ -75,7 +75,7 @@
         android:paddingTop="12dp"
         android:paddingBottom="12dp"
         android:text="safe123"
-        android:textColor="@color/gray_900.gray_50"
+        android:textColor="@color/gray900_gray50"
         android:textSize="18sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -92,7 +92,7 @@
         android:backgroundTint="#F97316"
         android:fontFamily="@font/pretendard_semibold"
         android:text="비밀번호 찾기"
-        android:textColor="@color/white.black"
+        android:textColor="@color/white_black"
         android:textSize="18sp"
         app:cornerRadius="7dp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -110,7 +110,7 @@
         android:focusable="true"
         android:fontFamily="@font/pretendard_medium"
         android:text="로그인 하러 가기"
-        android:textColor="@color/gray_400.gray_700"
+        android:textColor="@color/gray400_gray700"
         android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

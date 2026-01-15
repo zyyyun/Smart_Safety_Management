@@ -45,21 +45,21 @@ class DailyCheckAdapter(
         holder.statusText.text = item.status
 
         if (item.status == "점검완료") {
-            holder.cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.context,R.color.gray_50_gray_900))
-            holder.title.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray_500_gray_650))
-            holder.desc.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray_500_gray_650))
+            holder.cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.context,R.color.gray50_gray900))
+            holder.title.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray500_gray650))
+            holder.desc.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray500_gray650))
 
             holder.statusLayout.setBackgroundResource(R.drawable.bg_status_checked)
-            holder.statusText.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.teal_500))
+            holder.statusText.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.teal500))
             holder.statusIcon.setImageResource(R.drawable.checked)
-            holder.statusIcon.setColorFilter(ContextCompat.getColor(holder.itemView.context,R.color.teal_500))
+            holder.statusIcon.setColorFilter(ContextCompat.getColor(holder.itemView.context,R.color.teal500))
         } else {
-            holder.cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.context, R.color.orange_400_alpha_12_orange_400_alpha_36))
+            holder.cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.context, R.color.orange400alpha12_orange400alpha36))
             holder.title.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.black_white))
-            holder.desc.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray_800_gray_200))
+            holder.desc.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray800_gray200))
 
             holder.statusLayout.setBackgroundResource(R.drawable.bg_status_unchecked)
-            holder.statusText.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.orange_500_black))
+            holder.statusText.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.orange500_black))
             holder.statusIcon.setImageResource(R.drawable.orange_bell)
             holder.statusIcon.clearColorFilter()
         }

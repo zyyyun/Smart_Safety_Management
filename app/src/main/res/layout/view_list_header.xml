@@ -13,7 +13,7 @@
         android:layout_height="wrap_content"
         android:fontFamily="@font/pretendard_semibold"
         android:text="일일안전점검 리스트"
-        android:textColor="@color/gray_900.gray_50"
+        android:textColor="@color/gray900_gray50"
         android:textSize="18sp" />
 
     <TextView
@@ -50,12 +50,12 @@
         android:paddingVertical="0dp"
 
         android:text="추가"
-        android:textColor="@color/white.black"
+        android:textColor="@color/white_black"
         android:textSize="16sp"
 
         app:cornerRadius="6dp"
         app:icon="@drawable/ic_add"
-        app:iconTint="@color/white.black"
+        app:iconTint="@color/white_black"
 
         app:iconGravity="textEnd"
         app:iconPadding="5dp" />

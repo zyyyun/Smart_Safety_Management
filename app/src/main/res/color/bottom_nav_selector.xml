@@ -8,6 +8,6 @@
 
     <!-- 선택 안 된 상태 -->
     <item
-        android:color="@color/gray_200.gray_800" />
+        android:color="@color/gray200_gray800" />
 
 </selector>

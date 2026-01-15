@@ -17,7 +17,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/icon_back"
-        app:tint="@color/gray_900.gray_50"/>
+        app:tint="@color/gray900_gray50"/>
 
     <!-- 회원가입 텍스트 -->
     <TextView
@@ -27,7 +27,7 @@
         android:layout_marginStart="8dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="회원가입"
-        android:textColor="@color/gray_900.gray_50"
+        android:textColor="@color/gray900_gray50"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="@id/backButton"
         app:layout_constraintStart_toEndOf="@id/backButton"
@@ -42,7 +42,7 @@
         android:layout_marginTop="24dp"
         android:fontFamily="@font/pretendard_medium"
         android:text="아이디"
-        android:textColor="@color/gray_700.gray_400"
+        android:textColor="@color/gray700_gray400"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/backButton" />
@@ -56,7 +56,7 @@
         android:layout_marginTop="16dp"
         android:layout_marginEnd="24dp"
         app:boxBackgroundMode="outline"
-        app:boxBackgroundColor="@color/white.gray_900"
+        app:boxBackgroundColor="@color/white_gray900"
         app:boxStrokeWidth="1dp"
         app:boxStrokeWidthFocused="1dp"
         app:boxStrokeColor="@color/til_stroke"
@@ -72,13 +72,13 @@
             android:id="@+id/et_id"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            app:boxBackgroundColor="@color/white.gray_900"
+            app:boxBackgroundColor="@color/white_gray900"
             android:fontFamily="@font/pretendard_medium"
             android:hint="사용하실 아이디를 입력해주세요"
             android:inputType="text"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black.white"
+            android:textColor="@color/black_white"
             android:textColorHint="@color/et_hint_color"/>
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -91,7 +91,7 @@
         android:layout_marginTop="24dp"
         android:fontFamily="@font/pretendard_medium"
         android:text="비밀번호 설정"
-        android:textColor="@color/gray_700.gray_400"
+        android:textColor="@color/gray700_gray400"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/til_write_id" />
@@ -105,7 +105,7 @@
         android:layout_marginTop="16dp"
         android:layout_marginEnd="24dp"
         app:boxBackgroundMode="outline"
-        app:boxBackgroundColor="@color/white.gray_900"
+        app:boxBackgroundColor="@color/white_gray900"
         app:boxStrokeWidth="1dp"
         app:boxStrokeWidthFocused="1dp"
         app:boxStrokeColor="@color/til_stroke"
@@ -122,13 +122,13 @@
             android:id="@+id/et_password"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            app:boxBackgroundColor="@color/white.gray_900"
+            app:boxBackgroundColor="@color/white_gray900"
             android:fontFamily="@font/pretendard_medium"
             android:hint="비밀번호를 입력해주세요"
             android:inputType="textPassword"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black.white"
+            android:textColor="@color/black_white"
             android:textColorHint="@color/et_hint_color"/>
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -141,7 +141,7 @@
         android:layout_marginTop="24dp"
         android:fontFamily="@font/pretendard_medium"
         android:text="비밀번호 재입력"
-        android:textColor="@color/gray_700.gray_400"
+        android:textColor="@color/gray700_gray400"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/til_write_password" />
@@ -155,7 +155,7 @@
         android:layout_marginTop="16dp"
         android:layout_marginEnd="24dp"
         app:boxBackgroundMode="outline"
-        app:boxBackgroundColor="@color/white.gray_900"
+        app:boxBackgroundColor="@color/white_gray900"
         app:boxStrokeWidth="1dp"
         app:boxStrokeWidthFocused="1dp"
         app:boxStrokeColor="@color/til_stroke"
@@ -172,13 +172,13 @@
             android:id="@+id/et_re_password"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            app:boxBackgroundColor="@color/white.gray_900"
+            app:boxBackgroundColor="@color/white_gray900"
             android:fontFamily="@font/pretendard_medium"
             android:hint="비밀번호를 입력해주세요"
             android:inputType="textPassword"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black.white"
+            android:textColor="@color/black_white"
             android:textColorHint="@color/et_hint_color"/>
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -193,7 +193,7 @@
         android:backgroundTint="#F97316"
         android:fontFamily="@font/pretendard_semibold"
         android:text="완료"
-        android:textColor="@color/white.black"
+        android:textColor="@color/white_black"
         android:textSize="18sp"
         app:cornerRadius="7dp"
         app:layout_constraintStart_toStartOf="parent"
