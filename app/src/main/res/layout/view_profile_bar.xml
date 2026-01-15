@@ -8,7 +8,7 @@
     android:gravity="center_vertical"
     android:padding="16dp"
     android:paddingBottom="32dp"
-    android:background="@color/orange_500"
+    android:background="@color/orange500_gray950"
     app:layout_scrollFlags="scroll">
 
     <!-- 원 프로필 -->
@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="@font/pretendard_bold"
             android:text="안정우 관리자님"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/white"
             android:textSize="17sp" />
 
         <TextView
@@ -53,7 +53,7 @@
             android:layout_marginTop="2dp"
             android:fontFamily="@font/pretendard_regular"
             android:text="오늘도 안전한 하루되세요"
-            android:textColor="#FFE9D9"
+            android:textColor="@color/orange50"
             android:textSize="15sp" />
     </LinearLayout>
 

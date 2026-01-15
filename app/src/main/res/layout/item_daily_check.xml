@@ -75,7 +75,7 @@
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/pretendard_medium"
                 android:text="미점검"
-                android:textColor="@color/orange_500"
+                android:textColor="#F97316"
                 android:textSize="11sp" />
         </LinearLayout>
     </FrameLayout>

@@ -4,7 +4,7 @@
     android:id="@+id/top_app_bar"
     android:layout_width="match_parent"
     android:layout_height="?attr/actionBarSize"
-    android:background="@color/orange_500"
+    android:background="@color/orange500_gray950"
     android:paddingStart="16dp"
     android:paddingEnd="16dp"
     app:contentInsetStart="0dp"
@@ -22,7 +22,7 @@
             android:layout_height="23dp"
             android:contentDescription="로고"
             android:src="@drawable/_2026_01_05_15_18_02_removebg_preview"
-            app:tint="#FFFFFF" />
+            app:tint="@color/white" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -30,7 +30,7 @@
             android:layout_marginStart="8dp"
             android:fontFamily="@font/clipartkorea_medium"
             android:text="중대재해예방 플랫폼"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/white"
             android:textSize="18sp"/>
     </LinearLayout>
 
@@ -60,7 +60,7 @@
                 android:contentDescription="알림"
                 android:scaleType="centerInside"
                 android:src="@drawable/alarm"
-                app:tint="#FFFFFF" />
+                app:tint="@color/white" />
 
             <!-- 새 알림 점 -->
             <View
@@ -82,7 +82,7 @@
             android:contentDescription="설정"
             android:src="@drawable/setting"
             android:scaleType="centerInside"
-            app:tint="#FFFFFF" />
+            app:tint="@color/white" />
     </LinearLayout>
 
 </com.google.android.material.appbar.MaterialToolbar>

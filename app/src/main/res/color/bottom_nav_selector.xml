@@ -4,7 +4,7 @@
     <!-- 선택된 상태 -->
     <item
         android:state_checked="true"
-        android:color="#F97316" />
+        android:color="@color/orange500" />
 
     <!-- 선택 안 된 상태 -->
     <item
