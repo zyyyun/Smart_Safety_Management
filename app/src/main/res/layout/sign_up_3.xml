@@ -176,9 +176,10 @@
     <!-- 완료 버튼 -->
     <Button
         android:id="@+id/finish_button"
-        android:layout_width="357dp"
+        android:layout_width="0dp"
         android:layout_height="65dp"
         android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginTop="24dp"
         android:backgroundTint="#F97316"
         android:fontFamily="@font/pretendard_semibold"
@@ -187,6 +188,7 @@
         android:textSize="18sp"
         app:cornerRadius="7dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/til_write_re_password" />
+        app:layout_constraintTop_toBottomOf="@id/til_write_re_password"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

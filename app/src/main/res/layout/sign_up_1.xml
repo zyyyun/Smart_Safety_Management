@@ -36,7 +36,7 @@
     <!-- 근로자 카드형 버튼 -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btn_worker"
-        android:layout_width="384dp"
+        android:layout_width="0dp"
         android:layout_height="92dp"
         android:layout_margin="16dp"
         android:layout_marginTop="32dp"
@@ -111,7 +111,7 @@
     <!-- 관리자 카드형 버튼 -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/btn_manager"
-        android:layout_width="384dp"
+        android:layout_width="0dp"
         android:layout_height="92dp"
         android:layout_margin="16dp"
         android:layout_marginTop="180dp"

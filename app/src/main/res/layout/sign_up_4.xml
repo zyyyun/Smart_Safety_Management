@@ -62,7 +62,7 @@
     <!-- 로그인 하러 가기 버튼 -->
     <Button
         android:id="@+id/next_button"
-        android:layout_width="375dp"
+        android:layout_width="0dp"
         android:layout_height="61dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"

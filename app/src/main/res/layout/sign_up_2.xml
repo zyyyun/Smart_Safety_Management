@@ -96,7 +96,7 @@
     <!-- 인증번호 입력 필드 -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/til_write_verify"
-        android:layout_width="247dp"
+        android:layout_width="0dp"
         android:layout_height="71dp"
         android:layout_marginStart="16dp"
         android:layout_marginTop="8dp"
@@ -144,7 +144,7 @@
     <!-- 다음 버튼 -->
     <Button
         android:id="@+id/next_button"
-        android:layout_width="357dp"
+        android:layout_width="0dp"
         android:layout_height="65dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
