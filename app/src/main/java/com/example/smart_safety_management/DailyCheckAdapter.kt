@@ -61,7 +61,7 @@ class DailyCheckAdapter(
             holder.statusLayout.setBackgroundResource(R.drawable.bg_status_unchecked)
             holder.statusText.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.orange500_black))
             holder.statusIcon.setImageResource(R.drawable.orange_bell)
-            holder.statusIcon.clearColorFilter()
+            holder.statusIcon.setColorFilter(ContextCompat.getColor(holder.itemView.context, R.color.orange500_black))
         }
 
         // 사용자가 끄지 않았고, 첫 번째 미점검 항목인 경우 툴팁 표시
