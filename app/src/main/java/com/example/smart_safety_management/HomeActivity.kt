@@ -107,7 +107,8 @@ class HomeActivity : AppCompatActivity() {
         )
 
         findViewById<View>(R.id.btn_add).setOnClickListener {
-            Toast.makeText(this, "추가 클릭", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, DailyListActivity::class.java)
+            startActivity(intent)
         }
 
         fillCalendarReal()

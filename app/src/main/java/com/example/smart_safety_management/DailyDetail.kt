@@ -29,10 +29,10 @@ import com.example.smart_safety_management.ui.theme.*
 //@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
     // 상세 화면에 표시될 초기값 (예시 데이터)
-    var date by remember { mutableStateOf("2025-05-07") }
+    var date by remember { mutableStateOf("2026-05-07") }
     var location by remember { mutableStateOf("C구역 2열") }
-    var riskFactor by remember { mutableStateOf("쓰러짐 감지 및 위험 요소 발견") }
-    var safetyMeasure by remember { mutableStateOf("안전 고리 고정 및 현장 정리 완료") }
+    var riskFactor by remember { mutableStateOf("정리 미흡으로 인한 안전사고 발생 우려") }
+    var safetyMeasure by remember { mutableStateOf("자재 정리 및 주변 시설물 점검") }
 
     Smart_Safety_ManagementTheme {
         val labelColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray

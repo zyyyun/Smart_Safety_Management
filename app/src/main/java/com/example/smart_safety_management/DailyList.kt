@@ -2,6 +2,7 @@ package com.example.smart_safety_management
 
 import android.app.DatePickerDialog
 import android.content.res.Configuration
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,13 +29,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.activity
 import com.example.smart_safety_management.ui.theme.*
 import java.util.Calendar
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
-//@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 @Composable
 fun DailyListScreen() {
+    val activity = LocalContext.current as? ComponentActivity
     val calendar = Calendar.getInstance()
     val year = calendar.get(Calendar.YEAR)
     val month = calendar.get(Calendar.MONTH)
@@ -85,7 +88,7 @@ fun DailyListScreen() {
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = { /* Handle back navigation */ }) {
+                        IconButton(onClick = { activity?.finish() }) {
                             Icon(
                                 painter = painterResource(id = R.drawable.backicon),
                                 contentDescription = "Back",
@@ -262,7 +265,7 @@ fun DailyListScreen() {
                             Text(
                                 text = "사진첨부",
                                 color = if (MaterialTheme.colors.isLight) TextLight else TextGray30,
-                                fontSize = 14.sp,
+                                fontSize = 18.sp,
                                 fontFamily = Pretendard
                             )
                         }
@@ -291,7 +294,7 @@ fun DailyListScreen() {
                     enabled = isFormComplete,
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = MaterialTheme.colors.primary,
-                        contentColor = MaterialTheme.colors.onSurface,
+                        contentColor = MaterialTheme.colors.onPrimary,
                         disabledBackgroundColor = if (MaterialTheme.colors.isLight) TextGray5 else TextGray20,
                         disabledContentColor = textColor
                     )
