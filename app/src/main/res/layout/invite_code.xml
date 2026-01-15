@@ -45,7 +45,7 @@
         android:inputType="textPassword"
         android:paddingHorizontal="12dp"
         android:textColor="@color/black.white"
-        android:textColorHint="@color/gray_500.gray_650"
+        android:textColorHint="@color/et_hint_color"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_desc" />

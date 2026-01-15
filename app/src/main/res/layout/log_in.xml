@@ -56,6 +56,10 @@
         android:layout_marginTop="16dp"
         android:layout_marginEnd="24dp"
         app:boxBackgroundMode="outline"
+        app:boxBackgroundColor="@color/white.gray_900"
+        app:boxStrokeWidth="1dp"
+        app:boxStrokeWidthFocused="1dp"
+        app:boxStrokeColor="@color/til_stroke"
         app:boxCornerRadiusBottomEnd="8dp"
         app:boxCornerRadiusBottomStart="8dp"
         app:boxCornerRadiusTopEnd="8dp"
@@ -68,15 +72,13 @@
             android:id="@+id/et_id"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            app:boxBackgroundColor="@color/white.gray_900"
-            android:backgroundTint="#FFFFFF"
             android:fontFamily="@font/pretendard_medium"
             android:hint="아이디를 입력해주세요"
             android:inputType="text"
             android:maxLines="1"
             android:padding="20dp"
             android:textColor="@color/black.white"
-            android:textColorHint="@color/gray_500.gray_650"/>
+            android:textColorHint="@color/et_hint_color"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- 비밀번호 라벨 -->
@@ -102,6 +104,10 @@
         android:layout_marginTop="16dp"
         android:layout_marginEnd="24dp"
         app:boxBackgroundMode="outline"
+        app:boxBackgroundColor="@color/white.gray_900"
+        app:boxStrokeWidth="1dp"
+        app:boxStrokeWidthFocused="1dp"
+        app:boxStrokeColor="@color/til_stroke"
         app:boxCornerRadiusBottomEnd="8dp"
         app:boxCornerRadiusBottomStart="8dp"
         app:boxCornerRadiusTopEnd="8dp"
@@ -115,15 +121,13 @@
             android:id="@+id/et_password"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            app:boxBackgroundColor="@color/white.gray_900"
-            android:backgroundTint="#FFFFFF"
             android:fontFamily="@font/pretendard_medium"
             android:hint="비밀번호를 입력해주세요"
             android:inputType="textPassword"
             android:maxLines="1"
             android:padding="20dp"
             android:textColor="@color/black.white"
-            android:textColorHint="@color/gray_500.gray_650"/>
+            android:textColorHint="@color/et_hint_color"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- 아이디/비번 잊음 텍스트 -->
