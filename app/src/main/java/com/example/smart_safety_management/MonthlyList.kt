@@ -35,6 +35,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,7 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
-import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.ui.theme.*
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -64,7 +65,7 @@ val mockReports = listOf(
     DailyInspectionReport(
         date = LocalDate.of(2026, 1, 7),
         items = listOf(
-            InspectionItem("E구역 7열", "조명 미점검으로 인한 안전 문제 발생", InspectionStatus.UNCHECKED, "\uD83D\uDD14 누르면 근로자에게 알림이 가요"),
+            InspectionItem("E구역 7열", "조명 미점검으로 인한 \n안전 문제 발생", InspectionStatus.UNCHECKED, "\uD83D\uDD14 누르면 근로자에게 알림이 가요"),
             InspectionItem("F구역 12열", "환풍기 작동 불량으로 공기 순환 필요", InspectionStatus.CHECKED),
             InspectionItem("G구역 2열", "소화 장비 부족으로 긴급 보충 요망", InspectionStatus.CHECKED)
         )
@@ -98,8 +99,14 @@ val TooltipShape = object : Shape {
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
-//@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
+//@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
+@Composable
+fun MonthlyListScreenPreview() {
+    MonthlyListScreen()
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MonthlyListScreen() {
     val activity = LocalContext.current as? ComponentActivity
@@ -119,8 +126,20 @@ fun MonthlyListScreen() {
             backgroundColor = MaterialTheme.colors.background,
             topBar = {
                 TopAppBar(
-                    title = { Text(text = "월별로 보기", fontWeight = FontWeight.Bold, color = MaterialTheme.colors.onSurface, modifier = Modifier.offset(x = (-20).dp)) },
-                    navigationIcon = { IconButton(onClick = { activity?.onBackPressedDispatcher?.onBackPressed() }) { Icon(painter = painterResource(id = R.drawable.backicon), contentDescription = "Back", tint = MaterialTheme.colors.onSurface) } },
+                    title = { 
+                        Text(
+                            text = "월별로 보기", 
+                            fontWeight = FontWeight.Bold, 
+                            color = MaterialTheme.colors.onSurface, 
+                            fontFamily = Pretendard,
+                            modifier = Modifier.offset(x = (-20).dp)
+                        ) 
+                    },
+                    navigationIcon = { 
+                        IconButton(onClick = { activity?.onBackPressedDispatcher?.onBackPressed() }) { 
+                            Icon(painter = painterResource(id = R.drawable.backicon), contentDescription = "Back", tint = MaterialTheme.colors.onSurface) 
+                        } 
+                    },
                     backgroundColor = MaterialTheme.colors.surface,
                     elevation = 0.dp
                 )
@@ -151,12 +170,18 @@ fun ReportHeader(report: DailyInspectionReport) {
     val allChecked = checkedCount == totalCount
 
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp)) {
-        Text(text = "${report.date.dayOfMonth}일", fontWeight = FontWeight.Medium, fontSize = 18.sp, color = MaterialTheme.colors.onBackground)
+        Text(
+            text = "${report.date.dayOfMonth}일", 
+            fontWeight = FontWeight.Medium, 
+            fontSize = 18.sp, 
+            fontFamily = Pretendard,
+            color = MaterialTheme.colors.onBackground
+        )
         Spacer(modifier = Modifier.width(8.dp))
         Box(modifier = Modifier.background(color = MaterialTheme.colors.surface, shape = RoundedCornerShape(percent = 50)).border(width = 1.dp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), shape = RoundedCornerShape(percent = 50)).padding(horizontal = 12.dp, vertical = 4.dp)) {
             Text(text = buildAnnotatedString {
-                withStyle(style = SpanStyle(color = if (allChecked) Color(0xFF6D7882) else MaterialTheme.colors.primary)) { append(checkedCount.toString()) }
-                withStyle(style = SpanStyle(color = Color(0xFF6D7882))) { append(" / ${totalCount}") }
+                withStyle(style = SpanStyle(color = if (allChecked) TextMedium else MaterialTheme.colors.primary, fontFamily = Pretendard)) { append(checkedCount.toString()) }
+                withStyle(style = SpanStyle(color = TextMedium, fontFamily = Pretendard)) { append(" / ${totalCount}") }
             }, fontSize = 16.sp)
         }
     }
@@ -216,15 +241,30 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
             modifier = Modifier.align(Alignment.CenterEnd).height(25.dp)
         ) {
             val icon = if (item.status == InspectionStatus.UNCHECKED) Icons.Default.Notifications else Icons.Default.Check
-            Icon(icon, null, modifier = Modifier.size(16.dp))
+            val iconTint = if (item.status == InspectionStatus.UNCHECKED && !MaterialTheme.colors.isLight) Color(0xFF000000) else LocalContentColor.current
+            
+            Icon(
+                imageVector = icon, 
+                contentDescription = null, 
+                modifier = Modifier.size(16.dp),
+                tint = iconTint
+            )
             Spacer(modifier = Modifier.width(4.dp))
-            Text(text = buttonText, fontWeight = FontWeight.Medium, fontSize = 12.sp)
+            Text(text = buttonText, fontWeight = FontWeight.Medium, fontSize = 12.sp, fontFamily = Pretendard)
         }
 
         if (item.specialNote != null && item.status == InspectionStatus.UNCHECKED) {
+            val tooltipBgColor = if (MaterialTheme.colors.isLight) Lightgray else GrayBackground
             AnimatedVisibility(visible = tooltipVisible, exit = fadeOut(), modifier = Modifier.align(Alignment.TopEnd).offset(y = (-40).dp).offset { IntOffset(0, floatingOffset.roundToInt()) }.zIndex(10f)) {
-                Surface(onClick = onTooltipTap, shape = TooltipShape, color = MaterialTheme.colors.onSurface.copy(alpha = 0.9f), elevation = 2.dp) {
-                    Text(text = item.specialNote, modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp), fontSize = 12.sp, fontWeight = FontWeight.Normal, color = MaterialTheme.colors.surface)
+                Surface(onClick = onTooltipTap, shape = TooltipShape, color = tooltipBgColor, elevation = 2.dp) {
+                    Text(
+                        text = item.specialNote, 
+                        modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp), 
+                        fontSize = 12.sp, 
+                        fontWeight = FontWeight.Normal, 
+                        fontFamily = Pretendard,
+                        color = if (MaterialTheme.colors.isLight) TextDark else Color.White
+                    )
                 }
             }
         }
@@ -241,16 +281,21 @@ fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: S
     LaunchedEffect(lastUserInteraction) { if (lastUserInteraction > creationTime) tooltipVisible = false }
 
     val itemBackgroundColor = if (item.status == InspectionStatus.UNCHECKED && !dialogWasOpened) MaterialTheme.colors.primary.copy(alpha = 0.1f) else Color.Transparent
-    val buttonBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) MaterialTheme.colors.primary.copy(alpha = 0.2f) else Color(0xFF06D6A0).copy(alpha = 0.2f)
-    val buttonContentColor = if (item.status == InspectionStatus.UNCHECKED) MaterialTheme.colors.primary else Color(0xFF04BC93)
+    val buttonBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) MaterialTheme.colors.primary.copy(alpha = 0.2f) else StatusGreen.copy(alpha = 0.2f)
+    val buttonContentColor = if (item.status == InspectionStatus.UNCHECKED) MaterialTheme.colors.primary else StatusGreenDark
     val buttonText = if (item.status == InspectionStatus.UNCHECKED) "미점검" else "점검완료"
 
     if (showDialog) UncheckedItemDialog(onDismissRequest = { showDialog = false })
 
     Row(modifier = Modifier.fillMaxWidth().background(itemBackgroundColor, shape = shape).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = item.location, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = MaterialTheme.colors.onSurface)
-            Text(text = item.description, fontSize = 14.sp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f))
+            Text(text = item.location, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
+            Text(
+                text = item.description, 
+                fontSize = 14.sp, 
+                fontFamily = Pretendard, 
+                color = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
+            )
         }
         Spacer(modifier = Modifier.width(8.dp))
         InspectionItemActions(item, tooltipVisible, { showDialog = true; dialogWasOpened = true; tooltipVisible = false }, { tooltipVisible = false }, buttonBackgroundColor, buttonContentColor, buttonText)
@@ -260,18 +305,39 @@ fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: S
 @Composable
 fun UncheckedItemDialog(onDismissRequest: () -> Unit) {
     Dialog(onDismissRequest = onDismissRequest) {
-        Card(modifier = Modifier.width(330.dp).height(290.dp).border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.12f), RoundedCornerShape(16.dp)), shape = RoundedCornerShape(16.dp), elevation = 0.dp, backgroundColor = MaterialTheme.colors.surface) {
-            Column(modifier = Modifier.fillMaxSize().padding(vertical = 24.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Icon(painter = painterResource(id = R.drawable.bell_icon), null, tint = MaterialTheme.colors.primary, modifier = Modifier.size(48.dp))
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "점검요청 재알림", fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center, color = MaterialTheme.colors.onSurface)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "근로자에게 점검요청 재알림을 발송하였습니다.", color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center)
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = onDismissRequest, modifier = Modifier.width(260.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(12.dp)) {
-                    Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
-                }
+        UncheckedItemDialogContent(onDismissRequest = onDismissRequest)
+    }
+}
+
+@Composable
+fun UncheckedItemDialogContent(onDismissRequest: () -> Unit) {
+    val cardBgColor = if (MaterialTheme.colors.isLight) Color.White else GrayBackground
+    Card(
+        modifier = Modifier.width(330.dp).height(290.dp).border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.12f), RoundedCornerShape(16.dp)), 
+        shape = RoundedCornerShape(16.dp), 
+        elevation = 0.dp, 
+        backgroundColor = cardBgColor
+    ) {
+        Column(modifier = Modifier.fillMaxSize().padding(vertical = 24.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Icon(painter = painterResource(id = R.drawable.bell_icon), null, tint = MaterialTheme.colors.primary, modifier = Modifier.size(48.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(text = "점검요청 재알림", fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "근로자에게 점검요청 재알림을 발송하였습니다.", color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center, fontFamily = Pretendard)
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(onClick = onDismissRequest, modifier = Modifier.width(260.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(12.dp)) {
+                Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, fontFamily = Pretendard)
             }
+        }
+    }
+}
+
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark Dialog Preview")
+@Composable
+fun UncheckedItemDialogDarkPreview() {
+    Smart_Safety_ManagementTheme(darkTheme = true) {
+        Surface(color = MaterialTheme.colors.background) {
+            UncheckedItemDialogContent(onDismissRequest = {})
         }
     }
 }
@@ -281,7 +347,7 @@ fun UncheckedItemDialog(onDismissRequest: () -> Unit) {
 fun YearMonthSelector(yearMonth: YearMonth, onMonthChange: (YearMonth) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { onMonthChange(yearMonth.minusMonths(1)) }) { Icon(painter = painterResource(id = R.drawable.left), null, tint = Color.Unspecified, modifier = Modifier.offset(x = 50.dp)) }
-        Text(text = "${yearMonth.year}년 ${yearMonth.monthValue}월", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colors.onBackground)
+        Text(text = "${yearMonth.year}년 ${yearMonth.monthValue}월", fontSize = 23.sp, fontWeight = FontWeight.Bold, fontFamily = Pretendard, color = MaterialTheme.colors.onBackground)
         IconButton(onClick = { onMonthChange(yearMonth.plusMonths(1)) }) { Icon(painter = painterResource(id = R.drawable.right), null, tint = Color.Unspecified, modifier = Modifier.offset(x = (-50).dp)) }
     }
 }
@@ -298,6 +364,8 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
         onDateChange(firstDay, lastDay)
     }
     val context = LocalContext.current
+    val iconTint = if (MaterialTheme.colors.isLight) Color.Unspecified else GrayBorder
+    
     fun showDatePicker(isStart: Boolean, date: LocalDate) {
         DatePickerDialog(context, { _, y, m, d ->
             val new = LocalDate.of(y, m + 1, d)
@@ -311,7 +379,8 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
             onValueChange = {}, 
             modifier = Modifier.weight(1f).height(50.dp), 
             readOnly = true, 
-            trailingIcon = { IconButton(onClick = { showDatePicker(true, LocalDate.parse(startDateStr, formatter)) }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = Color.Unspecified) } },
+            textStyle = TextStyle(fontFamily = Pretendard, fontSize = 14.sp),
+            trailingIcon = { IconButton(onClick = { showDatePicker(true, LocalDate.parse(startDateStr, formatter)) }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = iconTint) } },
             colors = TextFieldDefaults.outlinedTextFieldColors(
                 focusedBorderColor = MaterialTheme.colors.primary,
                 unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f),
@@ -324,7 +393,8 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
             onValueChange = {}, 
             modifier = Modifier.weight(1f).height(50.dp), 
             readOnly = true, 
-            trailingIcon = { IconButton(onClick = { showDatePicker(false, LocalDate.parse(endDateStr, formatter)) }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = Color.Unspecified) } },
+            textStyle = TextStyle(fontFamily = Pretendard, fontSize = 14.sp),
+            trailingIcon = { IconButton(onClick = { showDatePicker(false, LocalDate.parse(endDateStr, formatter)) }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = iconTint) } },
             colors = TextFieldDefaults.outlinedTextFieldColors(
                 focusedBorderColor = MaterialTheme.colors.primary,
                 unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f),

@@ -11,7 +11,7 @@ private val DarkColorPalette = darkColors(
     primary = MainOrange,
     primaryVariant = MainOrangeDark,
     secondary = StatusGreen,
-    background = Color(0xFF121212), // DarkBackground 오타 수정 및 표준 다크 배경색 적용
+    background = Color(0xFF121212), // DarkBackground의 오타 수정 및 표준 다크 배경 적용
     surface = DarkSurface,
     onPrimary = Color.Black,
     onSecondary = Color.Black,
@@ -28,7 +28,7 @@ private val LightColorPalette = lightColors(
     onPrimary = Color.White,
     onSecondary = Color.White,
     onBackground = TextDark,
-    onSurface = TextDark
+    onSurface = Color.Black
 )
 
 @Composable
