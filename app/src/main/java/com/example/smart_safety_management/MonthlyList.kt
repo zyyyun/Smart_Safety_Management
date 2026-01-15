@@ -1,5 +1,6 @@
 package com.example.smart_safety_management
 
+import android.R.attr.letterSpacing
 import android.app.DatePickerDialog
 import android.content.res.Configuration
 import android.os.Build
@@ -185,8 +186,8 @@ fun ReportHeader(report: DailyInspectionReport) {
         Box(modifier = Modifier.background(color = MaterialTheme.colors.surface, shape = RoundedCornerShape(percent = 50)).border(width = 1.dp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), shape = RoundedCornerShape(percent = 50)).padding(horizontal = 12.dp, vertical = 4.dp)) {
             Text(text = buildAnnotatedString {
                 withStyle(style = SpanStyle(color = if (allChecked) TextMedium else MaterialTheme.colors.primary, fontFamily = Pretendard)) { append(checkedCount.toString()) }
-                withStyle(style = SpanStyle(color = TextMedium, fontFamily = Pretendard)) { append(" / ${totalCount}") }
-            }, fontSize = 16.sp)
+                withStyle(style = SpanStyle(color = TextMedium, fontFamily = Pretendard)) { append("/${totalCount}") }
+            }, fontSize = 16.sp,letterSpacing = (2).sp)
         }
     }
 }
@@ -254,7 +255,7 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
                 tint = iconTint
             )
             Spacer(modifier = Modifier.width(4.dp))
-            Text(text = buttonText, fontWeight = FontWeight.Medium, fontSize = 12.sp, fontFamily = Pretendard)
+            Text(text = buttonText, fontWeight = FontWeight.Medium, fontSize = 12.sp, fontFamily = Pretendard,letterSpacing = (-0.3).sp)
         }
 
         if (item.specialNote != null && item.status == InspectionStatus.UNCHECKED) {
@@ -267,7 +268,7 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
                         fontSize = 12.sp, 
                         fontWeight = FontWeight.Normal, 
                         fontFamily = Pretendard,
-                        color = if (MaterialTheme.colors.isLight) TextDark else Color.White
+                        color = if (MaterialTheme.colors.isLight) TextDark else Color.White,
                     )
                 }
             }
@@ -294,6 +295,7 @@ fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: S
     Row(modifier = Modifier.fillMaxWidth().background(itemBackgroundColor, shape = shape).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(text = item.location, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = item.description, 
                 fontSize = 14.sp, 
@@ -317,19 +319,19 @@ fun UncheckedItemDialog(onDismissRequest: () -> Unit) {
 fun UncheckedItemDialogContent(onDismissRequest: () -> Unit) {
     val cardBgColor = if (MaterialTheme.colors.isLight) Color.White else GrayBackground
     Card(
-        modifier = Modifier.width(330.dp).height(290.dp),
+        modifier = Modifier.width(330.dp).height(250.dp),
         shape = RoundedCornerShape(16.dp), 
         elevation = 0.dp, 
         backgroundColor = cardBgColor
     ) {
-        Column(modifier = Modifier.fillMaxSize().padding(vertical = 24.dp, horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Column(modifier = Modifier.fillMaxSize().padding(top = 24.dp),horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
             Icon(painter = painterResource(id = R.drawable.bell_icon), null, tint = MaterialTheme.colors.primary, modifier = Modifier.size(48.dp))
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "점검요청 재알림", fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = "근로자에게 점검요청 재알림을 발송하였습니다.", color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center, fontFamily = Pretendard)
             Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onDismissRequest, modifier = Modifier.width(260.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(12.dp)) {
+            Text(text = "점검요청 재알림", fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = "근로자에게 점검요청 재알림을 \n발송하였습니다.", color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center, fontFamily = Pretendard)
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(onClick = onDismissRequest, modifier = Modifier.width(290.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(12.dp)) {
                 Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, fontFamily = Pretendard)
             }
         }
