@@ -72,6 +72,12 @@
             android:name=".NoticeActivity"
             android:exported="false" />
 
+        <!-- 일일점검리스트 화면 -->
+        <activity
+            android:name=".DailyListActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
     </application>
 
 </manifest>

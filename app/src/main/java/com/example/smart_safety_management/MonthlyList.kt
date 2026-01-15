@@ -65,7 +65,7 @@ val mockReports = listOf(
     DailyInspectionReport(
         date = LocalDate.of(2026, 1, 7),
         items = listOf(
-            InspectionItem("E구역 7열", "조명 미점검으로 인한 \n안전 문제 발생", InspectionStatus.UNCHECKED, "\uD83D\uDD14 누르면 근로자에게 알림이 가요"),
+            InspectionItem("E구역 7열", "조명 미점검으로 인한 안전 문제 발생", InspectionStatus.UNCHECKED, "\uD83D\uDD14 누르면 근로자에게 알림이 가요"),
             InspectionItem("F구역 12열", "환풍기 작동 불량으로 공기 순환 필요", InspectionStatus.CHECKED),
             InspectionItem("G구역 2열", "소화 장비 부족으로 긴급 보충 요망", InspectionStatus.CHECKED)
         )
@@ -123,7 +123,7 @@ fun MonthlyListScreen() {
 
     Smart_Safety_ManagementTheme {
         Scaffold(
-            backgroundColor = MaterialTheme.colors.background,
+            backgroundColor = MaterialTheme.colors.onPrimary,
             topBar = {
                 TopAppBar(
                     title = { 
@@ -140,7 +140,7 @@ fun MonthlyListScreen() {
                             Icon(painter = painterResource(id = R.drawable.backicon), contentDescription = "Back", tint = MaterialTheme.colors.onSurface) 
                         } 
                     },
-                    backgroundColor = MaterialTheme.colors.surface,
+                    backgroundColor = MaterialTheme.colors.onPrimary,
                     elevation = 0.dp
                 )
             },
@@ -149,6 +149,7 @@ fun MonthlyListScreen() {
                 YearMonthSelector(yearMonth = currentYearMonth, onMonthChange = { newMonth -> currentYearMonth = newMonth })
                 DateRangeSelector(yearMonth = currentYearMonth, onDateChange = { start, end -> startDate = start; endDate = end })
                 Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), modifier = Modifier.padding(vertical = 8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 LazyColumn(state = listState, modifier = Modifier.padding(horizontal = 16.dp)) {
                     items(filteredReports) { report ->
                         ReportHeader(report = report)
@@ -281,8 +282,8 @@ fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: S
     LaunchedEffect(lastUserInteraction) { if (lastUserInteraction > creationTime) tooltipVisible = false }
 
     val itemBackgroundColor = if (item.status == InspectionStatus.UNCHECKED && !dialogWasOpened) MaterialTheme.colors.primary.copy(alpha = 0.1f) else Color.Transparent
-    val buttonBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) MaterialTheme.colors.primary.copy(alpha = 0.2f) else StatusGreen.copy(alpha = 0.2f)
-    val buttonContentColor = if (item.status == InspectionStatus.UNCHECKED) MaterialTheme.colors.primary else StatusGreenDark
+    val buttonBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) if (MaterialTheme.colors.isLight) MaterialTheme.colors.primary.copy(alpha = 0.2f) else MaterialTheme.colors.primary else StatusGreen.copy(alpha = 0.2f)
+    val buttonContentColor = if (item.status == InspectionStatus.UNCHECKED) if (MaterialTheme.colors.isLight) MaterialTheme.colors.primary else Color.Black else StatusGreenDark
     val buttonText = if (item.status == InspectionStatus.UNCHECKED) "미점검" else "점검완료"
 
     if (showDialog) UncheckedItemDialog(onDismissRequest = { showDialog = false })
@@ -313,7 +314,7 @@ fun UncheckedItemDialog(onDismissRequest: () -> Unit) {
 fun UncheckedItemDialogContent(onDismissRequest: () -> Unit) {
     val cardBgColor = if (MaterialTheme.colors.isLight) Color.White else GrayBackground
     Card(
-        modifier = Modifier.width(330.dp).height(290.dp).border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.12f), RoundedCornerShape(16.dp)), 
+        modifier = Modifier.width(330.dp).height(290.dp),
         shape = RoundedCornerShape(16.dp), 
         elevation = 0.dp, 
         backgroundColor = cardBgColor
@@ -346,9 +347,9 @@ fun UncheckedItemDialogDarkPreview() {
 @Composable
 fun YearMonthSelector(yearMonth: YearMonth, onMonthChange: (YearMonth) -> Unit) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { onMonthChange(yearMonth.minusMonths(1)) }) { Icon(painter = painterResource(id = R.drawable.left), null, tint = Color.Unspecified, modifier = Modifier.offset(x = 50.dp)) }
+        IconButton(onClick = { onMonthChange(yearMonth.minusMonths(1)) }) { Icon(painter = painterResource(id = R.drawable.left), null, tint = Color.Unspecified, modifier = Modifier.offset(x = 45.dp)) }
         Text(text = "${yearMonth.year}년 ${yearMonth.monthValue}월", fontSize = 23.sp, fontWeight = FontWeight.Bold, fontFamily = Pretendard, color = MaterialTheme.colors.onBackground)
-        IconButton(onClick = { onMonthChange(yearMonth.plusMonths(1)) }) { Icon(painter = painterResource(id = R.drawable.right), null, tint = Color.Unspecified, modifier = Modifier.offset(x = (-50).dp)) }
+        IconButton(onClick = { onMonthChange(yearMonth.plusMonths(1)) }) { Icon(painter = painterResource(id = R.drawable.right), null, tint = Color.Unspecified, modifier = Modifier.offset(x = (-45).dp)) }
     }
 }
 
