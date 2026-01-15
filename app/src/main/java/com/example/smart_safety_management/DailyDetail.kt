@@ -36,7 +36,7 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
 
     Smart_Safety_ManagementTheme {
         val labelColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
-        val borderColor = if (MaterialTheme.colors.isLight) GrayBorder else TextDark
+        val borderColor = if (MaterialTheme.colors.isLight) Lightgray else GrayBackground
         val mainTextColor = MaterialTheme.colors.onSurface
 
         Scaffold(
