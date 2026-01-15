@@ -10,7 +10,11 @@
     android:paddingStart="12dp"
     android:paddingEnd="12dp"
     android:paddingBottom="9dp"
-    android:backgroundTint="@color/gray50_gray900">
+    android:backgroundTint="@color/gray100_gray950"
+    android:elevation="24dp"
+    android:translationZ="24dp"
+    android:outlineProvider="background"
+    android:clipToOutline="false">
 
     <ImageView
         android:id="@+id/tooltip_icon"
