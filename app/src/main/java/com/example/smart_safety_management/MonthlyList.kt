@@ -148,14 +148,17 @@ fun MonthlyListScreen() {
             Column(modifier = Modifier.padding(paddingValues).pointerInput(Unit) { detectTapGestures(onTap = { lastUserInteraction = System.currentTimeMillis() }) }) {
                 YearMonthSelector(yearMonth = currentYearMonth, onMonthChange = { newMonth -> currentYearMonth = newMonth })
                 DateRangeSelector(yearMonth = currentYearMonth, onDateChange = { start, end -> startDate = start; endDate = end })
-                Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), modifier = Modifier.padding(vertical = 8.dp))
-                Spacer(modifier = Modifier.height(10.dp))
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f))
+                Spacer(modifier = Modifier.height(24.dp))
+                
                 LazyColumn(state = listState, modifier = Modifier.padding(horizontal = 16.dp)) {
                     items(filteredReports) { report ->
                         ReportHeader(report = report)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        DailyReportItemsCard(report = report, lastUserInteraction = lastUserInteraction)
                         Spacer(modifier = Modifier.height(16.dp))
+                        DailyReportItemsCard(report = report, lastUserInteraction = lastUserInteraction)
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             }
@@ -346,10 +349,34 @@ fun UncheckedItemDialogDarkPreview() {
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun YearMonthSelector(yearMonth: YearMonth, onMonthChange: (YearMonth) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { onMonthChange(yearMonth.minusMonths(1)) }) { Icon(painter = painterResource(id = R.drawable.left), null, tint = Color.Unspecified, modifier = Modifier.offset(x = 45.dp)) }
-        Text(text = "${yearMonth.year}년 ${yearMonth.monthValue}월", fontSize = 23.sp, fontWeight = FontWeight.Bold, fontFamily = Pretendard, color = MaterialTheme.colors.onBackground)
-        IconButton(onClick = { onMonthChange(yearMonth.plusMonths(1)) }) { Icon(painter = painterResource(id = R.drawable.right), null, tint = Color.Unspecified, modifier = Modifier.offset(x = (-45).dp)) }
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = { onMonthChange(yearMonth.minusMonths(1)) }) {
+            Icon(
+                painter = painterResource(id = R.drawable.left),
+                contentDescription = null,
+                tint = Color.Unspecified
+            )
+        }
+        Spacer(modifier = Modifier.width(20.dp))
+        Text(
+            text = "${yearMonth.year}년 ${yearMonth.monthValue}월",
+            fontSize = 23.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = Pretendard,
+            color = MaterialTheme.colors.onBackground
+        )
+        Spacer(modifier = Modifier.width(20.dp))
+        IconButton(onClick = { onMonthChange(yearMonth.plusMonths(1)) }) {
+            Icon(
+                painter = painterResource(id = R.drawable.right),
+                contentDescription = null,
+                tint = Color.Unspecified
+            )
+        }
     }
 }
 
