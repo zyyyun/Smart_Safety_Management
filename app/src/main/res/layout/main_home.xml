@@ -12,7 +12,8 @@
         android:id="@+id/app_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:elevation="8dp"
+        android:elevation="0dp"
+        android:outlineProvider="none"
         android:fitsSystemWindows="true">
 
         <include
@@ -54,7 +55,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
 
-                android:backgroundTint="@color/orange_550.gray_950"
+                android:backgroundTint="@color/orange500_gray950"
                 app:cardElevation="0dp"
                 app:cardUseCompatPadding="false"
                 app:cardPreventCornerOverlap="false">
