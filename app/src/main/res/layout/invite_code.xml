@@ -41,7 +41,7 @@
         android:layout_marginTop="12dp"
         android:background="@drawable/bg_edittext"
         android:fontFamily="@font/pretendard_medium"
-        android:hint="여기에 초대코드를 입력해주세요"
+        android:hint="여기에 초대코드를 입력해주세요."
         android:inputType="textPassword"
         android:paddingHorizontal="12dp"
         android:textColor="@color/black_white"
