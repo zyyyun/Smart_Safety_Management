@@ -36,7 +36,7 @@ import java.util.Calendar
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 @Composable
-fun DailyListScreen() {
+fun DailyListScreen(onComplete: () -> Unit = {}) {
     val activity = LocalContext.current as? ComponentActivity
     val calendar = Calendar.getInstance()
     val year = calendar.get(Calendar.YEAR)
@@ -275,7 +275,7 @@ fun DailyListScreen() {
                         Spacer(modifier = Modifier.width(8.dp))
                         Box(
                             modifier = Modifier
-                                .size(100.dp)
+                                .size(120.dp)
                                 .background(fieldBgColor, shape = RoundedCornerShape(8.dp))
                                 .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
                             contentAlignment = Alignment.Center
@@ -288,7 +288,9 @@ fun DailyListScreen() {
                 Spacer(modifier = Modifier.weight(1f))
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = { /* 작성 완료 로직 */ },
+                    onClick = { if (isFormComplete)
+                                onComplete()
+                              },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     enabled = isFormComplete,
