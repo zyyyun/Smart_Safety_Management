@@ -25,8 +25,9 @@ import com.example.smart_safety_management.screens.realtime.RealTimeBottomBar
 import com.example.smart_safety_management.screens.realtime.RealTimeScreen
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
-
+import androidx.compose.ui.tooling.preview.Preview
 @OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true)
 @Composable
 fun AppRoot() {
     var selectedTab by remember { mutableIntStateOf(2) }
