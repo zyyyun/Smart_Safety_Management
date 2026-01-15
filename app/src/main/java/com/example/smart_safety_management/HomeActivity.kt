@@ -114,6 +114,44 @@ class HomeActivity : AppCompatActivity() {
         fillCalendarReal()
         // 초기 선택된 날짜에 맞는 리스트를 표시합니다.
         updateDailyCheckList(selectedDay)
+
+        // 하단바 설정
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)
+        bottomNav.selectedItemId = R.id.nav_home // 현재 홈 화면이므로 홈 아이콘 활성화
+
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_home -> {
+                    // 이미 홈 화면이므로 아무것도 하지 않음
+                    true
+                }
+                R.id.nav_ai -> {
+                    // AI 감지 화면으로 이동 (Activity 이름은 실제 프로젝트에 맞춰 수정하세요)
+                    // startActivity(Intent(this, AiDetectionActivity::class.java))
+                    Toast.makeText(this, "AI 감지 화면으로 이동", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                R.id.nav_live -> {
+                    // 실시간 상황 화면으로 이동
+                    // startActivity(Intent(this, LiveActivity::class.java))
+                    Toast.makeText(this, "실시간 상황 화면으로 이동", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                R.id.nav_history -> {
+                    // 이력 화면으로 이동
+                    // startActivity(Intent(this, HistoryActivity::class.java))
+                    Toast.makeText(this, "이력 화면으로 이동", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                R.id.nav_location -> {
+                    // 위치 정보 화면으로 이동
+                    // startActivity(Intent(this, LocationActivity::class.java))
+                    Toast.makeText(this, "위치 정보 화면으로 이동", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                else -> false
+            }
+        }
     }
 
     /**
