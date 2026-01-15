@@ -13,6 +13,9 @@ val TextLight = Color(0xFFB1B8BE)
 val TextGray = Color(0xFF8A949E) // 부가 설명 및 다크모드 텍스트에 사용
 val TextLightGray = Color ( 0xFF58616A) // 부가 설명 라이트모드 텍스트에 자주사용
 val TextGray60 = Color(0xFF58616A)
+val TextGray20 = Color(0xFF131416)
+val TextGray5 = Color(0xFFF4F5F6)
+val TextGray30 = Color(0XFF464C53)
 
 
 // 경계선

@@ -56,7 +56,7 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                     },
                     backgroundColor = Color.White,
                     elevation = 0.dp,
-                    modifier = Modifier.height(36.dp)
+                    modifier = Modifier.height(45.dp)
                 )
             }
         ) { paddingValues ->
