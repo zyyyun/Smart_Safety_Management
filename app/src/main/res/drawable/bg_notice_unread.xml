@@ -3,6 +3,6 @@
     android:shape="rectangle">
 
     <!-- 연한 오렌지 배경 -->
-    <solid android:color="@color/orange400alpha36"/>
+    <solid android:color="@color/orange400alpha12_orange400alpha36"/>
 
 </shape>
