@@ -55,7 +55,7 @@
         android:id="@+id/tv_error"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="초대코드는 정확히 입력해야 등록할 수 있습니다."
+        android:text="유효하지 않은 초대 코드입니다."
         android:textSize="12sp"
         android:textColor="#EF4444"
         android:visibility="gone"
