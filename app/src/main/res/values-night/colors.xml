@@ -32,6 +32,7 @@
     <color name="gray400_gray700">#58616A</color>
     <color name="gray450">#9AA3AB</color>
     <color name="gray500_gray650">#464C53</color>
+    <color name="gray600">#6D7882</color>
     <color name="gray700_gray400">#8A949E</color>
     <color name="gray800_gray200">#CDD1D5</color>
     <color name="gray900">#131416</color>

@@ -31,7 +31,6 @@
 
         android:fontFamily="@font/pretendard_medium"
         android:text="4/5"
-        android:textColor="#6D7882"
         android:textSize="14sp" />
 
     <View

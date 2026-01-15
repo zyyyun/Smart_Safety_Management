@@ -26,6 +26,7 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
+import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import kotlin.math.abs
 
@@ -188,9 +189,9 @@ class HomeActivity : AppCompatActivity() {
         
         val progressText = "$uncheckedCount/$totalCount"
         val spannable = SpannableString(progressText)
-        
-        val orangeColor = Color.parseColor("#F97316")
-        val grayColor = Color.parseColor("#6D7882")
+
+        val orangeColor = ContextCompat.getColor(this, R.color.orange500) // 미점검 개수
+        val grayColor = ContextCompat.getColor(this, R.color.gray600) // 전체 개수
         
         val separatorIndex = progressText.indexOf("/")
         
