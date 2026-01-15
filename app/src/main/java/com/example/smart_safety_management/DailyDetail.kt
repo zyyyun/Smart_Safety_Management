@@ -1,5 +1,6 @@
 package com.example.smart_safety_management
 
+import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -21,10 +22,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.smart_safety_management.ui.theme.Pretendard
-import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.ui.theme.*
 
 @Composable
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
+//@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
     // 상세 화면에 표시될 초기값 (예시 데이터)
     var date by remember { mutableStateOf("2025-05-07") }
@@ -33,14 +35,19 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
     var safetyMeasure by remember { mutableStateOf("안전 고리 고정 및 현장 정리 완료") }
 
     Smart_Safety_ManagementTheme {
+        val labelColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
+        val borderColor = if (MaterialTheme.colors.isLight) GrayBorder else TextDark
+        val mainTextColor = MaterialTheme.colors.onSurface
+
         Scaffold(
+            backgroundColor = MaterialTheme.colors.onPrimary,
             topBar = {
                 TopAppBar(
                     title = {
                         Text(
                             text = "일일안전점검",
                             fontWeight = FontWeight.Bold,
-                            color = Color(0XFF131416),
+                            color = mainTextColor,
                             fontFamily = Pretendard,
                             modifier = Modifier.offset(x = (-24).dp)
                         )
@@ -50,11 +57,11 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                             Icon(
                                 painter = painterResource(id = R.drawable.backicon),
                                 contentDescription = "Back",
-                                tint = Color.Black
+                                tint = mainTextColor
                             )
                         }
                     },
-                    backgroundColor = Color.White,
+                    backgroundColor = MaterialTheme.colors.onPrimary,
                     elevation = 0.dp,
                     modifier = Modifier.height(45.dp)
                 )
@@ -71,7 +78,7 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                 Text(
                     text = "작성일",
                     fontSize = 14.sp,
-                    color = Color(0xFF58616A),
+                    color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
@@ -80,13 +87,13 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                     value = date,
                     onValueChange = { date = it },
                     readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = Color.Black),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = MaterialTheme.colors.onBackground),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         Column {
                             innerTextField()
                             Spacer(modifier = Modifier.height(25.dp))
-                            Divider(color = Color(0xFFCDD1D5), thickness = 1.dp)
+                            Divider(color = borderColor, thickness = 1.dp)
                         }
                     }
                 )
@@ -97,7 +104,7 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                 Text(
                     text = "위치",
                     fontSize = 14.sp,
-                    color = Color(0xFF58616A),
+                    color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
@@ -106,13 +113,13 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                     value = location,
                     onValueChange = { location = it },
                     readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = Color.Black),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = MaterialTheme.colors.onBackground),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         Column {
                             innerTextField()
                             Spacer(modifier = Modifier.height(25.dp))
-                            Divider(color = Color(0xFFCDD1D5), thickness = 1.dp)
+                            Divider(color = borderColor, thickness = 1.dp)
                         }
                     }
                 )
@@ -123,7 +130,7 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                 Text(
                     text = "위험요인",
                     fontSize = 14.sp,
-                    color = Color(0xFF58616A),
+                    color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
@@ -132,13 +139,13 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                     value = riskFactor,
                     onValueChange = { riskFactor = it },
                     readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = Color.Black),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = MaterialTheme.colors.onBackground),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         Column {
                             innerTextField()
                             Spacer(modifier = Modifier.height(25.dp))
-                            Divider(color = Color(0xFFCDD1D5), thickness = 1.dp)
+                            Divider(color = borderColor, thickness = 1.dp)
                         }
                     }
                 )
@@ -149,7 +156,7 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                 Text(
                     text = "안전대책",
                     fontSize = 14.sp,
-                    color = Color(0xFF58616A),
+                    color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
@@ -158,13 +165,13 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                     value = safetyMeasure,
                     onValueChange = { safetyMeasure = it },
                     readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = Color.Black),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = MaterialTheme.colors.onBackground),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         Column {
                             innerTextField()
                             Spacer(modifier = Modifier.height(25.dp))
-                            Divider(color = Color(0xFFCDD1D5), thickness = 1.dp)
+                            Divider(color = borderColor, thickness = 1.dp)
                         }
                     }
                 )
@@ -175,7 +182,7 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                 Text(
                     text = "현장사진",
                     fontSize = 14.sp,
-                    color = Color(0xFF58616A),
+                    color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
@@ -188,8 +195,8 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                     Surface(
                         modifier = Modifier.size(120.dp),
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFF4F5F6),
-                        border = BorderStroke(1.dp, Color(0xFFCDD1D5))
+                        color = if (MaterialTheme.colors.isLight) Color(0xFFF4F5F6) else TextGray20,
+                        border = BorderStroke(1.dp, borderColor)
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.factory),
@@ -201,8 +208,8 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                     Surface(
                         modifier = Modifier.size(120.dp),
                         shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFFF4F5F6),
-                        border = BorderStroke(1.dp, Color(0xFFCDD1D5))
+                        color = if (MaterialTheme.colors.isLight) Color(0xFFF4F5F6) else TextGray20,
+                        border = BorderStroke(1.dp, borderColor)
                     ) {
                         Image(
                             painter = painterResource(id = R.drawable.factory2),
@@ -218,17 +225,19 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                 Button(
                     onClick = { /* 수정하기 로직 */ },
                     modifier = Modifier
-                        .width(360.dp )
-                        .height(50.dp)
+                        .fillMaxWidth()
+                        .height(55.dp)
                         .align(Alignment.CenterHorizontally),
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF97316)),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = MaterialTheme.colors.primary,
+                        contentColor = MaterialTheme.colors.onPrimary
+                    ),
                     shape = RoundedCornerShape(12.dp),
                     elevation = ButtonDefaults.elevation(0.dp, 0.dp)
                 ) {
                     Text(
                         text = "수정하기",
-                        color = Color.White,
-                        fontSize = 16.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = Pretendard
                     )
@@ -239,16 +248,15 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                 // 삭제하기 버튼
                 Box(
                     modifier = Modifier
-                        .width(360.dp)
-                        .height(20.dp)
+                        .fillMaxWidth()
+                        .height(30.dp)
                         .align(Alignment.CenterHorizontally)
-                        .background(Color.White)
                         .clickable { /* 삭제하기 로직 */ },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "삭제하기",
-                        color = Color(0xFF8A949E),
+                        color = if (MaterialTheme.colors.isLight) TextGray else TextGray60,
                         fontSize = 14.sp,
                         fontFamily = Pretendard
                     )
