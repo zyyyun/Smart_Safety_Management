@@ -1,4 +1,4 @@
-package com.example.safe.screens
+package com.example.smart_safety_management.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,15 +16,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.safe.LiveCardItem
-import com.example.safe.R
-import com.example.safe.screens.detail.InternalDetailScreen
-import com.example.safe.screens.dialog.MapDialog
-import com.example.safe.screens.location.LocationScreen
-import com.example.safe.screens.realtime.RealTimeBottomBar
-import com.example.safe.screens.realtime.RealTimeScreen
-import com.example.safe.ui.theme.LocalSafeColors
-import com.example.safe.ui.theme.SafeTheme
+import com.example.smart_safety_management.LiveCardItem
+import com.example.smart_safety_management.R
+import com.example.smart_safety_management.screens.detail.InternalDetailScreen
+import com.example.smart_safety_management.screens.dialog.MapDialog
+import com.example.smart_safety_management.screens.location.LocationScreen
+import com.example.smart_safety_management.screens.realtime.RealTimeBottomBar
+import com.example.smart_safety_management.screens.realtime.RealTimeScreen
+import com.example.smart_safety_management.ui.theme.LocalSafeColors
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,7 +39,7 @@ fun AppRoot() {
     // ✅ 임시 다크모드 토글
     var isDark by remember { mutableStateOf(false) }
 
-    SafeTheme(darkTheme = isDark, dynamicColor = false) {
+    Smart_Safety_ManagementTheme(darkTheme = isDark) {
         val c = LocalSafeColors.current
 
         Scaffold(

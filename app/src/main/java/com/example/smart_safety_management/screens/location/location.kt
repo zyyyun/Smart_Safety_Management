@@ -1,4 +1,4 @@
-package com.example.safe.screens.location
+package com.example.smart_safety_management.screens.location
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
@@ -35,8 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
-import com.example.safe.R
-import com.example.safe.ui.theme.LocalSafeColors
+import com.example.smart_safety_management.R
+import com.example.smart_safety_management.ui.theme.LocalSafeColors
 
 /* -------------------- data -------------------- */
 
@@ -90,7 +90,7 @@ fun LocationScreen(
     // (참고용) 시스템 다크값이 필요하면 이름만 다르게
     val systemDark = isSystemInDarkTheme()
 
-    // ✅ SafeTheme(LocalSafeColors)에서 공급한 팔레트 읽기
+    // ✅ Smart_Safety_ManagementTheme(LocalSafeColors)에서 공급한 팔레트 읽기
     val c = LocalSafeColors.current
 
     // ✅ 화면에서 쓸 다크 여부는 "파라미터 isDark"로 고정

@@ -1,4 +1,4 @@
-package com.example.safe.ui.theme
+package com.example.smart_safety_management.ui.theme
 
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color

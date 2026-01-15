@@ -1,4 +1,4 @@
-package com.example.safe
+package com.example.smart_safety_management
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -8,8 +8,8 @@ import androidx.core.view.WindowCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.safe.screens.AppRoot
-import com.example.safe.ui.theme.SafeTheme
+import com.example.smart_safety_management.screens.AppRoot
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
-            SafeTheme {
+            Smart_Safety_ManagementTheme {
                 val navController = rememberNavController()
                 NavHost(navController = navController, startDestination = "realtime") {
                     composable("realtime") { AppRoot() }

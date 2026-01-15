@@ -1,4 +1,4 @@
-package com.example.safe.screens.detail
+package com.example.smart_safety_management.screens.detail
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -20,9 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.safe.LiveCardItem
-import com.example.safe.R
-import com.example.safe.ui.theme.LocalSafeColors
+import com.example.smart_safety_management.LiveCardItem
+import com.example.smart_safety_management.R
+import com.example.smart_safety_management.ui.theme.LocalSafeColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

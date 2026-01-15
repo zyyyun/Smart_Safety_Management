@@ -1,4 +1,4 @@
-package com.example.safe.screens.dialog
+package com.example.smart_safety_management.screens.dialog
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -27,10 +27,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
-import com.example.safe.LiveCardItem
-import com.example.safe.R
-import com.example.safe.screens.realtime.TagPillCompact
-import com.example.safe.ui.theme.LocalSafeColors
+import com.example.smart_safety_management.LiveCardItem
+import com.example.smart_safety_management.R
+import com.example.smart_safety_management.screens.realtime.TagPillCompact
+import com.example.smart_safety_management.ui.theme.LocalSafeColors
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

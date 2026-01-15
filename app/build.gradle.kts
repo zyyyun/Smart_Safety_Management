@@ -68,6 +68,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.compose.material) // M2 Compose
     implementation(libs.androidx.material.icons.extended)
+    implementation("androidx.navigation:navigation-compose:2.8.5")
+    implementation("androidx.compose.material3:material3")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
