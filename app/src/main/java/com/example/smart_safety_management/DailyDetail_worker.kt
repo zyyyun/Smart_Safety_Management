@@ -254,5 +254,5 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
 @Preview(showBackground = true)
 @Composable
 fun DailyDetailWorkerScreenPreview() {
-    DailyDetailScreen()
+    DailyDetailWorkerScreen()
 }
