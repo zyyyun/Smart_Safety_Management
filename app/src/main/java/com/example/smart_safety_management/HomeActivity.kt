@@ -136,8 +136,8 @@ class HomeActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_ai -> {
-                    // AI 감지 화면으로 이동 (Activity 이름은 실제 프로젝트에 맞춰 수정하세요)
-                    // startActivity(Intent(this, AiDetectionActivity::class.java))
+                    val intent = Intent(this, AIEventActivity::class.java)
+                    startActivity(intent)
                     Toast.makeText(this, "AI 감지 화면으로 이동", Toast.LENGTH_SHORT).show()
                     true
                 }
