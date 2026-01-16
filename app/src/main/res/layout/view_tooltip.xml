@@ -19,7 +19,7 @@
         android:paddingEnd="10dp"
         android:background="@drawable/bg_round_box"
         android:backgroundTint="@color/gray100_gray950"
-        android:elevation="0.5dp">
+        android:elevation="2dp">
 
         <ImageView
             android:id="@+id/tooltip_icon"
