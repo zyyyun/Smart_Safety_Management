@@ -27,15 +27,13 @@ import com.example.smart_safety_management.ui.theme.*
 @Composable
 fun AIEventDetailScreen(
     onBackClick: () -> Unit = {},
+    onRequestAction: () -> Unit = {}, // 조치 요청 콜백 추가
     initialActionCompleted: Boolean = false,
 ) {
-
     var isActionCompleted by remember { mutableStateOf(initialActionCompleted) }
-    // 오탐처리 다이얼로그 상태 관리
     var showFalseDetectionDialog by remember { mutableStateOf(false) }
 
     Smart_Safety_ManagementTheme {
-        // 라이트/다크모드 관리 변수
         val isLight = MaterialTheme.colors.isLight
         val CategoryColor = if (isLight) TextGray60 else TextGray
         val locationColor = if (isLight) TextGray20 else TextGray5
@@ -77,7 +75,6 @@ fun AIEventDetailScreen(
                     .padding(paddingValues),
                 color = MaterialTheme.colors.onPrimary
             ) {
-                // 스크롤 가능한 Column
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -103,7 +100,6 @@ fun AIEventDetailScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        // 이벤트 내용 영역
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -219,7 +215,7 @@ fun AIEventDetailScreen(
                                         }
 
                                         Button(
-                                            onClick = { isActionCompleted = true },
+                                            onClick = { onRequestAction() }, // 조치 요청 콜백 실행
                                             modifier = Modifier.weight(1f).height(48.dp),
                                             colors = ButtonDefaults.buttonColors(
                                                 backgroundColor = MainOrange,
@@ -335,7 +331,6 @@ fun AIEventDetailScreen(
             }
         }
 
-        // 다이얼로그 표시 로직
         if (showFalseDetectionDialog) {
             FalseDetectionDialog(
                 onDismiss = { showFalseDetectionDialog = false },
@@ -350,91 +345,86 @@ fun AIEventDetailScreen(
 @Composable
 fun FalseDetectionDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
-        FalseDetectionDialogContent(onDismiss, onConfirm)
-    }
-}
-
-@Composable
-fun FalseDetectionDialogContent(onCancel: () -> Unit = {}, onConfirm: () -> Unit = {}) {
-    val isLight = MaterialTheme.colors.isLight
-    val backgroundColor = if (isLight) Color.White else GrayBackground
-    val buttonBackground = if (isLight) TextGray5 else TextGray20
-    val textColor = if (isLight) TextGray60 else TextGray
-    
-    Surface(
-        modifier = Modifier.size(width = 350.dp, height = 250.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = backgroundColor
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+        val isLight = MaterialTheme.colors.isLight
+        val backgroundColor = if (isLight) Color.White else GrayBackground
+        val buttonBackground = if (isLight) TextGray5 else TextGray20
+        val textColor = if (isLight) TextGray60 else TextGray
+        
+        Surface(
+            modifier = Modifier.size(width = 350.dp, height = 250.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = backgroundColor
         ) {
             Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(top = 12.dp)
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.false_alarm),
-                    contentDescription = null,
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(48.dp)
-                )
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
-                Text(
-                    textAlign = TextAlign.Center,
-                    text = "해당 감지 이벤트를 \n오탐처리 하시겠습니까?",
-                    fontFamily = Pretendard,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    lineHeight = 30.sp,
-                    color = MaterialTheme.colors.onSurface
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
-            ) {
-                Button(
-                    onClick = onCancel,
-                    modifier = Modifier.size(width = 144.dp, height = 52.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = buttonBackground,
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    elevation = ButtonDefaults.elevation(0.dp, 0.dp)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(top = 12.dp)
                 ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.false_alarm),
+                        contentDescription = null,
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(48.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
                     Text(
-                        text = "취소",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                        text = "해당 감지 이벤트를 \n오탐처리 하시겠습니까?",
                         fontFamily = Pretendard,
-                        color = textColor
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        lineHeight = 30.sp,
+                        color = MaterialTheme.colors.onSurface
                     )
                 }
 
-                Button(
-                    onClick = { onConfirm() },
-                    modifier = Modifier.size(width = 144.dp, height = 52.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = MainOrange,
-                    ),
-                    shape = RoundedCornerShape(8.dp),
-                    elevation = ButtonDefaults.elevation(0.dp, 0.dp)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
                 ) {
-                    Text(
-                        text = "확인",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = Pretendard,
-                        color = MaterialTheme.colors.onPrimary
-                    )
+                    Button(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(width = 144.dp, height = 52.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = buttonBackground,
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        elevation = ButtonDefaults.elevation(0.dp, 0.dp)
+                    ) {
+                        Text(
+                            text = "취소",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = Pretendard,
+                            color = textColor
+                        )
+                    }
+
+                    Button(
+                        onClick = { onConfirm() },
+                        modifier = Modifier.size(width = 144.dp, height = 52.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = MainOrange,
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        elevation = ButtonDefaults.elevation(0.dp, 0.dp)
+                    ) {
+                        Text(
+                            text = "확인",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = Pretendard,
+                            color = MaterialTheme.colors.onPrimary
+                        )
+                    }
                 }
             }
         }
@@ -445,14 +435,5 @@ fun FalseDetectionDialogContent(onCancel: () -> Unit = {}, onConfirm: () -> Unit
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode")
 @Composable
 fun AIEventDetailScreenPreview() {
-    AIEventDetailScreen(initialActionCompleted = false)
-}
-
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Dialog Light")
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dialog Dark")
-@Composable
-fun FalseDetectionDialogPreview() {
-    Smart_Safety_ManagementTheme {
-        FalseDetectionDialogContent()
-    }
+    AIEventDetailScreen()
 }

@@ -49,10 +49,11 @@ data class BottomNavItem(
     @DrawableRes val iconResId: Int, 
     val screenRoute: String
 )
+
 // --- 2. 메인 화면 ---
 
 @Composable
-fun AIEventDetectScreen() {
+fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
     var selectedFilter by remember { mutableStateOf("전체") }
 
     val allPendingEvents = listOf(
@@ -81,15 +82,12 @@ fun AIEventDetectScreen() {
     val filteredFalseDetectionEvents = if (selectedFilter == "전체") allFalseDetectionEvents else allFalseDetectionEvents.filter { it.accidentType == selectedFilter }
 
     Smart_Safety_ManagementTheme {
-        // 테마 내부로 이동하여 테마 변경을 감지합니다.
         val topBarBackgroundColor = if (MaterialTheme.colors.isLight) MainOrange else GrayBackground
         val subTextColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
+        
         Scaffold(
             topBar = {
-                Surface(
-                    color = topBarBackgroundColor,
-                    elevation = 0.dp
-                ) {
+                Surface(color = topBarBackgroundColor, elevation = 0.dp) {
                     Column {
                         MyTopAppBar(Color.Transparent)
                         MySecondaryTopAppBar(selectedFilter, counts, Color.Transparent) { newFilter ->
@@ -99,84 +97,43 @@ fun AIEventDetectScreen() {
                 }
             },
             bottomBar = { MyBottomNavigation("nav_ai") },
-            backgroundColor = topBarBackgroundColor // 상단 라운드 코너 배경을 일치시킵니다.
+            backgroundColor = topBarBackgroundColor 
         ) { paddingValues ->
             Surface(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                modifier = Modifier.fillMaxSize().padding(paddingValues),
                 color = MaterialTheme.colors.onPrimary,
                 shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
             ) {
-                Column(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
+                Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
                     CurrentDateText()
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "조치대기",
-                            fontWeight = FontWeight.Medium,
-                            color = subTextColor,
-                            modifier = Modifier.padding(8.dp)
-                        )
+                        Text(text = "조치대기", fontWeight = FontWeight.Medium, color = subTextColor, modifier = Modifier.padding(8.dp))
                         if (filteredPendingEvents.isEmpty()) {
-                            Text(
-                                text = "지난 내역은 이력 탭에서 확인하세요.",
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                                textAlign = TextAlign.Center,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
-                            )
+                            NoEventText()
                         } else {
                             filteredPendingEvents.forEach { event ->
-                                EventItem(event, EventStatus.PENDING)
+                                EventItem(event, EventStatus.PENDING, onEventClick)
                             }
                         }
 
-                        Text(
-                            text = "조치완료",
-                            fontWeight = FontWeight.Medium,
-                            color = subTextColor,
-                            modifier = Modifier.padding(8.dp)
-                        )
+                        Text(text = "조치완료", fontWeight = FontWeight.Medium, color = subTextColor, modifier = Modifier.padding(8.dp))
                         if (filteredCompletedEvents.isEmpty()) {
-                            Text(
-                                text = "지난 내역은 이력 탭에서 확인하세요.",
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                                textAlign = TextAlign.Center,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
-                            )
+                            NoEventText()
                         } else {
                             filteredCompletedEvents.forEach { event ->
-                                EventItem(event, EventStatus.COMPLETED)
+                                EventItem(event, EventStatus.COMPLETED, onEventClick)
                             }
                         }
 
-                        Text(
-                            text = "오탐처리",
-                            fontWeight = FontWeight.Medium,
-                            color = subTextColor,
-                            modifier = Modifier.padding(8.dp)
-                        )
+                        Text(text = "오탐처리", fontWeight = FontWeight.Medium, color = subTextColor, modifier = Modifier.padding(8.dp))
                         if (filteredFalseDetectionEvents.isEmpty()) {
-                            Text(
-                                text = "지난 내역은 이력 탭에서 확인하세요.",
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-                                textAlign = TextAlign.Center,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
-                            )
+                            NoEventText()
                         } else {
                             filteredFalseDetectionEvents.forEach { event ->
-                                EventItem(event, EventStatus.FALSE_DETECTION)
+                                EventItem(event, EventStatus.FALSE_DETECTION, onEventClick)
                             }
                         }
                     }
@@ -186,10 +143,21 @@ fun AIEventDetectScreen() {
     }
 }
 
+@Composable
+fun NoEventText() {
+    Text(
+        text = "지난 내역은 이력 탭에서 확인하세요.",
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+        textAlign = TextAlign.Center,
+        fontSize = 14.sp,
+        color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+    )
+}
+
 // --- 3. UI 컴포넌트 ---
 
 @Composable
-fun EventItem(event: EventData, status: EventStatus) {
+fun EventItem(event: EventData, status: EventStatus, onEventClick: (EventData) -> Unit = {}) {
     val isPending = status == EventStatus.PENDING
     val isLight = MaterialTheme.colors.isLight
     val alphaval = if (isLight) 0.1f else 0.36f
@@ -202,7 +170,7 @@ fun EventItem(event: EventData, status: EventStatus) {
             else -> TextGray5
         }
     } else {
-        if (isLight ) TextGray5 else TextGray20
+        if (isLight) TextGray5 else TextGray20
     }
 
     val borderColor = if (isPending) {
@@ -217,28 +185,18 @@ fun EventItem(event: EventData, status: EventStatus) {
     }
 
     val iconTint = if (isPending) Color.Unspecified else if (isLight) TextLight else TextGray30
-    val textColor = if (isPending)
-            // 조치 이전 라이트 / 다크 텍스트
-        if(isLight) TextGray60 else TextGray
-            // 조치 완료 라이트 / 다크 텍스트
-    else if(isLight) TextLight else TextGray30
-
-    val locationColor = if (isPending)
-        if(isLight) TextGray20 else TextGray5
-        else if(isLight) TextLight else TextGray30
+    val textColor = if (isPending) (if(isLight) TextGray60 else TextGray) else (if(isLight) TextLight else TextGray30)
+    val locationColor = if (isPending) (if(isLight) TextGray20 else TextGray5) else (if(isLight) TextLight else TextGray30)
 
     Button(
-        onClick = { /* Handle event click */ },
+        onClick = { onEventClick(event) },
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 8.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(backgroundColor = buttonColor),
         elevation = ButtonDefaults.elevation(0.dp, 0.dp),
         border = BorderStroke(1.dp, borderColor)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
             val iconRes = when (event.accidentType) {
                 "위험" -> R.drawable.danger_icon
                 "경고" -> R.drawable.warning_icon
@@ -255,19 +213,9 @@ fun EventItem(event: EventData, status: EventStatus) {
                 )
             }
             Column(horizontalAlignment = Alignment.Start) {
-                Text(
-                    text = event.location, 
-                    color = locationColor, 
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp
-                )
+                Text(text = event.location, color = locationColor, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(3.dp))
-                Text(
-                    text = event.content, 
-                    color = textColor,
-                    fontWeight = FontWeight.Normal,
-                    fontSize = 14.sp
-                )
+                Text(text = event.content, color = textColor, fontWeight = FontWeight.Normal, fontSize = 14.sp)
             }
         }
     }
@@ -278,7 +226,6 @@ fun CurrentDateText() {
     val currentDate = Date()
     val formatter = SimpleDateFormat("yyyy년 MM월 dd일", Locale.KOREAN)
     val formattedDate = formatter.format(currentDate)
-
     Text(
         text = formattedDate,
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 8.dp),
@@ -302,17 +249,14 @@ fun MyTopAppBar(backgroundColor: Color) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "AI 이벤트 감지",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier.padding(start = 8.dp),
-                    color = Color.White,
-                    fontFamily = ClipartKorea
-                )
-            }
-
+            Text(
+                text = "AI 이벤트 감지",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(start = 8.dp),
+                color = Color.White,
+                fontFamily = ClipartKorea
+            )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box {
                     IconButton(onClick = { }) {
@@ -371,26 +315,21 @@ fun FilterButton(text: String, count: Int, isSelected: Boolean, onClick: () -> U
                 text = text, 
                 fontSize = 18.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color =
-                    if(isLight)
-                        if (isSelected) Color.White else SubOrange
-                    else if (isSelected) Color.White else TextMedium
+                color = if(isLight) (if (isSelected) Color.White else SubOrange) else (if (isSelected) Color.White else TextMedium)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Box(
-                modifier = Modifier.size(20.dp).background(color =
-                    if (isLight) if (isSelected) Color.White else SubOrange
-                    else if (isSelected) (MainOrange).copy(alpha = 0.36f) else TextMedium
-                    , shape = CircleShape),
+                modifier = Modifier.size(20.dp).background(
+                    color = if (isLight) (if (isSelected) Color.White else SubOrange) else (if (isSelected) MainOrange.copy(alpha = 0.36f) else TextMedium),
+                    shape = CircleShape
+                ),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = count.toString(),
                     fontSize = 12.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium ,
-                    color =
-                        if (isLight) MainOrange
-                        else if (isSelected) MainOrange else TextLight
+                    color = if (isLight) MainOrange else (if (isSelected) MainOrange else TextLight)
                 )
             }
         }
@@ -398,9 +337,8 @@ fun FilterButton(text: String, count: Int, isSelected: Boolean, onClick: () -> U
 }
 
 @Composable
-fun MyBottomNavigation(selectedRoute: String = "nav_ai")
-    {
-    val isLight= MaterialTheme.colors.isLight
+fun MyBottomNavigation(selectedRoute: String = "nav_ai") {
+    val isLight = MaterialTheme.colors.isLight
     val items = listOf(
         BottomNavItem("안전점검", R.drawable.home, "nav_home"),
         BottomNavItem("AI감지", R.drawable.ai, "nav_ai"),
@@ -425,8 +363,8 @@ fun MyBottomNavigation(selectedRoute: String = "nav_ai")
     }
 }
 
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark",heightDp = 1000)
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light",heightDp = 1000)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark", heightDp = 1000)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light", heightDp = 1000)
 @Composable
 fun AIEventDetectScreenPreview() {
     AIEventDetectScreen()
