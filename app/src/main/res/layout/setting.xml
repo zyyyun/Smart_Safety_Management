@@ -1,0 +1,531 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/base">
+
+    <!-- 뒤로가기 버튼 -->
+    <ImageButton
+        android:id="@+id/backButton"
+        android:layout_width="23dp"
+        android:layout_height="29dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="12dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/icon_back"
+        app:tint="@color/gray900_gray50"/>
+
+    <!-- 설정 텍스트 -->
+    <TextView
+        android:id="@+id/txt_setting"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:fontFamily="@font/pretendard_bold"
+        android:text="설정"
+        android:textColor="@color/gray900_gray50"
+        android:textSize="24sp"
+        app:layout_constraintStart_toEndOf="@id/backButton"
+        app:layout_constraintTop_toTopOf="@id/backButton"
+        app:layout_constraintBottom_toBottomOf="@id/backButton"/>
+
+    <!-- 스크롤 영역 -->
+    <ScrollView
+        android:id="@+id/scroll_content"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toBottomOf="@id/txt_setting"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- ScrollView 자식 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- 개인설정 섹션 컨테이너 -->
+            <LinearLayout
+                android:id="@+id/container_my_profile"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="24dp">
+
+                <!-- 개인 설정 텍스트 -->
+                <TextView
+                    android:id="@+id/txt_personal_setting"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="24dp"
+                    android:layout_marginBottom="28dp"
+                    android:fontFamily="@font/pretendard_bold"
+                    android:text="개인설정"
+                    android:textColor="@color/gray900_gray50"
+                    android:textSize="22sp"/>
+
+                <!-- 내정보 아이템 -->
+                <LinearLayout
+                    android:id="@+id/item_my_info"
+                    android:layout_width="match_parent"
+                    android:layout_height="24dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp"
+                    android:clickable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <!-- 원 프로필 -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:backgroundTint="#F4F5F6"
+                        app:cardCornerRadius="25dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp">
+
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:layout_marginStart="5dp"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginEnd="5dp"
+                            android:scaleType="centerInside"
+                            android:src="@drawable/profile" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- 텍스트 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="16dp"
+                        android:fontFamily="@font/pretendard_semibold"
+                        android:gravity="center_vertical"
+                        android:text="내정보"
+                        android:textColor="@color/gray800_gray200"
+                        android:textSize="18sp" />
+                </LinearLayout>
+
+                <!-- 비밀번호 수정 아이템 -->
+                <LinearLayout
+                    android:id="@+id/change_password"
+                    android:layout_width="match_parent"
+                    android:layout_height="24dp"
+                    android:layout_marginTop="28dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp"
+                    android:clickable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp"
+                        app:cardBackgroundColor="@android:color/transparent">
+
+                        <!-- 비밀번호 수정 아이콘 -->
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerInside"
+                            android:src="@drawable/ic_change_password" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- 텍스트 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="16dp"
+                        android:fontFamily="@font/pretendard_semibold"
+                        android:gravity="center_vertical"
+                        android:text="비밀번호 수정"
+                        android:textColor="@color/gray800_gray200"
+                        android:textSize="18sp" />
+                </LinearLayout>
+
+                <!-- 초대코드 입력 아이템 -->
+                <LinearLayout
+                    android:id="@+id/enter_invite_code"
+                    android:layout_width="match_parent"
+                    android:layout_height="24dp"
+                    android:layout_marginTop="28dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp"
+                    android:clickable="true"
+                    android:foreground="?attr/selectableItemBackground">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp"
+                        app:cardBackgroundColor="@android:color/transparent">
+
+                        <!-- 초대코드 입력 아이콘 -->
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerInside"
+                            android:src="@drawable/ic_invite_code" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- 텍스트 -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="16dp"
+                        android:fontFamily="@font/pretendard_semibold"
+                        android:gravity="center_vertical"
+                        android:text="초대코드 입력"
+                        android:textColor="@color/gray800_gray200"
+                        android:textSize="18sp" />
+                </LinearLayout>
+
+                <!-- 구분선 추가 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="30dp"
+                    android:background="@color/gray100" />
+
+            </LinearLayout>
+
+        <!-- 현장관리 섹션 컨테이너 -->
+        <LinearLayout
+            android:id="@+id/container_workplace_management_setting"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="24dp">
+
+            <!-- 현장관리 텍스트 -->
+            <TextView
+                android:id="@+id/txt_workplace_management_setting"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginBottom="28dp"
+                android:fontFamily="@font/pretendard_bold"
+                android:text="현장관리"
+                android:textColor="@color/gray900_gray50"
+                android:textSize="22sp"/>
+
+            <!-- 현장 만들기 아이템 -->
+            <LinearLayout
+                android:id="@+id/create_workplace"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:clickable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    app:cardBackgroundColor="@android:color/transparent">
+
+                    <!-- 현장 만들기 아이콘 -->
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_create_workplace" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 텍스트 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="16dp"
+                    android:fontFamily="@font/pretendard_semibold"
+                    android:gravity="center_vertical"
+                    android:text="현장 만들기"
+                    android:textColor="@color/gray800_gray200"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <!-- 현장 위치 설정 아이템 -->
+            <LinearLayout
+                android:id="@+id/workplace_location_setting"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:layout_marginTop="28dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:clickable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    app:cardBackgroundColor="@android:color/transparent">
+
+                    <!-- 현장위치 설정 아이콘 -->
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_workplace_location_setting" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 텍스트 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="16dp"
+                    android:fontFamily="@font/pretendard_semibold"
+                    android:gravity="center_vertical"
+                    android:text="현장위치 설정"
+                    android:textColor="@color/gray800_gray200"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <!-- 구분선 추가 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="30dp"
+                android:background="@color/gray100" />
+
+        </LinearLayout>
+
+        <!-- 인원관리 섹션 컨테이너 -->
+        <LinearLayout
+            android:id="@+id/container_people_management_setting"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="24dp">
+
+            <!-- 인원관리 텍스트 -->
+            <TextView
+                android:id="@+id/txt_people_management_setting"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginBottom="28dp"
+                android:fontFamily="@font/pretendard_bold"
+                android:text="인원관리"
+                android:textColor="@color/gray900_gray50"
+                android:textSize="22sp"/>
+
+            <!-- 초대하기 아이템 -->
+            <LinearLayout
+                android:id="@+id/invite"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:clickable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    app:cardBackgroundColor="@android:color/transparent">
+
+                    <!-- 초대하기 아이콘 -->
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_invite" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 텍스트 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="16dp"
+                    android:fontFamily="@font/pretendard_semibold"
+                    android:gravity="center_vertical"
+                    android:text="초대하기"
+                    android:textColor="@color/gray800_gray200"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <!-- 인원관리 아이템 -->
+            <LinearLayout
+                android:id="@+id/people_management"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:layout_marginTop="28dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:clickable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    app:cardBackgroundColor="@android:color/transparent">
+
+                    <!-- 인원관리 아이콘 -->
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_people_management" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 텍스트 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="16dp"
+                    android:fontFamily="@font/pretendard_semibold"
+                    android:gravity="center_vertical"
+                    android:text="인원관리"
+                    android:textColor="@color/gray800_gray200"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <!-- 구분선 추가 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="30dp"
+                android:background="@color/gray100" />
+
+        </LinearLayout>
+
+        <!-- 장치관리 섹션 컨테이너 -->
+        <LinearLayout
+            android:id="@+id/container_machine_management_setting"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="24dp">
+
+            <!-- 장치관리 텍스트 -->
+            <TextView
+                android:id="@+id/txt_machine_management_setting"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="24dp"
+                android:layout_marginBottom="28dp"
+                android:fontFamily="@font/pretendard_bold"
+                android:text="장치관리"
+                android:textColor="@color/gray900_gray50"
+                android:textSize="22sp"/>
+
+            <!-- CCTV 관리 아이템 -->
+            <LinearLayout
+                android:id="@+id/invite"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:clickable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    app:cardBackgroundColor="@android:color/transparent">
+
+                    <!-- CCTV 관리 아이콘 -->
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_cctv_management" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 텍스트 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="16dp"
+                    android:fontFamily="@font/pretendard_semibold"
+                    android:gravity="center_vertical"
+                    android:text="CCTV 관리"
+                    android:textColor="@color/gray800_gray200"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <!-- 장치관리 아이템 -->
+            <LinearLayout
+                android:id="@+id/machine_management"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:layout_marginTop="28dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:clickable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    app:cardBackgroundColor="@android:color/transparent">
+
+                    <!-- 장치관리 아이콘 -->
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_machine_management" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 텍스트 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="16dp"
+                    android:fontFamily="@font/pretendard_semibold"
+                    android:gravity="center_vertical"
+                    android:text="장치관리"
+                    android:textColor="@color/gray800_gray200"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <!-- 구분선 추가 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="30dp"
+                android:background="@color/gray100" />
+
+        </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
