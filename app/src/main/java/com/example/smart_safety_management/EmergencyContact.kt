@@ -1,5 +1,6 @@
 package com.example.smart_safety_management
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,7 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.ui.theme.*
 
 data class Contact(val name: String, val phoneNumber: String)
 
@@ -51,14 +52,12 @@ val mockContacts = listOf(
     Contact("한지민", "010-0123-4567")
 )
 
-@Preview(
-    showBackground = true,
-)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 @Composable
 fun EmergencyContactScreen() {
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-
     val filteredContacts = if (searchQuery.isBlank()) {
         mockContacts
     } else {
@@ -69,11 +68,15 @@ fun EmergencyContactScreen() {
     }
 
     Smart_Safety_ManagementTheme {
+        val searchBoxColor = if (MaterialTheme.colors.isLight) Color.White else TextGray20
+        val searchBoxBorder = if (MaterialTheme.colors.isLight) GrayBorder else TextDark
+        val searchInfoColor = if (MaterialTheme.colors.isLight) TextLight else TextGray30
+        val searchTextColor = if (MaterialTheme.colors.isLight) TextDark else GrayBorder
         Scaffold(
             topBar = {
                 Column {
                     TopAppBar(
-                        backgroundColor = MaterialTheme.colors.surface,
+                        backgroundColor = MaterialTheme.colors.onPrimary,
                         elevation = 0.dp,
                         modifier = Modifier.height(40.dp),
                         title = {
@@ -114,7 +117,7 @@ fun EmergencyContactScreen() {
                     )
 
                     AnimatedVisibility(visible = isSearchActive) {
-                        Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colors.surface) {
+                        Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colors.onPrimary) {
                             BasicTextField(
                                 value = searchQuery,
                                 onValueChange = { searchQuery = it },
@@ -122,27 +125,31 @@ fun EmergencyContactScreen() {
                                     .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp)
                                     .fillMaxWidth(),
                                 textStyle = TextStyle(
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colors.onSurface
+                                    fontSize = 18.sp,
+                                    color = searchTextColor
                                 ),
                                 singleLine = true,
                                 decorationBox = { innerTextField ->
                                     Box(
                                         modifier = Modifier
                                             .height(40.dp)
+                                            .background(color = searchBoxColor,
+                                                shape = RoundedCornerShape(8.dp)
+                                                )
                                             .border(
                                                 width = 1.dp,
-                                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.3f),
+                                                color = searchBoxBorder,
                                                 shape = RoundedCornerShape(8.dp)
                                             )
                                             .padding(horizontal = 12.dp),
                                         contentAlignment = Alignment.CenterStart
+
                                     ) {
                                         if (searchQuery.isEmpty()) {
                                             Text(
                                                 text = "이름 또는 전화번호를 입력하세요.",
                                                 fontSize = 16.sp,
-                                                color = Color(0xFFB1B8BE)
+                                                color = searchInfoColor
                                             )
                                         }
                                         innerTextField()
@@ -153,7 +160,8 @@ fun EmergencyContactScreen() {
                     }
                     Divider()
                 }
-            }
+            },
+            backgroundColor = MaterialTheme.colors.onPrimary
         ) { paddingValues ->
             LazyColumn(modifier = Modifier.padding(paddingValues)) {
                 items(filteredContacts) { contact ->
@@ -166,6 +174,9 @@ fun EmergencyContactScreen() {
 
 @Composable
 fun ContactListItem(contact: Contact) {
+    val phNumColor = TextMedium
+    val DividerColor = if ( MaterialTheme.colors.isLight ) TextGray5 else TextGray20
+    val searchTextColor = if (MaterialTheme.colors.isLight) TextDark else GrayBorder
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -174,9 +185,9 @@ fun ContactListItem(contact: Contact) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Text(text = contact.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = MaterialTheme.colors.onSurface)
+            Text(text = contact.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, color = searchTextColor)
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text = contact.phoneNumber, fontSize = 14.sp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f))
+            Text(text = contact.phoneNumber, fontSize = 14.sp, color = phNumColor)
         }
         Spacer(modifier = Modifier.width(16.dp))
         IconButton(onClick = { }) {
@@ -188,7 +199,7 @@ fun ContactListItem(contact: Contact) {
                     )
                     .border(
                         width = 1.dp,
-                        color = Color(0xFFE6E8EA),
+                        color = if (MaterialTheme.colors.isLight) Lightgray else  GrayBackground ,
                         shape = RoundedCornerShape(8.dp)
                     )
                     .padding(8.dp),
@@ -202,5 +213,5 @@ fun ContactListItem(contact: Contact) {
             }
         }
     }
-    Divider(color = Color(0xFFF4F5F6))
+    Divider(color = DividerColor)
 }

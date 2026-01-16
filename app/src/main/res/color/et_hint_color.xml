@@ -4,9 +4,9 @@
     <!-- 포커스 상태 -->
     <item
         android:state_focused="true"
-        android:color="@color/gray_500.gray_650"/>
+        android:color="@color/gray500_gray650"/>
 
     <!-- 기본 -->
     <item
-        android:color="@color/gray_500.gray_650"/>
+        android:color="@color/gray500_gray650"/>
 </selector>

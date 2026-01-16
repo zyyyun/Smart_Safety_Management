@@ -17,7 +17,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/icon_back"
-        app:tint="@color/gray_900.gray_50"/>
+        app:tint="@color/gray900_gray50"/>
 
     <!-- 회원가입 텍스트 -->
     <TextView
@@ -27,7 +27,7 @@
         android:layout_marginStart="8dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="회원가입"
-        android:textColor="@color/gray_900.gray_50"
+        android:textColor="@color/gray900_gray50"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="@id/imageButton"
         app:layout_constraintStart_toEndOf="@id/imageButton"
@@ -70,7 +70,7 @@
             android:focusable="false"
             android:fontFamily="@font/pretendard_bold"
             android:text="근로자"
-            android:textColor="@color/black.white"
+            android:textColor="@color/black_white"
             android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -86,7 +86,7 @@
             android:focusable="false"
             android:fontFamily="@font/pretendard_medium"
             android:text="로 가입하기"
-            android:textColor="@color/gray_800.gray_200"
+            android:textColor="@color/gray800_gray200"
             android:textSize="18sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@id/txt_worker"
@@ -144,7 +144,7 @@
             android:focusable="false"
             android:fontFamily="@font/pretendard_bold"
             android:text="관리자"
-            android:textColor="@color/black.white"
+            android:textColor="@color/black_white"
             android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -160,7 +160,7 @@
             android:focusable="false"
             android:fontFamily="@font/pretendard_medium"
             android:text="로 가입하기"
-            android:textColor="@color/gray_800.gray_200"
+            android:textColor="@color/gray800_gray200"
             android:textSize="18sp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toEndOf="@id/txt_manager"

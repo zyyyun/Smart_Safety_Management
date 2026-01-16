@@ -11,6 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.smart_safety_management.screens.AppRoot
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

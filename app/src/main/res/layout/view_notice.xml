@@ -27,7 +27,7 @@
             android:id="@+id/tv_title"
             android:text="AI 이벤트 감지"
             android:textSize="14sp"
-            android:textColor="@color/gray_900.gray_50"
+            android:textColor="@color/gray900_gray50"
             android:fontFamily="@font/pretendard_semibold"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
@@ -38,7 +38,7 @@
             android:layout_marginTop="4dp"
             android:fontFamily="@font/pretendard_medium"
             android:text="D구역 1열 쓰러짐 감지"
-            android:textColor="@color/gray_700.gray_400"
+            android:textColor="@color/gray700_gray400"
             android:textSize="16sp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"/>
@@ -50,7 +50,7 @@
         android:id="@+id/tv_time"
         android:fontFamily="@font/pretendard_medium"
         android:text="1분 전"
-        android:textColor="@color/gray_450"
+        android:textColor="@color/gray450"
         android:textSize="12sp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>

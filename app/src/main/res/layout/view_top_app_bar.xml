@@ -8,7 +8,8 @@
     android:paddingStart="16dp"
     android:paddingEnd="16dp"
     app:contentInsetStart="0dp"
-    app:contentInsetEnd="0dp">
+    app:contentInsetEnd="0dp"
+    app:elevation="0dp">
 
     <!-- 좌측: 로고 + 타이틀 -->
     <LinearLayout

@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardElevation="1dp"
+    app:cardElevation="0dp"
     app:cardBackgroundColor="@color/base">
 
     <LinearLayout
@@ -30,7 +30,7 @@
                 android:layout_weight="1"
                 android:fontFamily="@font/pretendard_bold"
                 android:text="2026년 5월"
-                android:textColor="@color/gray_900.gray_50"
+                android:textColor="@color/gray900_gray50"
                 android:textSize="24sp" />
 
             <!-- 오른쪽: 클릭 영역 -->
@@ -74,7 +74,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="24dp"
             android:orientation="horizontal">
 
             <TextView

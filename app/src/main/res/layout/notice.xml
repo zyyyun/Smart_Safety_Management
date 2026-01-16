@@ -16,7 +16,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@drawable/icon_back"
-        app:tint="@color/gray_900.gray_50"/>
+        app:tint="@color/gray900_gray50"/>
 
     <!-- 알림 텍스트 -->
     <TextView
@@ -26,7 +26,7 @@
         android:layout_marginStart="8dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="알림"
-        android:textColor="@color/gray_900.gray_50"
+        android:textColor="@color/gray900_gray50"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="@id/backButton"
         app:layout_constraintStart_toEndOf="@id/backButton"
@@ -43,7 +43,7 @@
         android:paddingHorizontal="6dp"
         android:paddingVertical="2dp"
         android:text="3"
-        android:textColor="@color/orange_400"
+        android:textColor="@color/orange400"
         android:textSize="14sp"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/tv_title"
@@ -94,7 +94,7 @@
         <TextView
             android:text="알림없음"
             android:textSize="14sp"
-            android:textColor="@color/gray_400.gray_700"
+            android:textColor="@color/gray400_gray700"
             android:fontFamily="@font/pretendard_medium"
             android:layout_height="match_parent"
             android:layout_width="match_parent" />

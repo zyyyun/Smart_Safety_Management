@@ -38,6 +38,7 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
         val labelColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
         val borderColor = if (MaterialTheme.colors.isLight) Lightgray else GrayBackground
         val mainTextColor = MaterialTheme.colors.onSurface
+        val fontColor = if (MaterialTheme.colors.isLight) TextGray20 else TextGray5
 
         Scaffold(
             backgroundColor = MaterialTheme.colors.onPrimary,
@@ -87,7 +88,7 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                     value = date,
                     onValueChange = { date = it },
                     readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = MaterialTheme.colors.onBackground),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = fontColor),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         Column {
@@ -113,7 +114,7 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                     value = location,
                     onValueChange = { location = it },
                     readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = MaterialTheme.colors.onBackground),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = fontColor),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         Column {
@@ -139,7 +140,8 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                     value = riskFactor,
                     onValueChange = { riskFactor = it },
                     readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = MaterialTheme.colors.onBackground),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp,
+                        color = fontColor),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         Column {
@@ -165,7 +167,7 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                     value = safetyMeasure,
                     onValueChange = { safetyMeasure = it },
                     readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = MaterialTheme.colors.onBackground),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = fontColor),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         Column {
@@ -239,7 +241,8 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                         text = "수정하기",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
-                        fontFamily = Pretendard
+                        fontFamily = Pretendard,
+                        letterSpacing = (-0.3).sp
                     )
                 }
 

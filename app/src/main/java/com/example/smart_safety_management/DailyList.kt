@@ -98,7 +98,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     },
                     backgroundColor = MaterialTheme.colors.onPrimary,
                     elevation = 0.dp,
-                    modifier = Modifier.height(45.dp)
+                    modifier = Modifier.height(40.dp)
                 )
             }
         ) { paddingValues ->
@@ -116,7 +116,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = date,
                     onValueChange = { date = it },
@@ -140,7 +140,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     )
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
                     text = "위치", 
@@ -149,7 +149,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = location,
                     onValueChange = { location = it },
@@ -164,7 +164,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     )
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
                     text = "위험요인", 
@@ -173,7 +173,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = riskFactor,
                     onValueChange = { riskFactor = it },
@@ -191,7 +191,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     )
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
                     text = "안전대책", 
@@ -200,7 +200,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = safetyMeasure,
                     onValueChange = { safetyMeasure = it },
@@ -218,7 +218,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     )
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
                     text = "현장사진", 
@@ -227,7 +227,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
                     modifier = Modifier
@@ -286,7 +286,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(48.dp))
                 Button(
                     onClick = { if (isFormComplete)
                                 onComplete()
@@ -305,7 +305,10 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                         text = "작성완료",
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = Pretendard,
-                        modifier = Modifier.padding(vertical = 8.dp)
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        letterSpacing = (-0.3).sp,
+
                     )
                 }
             }

@@ -3,7 +3,8 @@ package com.example.smart_safety_management.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // 메인 브랜드 색상
-val MainOrange = Color(0xFFFF7A00)
+val MainOrange = Color(0xFFF97316)
+val SubOrange = Color(0xFFFFAF6E)
 val MainOrangeDark = Color(0xFFC2410C)
 
 // 텍스트 색상
@@ -11,7 +12,6 @@ val TextDark = Color(0xFF33363D)      // 제목, 본문
 val TextMedium = Color(0xFF6D7882)    // 부가 정보, 아이콘
 val TextLight = Color(0xFFB1B8BE)
 val TextGray = Color(0xFF8A949E) // 부가 설명 및 다크모드 텍스트에 사용
-val TextLightGray = Color ( 0xFF58616A) // 부가 설명 라이트모드 텍스트에 자주사용
 val TextGray60 = Color(0xFF58616A)
 val TextGray20 = Color(0xFF131416)
 val TextGray5 = Color(0xFFF4F5F6)
