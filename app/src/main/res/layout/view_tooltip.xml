@@ -1,34 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/tooltip_container"
-    android:layout_width="232dp"
-    android:layout_height="50dp"
-    android:layout_marginTop="8dp"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:background="@drawable/tooltip_box"
-    android:paddingStart="12dp"
-    android:paddingEnd="12dp"
-    android:paddingBottom="9dp"
-    android:backgroundTint="@color/gray100_gray950"
-    android:elevation="24dp"
-    android:translationZ="24dp"
-    android:outlineProvider="background"
-    android:clipToOutline="false">
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:clipChildren="false"
+    android:clipToPadding="false"
+    android:outlineProvider="background">
 
-    <ImageView
-        android:id="@+id/tooltip_icon"
-        android:layout_width="20dp"
-        android:layout_height="20dp"
-        android:src="@drawable/bell" />
-
-    <TextView
-        android:id="@+id/tooltip_text"
+    <!-- 말풍선 박스 -->
+    <LinearLayout
+        android:id="@+id/bg_round_box"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:fontFamily="@font/pretendard_regular"
-        android:text="누르면 근로자에게 알림이 가요"
-        android:textColor="@color/black_white"
-        android:textSize="14sp"/>
+        android:layout_height="32dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:background="@drawable/bg_round_box"
+        android:backgroundTint="@color/gray100_gray950"
+        android:elevation="0.5dp">
+
+        <ImageView
+            android:id="@+id/tooltip_icon"
+            android:layout_width="18dp"
+            android:layout_height="20dp"
+            android:src="@drawable/bell" />
+
+        <TextView
+            android:id="@+id/tooltip_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="누르면 근로자에게 알림이 가요"
+            android:textColor="@color/black_white"
+            android:textSize="14sp"
+            android:fontFamily="@font/pretendard_regular" />
+    </LinearLayout>
+
+    <!-- 말풍선 화살표 -->
+    <View
+        android:layout_width="12dp"
+        android:layout_height="6dp"
+        android:layout_marginStart="168dp"
+        android:layout_marginEnd="11dp"
+        android:background="@drawable/tooltip_arrow"
+        android:backgroundTint="@color/gray100_gray950"
+        android:translationZ="8dp"/>
 
 </LinearLayout>
