@@ -1,5 +1,6 @@
 package com.example.smart_safety_management
 
+import android.content.res.Configuration
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,8 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.smart_safety_management.ui.theme.Pretendard
-import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.ui.theme.*
 
 @Composable
 fun ActionDetailScreen(
@@ -50,6 +50,16 @@ fun ActionDetailScreen(
     val options = listOf("조치공유", "조치필요", "즉시조치")
 
     Smart_Safety_ManagementTheme {
+        val theme = MaterialTheme.colors.onPrimary
+        val isLight = MaterialTheme.colors.isLight
+        val CategoryColor = if (isLight) TextGray60 else TextGray
+        val textColor = if (isLight) TextGray20 else TextGray5
+        val labelColor = if (isLight) TextDark else GrayBorder
+        val borderColor = if (isLight) GrayBorder else TextDark
+        val inputTextColor = if (isLight) TextGray20 else TextGray5
+        val photoColor = if (isLight) TextLight else TextGray30
+        val btnBackColor = if (isLight) Color.White else TextGray20
+
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -57,7 +67,7 @@ fun ActionDetailScreen(
                         Text(
                             text = "조치요청서 작성",
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF131416),
+                            color = textColor,
                             fontFamily = Pretendard,
                             modifier = Modifier.offset(x = (-20).dp),
                             fontSize = 24.sp
@@ -68,11 +78,11 @@ fun ActionDetailScreen(
                             Icon(
                                 painter = painterResource(id = R.drawable.backicon),
                                 contentDescription = "Back",
-                                tint = Color.Black
+                                tint = textColor
                             )
                         }
                     },
-                    backgroundColor = Color.White,
+                    backgroundColor = theme,
                     elevation = 0.dp
                 )
             }
@@ -81,7 +91,7 @@ fun ActionDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                color = Color.White
+                color = MaterialTheme.colors.onPrimary
             ) {
                 // 스크롤바가 포함된 Column
                 Column(
@@ -97,7 +107,7 @@ fun ActionDetailScreen(
                     Text(
                         text = "이벤트 내용",
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF58616A),
+                        color = CategoryColor,
                         fontFamily = Pretendard,
                         fontSize = 16.sp,
                         modifier = Modifier.offset(x = 8.dp)
@@ -110,8 +120,8 @@ fun ActionDetailScreen(
                             .padding(horizontal = 8.dp)
                             .fillMaxWidth()
                             .wrapContentHeight()
-                            .background(Color(0xFFFFFFFF), shape = RoundedCornerShape(12.dp))
-                            .border(1.dp, Color(0xFFCDD1D5), shape = RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colors.onPrimary, shape = RoundedCornerShape(12.dp))
+                            .border(1.dp, borderColor, shape = RoundedCornerShape(12.dp))
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Row(
@@ -131,14 +141,14 @@ fun ActionDetailScreen(
                                 Column(horizontalAlignment = Alignment.Start) {
                                     Text(
                                         text = "C구역 2열",
-                                        color = Color.Black,
+                                        color = textColor,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 16.sp,
                                         fontFamily = Pretendard
                                     )
                                     Text(
                                         text = "쓰러짐이 감지되었습니다.",
-                                        color = Color(0xFF58616A),
+                                        color = CategoryColor,
                                         fontSize = 14.sp,
                                         fontFamily = Pretendard,
                                         modifier = Modifier.offset(y = (4).dp)
@@ -147,7 +157,7 @@ fun ActionDetailScreen(
                             }
 
                             Divider(
-                                color = Color(0xFFF4F5F6),
+                                color = if (isLight) TextGray5 else Color.White.copy(alpha = 0.05f),
                                 thickness = 1.dp,
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -170,14 +180,14 @@ fun ActionDetailScreen(
                                 ) {
                                     Text(
                                         text = label,
-                                        color = Color(0xFF33363D),
+                                        color = labelColor,
                                         fontSize = 16.sp,
                                         fontFamily = Pretendard,
                                         fontWeight = FontWeight.Medium
                                     )
                                     Text(
                                         text = value,
-                                        color = Color(0xFF131416),
+                                        color = textColor,
                                         fontSize = 16.sp,
                                         fontFamily = Pretendard,
                                         fontWeight = FontWeight.Medium
@@ -193,7 +203,7 @@ fun ActionDetailScreen(
                     Text(
                         text = "조치 유형",
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF58616A),
+                        color = CategoryColor,
                         fontFamily = Pretendard,
                         fontSize = 16.sp,
                         modifier = Modifier.offset(x = 8.dp)
@@ -202,7 +212,6 @@ fun ActionDetailScreen(
                     
                     // 조치 유형 드롭다운 박스
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-                        // 선택된 항목에 따른 아이콘 리소스 결정
                         val selectedIconRes = when (actionType) {
                             "조치공유" -> R.drawable.priority1
                             "조치필요" -> R.drawable.priority2
@@ -219,7 +228,7 @@ fun ActionDetailScreen(
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Medium,
                                 fontFamily = Pretendard,
-                                color = Color(0xFF131416)
+                                color = inputTextColor
                             ),
                             shape = RoundedCornerShape(8.dp),
                             trailingIcon = {
@@ -242,23 +251,25 @@ fun ActionDetailScreen(
                                         Icon(
                                             painter = painterResource(id = R.drawable.dropbox),
                                             contentDescription = null,
+                                            tint = Color.Unspecified
                                         )
                                     }
                                 }
                             },
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                unfocusedBorderColor = Color(0xFFCDD1D5),
-                                textColor = Color(0xFF131416)
+                                unfocusedBorderColor = borderColor,
+                                focusedBorderColor = MainOrange,
+                                textColor = inputTextColor,
+                                backgroundColor = btnBackColor
                             )
                         )
                         
-                        // 드롭다운 메뉴
                         DropdownMenu(
                             expanded = expanded,
                             onDismissRequest = { expanded = false },
                             modifier = Modifier
                                 .width(this@BoxWithConstraints.maxWidth)
-                                .background(Color.White)
+                                .background(btnBackColor)
                         ) {
                             options.forEach { option ->
                                 DropdownMenuItem(
@@ -277,7 +288,7 @@ fun ActionDetailScreen(
                                             fontFamily = Pretendard,
                                             fontSize = 18.sp,
                                             fontWeight = FontWeight.Medium,
-                                            color = Color(0xFF131416)
+                                            color = inputTextColor
                                         )
                                         val iconRes = when(option) {
                                             "조치공유" -> R.drawable.priority1
@@ -297,7 +308,6 @@ fun ActionDetailScreen(
                             }
                         }
 
-                        // 전체 영역 클릭 가로채기
                         Box(
                             modifier = Modifier
                                 .matchParentSize()
@@ -310,7 +320,7 @@ fun ActionDetailScreen(
                     Text(
                         text = "제목",
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF58616A),
+                        color = CategoryColor,
                         fontFamily = Pretendard,
                         fontSize = 16.sp,
                         modifier = Modifier.offset(x = 8.dp)
@@ -323,9 +333,11 @@ fun ActionDetailScreen(
                             .padding(horizontal = 8.dp)
                             .height(60.dp),
                         shape = RoundedCornerShape(8.dp),
-                        textStyle = TextStyle(fontSize = 16.sp, fontFamily = Pretendard, color = Color(0xFF131416)),
+                        textStyle = TextStyle(fontSize = 16.sp, fontFamily = Pretendard, color = inputTextColor),
                         colors = TextFieldDefaults.outlinedTextFieldColors(
-                            unfocusedBorderColor = Color(0xFFCDD1D5)
+                            unfocusedBorderColor = borderColor,
+                            focusedBorderColor = MainOrange,
+                            backgroundColor = btnBackColor
                         )
                     )
 
@@ -334,7 +346,7 @@ fun ActionDetailScreen(
                     Text(
                         text = "내용",
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF58616A),
+                        color = CategoryColor,
                         fontFamily = Pretendard,
                         fontSize = 16.sp,
                         modifier = Modifier.offset(x = 8.dp)
@@ -348,9 +360,11 @@ fun ActionDetailScreen(
                             .height(120.dp)
                             .padding(horizontal = 8.dp),
                         shape = RoundedCornerShape(8.dp),
-                        textStyle = TextStyle(fontSize = 16.sp, fontFamily = Pretendard, color = Color(0xFF131416)),
+                        textStyle = TextStyle(fontSize = 16.sp, fontFamily = Pretendard, color = inputTextColor),
                         colors = TextFieldDefaults.outlinedTextFieldColors(
-                            unfocusedBorderColor = Color(0xFFCDD1D5)
+                            unfocusedBorderColor = borderColor,
+                            focusedBorderColor = MainOrange,
+                            backgroundColor = btnBackColor
                         )
                     )
 
@@ -359,7 +373,7 @@ fun ActionDetailScreen(
                     Text(
                         text = "사진",
                         fontWeight = FontWeight.Medium,
-                        color = Color(0xFF58616A),
+                        color = CategoryColor,
                         fontFamily = Pretendard,
                         fontSize = 16.sp,
                         modifier = Modifier.offset(x = 8.dp)
@@ -383,7 +397,11 @@ fun ActionDetailScreen(
                             Canvas(modifier = Modifier.fillMaxSize()) {
                                 val pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
                                 drawRoundRect(
-                                    color = Color(0xFFCDD1D5),
+                                    color = btnBackColor,
+                                    cornerRadius = CornerRadius(8.dp.toPx())
+                                )
+                                drawRoundRect(
+                                    color = borderColor,
                                     style = Stroke(width = 1.dp.toPx(), pathEffect = pathEffect),
                                     cornerRadius = CornerRadius(8.dp.toPx())
                                 )
@@ -394,12 +412,12 @@ fun ActionDetailScreen(
                                 Icon(
                                     painter = painterResource(id = R.drawable.camera_icon),
                                     contentDescription = "사진첨부",
-                                    tint = Color(0xFFB1B8BE)
+                                    tint = photoColor
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     text = "사진첨부",
-                                    color = Color(0xFFB1B8BE),
+                                    color = photoColor,
                                     fontSize = 18.sp
                                 )
                             }
@@ -410,10 +428,10 @@ fun ActionDetailScreen(
                             Box(
                                 modifier = Modifier
                                     .size(120.dp)
-                                    .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
+                                    .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Filled.Photo, contentDescription = "Attached Photo: $photoUri", tint = Color.Gray)
+                                Icon(Icons.Filled.Photo, contentDescription = "Attached Photo: $photoUri", tint = if (isLight) Color.Gray else TextGray)
                             }
                         }
                     }
@@ -426,18 +444,17 @@ fun ActionDetailScreen(
                             .padding(horizontal = 8.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            backgroundColor = Color(0xFFF97316),
-                            contentColor = Color(0xFFFFFFFF)
+                            backgroundColor = MainOrange,
+                            contentColor = Color.White
                         ),
                         elevation = ButtonDefaults.elevation(0.dp, 0.dp)
-
-
                     ) {
                         Text(
                             text = "작성완료",
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 18.sp,
-                            fontFamily = Pretendard
+                            fontFamily = Pretendard,
+                            color = MaterialTheme.colors.onPrimary
                         )
                     }
                     Spacer(modifier = Modifier.height(60.dp))
@@ -466,55 +483,9 @@ fun Modifier.verticalScrollbar(
     }
 }
 
-@Preview(showBackground = true, name = "일반 상태")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light Mode", heightDp = 2000)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode", heightDp = 2000)
 @Composable
 fun ActionDetailScreenPreview() {
     ActionDetailScreen()
-}
-
-@Preview(showBackground = true, name = "드롭다운 아이템 UI 확인")
-@Composable
-fun ActionTypeItemsPreview() {
-    val options = listOf("조치공유", "조치필요", "즉시조치")
-    Smart_Safety_ManagementTheme {
-        Surface(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            elevation = 4.dp,
-            color = Color.White
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                options.forEach { option ->
-                    DropdownMenuItem(onClick = {}) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = option,
-                                fontFamily = Pretendard,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF131416)
-                            )
-                            val iconRes = when(option) {
-                                "조치공유" -> R.drawable.priority1
-                                "조치필요" -> R.drawable.priority2
-                                "즉시조치" -> R.drawable.priority3
-                                else -> null
-                            }
-                            if (iconRes != null) {
-                                Icon(
-                                    painter = painterResource(id = iconRes),
-                                    contentDescription = null,
-                                    tint = Color.Unspecified,
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
