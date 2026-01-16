@@ -96,7 +96,7 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
                     }
                 }
             },
-            bottomBar = { MyBottomNavigation("nav_ai") },
+            // bottomBar = { MyBottomNavigation("nav_ai") }, // 하단바 제거
             backgroundColor = topBarBackgroundColor 
         ) { paddingValues ->
             Surface(

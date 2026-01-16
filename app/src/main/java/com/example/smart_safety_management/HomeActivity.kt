@@ -138,7 +138,6 @@ class HomeActivity : AppCompatActivity() {
                 R.id.nav_ai -> {
                     val intent = Intent(this, AIEventActivity::class.java)
                     startActivity(intent)
-                    Toast.makeText(this, "AI 감지 화면으로 이동", Toast.LENGTH_SHORT).show()
                     true
                 }
                 R.id.nav_live -> {
