@@ -75,8 +75,12 @@
         <!-- 일일점검리스트 화면 -->
         <activity
             android:name=".DailyListActivity"
-            android:exported="false"
-            android:screenOrientation="portrait" />
+            android:exported="false"/>
+
+        <!-- 설정 화면 -->
+        <activity
+            android:name=".SettingActivity"
+            android:exported="false"/>"
 
     </application>
 

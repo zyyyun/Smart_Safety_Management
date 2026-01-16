@@ -73,12 +73,18 @@ class HomeActivity : AppCompatActivity() {
         val topBar = findViewById<View>(R.id.top_bar)
         val btnAlarm = topBar.findViewById<ImageButton>(R.id.btn_alarm)
         val alarmDot = findViewById<View>(R.id.view_alarm_dot)
+        val btnSetting = topBar.findViewById<ImageButton>(R.id.btn_setting)
 
         val hasUnreadNotice = true
         alarmDot.visibility = if (hasUnreadNotice) View.VISIBLE else View.GONE
 
         btnAlarm.setOnClickListener {
             val intent = Intent(this, NoticeActivity::class.java)
+            startActivity(intent)
+        }
+
+        btnSetting.setOnClickListener {
+            val intent = Intent(this, SettingActivity::class.java)
             startActivity(intent)
         }
 

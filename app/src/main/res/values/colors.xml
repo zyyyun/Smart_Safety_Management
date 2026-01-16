@@ -26,6 +26,7 @@
 
     <color name="gray25">#F8F6F6</color>
     <color name="gray50_gray900">#F4F5F6</color>
+    <color name="gray100">#E6E8EA</color>
     <color name="gray100_gray950">#E6E8EA</color>
     <color name="gray200_gray800">#CDD1D5</color>
     <color name="gray200_gray900">#CDD1D5</color>
