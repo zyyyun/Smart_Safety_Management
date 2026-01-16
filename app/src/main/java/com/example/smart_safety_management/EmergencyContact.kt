@@ -58,10 +58,6 @@ val mockContacts = listOf(
 fun EmergencyContactScreen() {
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    val searchboxColor = if (MaterialTheme.colors.isLight) Color.White else TextGray20
-    val searchboxBorder = if (MaterialTheme.colors.isLight) GrayBorder else TextDark
-    val searchInfoColor = if (MaterialTheme.colors.isLight) TextLight else TextGray30
-    val searchTextColor = if (MaterialTheme.colors.isLight) TextDark else GrayBorder
     val filteredContacts = if (searchQuery.isBlank()) {
         mockContacts
     } else {
@@ -72,6 +68,10 @@ fun EmergencyContactScreen() {
     }
 
     Smart_Safety_ManagementTheme {
+        val searchBoxColor = if (MaterialTheme.colors.isLight) Color.White else TextGray20
+        val searchBoxBorder = if (MaterialTheme.colors.isLight) GrayBorder else TextDark
+        val searchInfoColor = if (MaterialTheme.colors.isLight) TextLight else TextGray30
+        val searchTextColor = if (MaterialTheme.colors.isLight) TextDark else GrayBorder
         Scaffold(
             topBar = {
                 Column {
@@ -133,14 +133,16 @@ fun EmergencyContactScreen() {
                                     Box(
                                         modifier = Modifier
                                             .height(40.dp)
+                                            .background(color = searchBoxColor,
+                                                shape = RoundedCornerShape(8.dp)
+                                                )
                                             .border(
                                                 width = 1.dp,
-                                                color = searchboxBorder,
+                                                color = searchBoxBorder,
                                                 shape = RoundedCornerShape(8.dp)
                                             )
-                                            .padding(horizontal = 12.dp)
-                                            .background(color = searchboxColor),
-                                        contentAlignment = Alignment.CenterStart,
+                                            .padding(horizontal = 12.dp),
+                                        contentAlignment = Alignment.CenterStart
 
                                     ) {
                                         if (searchQuery.isEmpty()) {

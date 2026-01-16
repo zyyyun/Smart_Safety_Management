@@ -319,7 +319,7 @@ fun UncheckedItemDialog(onDismissRequest: () -> Unit) {
 fun UncheckedItemDialogContent(onDismissRequest: () -> Unit) {
     val cardBgColor = if (MaterialTheme.colors.isLight) Color.White else GrayBackground
     Card(
-        modifier = Modifier.width(330.dp).height(250.dp),
+        modifier = Modifier.width(330.dp).height(259.dp),
         shape = RoundedCornerShape(16.dp), 
         elevation = 0.dp, 
         backgroundColor = cardBgColor
