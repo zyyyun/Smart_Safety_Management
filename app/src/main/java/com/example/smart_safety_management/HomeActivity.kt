@@ -32,6 +32,7 @@ import kotlin.math.abs
 
 private const val PREF_NAME = "onboarding_prefs"
 private const val KEY_INVITE_DONE = "invite_code_done"
+private const val KEY_INVITE_SUCCESS = "invite_code_success"
 
 private val dailyCheckMap = mapOf(
     7 to listOf(
@@ -67,7 +68,9 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_home)
 
+        // 테스트를 위해 초기 상태가 필요하다면 아래 주석을 한 번만 풀고 실행했다가 다시 주석처리하세요.
         resetInviteForTest()
+        
         checkInviteCodeDialog()
 
         val topBar = findViewById<View>(R.id.top_bar)
@@ -340,6 +343,7 @@ class HomeActivity : AppCompatActivity() {
     private fun checkInviteCodeDialog() {
         val prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE)
         val isInviteDone = prefs.getBoolean(KEY_INVITE_DONE, false)
+        // 이미 성공했거나 팝업을 본 적이 있다면 띄우지 않음
         if (!isInviteDone) showInviteCodeDialog()
     }
 
@@ -359,7 +363,6 @@ class HomeActivity : AppCompatActivity() {
             .setCancelable(false)
             .create()
 
-        // 다이얼로그 닫힐 때
         dialog.setOnDismissListener {
             isInviteDialogShowing = false
         }
@@ -372,7 +375,8 @@ class HomeActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             if (inputCode == "1234") {
-                saveInviteDone()
+                // 성공적으로 입력함
+                saveInviteDone(success = true)
                 dialog.dismiss()
             } else {
                 tvError.visibility = View.VISIBLE
@@ -386,7 +390,8 @@ class HomeActivity : AppCompatActivity() {
         }
 
         tvSkip.setOnClickListener {
-            saveInviteDone()
+            // 건너뜀 (다시는 안 뜨지만, 설정에서는 보여야 함)
+            saveInviteDone(success = false)
             dialog.dismiss()
         }
 
@@ -397,8 +402,13 @@ class HomeActivity : AppCompatActivity() {
         dialog.window?.attributes = params
     }
 
-    private fun saveInviteDone() {
-        getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit().putBoolean(KEY_INVITE_DONE, true).apply()
+    private fun saveInviteDone(success: Boolean) {
+        val prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit()
+        prefs.putBoolean(KEY_INVITE_DONE, true) // 팝업 완료 기록
+        if (success) {
+            prefs.putBoolean(KEY_INVITE_SUCCESS, true) // 성공 기록
+        }
+        prefs.apply()
     }
 
     private fun resetInviteForTest() {
