@@ -52,7 +52,7 @@
 
             <!-- 개인설정 섹션 컨테이너 -->
             <LinearLayout
-                android:id="@+id/container_personal_setting"
+                android:id="@+id/container_my_profile"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"

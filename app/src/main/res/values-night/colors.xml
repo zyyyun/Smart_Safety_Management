@@ -25,6 +25,7 @@
     <color name="white_gray900">#131416</color>
 
     <color name="gray25">#F8F6F6</color>
+    <color name="gray50">#F4F5F6</color>
     <color name="gray50_gray900">#131416</color>
     <color name="gray100">#E6E8EA</color>
     <color name="gray100_gray950">#1E2124</color>

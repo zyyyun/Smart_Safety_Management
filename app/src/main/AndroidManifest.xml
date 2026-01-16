@@ -87,6 +87,10 @@
             android:name=".SettingInviteCodeActivity"
             android:exported="false"/>
 
+        <!-- 설정 - 내정보 화면 -->
+        <activity android:name=".SettingProfileActivity"
+            android:exported="false"/>
+
     </application>
 
 </manifest>
