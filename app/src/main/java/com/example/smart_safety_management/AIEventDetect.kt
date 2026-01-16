@@ -1,5 +1,6 @@
 package com.example.smart_safety_management
 
+import android.content.res.Configuration
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -21,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.ui.theme.ClipartKorea
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -47,7 +49,6 @@ data class BottomNavItem(
     @DrawableRes val iconResId: Int, 
     val screenRoute: String
 )
-
 // --- 2. 메인 화면 ---
 
 @Composable
@@ -80,24 +81,32 @@ fun AIEventDetectScreen() {
     val filteredFalseDetectionEvents = if (selectedFilter == "전체") allFalseDetectionEvents else allFalseDetectionEvents.filter { it.accidentType == selectedFilter }
 
     Smart_Safety_ManagementTheme {
+        // 테마 내부로 이동하여 테마 변경을 감지합니다.
+        val topBarBackgroundColor = if (MaterialTheme.colors.isLight) MainOrange else GrayBackground
+        val subTextColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
         Scaffold(
             topBar = {
-                Column {
-                    MyTopAppBar()
-                    MySecondaryTopAppBar(selectedFilter, counts) { newFilter ->
-                        selectedFilter = newFilter
+                Surface(
+                    color = topBarBackgroundColor,
+                    elevation = 0.dp
+                ) {
+                    Column {
+                        MyTopAppBar(Color.Transparent)
+                        MySecondaryTopAppBar(selectedFilter, counts, Color.Transparent) { newFilter ->
+                            selectedFilter = newFilter
+                        }
                     }
                 }
             },
-            bottomBar = { MyBottomNavigation("nav_ai") }, // 경로를 전달
-            backgroundColor = Color(0xFFFF7A00)
+            bottomBar = { MyBottomNavigation("nav_ai") },
+            backgroundColor = topBarBackgroundColor // 상단 라운드 코너 배경을 일치시킵니다.
         ) { paddingValues ->
             Surface(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                color = Color.White,
-                shape = RoundedCornerShape(topStart = 8.dp, topEnd = 24.dp)
+                color = MaterialTheme.colors.onPrimary,
+                shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -111,16 +120,19 @@ fun AIEventDetectScreen() {
                             .padding(vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("조치대기", fontWeight = FontWeight.Medium, color = Color(0xFF58616A),
+                        Text(
+                            text = "조치대기",
+                            fontWeight = FontWeight.Medium,
+                            color = subTextColor,
                             modifier = Modifier.padding(8.dp)
-                            )
+                        )
                         if (filteredPendingEvents.isEmpty()) {
                             Text(
                                 text = "지난 내역은 이력 탭에서 확인하세요.",
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                                 textAlign = TextAlign.Center,
                                 fontSize = 14.sp,
-                                color = Color(0xFF8A949E)
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
                             )
                         } else {
                             filteredPendingEvents.forEach { event ->
@@ -128,15 +140,19 @@ fun AIEventDetectScreen() {
                             }
                         }
 
-                        Text("조치완료", fontWeight = FontWeight.Medium, color = Color(0xFF58616A)
-                                ,modifier = Modifier.padding(8.dp))
+                        Text(
+                            text = "조치완료",
+                            fontWeight = FontWeight.Medium,
+                            color = subTextColor,
+                            modifier = Modifier.padding(8.dp)
+                        )
                         if (filteredCompletedEvents.isEmpty()) {
                             Text(
                                 text = "지난 내역은 이력 탭에서 확인하세요.",
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                                 textAlign = TextAlign.Center,
                                 fontSize = 14.sp,
-                                color = Color(0xFF8A949E)
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
                             )
                         } else {
                             filteredCompletedEvents.forEach { event ->
@@ -144,15 +160,19 @@ fun AIEventDetectScreen() {
                             }
                         }
 
-                        Text("오탐처리", fontWeight = FontWeight.Medium, color = Color(0xFF58616A)
-                            ,modifier = Modifier.padding(8.dp))
+                        Text(
+                            text = "오탐처리",
+                            fontWeight = FontWeight.Medium,
+                            color = subTextColor,
+                            modifier = Modifier.padding(8.dp)
+                        )
                         if (filteredFalseDetectionEvents.isEmpty()) {
                             Text(
                                 text = "지난 내역은 이력 탭에서 확인하세요.",
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                                 textAlign = TextAlign.Center,
                                 fontSize = 14.sp,
-                                color = Color(0xFF8A949E)
+                                color = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
                             )
                         } else {
                             filteredFalseDetectionEvents.forEach { event ->
@@ -171,36 +191,45 @@ fun AIEventDetectScreen() {
 @Composable
 fun EventItem(event: EventData, status: EventStatus) {
     val isPending = status == EventStatus.PENDING
+    val isLight = MaterialTheme.colors.isLight
+    val alphaval = if (isLight) 0.1f else 0.36f
 
     val buttonColor = if (isPending) {
         when (event.accidentType) {
-            "위험" -> Color(0x1FEF4444)
-            "경고" -> Color(0x1FFB923C)
-            "주의" -> Color(0x1FFFB114)
-            else -> Color.LightGray
+            "위험" -> Color(0xFFEF4444).copy(alphaval)
+            "경고" -> Color(0xFFFB923C).copy(alphaval)
+            "주의" -> Color(0xFFFFB114).copy(alphaval)
+            else -> TextGray5
         }
     } else {
-        Color(0xFFF4F5F6)
+        if (isLight ) TextGray5 else TextGray20
     }
 
     val borderColor = if (isPending) {
         when (event.accidentType) {
-            "위험" -> Color(0x1FEF4444)
-            "경고" -> Color(0x1FFB923C)
-            "주의" -> Color(0x1FFFB114)
-            else -> Color(0xFFE6E8EA)
+            "위험" -> Color(0xFFEF4444).copy(alphaval)
+            "경고" -> Color(0xFFFB923C).copy(alphaval)
+            "주의" -> Color(0xFFFFB114).copy(alphaval)
+            else -> MaterialTheme.colors.onSurface.copy(alpha = 0.1f)
         }
     } else {
-        Color(0xFFE6E8EA)
+        if (isLight) Lightgray else GrayBackground
     }
 
-    val iconTint = if (isPending) Color.Unspecified else Color(0xFFB1B8BE)
-    val textColor = if (isPending) Color(0xFF58616A) else Color(0xFFB1B8BE)
-    val locationColor = if (isPending) Color.Black else Color.Gray
+    val iconTint = if (isPending) Color.Unspecified else if (isLight) TextLight else TextGray30
+    val textColor = if (isPending)
+            // 조치 이전 라이트 / 다크 텍스트
+        if(isLight) TextGray60 else TextGray
+            // 조치 완료 라이트 / 다크 텍스트
+    else if(isLight) TextLight else TextGray30
+
+    val locationColor = if (isPending)
+        if(isLight) TextGray20 else TextGray5
+        else if(isLight) TextLight else TextGray30
 
     Button(
         onClick = { /* Handle event click */ },
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp,horizontal = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 8.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(backgroundColor = buttonColor),
         elevation = ButtonDefaults.elevation(0.dp, 0.dp),
@@ -226,11 +255,19 @@ fun EventItem(event: EventData, status: EventStatus) {
                 )
             }
             Column(horizontalAlignment = Alignment.Start) {
-                Text(event.location, color = locationColor, fontWeight = FontWeight.SemiBold
-                ,fontSize = 16.sp)
+                Text(
+                    text = event.location, 
+                    color = locationColor, 
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
                 Spacer(modifier = Modifier.height(3.dp))
-                Text(event.content, color = textColor,fontWeight = FontWeight.Normal,
-                    fontSize = 14.sp)
+                Text(
+                    text = event.content, 
+                    color = textColor,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 14.sp
+                )
             }
         }
     }
@@ -244,19 +281,20 @@ fun CurrentDateText() {
 
     Text(
         text = formattedDate,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp,horizontal = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 8.dp),
         textAlign = TextAlign.Start,
         fontSize = 18.sp,
-        fontWeight = FontWeight.Bold
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colors.onSurface
     )
 }
 
 @Composable
-fun MyTopAppBar() {
+fun MyTopAppBar(backgroundColor: Color) {
     TopAppBar(
-        backgroundColor = Color(0xFFFF7A00),
+        backgroundColor = backgroundColor,
         contentColor = Color.White,
-        modifier = Modifier.height(50 .dp),
+        modifier = Modifier.height(50.dp),
         elevation = 0.dp
     ) {
         Row(
@@ -270,7 +308,7 @@ fun MyTopAppBar() {
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(start = 8.dp),
-                    color = Color(0xFFFFFFFF),
+                    color = Color.White,
                     fontFamily = ClipartKorea
                 )
             }
@@ -296,9 +334,9 @@ fun MyTopAppBar() {
 }
 
 @Composable
-fun MySecondaryTopAppBar(selectedFilter: String, counts: Map<String, Int>, onFilterChange: (String) -> Unit) {
+fun MySecondaryTopAppBar(selectedFilter: String, counts: Map<String, Int>, backgroundColor: Color, onFilterChange: (String) -> Unit) {
     TopAppBar(
-        backgroundColor = Color(0xFFFF7A00),
+        backgroundColor = backgroundColor,
         contentColor = Color.White,
         modifier = Modifier.height(47.dp),
         elevation = 0.dp
@@ -318,11 +356,12 @@ fun MySecondaryTopAppBar(selectedFilter: String, counts: Map<String, Int>, onFil
 
 @Composable
 fun FilterButton(text: String, count: Int, isSelected: Boolean, onClick: () -> Unit) {
+    val isLight = MaterialTheme.colors.isLight
     Button(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
             backgroundColor = Color.Transparent,
-            contentColor = if (isSelected) Color(0xFFFFFFFF) else Color(0xFFFFAF6E)
+            contentColor = if (isSelected) Color.White else Color.White.copy(alpha = 0.7f)
         ),
         elevation = ButtonDefaults.elevation(0.dp, 0.dp),
         contentPadding = PaddingValues(horizontal = 8.dp)
@@ -331,18 +370,27 @@ fun FilterButton(text: String, count: Int, isSelected: Boolean, onClick: () -> U
             Text(
                 text = text, 
                 fontSize = 18.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color =
+                    if(isLight)
+                        if (isSelected) Color.White else SubOrange
+                    else if (isSelected) Color.White else TextMedium
             )
             Spacer(modifier = Modifier.width(6.dp))
             Box(
-                modifier = Modifier.size(20.dp).background(color = if (isSelected) Color.White else Color(0xFFFFAF6E), shape = CircleShape),
+                modifier = Modifier.size(20.dp).background(color =
+                    if (isLight) if (isSelected) Color.White else SubOrange
+                    else if (isSelected) (MainOrange).copy(alpha = 0.36f) else TextMedium
+                    , shape = CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = count.toString(),
                     fontSize = 12.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium ,
-                    color = if (isSelected) Color(0xFFFF7A00) else Color(0xFFF97316)
+                    color =
+                        if (isLight) MainOrange
+                        else if (isSelected) MainOrange else TextLight
                 )
             }
         }
@@ -350,7 +398,9 @@ fun FilterButton(text: String, count: Int, isSelected: Boolean, onClick: () -> U
 }
 
 @Composable
-fun MyBottomNavigation(selectedRoute: String = "nav_ai") {
+fun MyBottomNavigation(selectedRoute: String = "nav_ai")
+    {
+    val isLight= MaterialTheme.colors.isLight
     val items = listOf(
         BottomNavItem("안전점검", R.drawable.home, "nav_home"),
         BottomNavItem("AI감지", R.drawable.ai, "nav_ai"),
@@ -358,9 +408,8 @@ fun MyBottomNavigation(selectedRoute: String = "nav_ai") {
         BottomNavItem("이력", R.drawable.history, "nav_history"),
         BottomNavItem("위치정보", R.drawable.location, "nav_location")
     )
-
     BottomNavigation(
-        backgroundColor = Color(0xFFF4F5F6),
+        backgroundColor = if(isLight) TextGray5 else TextGray20 ,
         elevation = 10.dp
     ) {
         items.forEach { item ->
@@ -369,14 +418,15 @@ fun MyBottomNavigation(selectedRoute: String = "nav_ai") {
                 label = { Text(item.title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
                 selected = selectedRoute == item.screenRoute,
                 onClick = { /* 네비게이션 로직 */ },
-                selectedContentColor = Color(0xFFFF7A00),
-                unselectedContentColor = Color(0xFFCDD1D5)
+                selectedContentColor = MaterialTheme.colors.primary,
+                unselectedContentColor = if (isLight) GrayBorder else TextDark
             )
         }
     }
 }
 
-@Preview(showBackground = true)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark",heightDp = 1000)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light",heightDp = 1000)
 @Composable
 fun AIEventDetectScreenPreview() {
     AIEventDetectScreen()

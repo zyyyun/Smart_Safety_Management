@@ -1,5 +1,6 @@
 package com.example.smart_safety_management
 
+import android.content.res.Configuration
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,19 +22,28 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.example.smart_safety_management.ui.theme.Pretendard
-import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.ui.theme.*
 
 @Composable
 fun AIEventDetailScreen(
     onBackClick: () -> Unit = {},
-    initialActionCompleted: Boolean = false
+    initialActionCompleted: Boolean = false,
 ) {
+
     var isActionCompleted by remember { mutableStateOf(initialActionCompleted) }
     // 오탐처리 다이얼로그 상태 관리
     var showFalseDetectionDialog by remember { mutableStateOf(false) }
 
     Smart_Safety_ManagementTheme {
+        // 라이트/다크모드 관리 변수
+        val isLight = MaterialTheme.colors.isLight
+        val CategoryColor = if (isLight) TextGray60 else TextGray
+        val locationColor = if (isLight) TextGray20 else TextGray5
+        val labelColor = if (isLight) TextDark else GrayBorder
+        val valueColor = locationColor
+        val buttonBackground = if (isLight) Lightgray else GrayBackground
+        val borderColor = if (isLight) GrayBorder else TextDark
+        
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -41,7 +51,7 @@ fun AIEventDetailScreen(
                         Text(
                             text = "AI 이벤트 감지",
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black,
+                            color = if (isLight) Color.Black else TextGray5,
                             fontFamily = Pretendard,
                             modifier = Modifier.offset(x = (-20).dp),
                             fontSize = 24.sp
@@ -52,11 +62,11 @@ fun AIEventDetailScreen(
                             Icon(
                                 painter = painterResource(id = R.drawable.backicon),
                                 contentDescription = "Back",
-                                tint = Color.Black
+                                tint = if (isLight) Color.Black else TextGray5
                             )
                         }
                     },
-                    backgroundColor = Color.White,
+                    backgroundColor = MaterialTheme.colors.onPrimary,
                     elevation = 0.dp
                 )
             }
@@ -65,7 +75,7 @@ fun AIEventDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                color = Color.White
+                color = MaterialTheme.colors.onPrimary
             ) {
                 // 스크롤 가능한 Column
                 Column(
@@ -78,14 +88,14 @@ fun AIEventDetailScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp) // 요청하신 8dp 수평 패딩 추가
+                            .padding(horizontal = 8.dp)
                     ) {
                         Spacer(modifier = Modifier.height(16.dp))
                         
                         Text(
                             text = "이벤트 내용",
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFF58616A),
+                            color = CategoryColor,
                             fontFamily = Pretendard,
                             fontSize = 16.sp,
                             modifier = Modifier.offset(x = 6.dp)
@@ -98,8 +108,15 @@ fun AIEventDetailScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .wrapContentHeight()
-                                .background(Color(0xFFFFFFFF), shape = RoundedCornerShape(12.dp))
-                                .border(1.dp, Color(0xFFCDD1D5), shape = RoundedCornerShape(12.dp))
+                                .background(
+                                    color = MaterialTheme.colors.onPrimary,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .border(
+                                    width = 1.dp, 
+                                    color = borderColor,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Row(
@@ -119,14 +136,14 @@ fun AIEventDetailScreen(
                                     Column(horizontalAlignment = Alignment.Start) {
                                         Text(
                                             text = "C구역 2열",
-                                            color = Color.Black,
+                                            color = locationColor,
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 16.sp,
                                             fontFamily = Pretendard
                                         )
                                         Text(
                                             text = "쓰러짐이 감지되었습니다.",
-                                            color = Color(0xFF58616A),
+                                            color = CategoryColor,
                                             fontSize = 14.sp,
                                             fontFamily = Pretendard,
                                             modifier = Modifier.offset(y = (4).dp)
@@ -135,7 +152,7 @@ fun AIEventDetailScreen(
                                 }
                                 
                                 Divider(
-                                    color = Color(0xFFF4F5F6),
+                                    color = if (isLight) TextGray5 else Color.White.copy(alpha = 0.05f),
                                     thickness = 1.dp,
                                     modifier = Modifier.fillMaxWidth()
                                 )
@@ -159,14 +176,14 @@ fun AIEventDetailScreen(
                                     ) {
                                         Text(
                                             text = label,
-                                            color = Color(0xFF33363D),
+                                            color = labelColor,
                                             fontSize = 16.sp,
                                             fontFamily = Pretendard,
                                             fontWeight = FontWeight.Medium
                                         )
                                         Text(
                                             text = value,
-                                            color = Color(0xFF33363D),
+                                            color = valueColor,
                                             fontSize = 16.sp,
                                             fontFamily = Pretendard,
                                             fontWeight = FontWeight.Medium
@@ -184,20 +201,20 @@ fun AIEventDetailScreen(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
                                         Button(
-                                            onClick = { showFalseDetectionDialog = true }, // 오탐처리 버튼 클릭 시 다이얼로그 표시
+                                            onClick = { showFalseDetectionDialog = true },
                                             modifier = Modifier.weight(1f).height(48.dp),
                                             colors = ButtonDefaults.buttonColors(
-                                                backgroundColor = Color(0xFFE6E8EA),
-                                                contentColor = Color(0xFF33363D)    
+                                                backgroundColor = buttonBackground,
                                             ),
                                             shape = RoundedCornerShape(8.dp),
                                             elevation = ButtonDefaults.elevation(0.dp, 0.dp)
                                         ) {
                                             Text(
                                                 text = "오탐처리",
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                fontFamily = Pretendard
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontFamily = Pretendard,
+                                                color = locationColor
                                             )
                                         }
 
@@ -205,7 +222,7 @@ fun AIEventDetailScreen(
                                             onClick = { isActionCompleted = true },
                                             modifier = Modifier.weight(1f).height(48.dp),
                                             colors = ButtonDefaults.buttonColors(
-                                                backgroundColor = Color(0xFFFF7A00),
+                                                backgroundColor = MainOrange,
                                                 contentColor = Color.White           
                                             ),
                                             shape = RoundedCornerShape(8.dp),
@@ -213,9 +230,10 @@ fun AIEventDetailScreen(
                                         ) {
                                             Text(
                                                 text = "조치요청",
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                fontFamily = Pretendard
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontFamily = Pretendard,
+                                                color = MaterialTheme.colors.onPrimary
                                             )
                                         }
                                     }
@@ -227,10 +245,10 @@ fun AIEventDetailScreen(
                                             .padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 8.dp)
                                             .height(48.dp),
                                         colors = ButtonDefaults.buttonColors(
-                                            backgroundColor = Color(0xFFF97316),
-                                            contentColor = Color(0xFFFFFFFF),
-                                            disabledBackgroundColor = Color(0xFFF97316),
-                                            disabledContentColor = Color(0xFFFFFFFF)
+                                            backgroundColor = MainOrange,
+                                            contentColor = Color.White,
+                                            disabledBackgroundColor = MainOrange,
+                                            disabledContentColor = Color.White
                                         ),
                                         shape = RoundedCornerShape(8.dp),
                                         elevation = ButtonDefaults.elevation(0.dp, 0.dp),
@@ -238,21 +256,22 @@ fun AIEventDetailScreen(
                                     ) {
                                         Text(
                                             text = "조치요청 처리되었습니다",
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            fontFamily = Pretendard
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontFamily = Pretendard,
+                                            color = MaterialTheme.colors.onPrimary
                                         )
                                     }
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(48.dp))
 
                         Text(
                             text = "이벤트 캡처",
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFF58616A),
+                            color = CategoryColor,
                             fontFamily = Pretendard,
                             fontSize = 16.sp
                         )
@@ -273,7 +292,7 @@ fun AIEventDetailScreen(
                         Text(
                             text = "발생 위치",
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFF58616A),
+                            color = CategoryColor,
                             fontFamily = Pretendard,
                             fontSize = 16.sp
                         )
@@ -281,7 +300,7 @@ fun AIEventDetailScreen(
                         Spacer(modifier = Modifier.height(18.dp))
 
                         Image(
-                            painter = painterResource(id = R.drawable.map),
+                            painter = painterResource(id = R.drawable.map_sample),
                             contentDescription = "발생 위치 지도",
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -294,7 +313,7 @@ fun AIEventDetailScreen(
                         Text(
                             text = "실시간 화면",
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFF58616A),
+                            color = CategoryColor,
                             fontFamily = Pretendard,
                             fontSize = 16.sp
                         )
@@ -322,7 +341,6 @@ fun AIEventDetailScreen(
                 onDismiss = { showFalseDetectionDialog = false },
                 onConfirm = { 
                     showFalseDetectionDialog = false
-                    // 오탐처리 확정 시 필요한 추가 로직 작성 가능
                 }
             )
         }
@@ -338,10 +356,15 @@ fun FalseDetectionDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 
 @Composable
 fun FalseDetectionDialogContent(onCancel: () -> Unit = {}, onConfirm: () -> Unit = {}) {
+    val isLight = MaterialTheme.colors.isLight
+    val backgroundColor = if (isLight) Color.White else GrayBackground
+    val buttonBackground = if (isLight) TextGray5 else TextGray20
+    val textColor = if (isLight) TextGray60 else TextGray
+    
     Surface(
         modifier = Modifier.size(width = 350.dp, height = 250.dp),
         shape = RoundedCornerShape(12.dp),
-        color = Color.White
+        color = backgroundColor
     ) {
         Column(
             modifier = Modifier
@@ -370,7 +393,7 @@ fun FalseDetectionDialogContent(onCancel: () -> Unit = {}, onConfirm: () -> Unit
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp,
                     lineHeight = 30.sp,
-                    color = Color(0xFF131416)
+                    color = MaterialTheme.colors.onSurface
                 )
             }
 
@@ -382,8 +405,7 @@ fun FalseDetectionDialogContent(onCancel: () -> Unit = {}, onConfirm: () -> Unit
                     onClick = onCancel,
                     modifier = Modifier.size(width = 144.dp, height = 52.dp),
                     colors = ButtonDefaults.buttonColors(
-                        backgroundColor = Color(0xFFE6E8EA),
-                        contentColor = Color(0xFF33363D)
+                        backgroundColor = buttonBackground,
                     ),
                     shape = RoundedCornerShape(8.dp),
                     elevation = ButtonDefaults.elevation(0.dp, 0.dp)
@@ -392,7 +414,8 @@ fun FalseDetectionDialogContent(onCancel: () -> Unit = {}, onConfirm: () -> Unit
                         text = "취소",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
-                        fontFamily = Pretendard
+                        fontFamily = Pretendard,
+                        color = textColor
                     )
                 }
 
@@ -400,8 +423,7 @@ fun FalseDetectionDialogContent(onCancel: () -> Unit = {}, onConfirm: () -> Unit
                     onClick = { onConfirm() },
                     modifier = Modifier.size(width = 144.dp, height = 52.dp),
                     colors = ButtonDefaults.buttonColors(
-                        backgroundColor = Color(0xFFFF7A00),
-                        contentColor = Color.White
+                        backgroundColor = MainOrange,
                     ),
                     shape = RoundedCornerShape(8.dp),
                     elevation = ButtonDefaults.elevation(0.dp, 0.dp)
@@ -410,7 +432,8 @@ fun FalseDetectionDialogContent(onCancel: () -> Unit = {}, onConfirm: () -> Unit
                         text = "확인",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
-                        fontFamily = Pretendard
+                        fontFamily = Pretendard,
+                        color = MaterialTheme.colors.onPrimary
                     )
                 }
             }
@@ -418,18 +441,15 @@ fun FalseDetectionDialogContent(onCancel: () -> Unit = {}, onConfirm: () -> Unit
     }
 }
 
-@Preview(showBackground = true, name = "조치 전")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light Mode")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode")
 @Composable
 fun AIEventDetailScreenPreview() {
     AIEventDetailScreen(initialActionCompleted = false)
 }
 
-@Preview( showBackground = true, name = "조치 후")
-@Composable
-fun AIEventDetailScreenPreview2() {
-    AIEventDetailScreen(initialActionCompleted = true)
-}
-@Preview(showBackground = true, name = "다이얼로그 프리뷰")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Dialog Light")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dialog Dark")
 @Composable
 fun FalseDetectionDialogPreview() {
     Smart_Safety_ManagementTheme {
