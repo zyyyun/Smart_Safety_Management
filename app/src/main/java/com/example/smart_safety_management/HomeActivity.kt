@@ -138,6 +138,7 @@ class HomeActivity : AppCompatActivity() {
                 R.id.nav_ai -> {
                     val intent = Intent(this, AIEventActivity::class.java)
                     startActivity(intent)
+                    Toast.makeText(this, "AI 감지 화면으로 이동", Toast.LENGTH_SHORT).show()
                     true
                 }
                 R.id.nav_live -> {
@@ -147,9 +148,8 @@ class HomeActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_history -> {
-                    // 이력 화면으로 이동
-                    // startActivity(Intent(this, HistoryActivity::class.java))
-                    Toast.makeText(this, "이력 화면으로 이동", Toast.LENGTH_SHORT).show()
+                    val intent = Intent(this, HistoryActivity::class.java)
+                    startActivity(intent)
                     true
                 }
                 R.id.nav_location -> {

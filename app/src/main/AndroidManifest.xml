@@ -95,6 +95,11 @@
         <activity
             android:name=".AIEventActivity"
             android:exported="true"/>
+        <!-- 이력화면 -->
+        <activity
+            android:name=".HistoryActivity"
+            android:exported="true"
+            />
 
     </application>
 

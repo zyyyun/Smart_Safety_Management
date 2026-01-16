@@ -72,7 +72,10 @@ fun AIEventNavigation() {
                                         // 현재 화면이므로 동작 없음
                                     }
                                     "nav_live" -> Toast.makeText(context, "실시간 상황 화면으로 이동", Toast.LENGTH_SHORT).show()
-                                    "nav_history" -> Toast.makeText(context, "이력 화면으로 이동", Toast.LENGTH_SHORT).show()
+                                    "nav_history" -> {
+                                        val intent = Intent(context, HistoryActivity::class.java)
+                                        context.startActivity(intent)
+                                    }
                                     "nav_location" -> Toast.makeText(context, "위치 정보 화면으로 이동", Toast.LENGTH_SHORT).show()
                                 }
                             },
