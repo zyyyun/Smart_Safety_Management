@@ -1,6 +1,7 @@
 package com.example.smart_safety_management
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
@@ -17,6 +18,12 @@ class SettingActivity : AppCompatActivity() {
         // ===============================
         findViewById<ImageButton>(R.id.backButton).setOnClickListener {
             finish()
+        }
+
+        // 초대코드 입력 아이템 클릭 시 화면 이동
+        findViewById<LinearLayout>(R.id.enter_invite_code).setOnClickListener {
+            val intent = Intent(this, SettingInviteCodeActivity::class.java)
+            startActivity(intent)
         }
 
         // 초대코드 입력 성공 여부 확인 및 UI 처리
