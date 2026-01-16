@@ -91,6 +91,11 @@
         <activity android:name=".SettingProfileActivity"
             android:exported="false"/>
 
+        <!-- AI 이벤트 감지 화면 -->
+        <activity
+            android:name=".AIEventActivity"
+            android:exported="true"/>
+
     </application>
 
 </manifest>
