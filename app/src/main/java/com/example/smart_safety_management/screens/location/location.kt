@@ -6,7 +6,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -19,6 +22,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -78,26 +83,20 @@ private fun iconFor(status: WorkerStatus, isDark: Boolean): Int {
     }
 }
 
-
 /* -------------------- screen -------------------- */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocationScreen(
     bottomBarHeight: Dp = 0.dp,
-    isDark: Boolean               // ✅ AppRoot 토글 값
+    isDark: Boolean
 ) {
-    // (참고용) 시스템 다크값이 필요하면 이름만 다르게
+    // (참고용)
     val systemDark = isSystemInDarkTheme()
 
-    // ✅ Smart_Safety_ManagementTheme(LocalSafeColors)에서 공급한 팔레트 읽기
     val c = LocalSafeColors.current
-
-    // ✅ 화면에서 쓸 다크 여부는 "파라미터 isDark"로 고정
-    //    (systemDark로 덮어쓰면 토글이 무시됨)
     val dark = isDark
 
-    // ✅ Location 전용 팔레트
     val sheetBg = if (dark) c.surface.copy(alpha = 0.92f) else c.surface
     val textPrimary = c.text
     val textSecondary = c.sub
@@ -110,13 +109,6 @@ fun LocationScreen(
     val chipBg = c.surface
     val chipBorder = c.border
     val chipText = c.text
-    val chipSelectedText = Color(0xFFFF7A00)
-
-    val bottomState = rememberStandardBottomSheetState(
-        initialValue = SheetValue.PartiallyExpanded,
-        skipHiddenState = true
-    )
-    val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = bottomState)
 
     var selectedWorkerId by remember { mutableStateOf<String?>(null) }
 
@@ -125,6 +117,7 @@ fun LocationScreen(
 
     var showCamDialog by remember { mutableStateOf(false) }
     var camTargetRow by remember { mutableStateOf<WorkerRow?>(null) }
+
     val rows = remember {
         listOf(
             WorkerRow("w1", "근로자", "손흥민", "A구역 1열", "정상", Color(0xFF10B981)),
@@ -170,196 +163,256 @@ fun LocationScreen(
     val dimAlpha = 0.45f
 
     val sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-    val peek = 140.dp
 
-    BottomSheetScaffold(
-        modifier = Modifier.fillMaxSize(),
-        scaffoldState = scaffoldState,
-        sheetPeekHeight = peek,
-        sheetDragHandle = null, // ✅ 기본 드래그 핸들(지도 위 작대기) 제거
-        containerColor = Color.Transparent,
-        sheetContainerColor = Color.Transparent,
-        sheetShape = sheetShape,
-        sheetShadowElevation = 0.dp,
-        sheetTonalElevation = 0.dp,
-        sheetContent = {
-            Surface(color = sheetBg, shape = sheetShape) {
-                Column(
-                    modifier = Modifier.padding(start = 12.dp)
-                ) {
+    /* =========================================================
+       ✅ 핵심: "자유 드래그 + 작업자 수에 따른 최대 높이 제한"
+       ========================================================= */
 
-                    // ✅ 흰 박스(패널) 안에 작대기 넣고 싶으면 다시 추가
-                    SheetHandle(handleColor = if (isDark) Color(0xFF2A3646) else Color(0xFFE5E7EB))
+    val density = LocalDensity.current
 
-                    SheetSummary(
-                        count = filteredRows.size,
-                        hasSelection = selectedWorkerId != null,
-                        onBackToAll = { selectedWorkerId = null },
-                        textPrimary = textPrimary,
-                        pillBg = pillBg,
-                        pillBorder = pillBorder
-                    )
+    fun Dp.dpToPx(): Float = with(density) { this@dpToPx.value * density.density }
+    fun Float.pxToDp(): Dp = with(density) { (this@pxToDp / density.density).dp }
 
-                    TableHeader(
-                        textSecondary = textSecondary,
-                        divider = dividerStrong,
-                        isDark = isDark,
-                        sheetBg = sheetBg
-                    )
+// 1) 작업자 수로 "추천 최대 높이" 계산
+    val rowH = 48.dp
+    val baseH = 160.dp
+    val estimatedMax = baseH + (rowH * displayRows.size)
 
-                    LazyColumn(
-                        contentPadding = PaddingValues(bottom = bottomBarHeight + 12.dp)
-                    ) {
-                        items(displayRows, key = { it.id }) { row ->
-                            TableRowItem(
-                                row = row,
-                                isSelected = (row.id == selectedWorkerId),
-                                hasSelection = (selectedWorkerId != null),
-                                onRowClick = { selectedWorkerId = row.id },
-                                onCamClick = {
-                                    camTargetRow = it
-                                    showCamDialog = true
-                                },
-                                textPrimary = textPrimary,
-                                iconTint = iconTint,
-                                divider = dividerLight
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    ) {
-        Box(Modifier.fillMaxSize()) {
+// 2) clamp
+    val maxSheetHeight = estimatedMax.coerceIn(260.dp, 460.dp)
 
-            Image(
-                painter = painterResource(R.drawable.map_b),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .pointerInput(selectedWorkerId) {
-                        detectTapGestures { selectedWorkerId = null }
-                    }
+// 3) 아래로 내려도 완전 사라지지 않게
+    // 바텀탭은 항상 보이게 + 시트 윗부분(핸들/요약) 조금만 남기기
+    val minSheetHeight = 55.dp
+
+
+
+// 4) 초기 높이
+    val initialSheetHeight = maxSheetHeight.coerceAtMost(260.dp)
+
+// 5) px로 저장 (드래그는 px이기 때문)
+    var sheetHeightPx by remember { mutableFloatStateOf(initialSheetHeight.dpToPx()) }
+
+    val dragState = rememberDraggableState { deltaPx ->
+        sheetHeightPx = (sheetHeightPx - deltaPx)
+            .coerceIn(
+                minSheetHeight.dpToPx(),
+                maxSheetHeight.dpToPx()
             )
+    }
+// UI에서 쓸 dp
+    val sheetHeight = sheetHeightPx.pxToDp()
+    val revealHeight = 220.dp
 
-            // ✅ 다크모드에서 지도 위 살짝 어둡게(스샷 느낌)
-            if (isDark) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.35f))
-                )
-            }
+    LaunchedEffect(selectedArea, selectedWorkerId) {
+        // 선택이 생기거나 구역이 바뀌면 시트를 "보이게" 올림
+        val targetPx = revealHeight.dpToPx()
+            .coerceIn(minSheetHeight.dpToPx(), maxSheetHeight.dpToPx())
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Black.copy(alpha = if (isDark) 0.70f else 0.55f),
-                                Color.Black.copy(alpha = if (isDark) 0.45f else 0.30f),
-                                Color.Transparent
-                            )
-                        )
-                    )
-            )
-
-            // ✅ 핀: 선택된 핀만 확대, 나머지는 dim
-            BoxWithConstraints(Modifier.fillMaxSize()) {
-                filteredPins.forEach { p ->
-                    val isSelected = selectedWorkerId == p.id
-                    val hasSelection = selectedWorkerId != null
-
-                    val alpha = when {
-                        !hasSelection -> 1f
-                        isSelected -> 1f
-                        else -> dimAlpha
-                    }
-
-                    val scale = if (isSelected) selectedScale else 1f
-
-                    val offsetX = maxWidth * p.x - basePinW / 2
-                    val offsetY = maxHeight * p.y - basePinH
-
-                    Image(
-                        painter = painterResource(iconFor(p.status, isDark))
-                        ,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .offset(offsetX, offsetY)
-                            .size(basePinW, basePinH)
-                            .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha)
-                            .pointerInput(p.id, selectedWorkerId) {
-                                detectTapGestures {
-                                    selectedWorkerId = if (isSelected) null else p.id
-                                }
-                            }
-                    )
-                }
-            }
-
-            // ✅ 상단 칩
-            Column(
-                modifier = Modifier
-                    .statusBarsPadding()
-                    .padding(16.dp)
-                    .zIndex(10f)
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.logo_location),
-                    contentDescription = null,
-                    modifier = Modifier.height(28.dp)
-                )
-
-                Spacer(Modifier.height(10.dp))
-
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(areas) { area ->
-                        FilterChip(
-                            modifier = Modifier.height(34.dp),
-                            selected = selectedArea == area,
-                            onClick = {
-                                selectedArea = area
-                                selectedWorkerId = null
-                            },
-                            label = {
-                                Text(
-                                    area,
-                                    fontSize = 12.sp,
-                                    fontWeight = if (selectedArea == area) FontWeight.Bold else FontWeight.Medium
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                containerColor = chipBg,
-                                selectedContainerColor = chipBg,
-                                labelColor = chipText,
-                                selectedLabelColor = chipSelectedText
-                            ),
-                            border = BorderStroke(
-                                width = 1.dp,
-                                color = if (selectedArea == area) Color(0xFFFF7A00) else chipBorder
-                            ),
-                            shape = RoundedCornerShape(999.dp)
-                        )
-                    }
-                }
-            }
-
-            // ✅ CAM 팝업
-            if (showCamDialog && camTargetRow != null) {
-                CamDialog(
-                    title = "안전모 CAM",
-                    onDismiss = { showCamDialog = false },
-                    onMicClick = { },
-                    isDark = isDark
-                )
-            }
+        if (sheetHeightPx < targetPx) {
+            sheetHeightPx = targetPx
         }
     }
-}
+
+
+    /* -------------------- UI -------------------- */
+
+    Box(Modifier.fillMaxSize()) {
+
+        // ✅ 지도
+        Image(
+            painter = painterResource(R.drawable.map_b),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(selectedWorkerId) {
+                    detectTapGestures { selectedWorkerId = null }
+                }
+        )
+
+        // ✅ 다크모드에서 지도 위 살짝 어둡게
+        if (isDark) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.35f))
+            )
+        }
+
+        // ✅ 상단 그라데이션
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.Black.copy(alpha = if (isDark) 0.70f else 0.55f),
+                            Color.Black.copy(alpha = if (isDark) 0.45f else 0.30f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        )
+
+        // ✅ 핀
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            filteredPins.forEach { p ->
+                val isSelected = selectedWorkerId == p.id
+                val hasSelection = selectedWorkerId != null
+
+                val alpha = when {
+                    !hasSelection -> 1f
+                    isSelected -> 1f
+                    else -> dimAlpha
+                }
+
+                val scale = if (isSelected) selectedScale else 1f
+
+                val offsetX = maxWidth * p.x - basePinW / 2
+                val offsetY = maxHeight * p.y - basePinH
+
+                Image(
+                    painter = painterResource(iconFor(p.status, isDark)),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .offset(offsetX, offsetY)
+                        .size(basePinW, basePinH)
+                        .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha)
+                        .pointerInput(p.id, selectedWorkerId) {
+                            detectTapGestures {
+                                selectedWorkerId = if (isSelected) null else p.id
+                            }
+                        }
+                )
+            }
+        }
+
+        // ✅ 상단 칩
+        Column(
+            modifier = Modifier
+                .statusBarsPadding()
+                .padding(16.dp)
+                .zIndex(10f)
+        ) {
+            Image(
+                painter = painterResource(R.drawable.logo_location),
+                contentDescription = null,
+                modifier = Modifier.height(28.dp)
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(areas) { area ->
+                    FilterChip(
+                        modifier = Modifier.height(38.dp),
+                        selected = selectedArea == area,
+                        onClick = {
+                            selectedArea = area
+                            selectedWorkerId = null
+                        },
+                        label = {
+                            Text(
+                                text = area,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (selectedArea == area) Color.White else Color(0xFF6B7280)
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = Color.White,
+                            selectedContainerColor = Color(0xFFFF7A00),
+                            labelColor = Color(0xFF6B7280),
+                            selectedLabelColor = Color.White
+                        ),
+                        border = BorderStroke(
+                            1.dp,
+                            if (selectedArea == area) Color(0xFFFF7A00) else Color(0xFFE5E7EB)
+                        ),
+                        shape = RoundedCornerShape(999.dp)
+                    )
+                }
+            }
+        }
+
+        // ✅✅✅ 자유 드래그 바텀시트 (스냅 없음 / 놓은 위치 유지 / 최대 높이 제한)
+        Surface(
+            color = sheetBg,
+            shape = sheetShape,
+            tonalElevation = 0.dp,
+            shadowElevation = 0.dp,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(sheetHeight)
+                .draggable(
+                    state = dragState,
+                    orientation = Orientation.Vertical
+                )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()                 // ✅ FIX: fillMaxSize() 금지 (공백 원인)
+                    .padding(horizontal = 12.dp)
+                    .padding(bottom = 16.dp)        // ✅ 바닥은 작은 기본 여백만
+            ) {
+                SheetHandle(handleColor = if (isDark) Color(0xFF2A3646) else Color(0xFFE5E7EB))
+
+                SheetSummary(
+                    count = filteredRows.size,
+                    hasSelection = selectedWorkerId != null,
+                    onBackToAll = { selectedWorkerId = null },
+                    textPrimary = textPrimary,
+                    pillBg = pillBg,
+                    pillBorder = pillBorder
+                )
+
+                TableHeader(
+                    textSecondary = textSecondary,
+                    divider = dividerStrong,
+                    isDark = isDark,
+                    sheetBg = sheetBg
+                )
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(
+                    )
+                ) {
+                    items(displayRows, key = { it.id }) { row ->
+                        TableRowItem(
+                            row = row,
+                            isSelected = (row.id == selectedWorkerId),
+                            hasSelection = (selectedWorkerId != null),
+                            onRowClick = { selectedWorkerId = row.id },
+                            onCamClick = {
+                                camTargetRow = it
+                                showCamDialog = true
+                            },
+                            textPrimary = textPrimary,
+                            iconTint = iconTint,
+                            divider = dividerLight
+                        )
+                    }
+                }
+            }
+        }
+
+    }
+
+        // ✅ CAM 팝업
+        if (showCamDialog && camTargetRow != null) {
+            CamDialog(
+                title = "안전모 CAM",
+                onDismiss = { showCamDialog = false },
+                onMicClick = { },
+                isDark = isDark
+            )
+        }
+    }
+
 
 /* -------------------- bottom sheet parts -------------------- */
 
@@ -453,7 +506,7 @@ private fun TableHeader(
     textSecondary: Color,
     divider: Color,
     isDark: Boolean,
-    sheetBg: Color,           // ✅ 추가
+    sheetBg: Color,
 ) {
     val headerBg = if (isDark) {
         Color(0xFFFF7A00).copy(alpha = 0.20f)
@@ -462,9 +515,6 @@ private fun TableHeader(
     }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-
-        // ✅ 1) 먼저 시트 배경을 깔고 (지도 비침 차단)
-        // ✅ 2) 그 위에 주황(헤더Bg)을 올림
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -488,9 +538,6 @@ private fun TableHeader(
         Divider(color = divider, thickness = 1.dp)
     }
 }
-
-
-
 
 @Composable
 private fun TableRowItem(
@@ -574,7 +621,6 @@ private fun CamDialog(
     onMicClick: () -> Unit,
     isDark: Boolean
 ) {
-    // ✅ LocalSafeColors 기반으로 통일
     val c = LocalSafeColors.current
 
     val bg = if (isDark) c.bg else Color.White
