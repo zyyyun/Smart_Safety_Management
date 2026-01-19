@@ -95,11 +95,16 @@
         <activity
             android:name=".AIEventActivity"
             android:exported="true"/>
+
         <!-- 이력화면 -->
         <activity
             android:name=".HistoryActivity"
-            android:exported="true"
-            />
+            android:exported="true" />
+
+        <!-- 설정 - 비밀번호 수정 화면 -->
+        <activity
+            android:name=".SettingChangePasswordActivity"
+            android:exported="false"/>
 
     </application>
 
