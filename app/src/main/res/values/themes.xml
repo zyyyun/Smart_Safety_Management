@@ -1,4 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Smart_Safety_Management" parent="Theme.MaterialComponents.DayNight.NoActionBar" />
+    <!-- Base application theme. -->
+    <style name="Theme.Smart_Safety_Management" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- 자간(letterSpacing)을 0으로 설정 -->
+        <item name="android:letterSpacing">0</item>
+        
+        <!-- 버튼의 기본 스타일에서 대문자 변환 끄기 및 자간 설정 -->
+        <item name="materialButtonStyle">@style/Widget.App.Button</item>
+    </style>
+
+    <!-- 버튼 커스텀 스타일 -->
+    <style name="Widget.App.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0</item>
+    </style>
+
+    <!-- 텍스트뷰 커스텀 스타일 (필요시 전역 적용) -->
+    <style name="Widget.App.TextView" parent="Widget.AppCompat.TextView">
+        <item name="android:letterSpacing">0</item>
+    </style>
 </resources>
