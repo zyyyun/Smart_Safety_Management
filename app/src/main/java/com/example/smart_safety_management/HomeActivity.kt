@@ -29,6 +29,7 @@ import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import kotlin.math.abs
+import android.content.Context
 
 private const val PREF_NAME = "onboarding_prefs"
 private const val KEY_INVITE_DONE = "invite_code_done"
@@ -68,8 +69,11 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_home)
 
+        // 저장된 이름 불러오기
+        loadUserName()
+
         // 테스트를 위해 초기 상태가 필요하다면 아래 주석을 한 번만 풀고 실행했다가 다시 주석처리하세요.
-        resetInviteForTest()
+        // resetInviteForTest()
         
         checkInviteCodeDialog()
 
@@ -136,9 +140,9 @@ class HomeActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_ai -> {
+                    // AI감지 화면으로 이동
                     val intent = Intent(this, AIEventActivity::class.java)
                     startActivity(intent)
-                    Toast.makeText(this, "AI 감지 화면으로 이동", Toast.LENGTH_SHORT).show()
                     true
                 }
                 R.id.nav_live -> {
@@ -148,6 +152,7 @@ class HomeActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_history -> {
+                    // 이력 화면으로 이동
                     val intent = Intent(this, HistoryActivity::class.java)
                     startActivity(intent)
                     true
@@ -161,6 +166,19 @@ class HomeActivity : AppCompatActivity() {
                 else -> false
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 설정에서 이름을 변경하고 돌아왔을 때 반영되도록 함
+        loadUserName()
+    }
+
+    private fun loadUserName() {
+        val sharedPref = getSharedPreferences(PREF_USER_NAME, Context.MODE_PRIVATE)
+        val userName = sharedPref.getString(KEY_USER_NAME, "안정우")
+        val profileBar = findViewById<View>(R.id.profile_bar)
+        profileBar.findViewById<TextView>(R.id.tv_user_name).text = userName
     }
 
     /**

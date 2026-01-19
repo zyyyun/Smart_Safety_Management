@@ -17,6 +17,9 @@
     <!-- teal -->
     <color name="teal500">#04BC93</color>
 
+    <!-- red -->
+    <color name="red_500">#EF4444</color>
+
     <!-- gray -->
     <color name="base">#000000</color>
     <color name="white">#FFFFFF</color>

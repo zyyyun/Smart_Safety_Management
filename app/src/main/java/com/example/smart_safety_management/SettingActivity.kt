@@ -32,6 +32,11 @@ class SettingActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        findViewById<LinearLayout>(R.id.item_change_password).setOnClickListener {
+            val intent = Intent(this, SettingChangePasswordActivity::class.java)
+            startActivity(intent)
+        }
+
         // 초대코드 입력 성공 여부 확인 및 UI 처리
         checkInviteCodeVisibility()
     }
