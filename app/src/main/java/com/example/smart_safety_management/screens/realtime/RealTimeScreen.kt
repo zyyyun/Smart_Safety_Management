@@ -330,18 +330,15 @@ fun SimpleDropdown(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(
-                                if (selected && c == DarkSafeColors)
-                                    Color(0xFFFF7A00).copy(alpha = 0.18f)
-                                else
-                                    Color.Transparent
-                            )
+                            // ✅ 핵심 수정: 라이트/다크 모두 선택 배경 적용
+                            .background(if (selected) c.selectedBg else Color.Transparent)
                     )
                 }
             }
         }
     }
 }
+
 
 /* -------------------- Bottom Bar -------------------- */
 
