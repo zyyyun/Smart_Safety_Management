@@ -1,9 +1,11 @@
 package com.example.smart_safety_management
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.ImageButton
+import com.google.android.material.textfield.TextInputEditText
 import androidx.appcompat.app.AppCompatActivity
 
 class SignUp2Activity : AppCompatActivity() {
@@ -23,8 +25,7 @@ class SignUp2Activity : AppCompatActivity() {
         // 다음 버튼
         val nextButton = findViewById<Button>(R.id.next_button)
         nextButton.setOnClickListener {
-            val intent = Intent(this, SignUp3Activity::class.java)
-            startActivity(intent)
+            saveNameAndMoveToNext()
         }
 
         // String -> enum 복원
@@ -50,8 +51,16 @@ class SignUp2Activity : AppCompatActivity() {
         // 관리자용 UI / 로직
     }
 
-    // sign_up_3.xml로 이동 + enum 유지
-    private fun moveToSignUp3() {
+    private fun saveNameAndMoveToNext() {
+        val name = findViewById<TextInputEditText>(R.id.et_name).text.toString().trim()
+        
+        // 이름 저장
+        val sharedPref = getSharedPreferences(PREF_USER_NAME, Context.MODE_PRIVATE)
+        with(sharedPref.edit()) {
+            putString(KEY_USER_NAME, name)
+            apply()
+        }
+
         val intent = Intent(this, SignUp3Activity::class.java)
         intent.putExtra(EXTRA_USER_ROLE, userRole.name) // enum 전달
         startActivity(intent)

@@ -1,5 +1,6 @@
 package com.example.smart_safety_management
 
+import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -18,6 +19,9 @@ class SettingProfileActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_my_profile)
 
+        // 초기 데이터 로드
+        loadUserData()
+
         // 뒤로가기 버튼 클릭 시 현재 액티비티 종료
         findViewById<ImageButton>(R.id.backButton).setOnClickListener {
             finish()
@@ -27,6 +31,12 @@ class SettingProfileActivity : AppCompatActivity() {
         findViewById<ImageView>(R.id.btn_edit_name).setOnClickListener {
             showChangeNameDialog()
         }
+    }
+
+    private fun loadUserData() {
+        val sharedPref = getSharedPreferences(PREF_USER_NAME, Context.MODE_PRIVATE)
+        val userName = sharedPref.getString(KEY_USER_NAME, "안정우")
+        findViewById<TextView>(R.id.tv_user_name).text = userName
     }
 
     private fun showChangeNameDialog() {
@@ -84,7 +94,14 @@ class SettingProfileActivity : AppCompatActivity() {
         btnSave.setOnClickListener {
             val newName = etName.text.toString().trim()
             if (newName.isNotEmpty()) {
-                // 상위 액티비티의 텍스트 뷰 업데이트
+                // SharedPreferences에 저장
+                val sharedPref = getSharedPreferences(PREF_USER_NAME, Context.MODE_PRIVATE)
+                with(sharedPref.edit()) {
+                    putString(KEY_USER_NAME, newName)
+                    apply()
+                }
+
+                // UI 업데이트
                 findViewById<TextView>(R.id.tv_user_name).text = newName
                 alertDialog.dismiss()
             }
