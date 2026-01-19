@@ -70,6 +70,8 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation("androidx.navigation:navigation-compose:2.8.5")
     implementation("androidx.compose.material3:material3")
+    implementation(libs.firebase.crashlytics.buildtools)
+    implementation(libs.gson)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

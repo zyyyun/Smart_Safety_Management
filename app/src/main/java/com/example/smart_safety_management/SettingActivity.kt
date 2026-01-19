@@ -37,6 +37,12 @@ class SettingActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        // 현장 만들기 아이템 클릭 시 화면 이동
+        findViewById<LinearLayout>(R.id.item_create_workplace).setOnClickListener {
+            val intent = Intent(this, SettingCreateWorkplaceActivity::class.java)
+            startActivity(intent)
+        }
+
         // 초대코드 입력 성공 여부 확인 및 UI 처리
         checkInviteCodeVisibility()
     }

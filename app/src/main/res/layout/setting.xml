@@ -224,7 +224,7 @@
 
             <!-- 현장 만들기 아이템 -->
             <LinearLayout
-                android:id="@+id/create_workplace"
+                android:id="@+id/item_create_workplace"
                 android:layout_width="match_parent"
                 android:layout_height="24dp"
                 android:orientation="horizontal"
