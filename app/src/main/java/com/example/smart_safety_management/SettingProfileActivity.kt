@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
+import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
@@ -59,6 +60,16 @@ class SettingProfileActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {}
         })
 
+        // 엔터 키 입력 방지 (아래 버튼으로 변경 및 줄바꿈 차단)
+        etName.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                btnSave.performClick()
+                true
+            } else {
+                false
+            }
+        }
+
         // X 버튼 클릭 시 입력 내용 삭제
         btnClear.setOnClickListener {
             etName.text.clear()
@@ -71,7 +82,7 @@ class SettingProfileActivity : AppCompatActivity() {
 
         // 저장 버튼
         btnSave.setOnClickListener {
-            val newName = etName.text.toString()
+            val newName = etName.text.toString().trim()
             if (newName.isNotEmpty()) {
                 // 상위 액티비티의 텍스트 뷰 업데이트
                 findViewById<TextView>(R.id.tv_user_name).text = newName
