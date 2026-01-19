@@ -29,6 +29,7 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
@@ -37,6 +38,7 @@ import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
 import com.example.smart_safety_management.ui.theme.DarkSafeColors
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -44,8 +46,8 @@ fun RealTimeScreen(
     modifier: Modifier = Modifier,
     onCardClick: (LiveCardItem) -> Unit
 ) {
-
     val c = LocalSafeColors.current
+    val isDark = (c == DarkSafeColors)
 
     val areaOptions = listOf("공간별", "도로", "내부")
     var selectedArea by remember { mutableStateOf(areaOptions[0]) }
@@ -148,24 +150,25 @@ fun RealTimeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(c.bg)
+            .background(Color.White) // ✅ 전체 배경 흰색
     ) {
-
         // 드롭다운 2개
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .padding(top = 6.dp, bottom = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 25.2.dp)
+                .padding(top = 12.6.dp, bottom = 12.6.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             SimpleDropdown(
                 value = selectedArea,
                 options = areaOptions,
                 onSelect = { selectedArea = it },
-                modifier = Modifier.width(103.dp).height(48.dp),
-                menuWidth = 103.dp,
+                modifier = Modifier
+                    .width(108.dp)
+                    .height(50.dp),
+                menuWidth = 108.dp,
                 menuHeight = 140.dp
             )
 
@@ -173,7 +176,9 @@ fun RealTimeScreen(
                 value = selectedCameraLabel,
                 options = cameraOptionsWithAll,
                 onSelect = { selectedCameraLabel = it },
-                modifier = Modifier.weight(1f).height(48.dp),
+                modifier = Modifier
+                    .width(218.dp)
+                    .height(50.dp),
                 menuWidth = 309.dp,
                 menuHeight = 204.dp
             )
@@ -185,13 +190,13 @@ fun RealTimeScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
-                .padding(horizontal = 16.dp),
+                .height(50.dp)
+                .padding(horizontal = 25.2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "배열",
-                fontSize = 12.sp,
+                text = "배열",
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
                 color = c.sub
             )
@@ -201,23 +206,26 @@ fun RealTimeScreen(
                     painter = painterResource(id = if (isGrid) R.drawable.frame else R.drawable.vector),
                     contentDescription = null,
                     tint = c.sub,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
 
         // 리스트/그리드 영역
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            val sidePadding = 25.2.dp
+            val itemSpacing = 16.8.dp
+
             if (isGrid) {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 84.dp),
+                    verticalArrangement = Arrangement.spacedBy(itemSpacing),
+                    horizontalArrangement = Arrangement.spacedBy(itemSpacing),
+                    contentPadding = PaddingValues(
+                        start = sidePadding,
+                        end = sidePadding,
+                        bottom = 84.dp
+                    ),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(filteredCards) { item ->
@@ -226,8 +234,12 @@ fun RealTimeScreen(
                 }
             } else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 84.dp),
+                    verticalArrangement = Arrangement.spacedBy(itemSpacing),
+                    contentPadding = PaddingValues(
+                        start = sidePadding,
+                        end = sidePadding,
+                        bottom = 84.dp
+                    ),
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(filteredCards) { item ->
@@ -260,7 +272,7 @@ fun SimpleDropdown(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(c.surface)
+            .background(Color.White) // ✅ 라이트 흰색
             .border(1.dp, c.border, RoundedCornerShape(10.dp))
             .clickable { expanded = true }
             .onSizeChanged { anchorWidthPx = it.width }
@@ -292,7 +304,7 @@ fun SimpleDropdown(
             modifier = Modifier
                 .width(finalMenuWidth)
                 .clip(RoundedCornerShape(10.dp))
-                .background(c.surface),
+                .background(Color.White), // ✅ 라이트 흰색
             offset = DpOffset(0.dp, 4.dp)
         ) {
             Column(
@@ -353,23 +365,26 @@ fun RealTimeBottomBar(selected: Int, onSelect: (Int) -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             BottomIconItem(
-                painter = painterResource(R.drawable.safe),
+                painter = painterResource(R.drawable.home),
+                label = "안전점검",
                 selected = selected == 0,
-                enabled = false, // ✅ 클릭만 막음
+                enabled = false,
                 selectedColor = selectedColor,
                 unselectedColor = unselectedColor
             ) { onSelect(0) }
 
             BottomIconItem(
                 painter = painterResource(R.drawable.ai),
+                label = "AI감지",
                 selected = selected == 1,
-                enabled = false, // ✅ 클릭만 막음
+                enabled = false,
                 selectedColor = selectedColor,
                 unselectedColor = unselectedColor
             ) { onSelect(1) }
 
             BottomIconItem(
                 painter = painterResource(R.drawable.live),
+                label = "실시간상황",
                 selected = selected == 2,
                 enabled = true,
                 selectedColor = selectedColor,
@@ -377,15 +392,17 @@ fun RealTimeBottomBar(selected: Int, onSelect: (Int) -> Unit) {
             ) { onSelect(2) }
 
             BottomIconItem(
-                painter = painterResource(R.drawable.record),
+                painter = painterResource(R.drawable.history),
+                label = "이력",
                 selected = selected == 3,
-                enabled = false, // ✅ 클릭만 막음
+                enabled = false,
                 selectedColor = selectedColor,
                 unselectedColor = unselectedColor
             ) { onSelect(3) }
 
             BottomIconItem(
                 painter = painterResource(R.drawable.location),
+                label = "위치정보",
                 selected = selected == 4,
                 enabled = true,
                 selectedColor = selectedColor,
@@ -395,52 +412,66 @@ fun RealTimeBottomBar(selected: Int, onSelect: (Int) -> Unit) {
     }
 }
 
-
 @Composable
 private fun RowScope.BottomIconItem(
     painter: Painter,
+    label: String,
     selected: Boolean,
     enabled: Boolean,
     selectedColor: Color,
     unselectedColor: Color,
     onClick: () -> Unit
 ) {
-    Box(
+    val color = if (selected) selectedColor else unselectedColor
+
+    Column(
         modifier = Modifier
             .weight(1f)
             .fillMaxHeight()
-            .clickable(enabled = enabled, onClick = onClick), // ✅ 클릭만 비활성
-        contentAlignment = Alignment.Center
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Icon(
             painter = painter,
-            contentDescription = null,
-            tint = if (selected) selectedColor else unselectedColor, // ✅ 색은 원래대로
-            modifier = Modifier.size(width = 44.dp, height = 45.dp)
+            contentDescription = label,
+            tint = color,
+            modifier = Modifier.size(24.dp)
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = label,
+            color = color,
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            maxLines = 1
         )
     }
 }
-
 
 /* -------------------- Cards -------------------- */
 
 @Composable
 fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
     val c = LocalSafeColors.current
+    val isDark = (c == DarkSafeColors)
     val isRisk = item.hasRisk()
 
-    // 카드 컨테이너는 유지
-    val cardBg = c.surface
+    // ✅ 라이트: 카드 배경 완전 흰색
+    val cardBg = if (isDark) c.surface else Color.White
 
-    // ✅ 정보 영역(카메라/장소/태그)만 더 진하게 + 글씨 더 어두운 회색
-    val isDark = (c == DarkSafeColors)
-    val infoBg = if (isRisk) {
-        if (isDark) Color(0xFF1F252C) else Color(0xFFE9EDF3) // 라이트는 살짝 진한 회색
+    // ✅ 라이트: 정보영역(회색) 제거 -> 흰색
+    val infoBg = if (isDark) {
+        if (isRisk) Color(0xFF1F252C) else Color.Transparent
     } else {
-        Color.Transparent
+        Color.White
     }
+
     val infoText = if (isRisk) {
-        if (isDark) Color(0xFF9AA1AA) else Color(0xFF6B7280) // ✅ 라이트에서 더 어두운 회색
+        if (isDark) Color(0xFF9AA1AA) else Color(0xFF6B7280)
     } else {
         c.text
     }
@@ -475,7 +506,6 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
                 }
             }
 
-            // ✅ 여기(정보 영역)만 진하게
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -501,16 +531,17 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
 @Composable
 fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
     val c = LocalSafeColors.current
+    val isDark = (c == DarkSafeColors)
     val isRisk = item.hasRisk()
 
-    val cardBg = c.surface
+    val cardBg = if (isDark) c.surface else Color.White
 
-    val isDark = (c == DarkSafeColors)
-    val infoBg = if (isRisk) {
-        if (isDark) Color(0xFF1F252C) else Color(0xFFE9EDF3)
+    val infoBg = if (isDark) {
+        if (isRisk) Color(0xFF1F252C) else Color.Transparent
     } else {
-        Color.Transparent
+        Color.White
     }
+
     val infoText = if (isRisk) {
         if (isDark) Color(0xFF9AA1AA) else Color(0xFF6B7280)
     } else {
@@ -590,8 +621,8 @@ fun CamPill(text: String, isRisk: Boolean = false) {
     val isDark = (c == DarkSafeColors)
 
     val camBg = when {
-        isDark -> Color(0xFF3A4250)     // 다크용
-        else -> Color(0xFF4B5563)       // ✅ 라이트에서 진한 회색
+        isDark -> Color(0xFF3A4250)
+        else -> Color(0xFF4B5563)
     }.let { base ->
         if (isRisk) base.copy(alpha = 0.85f) else base
     }
@@ -639,22 +670,28 @@ fun TagPill(text: String, isRisk: Boolean = false) {
     val c = LocalSafeColors.current
     val isDark = (c == DarkSafeColors)
 
-    val bg = if (isRisk) {
-        if (isDark) Color(0xFF2A3038) else Color(0xFFEFF2F6)  // 라이트: 조금 진한 칩 배경
-    } else {
-        c.chip
+    // ✅ 위험요소 칩만 "연한 회색" 처리 (라이트)
+    val bg = when {
+        isDark && isRisk -> Color(0xFF2A3038)
+        isDark && !isRisk -> c.chip
+        !isDark && isRisk -> Color(0xFFF3F4F6)   // ✅ 연한 회색 (원하면 더 연하게/진하게 조정)
+        else -> Color.White
     }
 
-    val fg = if (isRisk) {
-        if (isDark) Color(0xFF9AA1AA) else Color(0xFF6B7280)  // ✅ 라이트: 더 어두운 회색
-    } else {
-        c.chipText
+    // ✅ 라이트에서 위험요소면 글씨 조금 어둡게
+    val fg = when {
+        isRisk && isDark -> Color(0xFF9AA1AA)
+        isRisk && !isDark -> Color(0xFF6B7280)
+        else -> c.chipText
     }
+
+    val borderColor = if (!isDark) Color(0xFFE5E7EB) else c.border
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(bg)
+            .border(1.dp, borderColor, RoundedCornerShape(999.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         Text(
@@ -683,22 +720,26 @@ fun TagPillCompact(text: String, isRisk: Boolean = false) {
     val c = LocalSafeColors.current
     val isDark = (c == DarkSafeColors)
 
-    val bg = if (isRisk) {
-        if (isDark) Color(0xFF2A3038) else Color(0xFFEFF2F6)
-    } else {
-        c.chip
+    val bg = when {
+        isDark && isRisk -> Color(0xFF2A3038)
+        isDark && !isRisk -> c.chip
+        !isDark && isRisk -> Color(0xFFF3F4F6)   // ✅ 연한 회색
+        else -> Color.White
     }
 
-    val fg = if (isRisk) {
-        if (isDark) Color(0xFF9AA1AA) else Color(0xFF6B7280)
-    } else {
-        c.chipText
+    val fg = when {
+        isRisk && isDark -> Color(0xFF9AA1AA)
+        isRisk && !isDark -> Color(0xFF6B7280)
+        else -> c.chipText
     }
+
+    val borderColor = if (!isDark) Color(0xFFE5E7EB) else c.border
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(bg)
+            .border(1.dp, borderColor, RoundedCornerShape(999.dp))
             .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
         Text(
@@ -710,9 +751,18 @@ fun TagPillCompact(text: String, isRisk: Boolean = false) {
     }
 }
 
+
 /* -------------------- risk detect -------------------- */
 
 private fun LiveCardItem.hasRisk(): Boolean {
     val riskKeywords = listOf("충돌", "안전모", "화재", "협착", "쓰러짐")
     return tags.any { tag -> riskKeywords.any { key -> tag.contains(key) } }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewRealTimeScreen() {
+    Smart_Safety_ManagementTheme {
+        RealTimeScreen(onCardClick = {})
+    }
 }

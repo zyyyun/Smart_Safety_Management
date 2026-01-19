@@ -346,22 +346,43 @@ fun MyBottomNavigation(selectedRoute: String = "nav_ai") {
         BottomNavItem("이력", R.drawable.history, "nav_history"),
         BottomNavItem("위치정보", R.drawable.location, "nav_location")
     )
-    BottomNavigation(
-        backgroundColor = if(isLight) TextGray5 else TextGray20 ,
-        elevation = 10.dp
-    ) {
-        items.forEach { item ->
-            BottomNavigationItem(
-                icon = { Icon(painter = painterResource(id = item.iconResId), contentDescription = item.title) },
-                label = { Text(item.title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
-                selected = selectedRoute == item.screenRoute,
-                onClick = { /* 네비게이션 로직 */ },
-                selectedContentColor = MaterialTheme.colors.primary,
-                unselectedContentColor = if (isLight) GrayBorder else TextDark
+        @Composable
+        fun MyBottomNavigation(
+            selectedRoute: String,
+            onRouteSelected: (String) -> Unit,   // ✅ 추가
+            isLight: Boolean
+        ) {
+            val items = listOf(
+                BottomNavItem("안전점검", R.drawable.home, "nav_home"),
+                BottomNavItem("AI감지", R.drawable.ai, "nav_ai"),
+                BottomNavItem("실시간상황", R.drawable.live, "nav_live"),
+                BottomNavItem("이력", R.drawable.history, "nav_history"),
+                BottomNavItem("위치정보", R.drawable.location, "nav_location")
             )
+
+            BottomNavigation(
+                backgroundColor = if (isLight) TextGray5 else TextGray20,
+                elevation = 10.dp
+            ) {
+                items.forEach { item ->
+                    BottomNavigationItem(
+                        icon = {
+                            Icon(
+                                painter = painterResource(id = item.iconResId),
+                                contentDescription = item.title
+                            )
+                        },
+                        label = { Text(item.title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
+                        selected = selectedRoute == item.screenRoute,
+                        onClick = { onRouteSelected(item.screenRoute) }, // ✅ 핵심 수정
+                        selectedContentColor = MaterialTheme.colors.primary,
+                        unselectedContentColor = if (isLight) GrayBorder else TextDark
+                    )
+                }
+            }
         }
+
     }
-}
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark", heightDp = 1000)
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light", heightDp = 1000)
