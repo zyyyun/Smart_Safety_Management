@@ -39,23 +39,27 @@ fun AppRoot() {
 
     var showMap by remember { mutableStateOf(false) }
 
-    // ✅ 임시 다크모드 토글
+    // ✅ 다크모드 토글
     var isDark by remember { mutableStateOf(false) }
 
     Smart_Safety_ManagementTheme(darkTheme = isDark) {
         val c = LocalSafeColors.current
 
+        // ✅ 핵심: 라이트 모드일 때 Scaffold 배경을 "완전 흰색"으로 고정
+        // (이걸 안 하면 c.bg(#F4F6F9 같은 회백색)이 위에 비쳐서 헤더가 탁해 보임)
+        val scaffoldBg = if (c.isDark) c.bg else Color.White
+
         Scaffold(
-            containerColor = c.bg,
+            containerColor = scaffoldBg,
 
             topBar = {
                 if (!isDetail && selectedTab != 4) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color.White) // ✅ 상단 전체 흰색
+                            .background(Color.White) // ✅ 상단 전체 순백 고정
                     ) {
-                        // ✅ 상태바 영역 흰색
+                        // ✅ 상태바 영역도 흰색
                         Spacer(
                             Modifier
                                 .windowInsetsTopHeight(WindowInsets.statusBars)
@@ -119,13 +123,9 @@ fun AppRoot() {
                                 }
                             }
                         }
-
-                        // ❌ 여기 Divider가 "실시간상황과 공간별 사이 줄"로 보이는 원인이야
-                        // Divider(color = Color(0xFFE5E7EB), thickness = 1.dp)
                     }
                 }
-            }
-            ,
+            },
 
             bottomBar = {
                 if (!isDetail) {

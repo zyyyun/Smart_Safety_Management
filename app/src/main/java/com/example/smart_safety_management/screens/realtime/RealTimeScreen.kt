@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -30,15 +31,43 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.*
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
-import com.example.smart_safety_management.ui.theme.DarkSafeColors
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+
+/* -------------------- Popup Position Provider -------------------- */
+// ✅ 앵커(버튼) 바로 아래에 뜨도록 위치 계산
+private class AnchorBelowPositionProvider(
+    private val gap: Int,
+    private val alignRightToAnchor: Boolean = false
+) : PopupPositionProvider {
+
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize
+    ): IntOffset {
+
+        var x = anchorBounds.left
+        if (alignRightToAnchor) {
+            x = anchorBounds.right - popupContentSize.width
+        }
+
+        var y = anchorBounds.bottom + gap
+
+        // 화면 밖으로 나가면 보정
+        x = x.coerceIn(0, windowSize.width - popupContentSize.width)
+        y = y.coerceIn(0, windowSize.height - popupContentSize.height)
+
+        return IntOffset(x, y)
+    }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -47,12 +76,17 @@ fun RealTimeScreen(
     onCardClick: (LiveCardItem) -> Unit
 ) {
     val c = LocalSafeColors.current
-    val isDark = (c == DarkSafeColors)
+    val isDark = c.isDark
+
+    // ✅ 라이트는 완전 흰색 / 다크는 앱 bg(완전 검정 톤)
+    val screenBg = if (isDark) c.bg else Color.White
 
     val areaOptions = listOf("공간별", "도로", "내부")
     var selectedArea by remember { mutableStateOf(areaOptions[0]) }
-
     var isGrid by remember { mutableStateOf(false) }
+
+    // ✅ 지금 열려있는 드롭다운: "area" / "camera" / null
+    var openDropdownId by remember { mutableStateOf<String?>(null) }
 
     val cards = remember {
         listOf(
@@ -147,103 +181,131 @@ fun RealTimeScreen(
             .let { list -> if (selectedCamId == null) list else list.filter { it.camId == selectedCamId } }
     }
 
-    Column(
+    // ✅ 화면 전체를 Box로 감싸서 "바깥 클릭으로 닫기" 오버레이를 깔 수 있게 함
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White) // ✅ 전체 배경 흰색
+            .background(screenBg)
     ) {
-        // 드롭다운 2개
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 25.2.dp)
-                .padding(top = 12.6.dp, bottom = 12.6.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SimpleDropdown(
-                value = selectedArea,
-                options = areaOptions,
-                onSelect = { selectedArea = it },
+        // ✅ 메뉴가 열려있을 때, 배경 아무 곳이나 누르면 닫힘
+        if (openDropdownId != null) {
+            Box(
                 modifier = Modifier
-                    .width(108.dp)
-                    .height(50.dp),
-                menuWidth = 108.dp,
-                menuHeight = 140.dp
-            )
-
-            SimpleDropdown(
-                value = selectedCameraLabel,
-                options = cameraOptionsWithAll,
-                onSelect = { selectedCameraLabel = it },
-                modifier = Modifier
-                    .width(218.dp)
-                    .height(50.dp),
-                menuWidth = 309.dp,
-                menuHeight = 204.dp
+                    .fillMaxSize()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { openDropdownId = null }
             )
         }
 
-        Divider(color = c.divider, thickness = 1.dp, modifier = Modifier.fillMaxWidth())
-
-        // 배열 + 아이콘
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .padding(horizontal = 25.2.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Text(
-                text = "배열",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                color = c.sub
-            )
-            Spacer(Modifier.weight(1f))
-            IconButton(onClick = { isGrid = !isGrid }) {
-                Icon(
-                    painter = painterResource(id = if (isGrid) R.drawable.frame else R.drawable.vector),
-                    contentDescription = null,
-                    tint = c.sub,
-                    modifier = Modifier.size(20.dp)
+            // 드롭다운 2개
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 25.2.dp)
+                    .padding(top = 12.6.dp, bottom = 12.6.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SimpleDropdown(
+                    value = selectedArea,
+                    options = areaOptions,
+                    onSelect = { selectedArea = it },
+                    expanded = (openDropdownId == "area"),
+                    onExpandedChange = { open ->
+                        openDropdownId = if (open) "area" else null
+                    },
+                    modifier = Modifier
+                        .width(108.dp)
+                        .height(50.dp),
+                    menuWidth = 108.dp,
+                    menuHeight = 140.dp,
+                    alignMenuRight = false
+                )
+
+                SimpleDropdown(
+                    value = selectedCameraLabel,
+                    options = cameraOptionsWithAll,
+                    onSelect = { selectedCameraLabel = it },
+                    expanded = (openDropdownId == "camera"),
+                    onExpandedChange = { open ->
+                        openDropdownId = if (open) "camera" else null
+                    },
+                    modifier = Modifier
+                        .width(218.dp)
+                        .height(50.dp),
+                    menuWidth = 309.dp,
+                    menuHeight = 204.dp,
+                    // ✅ 오른쪽 드롭다운은 오른쪽 정렬로 뜨게
+                    alignMenuRight = true
                 )
             }
-        }
 
-        // 리스트/그리드 영역
-        Box(modifier = Modifier.fillMaxSize()) {
-            val sidePadding = 25.2.dp
-            val itemSpacing = 16.8.dp
+            Divider(color = c.divider, thickness = 1.dp, modifier = Modifier.fillMaxWidth())
 
-            if (isGrid) {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    verticalArrangement = Arrangement.spacedBy(itemSpacing),
-                    horizontalArrangement = Arrangement.spacedBy(itemSpacing),
-                    contentPadding = PaddingValues(
-                        start = sidePadding,
-                        end = sidePadding,
-                        bottom = 84.dp
-                    ),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(filteredCards) { item ->
-                        LiveGridCard(item = item, onClick = { onCardClick(item) })
-                    }
+            // 배열 + 아이콘
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .padding(horizontal = 25.2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "배열",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = c.sub
+                )
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { isGrid = !isGrid }) {
+                    Icon(
+                        painter = painterResource(id = if (isGrid) R.drawable.frame else R.drawable.vector),
+                        contentDescription = null,
+                        tint = c.sub,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(itemSpacing),
-                    contentPadding = PaddingValues(
-                        start = sidePadding,
-                        end = sidePadding,
-                        bottom = 84.dp
-                    ),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(filteredCards) { item ->
-                        LiveListCard(item = item, onClick = { onCardClick(item) })
+            }
+
+            // 리스트/그리드 영역
+            Box(modifier = Modifier.fillMaxSize()) {
+                val sidePadding = 25.2.dp
+                val itemSpacing = 16.8.dp
+
+                if (isGrid) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        verticalArrangement = Arrangement.spacedBy(itemSpacing),
+                        horizontalArrangement = Arrangement.spacedBy(itemSpacing),
+                        contentPadding = PaddingValues(
+                            start = sidePadding,
+                            end = sidePadding,
+                            bottom = 84.dp
+                        ),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(filteredCards) { item ->
+                            LiveGridCard(item = item, onClick = { onCardClick(item) })
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(itemSpacing),
+                        contentPadding = PaddingValues(
+                            start = sidePadding,
+                            end = sidePadding,
+                            bottom = 84.dp
+                        ),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(filteredCards) { item ->
+                            LiveListCard(item = item, onClick = { onCardClick(item) })
+                        }
                     }
                 }
             }
@@ -258,87 +320,108 @@ fun SimpleDropdown(
     value: String,
     options: List<String>,
     onSelect: (String) -> Unit,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     menuWidth: Dp? = null,
-    menuHeight: Dp? = null
+    menuHeight: Dp? = null,
+    alignMenuRight: Boolean = false
 ) {
     val c = LocalSafeColors.current
-
-    var expanded by remember { mutableStateOf(false) }
-    var anchorWidthPx by remember { mutableStateOf(0) }
+    val isDark = c.isDark
     val density = LocalDensity.current
+
+    var anchorWidthPx by remember { mutableStateOf(0) }
+
+    val dropdownBg = if (isDark) c.surface else Color.White
+    val borderColor = c.border
+    val gapPx = with(density) { 6.dp.roundToPx() }
     val finalMenuWidth = menuWidth ?: with(density) { anchorWidthPx.toDp() }
 
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color.White) // ✅ 라이트 흰색
-            .border(1.dp, c.border, RoundedCornerShape(10.dp))
-            .clickable { expanded = true }
-            .onSizeChanged { anchorWidthPx = it.width }
-    ) {
-        Row(
+    Box(modifier = modifier) {
+        // 버튼(앵커)
+        Box(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .height(50.dp)
+                .onSizeChanged { anchorWidthPx = it.width }
+                .clip(RoundedCornerShape(10.dp))
+                .background(dropdownBg)
+                .border(1.dp, borderColor, RoundedCornerShape(10.dp))
+                .clickable {
+                    // ✅ 이미 열려있으면 닫기, 아니면 열기
+                    onExpandedChange(!expanded)
+                }
                 .padding(start = 14.dp, end = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            contentAlignment = Alignment.CenterStart
         ) {
-            Text(
-                text = value,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = c.text
-            )
-            Spacer(Modifier.weight(1f))
-            Icon(
-                painter = painterResource(id = R.drawable.dropdown_arrow),
-                contentDescription = null,
-                tint = c.sub,
-                modifier = Modifier.size(18.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = value,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = c.text
+                )
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    painter = painterResource(id = R.drawable.dropdown_arrow),
+                    contentDescription = null,
+                    tint = c.sub,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .width(finalMenuWidth)
-                .clip(RoundedCornerShape(10.dp))
-                .background(Color.White), // ✅ 라이트 흰색
-            offset = DpOffset(0.dp, 4.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .then(if (menuHeight != null) Modifier.height(menuHeight) else Modifier)
-                    .verticalScroll(rememberScrollState())
+        if (expanded) {
+            Popup(
+                popupPositionProvider = AnchorBelowPositionProvider(
+                    gap = gapPx,
+                    alignRightToAnchor = alignMenuRight
+                ),
+                // ✅ 바깥 클릭 닫기는 "RealTimeScreen 오버레이"가 담당
+                properties = PopupProperties(focusable = false)
             ) {
-                options.forEach { opt ->
-                    val selected = opt == value
-
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                opt,
-                                fontSize = 14.sp,
-                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                color = c.text
-                            )
-                        },
-                        onClick = {
-                            onSelect(opt)
-                            expanded = false
-                        },
+                Box(
+                    modifier = Modifier
+                        .width(finalMenuWidth)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(dropdownBg)
+                        .border(1.dp, borderColor, RoundedCornerShape(10.dp))
+                ) {
+                    Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            // ✅ 핵심 수정: 라이트/다크 모두 선택 배경 적용
-                            .background(if (selected) c.selectedBg else Color.Transparent)
-                    )
+                            .then(if (menuHeight != null) Modifier.height(menuHeight) else Modifier)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        options.forEach { opt ->
+                            val selected = opt == value
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        opt,
+                                        fontSize = 14.sp,
+                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                        color = c.text
+                                    )
+                                },
+                                onClick = {
+                                    onSelect(opt)
+                                    onExpandedChange(false) // ✅ 선택하면 닫기
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(if (selected) c.selectedBg else Color.Transparent)
+                            )
+                        }
+                    }
                 }
             }
         }
     }
 }
-
 
 /* -------------------- Bottom Bar -------------------- */
 
@@ -454,13 +537,11 @@ private fun RowScope.BottomIconItem(
 @Composable
 fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
     val c = LocalSafeColors.current
-    val isDark = (c == DarkSafeColors)
+    val isDark = c.isDark
     val isRisk = item.hasRisk()
 
-    // ✅ 라이트: 카드 배경 완전 흰색
     val cardBg = if (isDark) c.surface else Color.White
 
-    // ✅ 라이트: 정보영역(회색) 제거 -> 흰색
     val infoBg = if (isDark) {
         if (isRisk) Color(0xFF1F252C) else Color.Transparent
     } else {
@@ -528,7 +609,7 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
 @Composable
 fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
     val c = LocalSafeColors.current
-    val isDark = (c == DarkSafeColors)
+    val isDark = c.isDark
     val isRisk = item.hasRisk()
 
     val cardBg = if (isDark) c.surface else Color.White
@@ -615,7 +696,7 @@ fun LiveBadge(modifier: Modifier = Modifier) {
 @Composable
 fun CamPill(text: String, isRisk: Boolean = false) {
     val c = LocalSafeColors.current
-    val isDark = (c == DarkSafeColors)
+    val isDark = c.isDark
 
     val camBg = when {
         isDark -> Color(0xFF3A4250)
@@ -665,17 +746,15 @@ fun TagsRow(tags: List<String>, isRisk: Boolean = false) {
 @Composable
 fun TagPill(text: String, isRisk: Boolean = false) {
     val c = LocalSafeColors.current
-    val isDark = (c == DarkSafeColors)
+    val isDark = c.isDark
 
-    // ✅ 위험요소 칩만 "연한 회색" 처리 (라이트)
     val bg = when {
         isDark && isRisk -> Color(0xFF2A3038)
         isDark && !isRisk -> c.chip
-        !isDark && isRisk -> Color(0xFFF3F4F6)   // ✅ 연한 회색 (원하면 더 연하게/진하게 조정)
+        !isDark && isRisk -> Color(0xFFF3F4F6)
         else -> Color.White
     }
 
-    // ✅ 라이트에서 위험요소면 글씨 조금 어둡게
     val fg = when {
         isRisk && isDark -> Color(0xFF9AA1AA)
         isRisk && !isDark -> Color(0xFF6B7280)
@@ -715,12 +794,12 @@ fun TagsRowSingleLine(tags: List<String>, isRisk: Boolean = false) {
 @Composable
 fun TagPillCompact(text: String, isRisk: Boolean = false) {
     val c = LocalSafeColors.current
-    val isDark = (c == DarkSafeColors)
+    val isDark = c.isDark
 
     val bg = when {
         isDark && isRisk -> Color(0xFF2A3038)
         isDark && !isRisk -> c.chip
-        !isDark && isRisk -> Color(0xFFF3F4F6)   // ✅ 연한 회색
+        !isDark && isRisk -> Color(0xFFF3F4F6)
         else -> Color.White
     }
 
@@ -747,7 +826,6 @@ fun TagPillCompact(text: String, isRisk: Boolean = false) {
         )
     }
 }
-
 
 /* -------------------- risk detect -------------------- */
 
