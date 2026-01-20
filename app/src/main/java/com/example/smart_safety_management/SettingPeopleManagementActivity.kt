@@ -15,7 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 
 class SettingPeopleManagementActivity : AppCompatActivity() {
     private lateinit var adapter: PeopleAdapter
-    private lateinit var allPeople: List<PeopleItem>
+    private var allPeople = mutableListOf<PeopleItem>()
     private var currentFilter = "전체"
     private var currentSearch = ""
 
@@ -33,8 +33,8 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
             finish()
         }
 
-        // 임시 데이터 생성
-        allPeople = listOf(
+        // 임시 데이터 생성 (MutableList로 변경)
+        allPeople = mutableListOf(
             PeopleItem(1, "지코", "010-2345-6789", "관리자"),
             PeopleItem(2, "박보검", "010-3456-7890", "근로자"),
             PeopleItem(3, "수지", "010-4567-8901", "근로자"),
@@ -43,8 +43,11 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
             PeopleItem(6, "공유", "010-7890-1234", "근로자")
         )
 
-        // 어댑터 설정
-        adapter = PeopleAdapter(allPeople)
+        // 어댑터 설정 (삭제 콜백 전달)
+        adapter = PeopleAdapter(allPeople) { deletedItem ->
+            allPeople.remove(deletedItem) // 원본 데이터에서 삭제
+            applyFilterAndSearch() // 리스트 갱신
+        }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
@@ -52,7 +55,7 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
         val spinnerAdapter = ArrayAdapter.createFromResource(
             this,
             R.array.people_filter_array,
-            R.layout.spinner_item // 여기서 폰트가 적용된 커스텀 레이아웃 사용
+            R.layout.spinner_item
         )
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         filterSpinner.adapter = spinnerAdapter
