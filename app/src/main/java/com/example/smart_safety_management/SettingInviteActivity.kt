@@ -48,6 +48,24 @@ class SettingInviteActivity : AppCompatActivity() {
         }
     }
 
+    // 초대 취소 결과 처리를 위한 launcher
+    private val getCancelResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val updatedManagers = result.data?.getSerializableExtra("updated_managers") as? ArrayList<InviteContactItem>
+            val updatedWorkers = result.data?.getSerializableExtra("updated_workers") as? ArrayList<InviteContactItem>
+            
+            updatedManagers?.let { 
+                managerList.clear()
+                managerList.addAll(it) 
+            }
+            updatedWorkers?.let { 
+                workerList.clear()
+                workerList.addAll(it) 
+            }
+            updateTabState(isManagerTab)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_invite)
@@ -65,8 +83,6 @@ class SettingInviteActivity : AppCompatActivity() {
         emptyText = findViewById(R.id.emptyText)
         recyclerView = findViewById(R.id.inviteRecycler)
         bannerLayout = findViewById(R.id.bannerLayout)
-
-        // 초기 리스트는 비워둠 (setupMockData 호출 안 함)
 
         // 리사이클러뷰 설정
         adapter = InvitedUserAdapter(mutableListOf()) { item ->
@@ -92,6 +108,15 @@ class SettingInviteActivity : AppCompatActivity() {
             isBannerClosedManually = true
         }
         
+        // 초대 취소 클릭 시 이동
+        cancelInvite.setOnClickListener {
+            val intent = Intent(this, SettingInviteCancelActivity::class.java)
+            intent.putExtra("manager_list", ArrayList(managerList))
+            intent.putExtra("worker_list", ArrayList(workerList))
+            intent.putExtra("is_manager_tab", isManagerTab)
+            getCancelResult.launch(intent)
+        }
+
         // 초기 상태: 관리자 선택
         updateTabState(isManagerSelected = true)
 

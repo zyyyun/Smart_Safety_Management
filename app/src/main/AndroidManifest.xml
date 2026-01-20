@@ -121,6 +121,11 @@
             android:name=".SettingInvitePhonenumberActivity"
             android:exported="false"/>
 
+        <!-- 설정 - 초대하기 - 초대취소 화면 -->
+        <activity
+            android:name=".SettingInviteCancelActivity"
+            android:exported="false"/>
+
     </application>
 
 </manifest>

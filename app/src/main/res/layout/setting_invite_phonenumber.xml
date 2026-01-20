@@ -36,7 +36,7 @@
             android:letterSpacing="0"
             android:textSize="18sp"
             android:textColor="@color/gray900_gray50"
-            android:fontFamily="@font/pretendard_bold"
+            android:fontFamily="@font/pretendard_semibold"
             app:layout_constraintStart_toEndOf="@id/backButton"
             app:layout_constraintTop_toTopOf="@id/backButton"
             app:layout_constraintBottom_toBottomOf="@id/backButton"/>
