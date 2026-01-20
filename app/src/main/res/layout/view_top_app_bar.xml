@@ -31,6 +31,7 @@
             android:layout_marginStart="8dp"
             android:fontFamily="@font/clipartkorea_medium"
             android:text="중대재해예방 플랫폼"
+            android:letterSpacing="0"
             android:textColor="@color/white"
             android:textSize="18sp"/>
     </LinearLayout>

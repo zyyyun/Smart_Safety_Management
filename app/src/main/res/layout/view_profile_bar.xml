@@ -50,6 +50,7 @@
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/pretendard_bold"
                 android:text="안정우"
+                android:letterSpacing="0"
                 android:textColor="@color/white"
                 android:textSize="17sp" />
 
@@ -59,6 +60,7 @@
                 android:layout_marginStart="4dp"
                 android:fontFamily="@font/pretendard_bold"
                 android:text="관리자님"
+                android:letterSpacing="0"
                 android:textColor="@color/white"
                 android:textSize="17sp" />
         </LinearLayout>
@@ -69,6 +71,7 @@
             android:layout_marginTop="2dp"
             android:fontFamily="@font/pretendard_regular"
             android:text="오늘도 안전한 하루되세요"
+            android:letterSpacing="0"
             android:textColor="@color/orange50"
             android:textSize="15sp" />
     </LinearLayout>

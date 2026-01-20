@@ -26,6 +26,7 @@
         android:layout_marginStart="8dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="알림"
+        android:letterSpacing="0"
         android:textColor="@color/gray900_gray50"
         android:textSize="24sp"
         app:layout_constraintBottom_toBottomOf="@id/backButton"
@@ -43,6 +44,7 @@
         android:paddingHorizontal="6dp"
         android:paddingVertical="2dp"
         android:text="3"
+        android:letterSpacing="0"
         android:textColor="@color/orange400"
         android:textSize="14sp"
         android:visibility="gone"
@@ -56,6 +58,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="모두 읽음"
+        android:letterSpacing="0"
         android:textColor="#F97316"
         android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"
@@ -93,6 +96,7 @@
 
         <TextView
             android:text="알림없음"
+            android:letterSpacing="0"
             android:textSize="14sp"
             android:textColor="@color/gray400_gray700"
             android:fontFamily="@font/pretendard_medium"

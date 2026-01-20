@@ -111,6 +111,11 @@
             android:name=".SettingCreateWorkplaceActivity"
             android:exported="false"/>
 
+        <!-- 설정 - 초대하기 화면 -->
+        <activity
+            android:name=".SettingInviteActivity"
+            android:exported="false"/>
+
     </application>
 
 </manifest>

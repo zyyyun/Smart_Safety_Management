@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/base">
+
+    <!-- 상단 영역 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="8dp">
+
+        <!-- 뒤로가기 -->
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="23dp"
+            android:layout_height="29dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/icon_back"
+            app:tint="@color/gray900_gray50"/>
+
+        <!-- 초대하기 -->
+        <TextView
+            android:id="@+id/txt_setting_invite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:fontFamily="@font/pretendard_bold"
+            android:text="초대하기"
+            android:textColor="@color/gray900_gray50"
+            android:textSize="24sp"
+            android:letterSpacing="0"
+            app:layout_constraintStart_toEndOf="@id/backButton"
+            app:layout_constraintTop_toTopOf="@id/backButton"
+            app:layout_constraintBottom_toBottomOf="@id/backButton"/>
+
+        <!-- 탭 영역 -->
+        <LinearLayout
+            android:id="@+id/tabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal"
+            app:layout_constraintTop_toBottomOf="@id/backButton">
+
+            <!-- 관리자 탭 -->
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+
+                <TextView
+                    android:id="@+id/tab_manager"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="관리자"
+                    android:textColor="@color/orange500"
+                    android:textSize="18sp"
+                    android:fontFamily="@font/pretendard_bold"
+                    android:letterSpacing="0"/>
+
+                <View
+                    android:id="@+id/underline_manager"
+                    android:layout_width="match_parent"
+                    android:layout_height="2dp"
+                    android:layout_gravity="bottom"
+                    android:background="@color/orange500"/>
+            </FrameLayout>
+
+            <!-- 근로자 탭 -->
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1">
+
+                <TextView
+                    android:id="@+id/tab_worker"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="근로자"
+                    android:textColor="@color/gray500_gray650"
+                    android:textSize="18sp"
+                    android:fontFamily="@font/pretendard_medium"
+                    android:letterSpacing="0"/>
+
+                <View
+                    android:id="@+id/underline_worker"
+                    android:layout_width="match_parent"
+                    android:layout_height="2dp"
+                    android:layout_gravity="bottom"
+                    android:background="@color/gray500_gray650"/>
+            </FrameLayout>
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- 본문 영역 -->
+    <FrameLayout
+        android:id="@+id/contentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="80dp"
+        android:paddingTop="24dp">
+
+        <!-- 빈 상태 -->
+        <TextView
+            android:id="@+id/emptyText"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="아직 초대된 관리자가 없어요"
+            android:textColor="@color/gray400_gray700"
+            android:fontFamily="@font/pretendard_medium"
+            android:textSize="14sp"
+            android:letterSpacing="0"/>
+
+        <!-- 리스트 -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/inviteRecycler"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"/>
+
+    </FrameLayout>
+
+    <!-- 하단 고정 버튼 -->
+    <Button
+        android:id="@+id/btn_invite"
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="21dp"
+        android:backgroundTint="@color/orange500"
+        android:text="연락처로 초대문자 발송"
+        android:textColor="@color/white_black"
+        android:textSize="18sp"
+        android:fontFamily="@font/pretendard_semibold"
+        android:letterSpacing="0"
+        android:textAllCaps="false"
+        app:cornerRadius="8dp"/>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

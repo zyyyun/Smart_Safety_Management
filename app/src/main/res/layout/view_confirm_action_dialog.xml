@@ -34,6 +34,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="작성을 취소하시겠어요?"
+            android:letterSpacing="0"
             android:textSize="20sp"
             android:textColor="@color/gray800_gray200"
             android:fontFamily="@font/pretendard_bold"/>
@@ -44,6 +45,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:text="입력하신 내용이 저장되지 않습니다."
+            android:letterSpacing="0"
             android:textSize="16sp"
             android:textColor="@color/gray400_gray700"
             android:fontFamily="@font/pretendard_medium"/>

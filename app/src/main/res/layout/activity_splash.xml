@@ -28,6 +28,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="중대재해예방 플랫폼"
+            android:letterSpacing="0"
             android:textSize="24sp"
             android:textColor="#F97316"
             android:fontFamily="@font/clipartkorea_medium"/>
