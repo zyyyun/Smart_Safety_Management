@@ -58,7 +58,7 @@ class SettingActivity : AppCompatActivity() {
 
         // 인원 관리 아이템 클릭 시 화면 이동
         findViewById<LinearLayout>(R.id.item_people_management).setOnClickListener {
-            //val intent = Intent(this, SettingPeopleManagementActivity::class.java)
+            val intent = Intent(this, SettingPeopleManagementActivity::class.java)
             startActivity(intent)
         }
 

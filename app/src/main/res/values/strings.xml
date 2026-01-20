@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Smart_Safety_Management</string>
+    <string-array name="people_filter_array">
+        <item>전체</item>
+        <item>근로자</item>
+        <item>관리자</item>
+    </string-array>
 </resources>

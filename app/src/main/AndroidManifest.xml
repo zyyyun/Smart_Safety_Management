@@ -126,6 +126,11 @@
             android:name=".SettingInviteCancelActivity"
             android:exported="false"/>
 
+        <!-- 설정 - 인원관리 화면 -->
+        <activity
+            android:name=".SettingPeopleManagementActivity"
+            android:exported="false"/>
+
     </application>
 
 </manifest>

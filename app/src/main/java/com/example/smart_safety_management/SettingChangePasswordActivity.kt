@@ -54,7 +54,7 @@ class SettingChangePasswordActivity : AppCompatActivity() {
                         etReNewPassword.setBackgroundResource(R.drawable.bg_edittext)
                     } else {
                         tvNotice.text = "비밀번호가 일치하지 않습니다."
-                        tvNotice.setTextColor(ContextCompat.getColor(this@SettingChangePasswordActivity, R.color.red_500))
+                        tvNotice.setTextColor(ContextCompat.getColor(this@SettingChangePasswordActivity, R.color.red500))
                         etReNewPassword.setBackgroundResource(R.drawable.bg_edittext_error)
                     }
                 }

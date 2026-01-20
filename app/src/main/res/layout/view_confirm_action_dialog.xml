@@ -92,7 +92,7 @@
             android:textSize="16sp"
             android:textColor="@color/white_gray950"
             android:fontFamily="@font/pretendard_semibold"
-            android:backgroundTint="@color/red_500"
+            android:backgroundTint="@color/red500"
             android:stateListAnimator="@null"
             android:letterSpacing="0"
             android:textAllCaps="false"/>
