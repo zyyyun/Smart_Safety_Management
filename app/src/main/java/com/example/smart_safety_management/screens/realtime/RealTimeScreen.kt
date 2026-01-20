@@ -9,6 +9,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -37,8 +38,10 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
+import com.example.smart_safety_management.screens.dialog.MapDialog
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.ui.theme.ClipartKorea
 
 /* -------------------- Popup Position Provider -------------------- */
 // ✅ 앵커(버튼) 바로 아래에 뜨도록 위치 계산
@@ -69,7 +72,7 @@ private class AnchorBelowPositionProvider(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun RealTimeScreen(
     modifier: Modifier = Modifier,
@@ -78,11 +81,90 @@ fun RealTimeScreen(
     val c = LocalSafeColors.current
     val isDark = c.isDark
 
+    // ✅ 지도 다이얼로그 토글 + 선택된 카드 저장
+    var showMap by remember { mutableStateOf(false) }
+    var selectedItem by remember { mutableStateOf<LiveCardItem?>(null) }
+
+    // ✅ 이제 RealTimeScreen에서는 바텀바를 그리지 않는다 (Activity가 담당)
+    // ✅ 대신 content는 Activity에서 내려준 padding(modifier)에 의해 bottom inset이 확보됨
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(if (isDark) c.bg else Color.White)
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            // ✅ 상단바(실시간 상황 + 지도 버튼)
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "실시간 상황",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = ClipartKorea,
+                        color = c.text,
+                        modifier = Modifier.padding(start = 18.dp)
+
+                    )
+                },
+                actions = {
+                    IconButton(onClick = { showMap = true },
+                        modifier = Modifier.padding(end = 20.dp)) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.map),
+                            contentDescription = "지도",
+                            tint = c.sub
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = if (isDark) c.topBar else Color.White,
+                    titleContentColor = c.text,
+                    actionIconContentColor = c.sub
+                )
+            )
+
+            // ✅ 본문
+            RealTimeContent(
+                modifier = Modifier.fillMaxSize(),
+                onCardClick = { item ->
+                    selectedItem = item
+                    onCardClick(item)
+                }
+            )
+        }
+
+        // ✅ 지도 다이얼로그
+        if (showMap) {
+            MapDialog(
+                item = selectedItem,
+                onDismiss = { showMap = false },
+                onMoveCamera = {
+                    showMap = false
+                    // TODO: 카메라 이동/상세로 이동 연결
+                }
+            )
+        }
+    }
+}
+
+
+/* -------------------- RealTimeScreen 본문 -------------------- */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RealTimeContent(
+    modifier: Modifier = Modifier,
+
+    onCardClick: (LiveCardItem) -> Unit
+) {
+    val c = LocalSafeColors.current
+    val isDark = c.isDark
+
     // ✅ 라이트는 완전 흰색 / 다크는 앱 bg(완전 검정 톤)
     val screenBg = if (isDark) c.bg else Color.White
 
-    val areaOptions = listOf("공간별", "도로", "내부")
-    var selectedArea by remember { mutableStateOf(areaOptions[0]) }
+    val areaOptions = listOf("도로", "내부", "공간별")
+    var selectedArea by remember { mutableStateOf("공간별") }
     var isGrid by remember { mutableStateOf(false) }
 
     // ✅ 지금 열려있는 드롭다운: "area" / "camera" / null
@@ -206,11 +288,11 @@ fun RealTimeScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 25.2.dp)
-                    .padding(top = 12.6.dp, bottom = 12.6.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.6.dp),
+                    .padding(horizontal = 24.dp)   // ✅ 좌우 24
+                    .padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 SimpleDropdown(
                     value = selectedArea,
                     options = areaOptions,
@@ -223,9 +305,13 @@ fun RealTimeScreen(
                         .width(108.dp)
                         .height(50.dp),
                     menuWidth = 108.dp,
-                    menuHeight = 140.dp,
+                    menuHeight = 150.dp,
                     alignMenuRight = false
                 )
+
+                Spacer(modifier = Modifier.width(12.dp)) // ✅ 두 드롭다운 사이 최소 간격(원하면 유지)
+
+                Spacer(modifier = Modifier.weight(1f))   // ✅ 오른쪽 드롭다운을 끝으로 밀기 (핵심)
 
                 SimpleDropdown(
                     value = selectedCameraLabel,
@@ -236,14 +322,14 @@ fun RealTimeScreen(
                         openDropdownId = if (open) "camera" else null
                     },
                     modifier = Modifier
-                        .width(218.dp)
-                        .height(50.dp),
-                    menuWidth = 309.dp,
+                        .height(50.dp)
+                        .wrapContentWidth(),            // ✅ 오른쪽 끝에 딱 붙게 (width 고정 제거)
+                    menuWidth = 350.dp,
                     menuHeight = 204.dp,
-                    // ✅ 오른쪽 드롭다운은 오른쪽 정렬로 뜨게
-                    alignMenuRight = true
+                    alignMenuRight = true               // ✅ 메뉴(팝업)도 오른쪽 정렬
                 )
             }
+
 
             Divider(color = c.divider, thickness = 1.dp, modifier = Modifier.fillMaxWidth())
 
@@ -285,7 +371,7 @@ fun RealTimeScreen(
                         contentPadding = PaddingValues(
                             start = sidePadding,
                             end = sidePadding,
-                            bottom = 84.dp
+                            bottom = 12.dp
                         ),
                         modifier = Modifier.fillMaxSize()
                     ) {
@@ -299,7 +385,6 @@ fun RealTimeScreen(
                         contentPadding = PaddingValues(
                             start = sidePadding,
                             end = sidePadding,
-                            bottom = 84.dp
                         ),
                         modifier = Modifier.fillMaxSize()
                     ) {
@@ -361,7 +446,7 @@ fun SimpleDropdown(
             ) {
                 Text(
                     text = value,
-                    fontSize = 14.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                     color = c.text
                 )
@@ -401,20 +486,22 @@ fun SimpleDropdown(
                             DropdownMenuItem(
                                 text = {
                                     Text(
-                                        opt,
-                                        fontSize = 14.sp,
+                                        text = opt,
+                                        fontSize = 18.sp, // ✅ 목록 글자 크기 18
                                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                                         color = c.text
                                     )
                                 },
                                 onClick = {
                                     onSelect(opt)
-                                    onExpandedChange(false) // ✅ 선택하면 닫기
+                                    onExpandedChange(false)
                                 },
+                                contentPadding = PaddingValues(horizontal = 24.dp), // ✅ 양옆 24 (핵심)
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .background(if (selected) c.selectedBg else Color.Transparent)
                             )
+
                         }
                     }
                 }
@@ -426,7 +513,11 @@ fun SimpleDropdown(
 /* -------------------- Bottom Bar -------------------- */
 
 @Composable
-fun RealTimeBottomBar(selected: Int, onSelect: (Int) -> Unit) {
+fun RealTimeBottomBar(
+    selected: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
     val c = LocalSafeColors.current
 
     val selectedColor = Color(0xFFFF7A00)
@@ -436,8 +527,7 @@ fun RealTimeBottomBar(selected: Int, onSelect: (Int) -> Unit) {
         tonalElevation = 0.dp,
         shadowElevation = 6.dp,
         color = c.bottomBar,
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .height(68.dp)
     ) {
         Row(
@@ -716,7 +806,7 @@ fun CamPill(text: String, isRisk: Boolean = false) {
         Text(
             text = text,
             color = camText,
-            fontSize = 12.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Medium
         )
     }
@@ -727,7 +817,7 @@ fun PlaceText(text: String, color: Color) {
     Text(
         text = text,
         color = color,
-        fontSize = 13.sp,
+        fontSize = 16.sp,
         fontWeight = FontWeight.SemiBold
     )
 }
@@ -767,13 +857,12 @@ fun TagPill(text: String, isRisk: Boolean = false) {
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(bg)
-            .border(1.dp, borderColor, RoundedCornerShape(999.dp))
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         Text(
             text = text,
             color = fg,
-            fontSize = 12.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Medium
         )
     }
@@ -815,13 +904,12 @@ fun TagPillCompact(text: String, isRisk: Boolean = false) {
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(bg)
-            .border(1.dp, borderColor, RoundedCornerShape(999.dp))
             .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
         Text(
             text = text,
             color = fg,
-            fontSize = 12.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Medium
         )
     }

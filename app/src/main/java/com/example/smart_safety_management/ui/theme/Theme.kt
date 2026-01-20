@@ -5,13 +5,14 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.darkColors
 import androidx.compose.material.lightColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorPalette = darkColors(
     primary = MainOrange,
     primaryVariant = MainOrangeDark,
     secondary = StatusGreen,
-    background = Color(0xFF121212), // DarkBackground의 오타 수정 및 표준 다크 배경 적용
+    background = Color(0xFF121212),
     surface = DarkSurface,
     onPrimary = Color.Black,
     onSecondary = Color.Black,
@@ -36,16 +37,15 @@ fun Smart_Safety_ManagementTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colors = if (darkTheme) {
-        DarkColorPalette
-    } else {
-        LightColorPalette
-    }
+    val materialColors = if (darkTheme) DarkColorPalette else LightColorPalette
+    val safeColors = if (darkTheme) DarkSafeColors else LightSafeColors
 
-    MaterialTheme(
-        colors = colors,
-        typography = Typography,
-        shapes = MaterialTheme.shapes,
-        content = content
-    )
+    CompositionLocalProvider(LocalSafeColors provides safeColors) {
+        MaterialTheme(
+            colors = materialColors,
+            typography = Typography,
+            shapes = MaterialTheme.shapes,
+            content = content
+        )
+    }
 }

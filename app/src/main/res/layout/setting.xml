@@ -155,7 +155,7 @@
 
                 <!-- 초대코드 입력 아이템 -->
                 <LinearLayout
-                    android:id="@+id/enter_invite_code"
+                    android:id="@+id/item_enter_invite_code"
                     android:layout_width="match_parent"
                     android:layout_height="24dp"
                     android:layout_marginTop="28dp"
@@ -224,7 +224,7 @@
 
             <!-- 현장 만들기 아이템 -->
             <LinearLayout
-                android:id="@+id/create_workplace"
+                android:id="@+id/item_create_workplace"
                 android:layout_width="match_parent"
                 android:layout_height="24dp"
                 android:orientation="horizontal"
@@ -263,7 +263,7 @@
 
             <!-- 현장 위치 설정 아이템 -->
             <LinearLayout
-                android:id="@+id/workplace_location_setting"
+                android:id="@+id/item_workplace_location_setting"
                 android:layout_width="match_parent"
                 android:layout_height="24dp"
                 android:layout_marginTop="28dp"
@@ -332,7 +332,7 @@
 
             <!-- 초대하기 아이템 -->
             <LinearLayout
-                android:id="@+id/invite"
+                android:id="@+id/item_invite"
                 android:layout_width="match_parent"
                 android:layout_height="24dp"
                 android:orientation="horizontal"
@@ -371,7 +371,7 @@
 
             <!-- 인원관리 아이템 -->
             <LinearLayout
-                android:id="@+id/people_management"
+                android:id="@+id/item_people_management"
                 android:layout_width="match_parent"
                 android:layout_height="24dp"
                 android:layout_marginTop="28dp"
@@ -440,7 +440,7 @@
 
             <!-- CCTV 관리 아이템 -->
             <LinearLayout
-                android:id="@+id/invite"
+                android:id="@+id/item_cctv_management"
                 android:layout_width="match_parent"
                 android:layout_height="24dp"
                 android:orientation="horizontal"
@@ -479,7 +479,7 @@
 
             <!-- 장치관리 아이템 -->
             <LinearLayout
-                android:id="@+id/machine_management"
+                android:id="@+id/item_machine_management"
                 android:layout_width="match_parent"
                 android:layout_height="24dp"
                 android:layout_marginTop="28dp"

@@ -106,6 +106,17 @@
             android:name=".SettingChangePasswordActivity"
             android:exported="false"/>
 
+        <!-- 설정 - 현장 만들기 화면 -->
+        <activity
+            android:name=".SettingCreateWorkplaceActivity"
+            android:exported="false"/>
+        <!-- 실시간 상황 화면 -->
+        <activity android:name=".screens.realtime.RealTimeActivity" />
+
+        <!-- 위치정보 화면 -->
+        <activity android:name=".screens.location.LocationActivity" />
+
+
     </application>
 
 </manifest>

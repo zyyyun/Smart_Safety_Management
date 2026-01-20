@@ -15,14 +15,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,14 +68,14 @@ private fun iconFor(status: WorkerStatus, isDark: Boolean): Int {
     return if (isDark) {
         when (status) {
             WorkerStatus.NORMAL -> R.drawable.worker_green_dark
-            WorkerStatus.FEVER  -> R.drawable.worker_red_dark
-            WorkerStatus.FALL   -> R.drawable.worker_orange_dark
+            WorkerStatus.FEVER -> R.drawable.worker_red_dark
+            WorkerStatus.FALL -> R.drawable.worker_orange_dark
         }
     } else {
         when (status) {
             WorkerStatus.NORMAL -> R.drawable.worker_green
-            WorkerStatus.FEVER  -> R.drawable.worker_red
-            WorkerStatus.FALL   -> R.drawable.worker_orange
+            WorkerStatus.FEVER -> R.drawable.worker_red
+            WorkerStatus.FALL -> R.drawable.worker_orange
         }
     }
 }
@@ -88,16 +85,17 @@ private fun iconFor(status: WorkerStatus, isDark: Boolean): Int {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocationScreen(
-    bottomBarHeight: Dp = 0.dp,
-    isDark: Boolean
+    modifier: Modifier = Modifier,
+    bottomBarHeight: Dp = 68.dp,
+    isDark: Boolean,
+    onTabSelect: (Int) -> Unit = {}
 ) {
-    // (참고용)
-    val systemDark = isSystemInDarkTheme()
-
     val c = LocalSafeColors.current
-    val dark = isDark
+    val dark = c.isDark
 
-    val sheetBg = if (dark) c.surface.copy(alpha = 0.92f) else c.surface
+    // ✅ 요청: 다크일 때 시트 "완전 검정"
+    val sheetBg = if (dark) Color(0xFF000000) else c.surface
+
     val textPrimary = c.text
     val textSecondary = c.sub
     val dividerStrong = c.divider
@@ -106,9 +104,7 @@ fun LocationScreen(
     val pillBorder = c.border
     val iconTint = c.text
 
-    val chipBg = c.surface
-    val chipBorder = c.border
-    val chipText = c.text
+    val ORANGE = Color(0xFFFF7A00)
 
     var selectedWorkerId by remember { mutableStateOf<String?>(null) }
 
@@ -138,18 +134,15 @@ fun LocationScreen(
 
     fun rowArea(row: WorkerRow) = row.location.split(" ").first()
 
-    // ✅ 구역 필터
     val filteredRows = remember(selectedArea, rows) {
         if (selectedArea == "전체") rows else rows.filter { rowArea(it) == selectedArea }
     }
 
-    // ✅ 선택이 있으면 표는 1명만
     val displayRows = remember(filteredRows, selectedWorkerId) {
         if (selectedWorkerId == null) filteredRows
         else filteredRows.filter { it.id == selectedWorkerId }
     }
 
-    // ✅ 지도 핀은 선택해도 “구역필터 기준 전체”는 유지
     val visibleIds = remember(filteredRows) { filteredRows.map { it.id }.toSet() }
 
     val filteredPins = remember(selectedArea, pins, visibleIds) {
@@ -164,62 +157,41 @@ fun LocationScreen(
 
     val sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
 
-    /* =========================================================
-       ✅ 핵심: "자유 드래그 + 작업자 수에 따른 최대 높이 제한"
-       ========================================================= */
-
     val density = LocalDensity.current
+    fun Dp.toPxSafe(): Float = with(density) { toPx() }
+    fun Float.toDpSafe(): Dp = with(density) { toDp() }
 
-    fun Dp.dpToPx(): Float = with(density) { this@dpToPx.value * density.density }
-    fun Float.pxToDp(): Dp = with(density) { (this@pxToDp / density.density).dp }
-
-// 1) 작업자 수로 "추천 최대 높이" 계산
     val rowH = 48.dp
     val baseH = 160.dp
     val estimatedMax = baseH + (rowH * displayRows.size)
 
-// 2) clamp
     val maxSheetHeight = estimatedMax.coerceIn(260.dp, 460.dp)
-
-// 3) 아래로 내려도 완전 사라지지 않게
-    // 바텀탭은 항상 보이게 + 시트 윗부분(핸들/요약) 조금만 남기기
-    val minSheetHeight = 55.dp
-
-
-
-// 4) 초기 높이
+    val minSheetHeight: Dp = 42.dp
     val initialSheetHeight = maxSheetHeight.coerceAtMost(260.dp)
 
-// 5) px로 저장 (드래그는 px이기 때문)
-    var sheetHeightPx by remember { mutableFloatStateOf(initialSheetHeight.dpToPx()) }
+    var sheetHeightPx by remember { mutableFloatStateOf(initialSheetHeight.toPxSafe()) }
 
     val dragState = rememberDraggableState { deltaPx ->
         sheetHeightPx = (sheetHeightPx - deltaPx)
-            .coerceIn(
-                minSheetHeight.dpToPx(),
-                maxSheetHeight.dpToPx()
-            )
+            .coerceIn(minSheetHeight.toPxSafe(), maxSheetHeight.toPxSafe())
     }
-// UI에서 쓸 dp
-    val sheetHeight = sheetHeightPx.pxToDp()
+
+    val sheetHeight = sheetHeightPx.toDpSafe()
     val revealHeight = 220.dp
 
     LaunchedEffect(selectedArea, selectedWorkerId) {
-        // 선택이 생기거나 구역이 바뀌면 시트를 "보이게" 올림
-        val targetPx = revealHeight.dpToPx()
-            .coerceIn(minSheetHeight.dpToPx(), maxSheetHeight.dpToPx())
+        val targetPx = revealHeight.toPxSafe()
+            .coerceIn(minSheetHeight.toPxSafe(), maxSheetHeight.toPxSafe())
 
         if (sheetHeightPx < targetPx) {
             sheetHeightPx = targetPx
         }
     }
 
-
     /* -------------------- UI -------------------- */
 
-    Box(Modifier.fillMaxSize()) {
+    Box(modifier = modifier.fillMaxSize()) {
 
-        // ✅ 지도
         Image(
             painter = painterResource(R.drawable.map_b),
             contentDescription = null,
@@ -231,7 +203,6 @@ fun LocationScreen(
                 }
         )
 
-        // ✅ 다크모드에서 지도 위 살짝 어둡게
         if (isDark) {
             Box(
                 Modifier
@@ -240,7 +211,6 @@ fun LocationScreen(
             )
         }
 
-        // ✅ 상단 그라데이션
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -256,7 +226,6 @@ fun LocationScreen(
                 )
         )
 
-        // ✅ 핀
         BoxWithConstraints(Modifier.fillMaxSize()) {
             filteredPins.forEach { p ->
                 val isSelected = selectedWorkerId == p.id
@@ -274,7 +243,7 @@ fun LocationScreen(
                 val offsetY = maxHeight * p.y - basePinH
 
                 Image(
-                    painter = painterResource(iconFor(p.status, isDark)),
+                    painter = painterResource(iconFor(p.status, dark)),
                     contentDescription = null,
                     modifier = Modifier
                         .offset(offsetX, offsetY)
@@ -289,7 +258,6 @@ fun LocationScreen(
             }
         }
 
-        // ✅ 상단 칩
         Column(
             modifier = Modifier
                 .statusBarsPadding()
@@ -304,40 +272,61 @@ fun LocationScreen(
 
             Spacer(Modifier.height(10.dp))
 
+            // ✅ 요청: 다크일 때 구역 버튼(칩) 검정 + 핀도 다크 이미지(이미 위에서 적용됨)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(areas) { area ->
-                    FilterChip(
-                        modifier = Modifier.height(38.dp),
-                        selected = selectedArea == area,
-                        onClick = {
-                            selectedArea = area
-                            selectedWorkerId = null
-                        },
-                        label = {
-                            Text(
-                                text = area,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = if (selectedArea == area) Color.White else Color(0xFF6B7280)
+                    val isSelected = selectedArea == area
+                    val chipWidth = if (area == "전체") 48.dp else 59.dp
+
+                    // ✅ 다크모드에서 원하는 칩 스타일
+                    val chipBg = when {
+                        isSelected -> Color(0xFFFF7A00)      // 선택: 주황
+                        dark -> Color(0xFF000000)            // 비선택: 검정
+                        else -> Color.White
+                    }
+
+                    val chipBorder = when {
+                        isSelected -> Color(0xFFFF7A00)
+                        dark -> Color(0xFF2A2F37)            // 비선택: 어두운 테두리
+                        else -> Color(0xFFE5E7EB)
+                    }
+
+                    val chipTextColor = when {
+                        isSelected -> Color.White              // 선택됨
+                        else -> Color(0xFF9CA3AF)               // 비선택 회색
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .width(chipWidth)
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color.Black)            // ✅ 항상 검정
+                            .border(
+                                1.dp,
+                                Color(0xFF2A2F37),
+                                RoundedCornerShape(999.dp)
                             )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = Color.White,
-                            selectedContainerColor = Color(0xFFFF7A00),
-                            labelColor = Color(0xFF6B7280),
-                            selectedLabelColor = Color.White
-                        ),
-                        border = BorderStroke(
-                            1.dp,
-                            if (selectedArea == area) Color(0xFFFF7A00) else Color(0xFFE5E7EB)
-                        ),
-                        shape = RoundedCornerShape(999.dp)
-                    )
+                            .clickable {
+                                selectedArea = area
+                                selectedWorkerId = null
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = area,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = chipTextColor,              // ✅ 텍스트만 상태 표현
+                            maxLines = 1
+                        )
+                    }
+
+
                 }
             }
         }
 
-        // ✅✅✅ 자유 드래그 바텀시트 (스냅 없음 / 놓은 위치 유지 / 최대 높이 제한)
         Surface(
             color = sheetBg,
             shape = sheetShape,
@@ -347,18 +336,20 @@ fun LocationScreen(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(sheetHeight)
-                .draggable(
-                    state = dragState,
-                    orientation = Orientation.Vertical
-                )
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()                 // ✅ FIX: fillMaxSize() 금지 (공백 원인)
+                    .fillMaxWidth()
                     .padding(horizontal = 12.dp)
-                    .padding(bottom = 16.dp)        // ✅ 바닥은 작은 기본 여백만
+                    .padding(bottom = 16.dp)
             ) {
-                SheetHandle(handleColor = if (isDark) Color(0xFF2A3646) else Color(0xFFE5E7EB))
+                SheetHandle(
+                    handleColor = if (isDark) Color(0xFF2A3646) else Color(0xFFE5E7EB),
+                    modifier = Modifier.draggable(
+                        state = dragState,
+                        orientation = Orientation.Vertical
+                    )
+                )
 
                 SheetSummary(
                     count = filteredRows.size,
@@ -372,14 +363,13 @@ fun LocationScreen(
                 TableHeader(
                     textSecondary = textSecondary,
                     divider = dividerStrong,
-                    isDark = isDark,
+                    isDark = dark,
                     sheetBg = sheetBg
                 )
 
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
-                    contentPadding = PaddingValues(
-                    )
+                    contentPadding = PaddingValues(bottom = bottomBarHeight + 12.dp)
                 ) {
                     items(displayRows, key = { it.id }) { row ->
                         TableRowItem(
@@ -400,9 +390,6 @@ fun LocationScreen(
             }
         }
 
-    }
-
-        // ✅ CAM 팝업
         if (showCamDialog && camTargetRow != null) {
             CamDialog(
                 title = "안전모 CAM",
@@ -412,14 +399,17 @@ fun LocationScreen(
             )
         }
     }
-
+}
 
 /* -------------------- bottom sheet parts -------------------- */
 
 @Composable
-private fun SheetHandle(handleColor: Color) {
+private fun SheetHandle(
+    handleColor: Color,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(top = 10.dp, bottom = 6.dp),
         contentAlignment = Alignment.Center
@@ -499,26 +489,30 @@ private fun SheetSummary(
     }
 }
 
-/* -------------------- table -------------------- */
-
 @Composable
 private fun TableHeader(
     textSecondary: Color,
     divider: Color,
-    isDark: Boolean,
-    sheetBg: Color,
+    isDark: Boolean,   // (받아도 되지만 아래에서 재계산)
+    sheetBg: Color,    // (사용 안 해도 됨)
 ) {
-    val headerBg = if (isDark) {
-        Color(0xFFFF7A00).copy(alpha = 0.20f)
+    val c = LocalSafeColors.current
+    val dark = c.isDark   // ✅ 여기서 다크모드 확정 (넘어온 isDark 무시)
+
+    // ✅ "진한 주황 바" 배경 (다크에서만)
+    val headerBg = if (dark) {
+        Color(0xFF5A3516)       // 🔥 진한 주황 바
     } else {
-        Color(0xFFFFF4EC)
+        Color(0xFFFFF4EC)        // 라이트 유지
     }
+
+    // ✅ 텍스트는 다크에서는 흰색
+    val headerText = if (dark) Color.White else textSecondary
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(sheetBg)
                 .background(headerBg)
         ) {
             Row(
@@ -527,17 +521,23 @@ private fun TableHeader(
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                HeaderCell("구분", 0.18f, textSecondary)
-                HeaderCell("이름", 0.22f, textSecondary)
-                HeaderCell("현재위치", 0.30f, textSecondary)
-                HeaderCell("상태", 0.18f, textSecondary)
-                HeaderCell("캠", 0.12f, textSecondary)
+                HeaderCell("구분", 0.18f, headerText)
+                HeaderCell("이름", 0.22f, headerText)
+                HeaderCell("현재위치", 0.30f, headerText)
+                HeaderCell("상태", 0.18f, headerText)
+                HeaderCell("캠", 0.12f, headerText)
             }
         }
 
-        Divider(color = divider, thickness = 1.dp)
+        Divider(
+            color = if (dark) Color(0xFF1F2937) else divider,
+            thickness = 1.dp
+        )
     }
 }
+
+
+
 
 @Composable
 private fun TableRowItem(
@@ -550,10 +550,20 @@ private fun TableRowItem(
     iconTint: Color,
     divider: Color
 ) {
+    val c = LocalSafeColors.current
+    val dark = c.isDark
+
     val rowAlpha = when {
         !hasSelection -> 1f
         isSelected -> 1f
         else -> 0.35f
+    }
+
+    // ✅ 다크모드용 회색 텍스트
+    val bodyTextColor = if (dark) {
+        Color(0xFF9CA3AF)
+    } else {
+        textPrimary
     }
 
     Row(
@@ -564,9 +574,12 @@ private fun TableRowItem(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BodyCell(row.role, 0.18f, textPrimary)
-        BodyCell(row.name, 0.22f, textPrimary)
-        BodyCell(row.location, 0.30f, textPrimary)
+        // 🔽 회색 적용
+        BodyCell(row.role, 0.18f, bodyTextColor)
+        BodyCell(row.name, 0.22f, bodyTextColor)
+        BodyCell(row.location, 0.30f, bodyTextColor)
+
+        // ✅ 상태는 기존 색 유지
         BodyCell(row.statusText, 0.18f, row.statusColor)
 
         Box(
@@ -583,8 +596,10 @@ private fun TableRowItem(
             )
         }
     }
+
     Divider(color = divider, thickness = 1.dp)
 }
+
 
 @Composable
 private fun RowScope.HeaderCell(text: String, w: Float, color: Color) {
@@ -611,8 +626,6 @@ private fun RowScope.BodyCell(text: String, w: Float, color: Color) {
         maxLines = 1
     )
 }
-
-/* -------------------- CAM dialog -------------------- */
 
 @Composable
 private fun CamDialog(
@@ -650,7 +663,7 @@ private fun CamDialog(
                     Text(
                         text = title,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
+                        fontSize = 17.sp,
                         color = text,
                         modifier = Modifier
                             .widthIn(min = 93.dp)
@@ -671,7 +684,7 @@ private fun CamDialog(
                     }
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(16.dp))
 
                 Image(
                     painter = painterResource(id = R.drawable.cam_sample),
@@ -692,16 +705,18 @@ private fun CamDialog(
                     modifier = Modifier.size(width = 295.dp, height = 52.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Mic,
+                        painter = painterResource(id = R.drawable.mic),
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(24.dp)
                     )
-                    Spacer(Modifier.width(8.dp))
+
+                    Spacer(Modifier.width(4.dp))
+
                     Text(
                         text = "눌러서 말하기",
                         color = Color.White,
-                        fontSize = 14.sp,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }

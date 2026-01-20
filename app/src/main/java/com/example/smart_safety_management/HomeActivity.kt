@@ -30,6 +30,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import kotlin.math.abs
 import android.content.Context
+import com.example.smart_safety_management.screens.location.LocationActivity
+import com.example.smart_safety_management.screens.realtime.RealTimeActivity
 
 private const val PREF_NAME = "onboarding_prefs"
 private const val KEY_INVITE_DONE = "invite_code_done"
@@ -147,8 +149,7 @@ class HomeActivity : AppCompatActivity() {
                 }
                 R.id.nav_live -> {
                     // 실시간 상황 화면으로 이동
-                    // startActivity(Intent(this, LiveActivity::class.java))
-                    Toast.makeText(this, "실시간 상황 화면으로 이동", Toast.LENGTH_SHORT).show()
+                     startActivity(Intent(this, RealTimeActivity::class.java))
                     true
                 }
                 R.id.nav_history -> {
@@ -159,8 +160,7 @@ class HomeActivity : AppCompatActivity() {
                 }
                 R.id.nav_location -> {
                     // 위치 정보 화면으로 이동
-                    // startActivity(Intent(this, LocationActivity::class.java))
-                    Toast.makeText(this, "위치 정보 화면으로 이동", Toast.LENGTH_SHORT).show()
+                     startActivity(Intent(this, LocationActivity::class.java))
                     true
                 }
                 else -> false

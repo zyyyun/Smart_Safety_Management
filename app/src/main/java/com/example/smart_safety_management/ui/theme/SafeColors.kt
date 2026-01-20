@@ -17,10 +17,7 @@ data class SafeColors(
     val chipText: Color,
     val divider: Color,
 
-    // ✅ 추가: "선택된 항" 배경 (주황 틴트)
     val selectedBg: Color,
-
-    // ✅ 추가: Location 표 헤더 배경(요청한 옅은/진한 주황)
     val tableHeaderBg: Color,
 )
 
@@ -40,7 +37,6 @@ val LightSafeColors = SafeColors(
     chipText = Color(0xFF3A4353),
     divider = Color(0xFFE5E7EB),
 
-    // ✅ 라이트: 옅은 주황(요청한 느낌)
     selectedBg = ORANGE.copy(alpha = 0.12f),
     tableHeaderBg = ORANGE.copy(alpha = 0.12f),
 )
@@ -49,17 +45,16 @@ val DarkSafeColors = SafeColors(
     isDark = true,
 
     bg = Color(0xFF0B0D10),
-    topBar = Color(0xFF0B0D10),
+    topBar = Color(0xFF000000), // ✅ TopBar를 "완전 진한 검정"으로
     surface = Color(0xFF1E232B),
     border = Color(0xFF2A303A),
-    text = Color(0xFFFFFFFF),
+    text = Color.White,
     sub = Color(0xFFC5CCD6),
     bottomBar = Color(0xFF0B0D10),
     chip = Color(0xFF2A303A),
-    chipText = Color(0xFFFFFFFF),
+    chipText = Color.White,
     divider = Color(0xFF2A303A),
 
-    // ✅ 다크: 더 진한 주황 틴트(요청한 “다크는 진하게”)
     selectedBg = ORANGE.copy(alpha = 0.22f),
     tableHeaderBg = ORANGE.copy(alpha = 0.22f),
 )

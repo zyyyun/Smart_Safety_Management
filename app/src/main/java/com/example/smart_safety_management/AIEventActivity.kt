@@ -19,6 +19,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.smart_safety_management.screens.location.LocationActivity
+import com.example.smart_safety_management.screens.realtime.RealTimeActivity
 import com.example.smart_safety_management.ui.theme.*
 
 class AIEventActivity : ComponentActivity() {
@@ -71,12 +73,18 @@ fun AIEventNavigation() {
                                     "nav_ai" -> {
                                         // 현재 화면이므로 동작 없음
                                     }
-                                    "nav_live" -> Toast.makeText(context, "실시간 상황 화면으로 이동", Toast.LENGTH_SHORT).show()
+                                    "nav_live" -> {
+                                        val intent = Intent(context, RealTimeActivity::class.java)
+                                        context.startActivity(intent)
+                                    }
                                     "nav_history" -> {
                                         val intent = Intent(context, HistoryActivity::class.java)
                                         context.startActivity(intent)
                                     }
-                                    "nav_location" -> Toast.makeText(context, "위치 정보 화면으로 이동", Toast.LENGTH_SHORT).show()
+                                    "nav_location" -> {
+                                        val intent = Intent(context, LocationActivity::class.java)
+                                        context.startActivity(intent)
+                                    }
                                 }
                             },
                             selectedContentColor = MainOrange,

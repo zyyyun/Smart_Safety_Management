@@ -1,8 +1,8 @@
-package com.example.smart_safety_management
+package com.example.smart_safety_management.screens.location
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
@@ -14,24 +14,29 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.smart_safety_management.screens.location.LocationActivity
+import com.example.smart_safety_management.AIEventActivity
+import com.example.smart_safety_management.HistoryActivity
+import com.example.smart_safety_management.HomeActivity
+import com.example.smart_safety_management.R
 import com.example.smart_safety_management.screens.realtime.RealTimeActivity
 import com.example.smart_safety_management.ui.theme.*
+import androidx.compose.foundation.layout.fillMaxSize
 
-class HistoryActivity : ComponentActivity() {
+class LocationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             Smart_Safety_ManagementTheme {
-                HistoryNavigationWrapper()
+                LocationNavigation()
             }
         }
     }
 }
 
 @Composable
-fun HistoryNavigationWrapper() {
+private fun LocationNavigation() {
     val context = LocalContext.current
+    val activity = context as? Activity
 
     Scaffold(
         bottomBar = {
@@ -51,25 +56,27 @@ fun HistoryNavigationWrapper() {
                     BottomNavigationItem(
                         icon = { Icon(painter = painterResource(id = iconRes), contentDescription = title) },
                         label = { Text(text = title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
-                        selected = route == "nav_history", // 현재 이력 화면이므로 nav_history 선택
+                        selected = route == "nav_location",
                         onClick = {
                             when (route) {
                                 "nav_home" -> {
-                                    val intent = Intent(context, HomeActivity::class.java)
-                                    context.startActivity(intent)
+                                    context.startActivity(Intent(context, HomeActivity::class.java))
+                                    activity?.finish()
                                 }
                                 "nav_ai" -> {
-                                    val intent = Intent(context, AIEventActivity::class.java)
-                                    context.startActivity(intent)
+                                    context.startActivity(Intent(context, AIEventActivity::class.java))
+                                    activity?.finish()
                                 }
                                 "nav_live" -> {
-                                    val intent = Intent(context, RealTimeActivity::class.java)
-                                    context.startActivity(intent)
+                                    context.startActivity(Intent(context, RealTimeActivity::class.java))
+                                    activity?.finish()
                                 }
-                                "nav_history" -> { /* 현재 화면 */ }
+                                "nav_history" -> {
+                                    context.startActivity(Intent(context, HistoryActivity::class.java))
+                                    activity?.finish()
+                                }
                                 "nav_location" -> {
-                                    val intent = Intent(context, LocationActivity::class.java)
-                                    context.startActivity(intent)
+                                    // 현재 화면
                                 }
                             }
                         },
@@ -80,9 +87,14 @@ fun HistoryNavigationWrapper() {
             }
         }
     ) { paddingValues ->
-        // paddingValues를 적용하여 HistoryScreen이 하단바에 가려지지 않게 합니다.
-        Surface(modifier = Modifier.padding(paddingValues)) {
-            HistoryScreen()
-        }
+        // ✅ paddingValues를 LocationScreen에 전달 (modifier 추가했기 때문에 가능!)
+        LocationScreen(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = paddingValues.calculateBottomPadding()),
+            bottomBarHeight = paddingValues.calculateBottomPadding(),
+            isDark = false
+        )
+
     }
 }

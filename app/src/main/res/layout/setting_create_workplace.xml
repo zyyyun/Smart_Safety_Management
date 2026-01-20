@@ -18,38 +18,38 @@
         app:srcCompat="@drawable/icon_back"
         app:tint="@color/gray900_gray50"/>
 
-    <!-- 설정 텍스트 -->
+    <!-- 현장 만들기 텍스트 -->
     <TextView
-        android:id="@+id/txt_setting"
+        android:id="@+id/txt_create_workplace"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:fontFamily="@font/pretendard_bold"
-        android:text="설정"
+        android:text="현장 만들기"
         android:textColor="@color/gray900_gray50"
         android:textSize="24sp"
         app:layout_constraintStart_toEndOf="@id/backButton"
         app:layout_constraintTop_toTopOf="@id/backButton"
         app:layout_constraintBottom_toBottomOf="@id/backButton"/>
 
-    <!-- 초대코드 입력 텍스트 -->
+    <!-- 현장명 텍스트 -->
     <TextView
-        android:id="@+id/txt_enter_invite_code"
+        android:id="@+id/txt_workplace_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="34dp"
         android:layout_marginStart="24dp"
         android:fontFamily="@font/pretendard_medium"
         android:gravity="center"
-        android:text="초대코드 입력"
+        android:text="현장명"
         android:textColor="@color/gray700_gray400"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/txt_setting" />
+        app:layout_constraintTop_toBottomOf="@id/txt_create_workplace" />
 
     <!-- 입력창 -->
     <EditText
-        android:id="@+id/et_invite_code"
+        android:id="@+id/et_workplace_name"
         android:layout_width="0dp"
         android:layout_height="60dp"
         android:layout_marginTop="16dp"
@@ -57,18 +57,20 @@
         android:layout_marginEnd="24dp"
         android:background="@drawable/bg_edittext"
         android:fontFamily="@font/pretendard_medium"
-        android:hint="초대코드를 입력하세요."
-        android:inputType="textPassword"
+        android:hint="현장명을 입력하세요"
+        android:inputType="text"
+        android:maxLines="1"
+        android:imeOptions="actionDone"
         android:paddingHorizontal="16dp"
         android:textColor="@color/black_white"
         android:textColorHint="@color/et_hint_color"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/txt_enter_invite_code" />
+        app:layout_constraintTop_toBottomOf="@id/txt_workplace_name" />
 
-    <!-- 입력 버튼 -->
+    <!-- 추가 버튼 -->
     <Button
-        android:id="@+id/btn_submit"
+        android:id="@+id/btn_create"
         android:layout_width="0dp"
         android:layout_height="60dp"
         android:layout_marginTop="48dp"
@@ -76,13 +78,52 @@
         android:layout_marginEnd="24dp"
         android:backgroundTint="@color/gray50_gray900"
         android:fontFamily="@font/pretendard_semibold"
-        android:text="입력하기"
+        android:text="추가"
         android:textColor="@color/gray400_gray700"
         android:textSize="18dp"
         android:stateListAnimator="@null"
         app:cornerRadius="7dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/et_invite_code" />
+        app:layout_constraintTop_toBottomOf="@id/et_workplace_name" />
+
+    <!-- 구분선 추가 -->
+    <View
+        android:id="@+id/line"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="40dp"
+        android:layout_marginBottom="40dp"
+        android:background="@color/gray100_gray950"
+        app:layout_constraintTop_toBottomOf="@id/btn_create"/>
+
+    <!-- 등록된 현장 텍스트 -->
+    <TextView
+        android:id="@+id/txt_created_workplace"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="34dp"
+        android:layout_marginStart="24dp"
+        android:fontFamily="@font/pretendard_medium"
+        android:gravity="center"
+        android:text="등록된 현장"
+        android:textColor="@color/gray700_gray400"
+        android:textSize="16sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/line" />
+
+    <!-- 등록된 현장 리스트 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_workplace"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="21dp"
+        android:clipToPadding="false"
+        android:paddingBottom="16dp"
+        app:layout_constraintTop_toBottomOf="@id/txt_created_workplace"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

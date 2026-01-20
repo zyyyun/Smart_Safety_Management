@@ -1,37 +1,48 @@
-package com.example.smart_safety_management
+package com.example.smart_safety_management.screens.realtime
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.smart_safety_management.AIEventActivity
+import com.example.smart_safety_management.HistoryActivity
+import com.example.smart_safety_management.HomeActivity
+import com.example.smart_safety_management.LiveCardItem
+import com.example.smart_safety_management.R
+import com.example.smart_safety_management.screens.detail.InternalDetailScreen
 import com.example.smart_safety_management.screens.location.LocationActivity
-import com.example.smart_safety_management.screens.realtime.RealTimeActivity
 import com.example.smart_safety_management.ui.theme.*
 
-class HistoryActivity : ComponentActivity() {
+import com.example.smart_safety_management.screens.dialog.MapDialog // (지금은 안 쓰면 지워도 됨)
+
+class RealTimeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             Smart_Safety_ManagementTheme {
-                HistoryNavigationWrapper()
+                RealTimeNavigation()
             }
         }
     }
 }
 
 @Composable
-fun HistoryNavigationWrapper() {
+private fun RealTimeNavigation() {
     val context = LocalContext.current
+    val activity = context as? Activity
+
+    // ✅ 상세로 넘어갈 아이템 상태 (추가)
+    var selectedItem by remember { mutableStateOf<LiveCardItem?>(null) }
 
     Scaffold(
         bottomBar = {
@@ -51,25 +62,27 @@ fun HistoryNavigationWrapper() {
                     BottomNavigationItem(
                         icon = { Icon(painter = painterResource(id = iconRes), contentDescription = title) },
                         label = { Text(text = title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
-                        selected = route == "nav_history", // 현재 이력 화면이므로 nav_history 선택
+                        selected = route == "nav_live",
                         onClick = {
                             when (route) {
                                 "nav_home" -> {
-                                    val intent = Intent(context, HomeActivity::class.java)
-                                    context.startActivity(intent)
+                                    context.startActivity(Intent(context, HomeActivity::class.java))
+                                    activity?.finish()
                                 }
                                 "nav_ai" -> {
-                                    val intent = Intent(context, AIEventActivity::class.java)
-                                    context.startActivity(intent)
+                                    context.startActivity(Intent(context, AIEventActivity::class.java))
+                                    activity?.finish()
                                 }
                                 "nav_live" -> {
-                                    val intent = Intent(context, RealTimeActivity::class.java)
-                                    context.startActivity(intent)
+                                    // 현재 화면
                                 }
-                                "nav_history" -> { /* 현재 화면 */ }
+                                "nav_history" -> {
+                                    context.startActivity(Intent(context, HistoryActivity::class.java))
+                                    activity?.finish()
+                                }
                                 "nav_location" -> {
-                                    val intent = Intent(context, LocationActivity::class.java)
-                                    context.startActivity(intent)
+                                    context.startActivity(Intent(context, LocationActivity::class.java))
+                                    activity?.finish()
                                 }
                             }
                         },
@@ -80,9 +93,22 @@ fun HistoryNavigationWrapper() {
             }
         }
     ) { paddingValues ->
-        // paddingValues를 적용하여 HistoryScreen이 하단바에 가려지지 않게 합니다.
-        Surface(modifier = Modifier.padding(paddingValues)) {
-            HistoryScreen()
+
+        // ✅ 여기서 화면 분기 (추가)
+        if (selectedItem == null) {
+            RealTimeScreen(
+                modifier = Modifier.padding(paddingValues),
+                onCardClick = { item ->
+                    selectedItem = item   // ✅ 카드 누르면 상세로 전환
+                }
+            )
+        } else {
+            InternalDetailScreen(
+                item = selectedItem!!,
+                onBack = { selectedItem = null }, // ✅ 뒤로가기 누르면 다시 리스트
+                onMapClick = { /* 필요하면 여기에서 지도 연결 */ },
+                modifier = Modifier.padding(paddingValues)
+            )
         }
     }
 }
