@@ -116,6 +116,11 @@
             android:name=".SettingInviteActivity"
             android:exported="false"/>
 
+        <!-- 설정 - 초대하기 - 연락처 불러오기 화면 -->
+        <activity
+            android:name=".SettingInvitePhonenumberActivity"
+            android:exported="false"/>
+
     </application>
 
 </manifest>

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/base">
+
+    <!-- 상단 영역 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingBottom="10dp">
+
+        <!-- 뒤로가기 -->
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="23dp"
+            android:layout_height="29dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/icon_back"
+            app:tint="@color/gray900_gray50"/>
+
+        <!-- 타이틀 -->
+        <TextView
+            android:id="@+id/titleText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="연락처 불러오기"
+            android:letterSpacing="0"
+            android:textSize="18sp"
+            android:textColor="@color/gray900_gray50"
+            android:fontFamily="@font/pretendard_bold"
+            app:layout_constraintStart_toEndOf="@id/backButton"
+            app:layout_constraintTop_toTopOf="@id/backButton"
+            app:layout_constraintBottom_toBottomOf="@id/backButton"/>
+
+        <!-- 검색 아이콘 -->
+        <ImageView
+            android:id="@+id/searchIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="24dp"
+            app:srcCompat="@drawable/ic_search"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/backButton"
+            app:layout_constraintBottom_toBottomOf="@id/backButton"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- 컨텐츠 영역 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="50dp"
+        android:layout_marginBottom="96dp"
+        android:orientation="vertical">
+
+        <!-- 검색바 -->
+        <EditText
+            android:id="@+id/searchEdit"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_edittext"
+            android:fontFamily="@font/pretendard_medium"
+            android:hint="이름 또는 전화번호를 검색하세요"
+            android:letterSpacing="0"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <!-- 구분선 추가 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/gray100_gray950" />
+
+        <!-- 전체 선택 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:layout_marginStart="18dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp">
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/checkAll"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="전체 선택"
+                android:letterSpacing="0"
+                android:textSize="14sp"
+                android:fontFamily="@font/pretendard_medium"
+                android:textColor="@color/gray900_gray50"
+
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+
+                app:useMaterialThemeColors="false"
+                app:buttonTint="@color/checkbox_filled_colors"/>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"/>
+
+            <TextView
+                android:id="@+id/clearText"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+                android:text="선택삭제"
+                android:letterSpacing="0"
+                android:textSize="13sp"
+                android:textColor="@color/orange500"
+                android:fontFamily="@font/pretendard_semibold"/>
+        </LinearLayout>
+
+        <!-- 연락처 리스트 -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/contactRecycler"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"/>
+    </LinearLayout>
+
+    <!-- 하단 고정 버튼 -->
+    <Button
+        android:id="@+id/btn_send"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="24dp"
+        android:text="초대문자 발송 (2)"
+        android:letterSpacing="0"
+        android:textSize="16sp"
+        android:textColor="@color/white_black"
+        android:fontFamily="@font/pretendard_semibold"
+        android:backgroundTint="@color/orange500"
+        app:cornerRadius="8dp"/>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

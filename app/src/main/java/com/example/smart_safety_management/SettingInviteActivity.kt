@@ -1,7 +1,9 @@
 package com.example.smart_safety_management
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -22,6 +24,7 @@ class SettingInviteActivity : AppCompatActivity() {
 
         // 뷰 초기화
         val backButton = findViewById<ImageButton>(R.id.backButton)
+        val btnInvite = findViewById<Button>(R.id.btn_invite)
         tabManager = findViewById(R.id.tab_manager)
         tabWorker = findViewById(R.id.tab_worker)
         underlineManager = findViewById(R.id.underline_manager)
@@ -31,6 +34,12 @@ class SettingInviteActivity : AppCompatActivity() {
         // 뒤로가기 버튼
         backButton.setOnClickListener {
             finish()
+        }
+
+        // 연락처로 초대문자 발송 버튼 클릭 시
+        btnInvite.setOnClickListener {
+            val intent = Intent(this, SettingInvitePhonenumberActivity::class.java)
+            startActivity(intent)
         }
 
         // 초기 상태: 관리자 선택

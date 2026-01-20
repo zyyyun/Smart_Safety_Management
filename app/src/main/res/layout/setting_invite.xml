@@ -35,7 +35,7 @@
             android:fontFamily="@font/pretendard_bold"
             android:text="초대하기"
             android:textColor="@color/gray900_gray50"
-            android:textSize="24sp"
+            android:textSize="18sp"
             android:letterSpacing="0"
             app:layout_constraintStart_toEndOf="@id/backButton"
             app:layout_constraintTop_toTopOf="@id/backButton"
