@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.checkbox.MaterialCheckBox
 
@@ -14,6 +15,7 @@ class InviteCancelAdapter(
 ) : RecyclerView.Adapter<InviteCancelAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val layout: View = view.findViewById(R.id.itemLayout)
         val checkBox: MaterialCheckBox = view.findViewById(R.id.checkBox)
         val nameText: TextView = view.findViewById(R.id.nameText)
         val phoneText: TextView = view.findViewById(R.id.phoneText)
@@ -31,11 +33,14 @@ class InviteCancelAdapter(
         holder.nameText.text = item.name
         holder.phoneText.text = item.phoneNumber
         
+        updateBackground(holder, item.isSelected)
+
         holder.checkBox.setOnCheckedChangeListener(null)
         holder.checkBox.isChecked = item.isSelected
         
         holder.checkBox.setOnCheckedChangeListener { _, isChecked ->
             item.isSelected = isChecked
+            updateBackground(holder, isChecked)
             onSelectionChanged(getSelectedCount())
         }
 
@@ -46,6 +51,11 @@ class InviteCancelAdapter(
         holder.btnCancelOne.setOnClickListener {
             onCancelClick(item)
         }
+    }
+
+    private fun updateBackground(holder: ViewHolder, isSelected: Boolean) {
+        val colorRes = if (isSelected) R.color.gray50_gray900 else R.color.base
+        holder.layout.setBackgroundColor(ContextCompat.getColor(holder.itemView.context, colorRes))
     }
 
     override fun getItemCount() = items.size
