@@ -1,6 +1,7 @@
 package com.example.smart_safety_management
 
 import android.content.res.Configuration
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,7 +13,10 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -62,7 +66,21 @@ enum class EventType(val label: String) {
     }
 }
 
+enum class HourType(val hour: Int) {
+    H00(0), H01(1), H02(2), H03(3), H04(4), H05(5),
+    H06(6), H07(7), H08(8), H09(9), H10(10), H11(11),
+    H12(12), H13(13), H14(14), H15(15), H16(16), H17(17),
+    H18(18), H19(19), H20(20), H21(21), H22(22), H23(23);
 
+    val label: String get() = "%02d시".format(hour)
+
+    companion object {
+        val allLabels: List<String> = values().map { it.label }
+    }
+}
+
+
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CamDetailScreen(
     onBackClick: () -> Unit = {}
@@ -72,10 +90,13 @@ fun CamDetailScreen(
         val categoryColor = if (isLight) TextGray60 else TextGray
         val mainColor = if (isLight) TextGray20 else TextGray5
         val dividerColor = if (isLight) Lightgray else GrayBackground
+        val textColor = if (isLight) TextDark else GrayBorder
 
-        // 드롭박스 상태 관리
+        // 상태 관리
         var selectedDirection by remember { mutableStateOf("12시") }
         var selectedCycle by remember { mutableStateOf("5분") }
+        val selectedEvents = remember { mutableStateListOf<String>() }
+        val selectedHours = remember { mutableStateListOf<String>() }
 
         Scaffold(
             backgroundColor = MaterialTheme.colors.onPrimary,
@@ -105,15 +126,12 @@ fun CamDetailScreen(
                 )
             }
         ) { paddingValues ->
-            @Suppress("UNUSED_VARIABLE")
-            val selectedEvents = remember { mutableStateListOf<EventType>() }
-
             Column(
                 verticalArrangement = Arrangement.spacedBy(24.dp),
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(start = 23.dp, end = 23.dp, top = 23.dp, bottom = 35.dp)
+                    .padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 35.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 Text(
@@ -130,7 +148,14 @@ fun CamDetailScreen(
                 CamInfoItem("호스트 ID", mockCamInfo.hostid, categoryColor, mainColor)
                 CamInfoItem("호스트 PW", mockCamInfo.hostpw, categoryColor, mainColor)
                 CamInfoItem("최근 연결", mockCamInfo.lastconnect, categoryColor, mainColor)
-                CamInfoItem("상태", if (mockCamInfo.state) "정상" else "미수신", categoryColor, mainColor)
+                
+                // ✅ 상태값에 따른 텍스트 및 색상 적용
+                CamInfoItem(
+                    label = "상태",
+                    value = if (mockCamInfo.state) "정상" else "미수신",
+                    labelColor = categoryColor,
+                    valueColor = if (mockCamInfo.state) StatusGreenDark else StatusRed
+                )
 
                 Divider(
                     color = dividerColor,
@@ -165,9 +190,90 @@ fun CamDetailScreen(
                         onOptionSelected = { selectedCycle = it },
                         isLight = isLight
                     )
-
                 }
 
+                FilmingInfo(
+                    label = "감지 이벤트",
+                    labelColor = categoryColor,
+                    showLabelIcon = true
+                ) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        EventType.allLabels.forEach { eventLabel ->
+                            val isSelected = selectedEvents.contains(eventLabel)
+                            EventSelectButton(
+                                text = eventLabel,
+                                isSelected = isSelected,
+                                onClick = {
+                                    if (isSelected) selectedEvents.remove(eventLabel)
+                                    else selectedEvents.add(eventLabel)
+                                }
+                            )
+                        }
+                    }
+                }
+
+                FilmingInfo("가동 시간", categoryColor, true) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        HourType.allLabels.forEach { hourLabel ->
+                            val isSelected = selectedHours.contains(hourLabel)
+                            EventSelectButton(
+                                text = hourLabel,
+                                isSelected = isSelected,
+                                onClick = {
+                                    if (isSelected) selectedHours.remove(hourLabel)
+                                    else selectedHours.add(hourLabel)
+                                }
+                            )
+                        }
+                    }
+                }
+                Divider(
+                    color = dividerColor,
+                    thickness = 1.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 24.dp, bottom = 24.dp)
+                )
+                Text(
+                    text = "설치위치",
+                    fontFamily = Pretendard,
+                    fontSize = 16.sp,
+                    color = categoryColor,
+                )
+
+                Text(
+                    text = "설치 위치 지도",
+                    fontFamily = Pretendard,
+                    fontSize = 18.sp,
+                    color = textColor,
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.camdetail_map),
+                        contentDescription = "Installation Map",
+                        modifier = Modifier.fillMaxWidth(),
+                        contentScale = ContentScale.FillWidth
+                    )
+                    Image(
+                        painter = painterResource(id = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark),
+                        contentDescription = "Worker Icon",
+                        modifier = Modifier.scale(1.67f)
+                    )
+                }
             }
         }
     }
@@ -229,6 +335,7 @@ fun CustomDropdown(
                         fontFamily = Pretendard,
                         fontSize = 14.sp
                     )
+
                 }
             }
         }
@@ -266,19 +373,74 @@ fun CamInfoItem(label: String, value: String, labelColor: Color, valueColor: Col
 }
 
 @Composable
-fun FilmingInfo(label: String, labelColor: Color, valueContent: @Composable () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+fun FilmingInfo(
+    label: String,
+    labelColor: Color,
+    showLabelIcon: Boolean = false,
+    valueContent: @Composable () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                fontFamily = Pretendard,
+                fontSize = 18.sp,
+                color = labelColor
+            )
+
+            if (showLabelIcon) {
+                Spacer(modifier = Modifier.width(12.dp))
+                Icon(
+                    painter = painterResource(id = R.drawable.edit),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = labelColor
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            if (!showLabelIcon) {
+                valueContent()
+            }
+        }
+
+        if (showLabelIcon) {
+            Spacer(modifier = Modifier.height(12.dp))
+            valueContent()
+        }
+    }
+}
+
+@Composable
+fun EventSelectButton(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val isLight = MaterialTheme.colors.isLight
+    val notBgColor = if (isLight) TextGray5 else TextGray20
+    val notTextColor = if (isLight) TextGray else TextGray60
+    Box(
+        modifier = Modifier
+            .height(34.dp)
+            .background(
+                color = if (isSelected) MainOrange else notBgColor,
+                shape = RoundedCornerShape(20.dp)
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 10.dp, vertical = 2.dp),
+        contentAlignment = Alignment.Center
     ) {
         Text(
-            text = label,
+            text = text,
             fontFamily = Pretendard,
-            fontSize = 18.sp,
-            color = labelColor
+            fontSize = 16.sp,
+            color = if (isSelected) MaterialTheme.colors.onPrimary else notTextColor,
         )
-        Spacer(modifier = Modifier.weight(1f))
-        valueContent()
     }
 }
 
