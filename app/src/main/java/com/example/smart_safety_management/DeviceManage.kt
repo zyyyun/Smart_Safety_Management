@@ -21,11 +21,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -83,7 +85,6 @@ fun DeviceManageScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategoryObj by remember { mutableStateOf(SubCategoryList[0]) }
-    // ✅ 알람 다이얼로그 상태 관리
     var showAlarmDialog by remember { mutableStateOf(false) }
 
     val filteredBatteryList = BatteryStatusList.filter { data ->
@@ -109,9 +110,9 @@ fun DeviceManageScreen(
         val subTextColor = if (isLight) TextDark else GrayBorder
         val bgColor = if (isLight) Color.White else TextGray20
 
-        // ✅ 알람 다이얼로그 표시
+        // ✅ 중복 정의 에러를 피하기 위해 이름을 변경한 다이얼로그 호출
         if (showAlarmDialog) {
-            AlarmRequestDialog(onDismissRequest = { showAlarmDialog = false })
+            DeviceAlarmDialog(onDismissRequest = { showAlarmDialog = false })
         }
 
         Scaffold(
@@ -126,7 +127,6 @@ fun DeviceManageScreen(
         ) { paddingValues ->
             Surface(modifier = Modifier.fillMaxWidth().padding(paddingValues), color = MaterialTheme.colors.onPrimary) {
                 Column(modifier = Modifier.fillMaxSize().padding(start = 23.dp, end = 23.dp, top = 23.dp).verticalScroll(rememberScrollState())) {
-                    // 1. 검색바
                     Box(modifier = Modifier.height(52.dp).background(color = MaterialTheme.colors.surface, shape = RoundedCornerShape(8.dp)).border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                         TextField(
                             value = searchQuery, onValueChange = { searchQuery = it }, modifier = Modifier.fillMaxWidth(),
@@ -143,7 +143,6 @@ fun DeviceManageScreen(
                     Divider(color = dividerColor, thickness = 1.dp, modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // 2. 메인 카테고리
                     Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp) ) {
                         MainCategoryList.forEach { category ->
                             val isSelected = if (category.title == "전체직원") selectedCategoryObj.title == "전체" else selectedCategoryObj.title == category.title && selectedCategoryObj.icon == category.icon
@@ -153,7 +152,6 @@ fun DeviceManageScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // 3. 서브 카테고리 필터
                     Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         SubCategoryList.forEach { sub ->
                             SubCategoryItem(category = sub, isSelected = selectedCategoryObj == sub, onClick = { selectedCategoryObj = sub }, borderColor = borderColor, bgColor = bgColor, selectedColor = MainOrange, textColor = textColor)
@@ -161,11 +159,9 @@ fun DeviceManageScreen(
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
-
                     Text(text = "배터리 현황", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = categoryColor)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // 4. 필터링된 리스트 (알람 클릭 연결)
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (filteredBatteryList.isEmpty()) {
                             Text(text = "검색 결과가 없습니다.", modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp), textAlign = TextAlign.Center, color = subTextColor, fontFamily = Pretendard)
@@ -185,8 +181,9 @@ fun DeviceManageScreen(
 @Composable
 fun MainCategoryItem(category: MainCategory, isSelected: Boolean, onClick: () -> Unit, borderColor: Color, bgColor: Color, textColor: Color, categoryColor: Color, subTextColor : Color) {
     val finalBorderColor = if (isSelected) MainOrange else borderColor
-    val finalBgColor = if (isSelected) MainOrange.copy(alpha = 0.05f) else bgColor
-    Box(modifier = Modifier.height(81.dp).background(color = finalBgColor, shape = RoundedCornerShape(8.dp)).border(width = if (isSelected) 2.dp else 1.dp, color = finalBorderColor, shape = RoundedCornerShape(8.dp)).clip(RoundedCornerShape(8.dp)).clickable { onClick() }.padding(15.dp)) {
+    val bgAlpha = if (MaterialTheme.colors.isLight) 0.1f else 0.36f
+    val finalBgColor = if (isSelected) MainOrange.copy(bgAlpha) else bgColor
+    Box(modifier = Modifier.width(130.dp).height(81.dp).background(color = finalBgColor, shape = RoundedCornerShape(8.dp)).border(width = if (isSelected) 2.dp else 1.dp, color = finalBorderColor, shape = RoundedCornerShape(8.dp)).clip(RoundedCornerShape(8.dp)).clickable { onClick() }.padding(15.dp)) {
         Column(verticalArrangement = Arrangement.SpaceBetween) {
             Row(modifier = Modifier.padding(bottom = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 if (category.icon != null) {
@@ -247,7 +244,18 @@ fun BatteryItem(data: DeviceBatteryData, onAlarmClick: () -> Unit) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(painter = painterResource(id = R.drawable.gps), contentDescription = null, tint = if (data.isGpsConnected) StatusGreenDark else StatusRed)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = if (data.isGpsConnected) "GPS 정상" else "GPS 미수신", color = if (data.isGpsConnected) StatusGreenDark else StatusRed, fontSize = 14.sp, fontWeight = FontWeight.Medium, fontFamily = Pretendard)
+                        // ✅ "GPS "는 일반, "정상"/"미수신"만 Bold 적용
+                        Text(
+                            text = buildAnnotatedString {
+                                append("GPS ")
+                                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                    append(if (data.isGpsConnected) "정상" else "미수신")
+                                }
+                            },
+                            color = if (data.isGpsConnected) StatusGreenDark else StatusRed,
+                            fontSize = 14.sp,
+                            fontFamily = Pretendard
+                        )
                     }
                 }
                 Button(onClick = onAlarmClick, colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)) {
@@ -296,29 +304,32 @@ fun BatteryItem(data: DeviceBatteryData, onAlarmClick: () -> Unit) {
     }
 }
 
-// ✅ MonthlyList.kt에서 이식된 다이얼로그 코드
+// ✅ 중복 정의 해결을 위해 이름 변경: UncheckedItemDialog -> DeviceAlarmDialog
 @Composable
-fun AlarmRequestDialog(onDismissRequest: () -> Unit) {
+fun DeviceAlarmDialog(onDismissRequest: () -> Unit) {
     Dialog(onDismissRequest = onDismissRequest) {
-        val cardBgColor = if (MaterialTheme.colors.isLight) Color.White else GrayBackground
-        val textColor = if (MaterialTheme.colors.isLight) TextGray20 else TextGray5
-        val subTextColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
-        Card(
-            modifier = Modifier.width(330.dp).height(259.dp),
-            shape = RoundedCornerShape(16.dp),
-            elevation = 0.dp,
-            backgroundColor = cardBgColor
-        ) {
-            Column(modifier = Modifier.fillMaxSize().padding(top = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
-                Icon(painter = painterResource(id = R.drawable.bell_icon), null, tint = MainOrange, modifier = Modifier.size(48.dp))
-                Spacer(modifier = Modifier.height(24.dp))
-                Text(text = "알림 발송 완료", fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center, fontFamily = Pretendard, color = textColor)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "해당 인원에게 알림을 발송하였습니다.", color = subTextColor, fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center, fontFamily = Pretendard)
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(onClick = onDismissRequest, modifier = Modifier.width(290.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(12.dp)) {
-                    Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, fontFamily = Pretendard)
-                }
+        DeviceAlarmDialogContent(onDismissRequest = onDismissRequest)
+    }
+}
+
+@Composable
+fun DeviceAlarmDialogContent(onDismissRequest: () -> Unit) {
+    val cardBgColor = if (MaterialTheme.colors.isLight) Color.White else GrayBackground
+    Card(
+        modifier = Modifier.width(330.dp).height(259.dp),
+        shape = RoundedCornerShape(16.dp), 
+        elevation = 0.dp, 
+        backgroundColor = cardBgColor
+    ) {
+        Column(modifier = Modifier.fillMaxSize().padding(top = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
+            Icon(painter = painterResource(id = R.drawable.bell_icon), null, tint = MainOrange, modifier = Modifier.size(48.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(text = "기기 점검 알림", fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = "근로자에게 기기 점검 요청 알림을 \n발송하였습니다.", color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center, fontFamily = Pretendard)
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(onClick = onDismissRequest, modifier = Modifier.width(290.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange, contentColor = Color.White), shape = RoundedCornerShape(12.dp)) {
+                Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, fontFamily = Pretendard)
             }
         }
     }
