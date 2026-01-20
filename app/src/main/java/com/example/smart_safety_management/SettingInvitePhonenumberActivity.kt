@@ -1,6 +1,8 @@
 package com.example.smart_safety_management
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -42,7 +44,6 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
         // 리사이클러뷰 설정
         adapter = InviteContactAdapter(filteredList) { selectedCount ->
             btnSend.text = "초대문자 발송 ($selectedCount)"
-            // 모든 항목이 선택되었는지 확인하여 checkAll 상태 업데이트 (선택 사항)
             checkAll.isChecked = selectedCount == filteredList.size && filteredList.isNotEmpty()
         }
         recyclerView.layoutManager = LinearLayoutManager(this)
@@ -87,10 +88,21 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
             adapter.selectAll(checkAll.isChecked)
         }
 
-        // 선택 삭제 클릭
+        // 선택 해제 클릭
         clearText.setOnClickListener {
             adapter.clearSelection()
             checkAll.isChecked = false
+        }
+
+        // 초대문자 발송 버튼 클릭 시 선택된 항목 전달
+        btnSend.setOnClickListener {
+            val selectedContacts = contactList.filter { it.isSelected }
+            if (selectedContacts.isNotEmpty()) {
+                val resultIntent = Intent()
+                resultIntent.putExtra("selected_contacts", ArrayList(selectedContacts))
+                setResult(Activity.RESULT_OK, resultIntent)
+                finish()
+            }
         }
     }
 
