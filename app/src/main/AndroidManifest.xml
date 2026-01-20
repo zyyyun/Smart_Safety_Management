@@ -117,6 +117,26 @@
         <activity android:name=".screens.location.LocationActivity" />
 
 
+        <!-- 설정 - 초대하기 화면 -->
+        <activity
+            android:name=".SettingInviteActivity"
+            android:exported="false"/>
+
+        <!-- 설정 - 초대하기 - 연락처 불러오기 화면 -->
+        <activity
+            android:name=".SettingInvitePhonenumberActivity"
+            android:exported="false"/>
+
+        <!-- 설정 - 초대하기 - 초대취소 화면 -->
+        <activity
+            android:name=".SettingInviteCancelActivity"
+            android:exported="false"/>
+
+        <!-- 설정 - 인원관리 화면 -->
+        <activity
+            android:name=".SettingPeopleManagementActivity"
+            android:exported="false"/>
+
     </application>
 
 </manifest>

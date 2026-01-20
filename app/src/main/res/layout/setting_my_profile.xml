@@ -27,6 +27,7 @@
         android:layout_marginStart="8dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="내정보"
+        android:letterSpacing="0"
         android:textColor="@color/gray900_gray50"
         android:textSize="24sp"
         app:layout_constraintStart_toEndOf="@id/backButton"
@@ -101,6 +102,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="@font/pretendard_medium"
             android:text="내 정보"
+            android:letterSpacing="0"
             android:textColor="@color/gray700_gray400"
             android:textSize="16sp"/>
 
@@ -118,6 +120,7 @@
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/pretendard_medium"
                 android:text="이름"
+                android:letterSpacing="0"
                 android:textColor="@color/gray800_gray200"
                 android:textSize="18sp"/>
 
@@ -135,6 +138,7 @@
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/pretendard_medium"
                     android:text="안정우"
+                    android:letterSpacing="0"
                     android:textColor="@color/gray900_gray50"
                     android:textSize="18sp"/>
 
@@ -162,6 +166,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="@font/pretendard_medium"
             android:text="권한"
+            android:letterSpacing="0"
             android:textColor="@color/gray800_gray200"
             android:textSize="18sp"/>
 
@@ -174,11 +179,12 @@
             android:gravity="end|center_vertical">
 
             <TextView
-                android:id="@+id/tv_user_name"
+                android:id="@+id/tv_user_name_authority"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/pretendard_medium"
                 android:text="관리자"
+                android:letterSpacing="0"
                 android:textColor="@color/gray900_gray50"
                 android:textSize="18sp"/>
 
@@ -205,6 +211,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="@font/pretendard_medium"
             android:text="휴대폰 번호"
+            android:letterSpacing="0"
             android:textColor="@color/gray800_gray200"
             android:textSize="18sp"/>
 
@@ -217,11 +224,12 @@
             android:gravity="end|center_vertical">
 
             <TextView
-                android:id="@+id/tv_user_name"
+                android:id="@+id/tv_user_phone"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/pretendard_medium"
                 android:text="010-1234-1234"
+                android:letterSpacing="0"
                 android:textColor="@color/gray900_gray50"
                 android:textSize="18sp"/>
 
@@ -248,6 +256,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="@font/pretendard_medium"
             android:text="이메일"
+            android:letterSpacing="0"
             android:textColor="@color/gray800_gray200"
             android:textSize="18sp"/>
 
@@ -260,11 +269,12 @@
             android:gravity="end|center_vertical">
 
             <TextView
-                android:id="@+id/tv_user_name"
+                android:id="@+id/tv_user_email"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/pretendard_medium"
                 android:text="happy@gmail.com"
+                android:letterSpacing="0"
                 android:textColor="@color/gray900_gray50"
                 android:textSize="18sp"/>
 
@@ -292,11 +302,12 @@
 
         <!-- 회원탈퇴 텍스트 -->
         <TextView
-            android:id="@+id/txt_my_profile2"
+            android:id="@+id/txt_withdraw_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="@font/pretendard_medium"
             android:text="회원탈퇴"
+            android:letterSpacing="0"
             android:textColor="@color/gray700_gray400"
             android:textSize="16sp"/>
 
@@ -314,6 +325,7 @@
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/pretendard_medium"
                 android:text="회원 탈퇴하기"
+                android:letterSpacing="0"
                 android:textColor="@color/gray800_gray200"
                 android:textSize="18sp"/>
 
@@ -344,9 +356,9 @@
         android:layout_marginBottom="21dp"
         android:fontFamily="@font/pretendard_medium"
         android:text="로그아웃"
+        android:letterSpacing="0"
         android:textColor="@color/gray400_gray700"
         android:textSize="14sp"
-        app:layout_constraintTop_toBottomOf="@id/next_button"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

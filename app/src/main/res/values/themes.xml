@@ -4,7 +4,7 @@
     <style name="Theme.Smart_Safety_Management" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- 자간(letterSpacing)을 0으로 설정 -->
         <item name="android:letterSpacing">0</item>
-        
+
         <!-- 버튼의 기본 스타일에서 대문자 변환 끄기 및 자간 설정 -->
         <item name="materialButtonStyle">@style/Widget.App.Button</item>
     </style>

@@ -23,6 +23,7 @@
             android:layout_weight="1"
             android:text="스타트업 파크"
             android:textSize="18sp"
+            android:letterSpacing="0"
             android:fontFamily="@font/pretendard_medium"
             android:textColor="@color/gray900_gray50"/>
 

@@ -52,13 +52,13 @@ class SettingActivity : AppCompatActivity() {
 
         // 초대하기 아이템 클릭 시 화면 이동
         findViewById<LinearLayout>(R.id.item_invite).setOnClickListener {
-            //val intent = Intent(this, SettingInviteActivity::class.java)
+            val intent = Intent(this, SettingInviteActivity::class.java)
             startActivity(intent)
         }
 
         // 인원 관리 아이템 클릭 시 화면 이동
         findViewById<LinearLayout>(R.id.item_people_management).setOnClickListener {
-            //val intent = Intent(this, SettingPeopleManagementActivity::class.java)
+            val intent = Intent(this, SettingPeopleManagementActivity::class.java)
             startActivity(intent)
         }
 

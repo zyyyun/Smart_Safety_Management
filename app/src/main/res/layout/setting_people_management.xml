@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/base">
+
+    <!-- 상단 툴바 -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        app:layout_constraintTop_toTopOf="parent"
+        android:backgroundTint="@color/base">
+
+        <ImageButton
+            android:id="@+id/backButton"
+            android:layout_width="12dp"
+            android:layout_height="18dp"
+            android:layout_marginStart="24dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:srcCompat="@drawable/icon_back"
+            app:tint="@color/gray900_gray50" />
+
+        <TextView
+            android:id="@+id/txt_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/pretendard_semibold"
+            android:text="인원관리"
+            android:textColor="@color/gray800_gray200"
+            android:textSize="18sp"
+            android:layout_marginStart="16dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/backButton"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <View
+        android:id="@+id/divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/base"
+        app:layout_constraintTop_toBottomOf="@id/topBar" />
+
+    <!-- 검색 및 필터 영역 -->
+    <LinearLayout
+        android:id="@+id/searchArea"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginTop="12dp"
+        android:backgroundTint="@color/base"
+        app:layout_constraintTop_toBottomOf="@id/divider">
+
+        <FrameLayout
+            android:id="@+id/spinnerContainer"
+            android:layout_width="100dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_edittext"
+            android:layout_marginEnd="16dp">
+
+            <Spinner
+                android:id="@+id/filterSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@android:color/transparent"
+                android:overlapAnchor="false"
+                android:spinnerMode="dropdown"
+                android:entries="@array/people_filter_array"
+                android:paddingStart="12dp" />
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="8dp"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="12dp"
+                app:srcCompat="@drawable/dropdown_arrow" />
+        </FrameLayout>
+
+        <EditText
+            android:id="@+id/searchEditText"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_edittext"
+            android:hint="이름 또는 전화번호"
+            android:paddingHorizontal="12dp"
+            android:textSize="14sp"
+            android:textColorHint="@color/gray200_gray800"
+            android:textColor="@color/gray900" />
+    </LinearLayout>
+
+    <View
+        android:id="@+id/divider2"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/base"
+        app:layout_constraintTop_toBottomOf="@id/searchArea" />
+
+    <!-- 리스트 영역 -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/divider2"
+        tools:listitem="@layout/item_people_management" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

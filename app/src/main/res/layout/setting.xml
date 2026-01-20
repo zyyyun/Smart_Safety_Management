@@ -27,6 +27,7 @@
         android:layout_marginStart="8dp"
         android:fontFamily="@font/pretendard_bold"
         android:text="설정"
+        android:letterSpacing="0"
         android:textColor="@color/gray900_gray50"
         android:textSize="24sp"
         app:layout_constraintStart_toEndOf="@id/backButton"
@@ -67,6 +68,7 @@
                     android:layout_marginBottom="28dp"
                     android:fontFamily="@font/pretendard_bold"
                     android:text="개인설정"
+                    android:letterSpacing="0"
                     android:textColor="@color/gray900_gray50"
                     android:textSize="22sp"/>
 
@@ -109,6 +111,7 @@
                         android:fontFamily="@font/pretendard_semibold"
                         android:gravity="center_vertical"
                         android:text="내정보"
+                        android:letterSpacing="0"
                         android:textColor="@color/gray800_gray200"
                         android:textSize="18sp" />
                 </LinearLayout>
@@ -149,6 +152,7 @@
                         android:fontFamily="@font/pretendard_semibold"
                         android:gravity="center_vertical"
                         android:text="비밀번호 수정"
+                        android:letterSpacing="0"
                         android:textColor="@color/gray800_gray200"
                         android:textSize="18sp" />
                 </LinearLayout>
@@ -189,6 +193,7 @@
                         android:fontFamily="@font/pretendard_semibold"
                         android:gravity="center_vertical"
                         android:text="초대코드 입력"
+                        android:letterSpacing="0"
                         android:textColor="@color/gray800_gray200"
                         android:textSize="18sp" />
                 </LinearLayout>
@@ -219,6 +224,7 @@
                 android:layout_marginBottom="28dp"
                 android:fontFamily="@font/pretendard_bold"
                 android:text="현장관리"
+                android:letterSpacing="0"
                 android:textColor="@color/gray900_gray50"
                 android:textSize="22sp"/>
 
@@ -257,6 +263,7 @@
                     android:fontFamily="@font/pretendard_semibold"
                     android:gravity="center_vertical"
                     android:text="현장 만들기"
+                    android:letterSpacing="0"
                     android:textColor="@color/gray800_gray200"
                     android:textSize="18sp" />
             </LinearLayout>
@@ -297,6 +304,7 @@
                     android:fontFamily="@font/pretendard_semibold"
                     android:gravity="center_vertical"
                     android:text="현장위치 설정"
+                    android:letterSpacing="0"
                     android:textColor="@color/gray800_gray200"
                     android:textSize="18sp" />
             </LinearLayout>
@@ -327,6 +335,7 @@
                 android:layout_marginBottom="28dp"
                 android:fontFamily="@font/pretendard_bold"
                 android:text="인원관리"
+                android:letterSpacing="0"
                 android:textColor="@color/gray900_gray50"
                 android:textSize="22sp"/>
 
@@ -365,6 +374,7 @@
                     android:fontFamily="@font/pretendard_semibold"
                     android:gravity="center_vertical"
                     android:text="초대하기"
+                    android:letterSpacing="0"
                     android:textColor="@color/gray800_gray200"
                     android:textSize="18sp" />
             </LinearLayout>
@@ -405,6 +415,7 @@
                     android:fontFamily="@font/pretendard_semibold"
                     android:gravity="center_vertical"
                     android:text="인원관리"
+                    android:letterSpacing="0"
                     android:textColor="@color/gray800_gray200"
                     android:textSize="18sp" />
             </LinearLayout>
@@ -435,6 +446,7 @@
                 android:layout_marginBottom="28dp"
                 android:fontFamily="@font/pretendard_bold"
                 android:text="장치관리"
+                android:letterSpacing="0"
                 android:textColor="@color/gray900_gray50"
                 android:textSize="22sp"/>
 
@@ -473,6 +485,7 @@
                     android:fontFamily="@font/pretendard_semibold"
                     android:gravity="center_vertical"
                     android:text="CCTV 관리"
+                    android:letterSpacing="0"
                     android:textColor="@color/gray800_gray200"
                     android:textSize="18sp" />
             </LinearLayout>
@@ -513,6 +526,7 @@
                     android:fontFamily="@font/pretendard_semibold"
                     android:gravity="center_vertical"
                     android:text="장치관리"
+                    android:letterSpacing="0"
                     android:textColor="@color/gray800_gray200"
                     android:textSize="18sp" />
             </LinearLayout>
