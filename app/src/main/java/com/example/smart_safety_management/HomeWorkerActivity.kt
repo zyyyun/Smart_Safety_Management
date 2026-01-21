@@ -2,19 +2,14 @@ package com.example.smart_safety_management
 
 import DailyCheckItem
 import android.os.Bundle
-import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
-import android.widget.GridLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.NestedScrollView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.util.Calendar
 import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
 import android.content.Intent
 import android.graphics.Paint
 import android.text.Spannable
@@ -22,38 +17,35 @@ import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.view.MotionEvent
 import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import kotlin.math.abs
 
 private val dailyCheckMap = mapOf(
-    7 to listOf(
+    21 to listOf(
         DailyCheckItem("B구역 1열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("C구역 3열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
-    12 to listOf(
+    22 to listOf(
         DailyCheckItem("A구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
-    15 to listOf(
+    23 to listOf(
         DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
         DailyCheckItem("D구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
         DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
-    25 to listOf(
+    24 to listOf(
         DailyCheckItem("C구역 2열", "정리미흡으로 안전사고 발생 우려", "미점검")
     ),
-    26 to listOf(
+    25 to listOf(
         DailyCheckItem("A구역 4열", "정리미흡으로 인적사고 발생 우려", "미점검")
     )
 )
 
-class HomeActivity : AppCompatActivity() {
+class HomeWorkerActivity : AppCompatActivity() {
 
     private lateinit var dailyAdapter: DailyCheckAdapter
     private var selectedDay: Int? = null
@@ -61,7 +53,7 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.main_home)
+        setContentView(R.layout.main_home_worker)
 
         initUI()
     }
@@ -75,7 +67,7 @@ class HomeActivity : AppCompatActivity() {
         val alarmDot = findViewById<View>(R.id.view_alarm_dot)
         val btnSetting = topBar.findViewById<ImageButton>(R.id.btn_setting)
 
-        alarmDot.visibility = if (true) View.VISIBLE else View.GONE 
+        alarmDot.visibility = if (true) View.VISIBLE else View.GONE
 
         btnAlarm.setOnClickListener {
             startActivity(Intent(this, NoticeActivity::class.java))
@@ -85,20 +77,12 @@ class HomeActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingActivity::class.java))
         }
 
-        findViewById<View>(R.id.layout_monthly_action).setOnClickListener {
-            startActivity(Intent(this, MonthlyListActivity::class.java))
-        }
-
-        findViewById<View>(R.id.btn_add).setOnClickListener {
-            startActivity(Intent(this, DailyListActivity::class.java))
-        }
-
         val rv = findViewById<RecyclerView>(R.id.rv_daily_check)
         rv.layoutManager = LinearLayoutManager(this)
         dailyAdapter = DailyCheckAdapter(emptyList())
         rv.adapter = dailyAdapter
 
-        selectedDay = findClosestUncheckedDay()
+        selectedDay = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
         dailyAdapter.initTooltip()
 
         val scroll = findViewById<NestedScrollView>(R.id.home_scroll)
@@ -110,37 +94,7 @@ class HomeActivity : AppCompatActivity() {
             }
         )
 
-        fillCalendarReal()
         updateDailyCheckList(selectedDay)
-        setupBottomNavigation()
-    }
-
-    private fun setupBottomNavigation() {
-        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)
-        bottomNav.selectedItemId = R.id.nav_home
-
-        bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_home -> true
-                R.id.nav_ai -> {
-                    startActivity(Intent(this, AIEventActivity::class.java))
-                    true
-                }
-                R.id.nav_live -> {
-                    Toast.makeText(this, "실시간 상황 화면으로 이동", Toast.LENGTH_SHORT).show()
-                    true
-                }
-                R.id.nav_history -> {
-                    startActivity(Intent(this, HistoryActivity::class.java))
-                    true
-                }
-                R.id.nav_location -> {
-                    Toast.makeText(this, "위치 정보 화면으로 이동", Toast.LENGTH_SHORT).show()
-                    true
-                }
-                else -> false
-            }
-        }
     }
 
     override fun onResume() {
@@ -150,16 +104,7 @@ class HomeActivity : AppCompatActivity() {
 
     private fun updateProfileName() {
         val profileBar = findViewById<View>(R.id.profile_bar)
-        profileBar.findViewById<TextView>(R.id.tv_user_name).text = UserSession.userName
-    }
-
-    private fun findClosestUncheckedDay(): Int? {
-        val today = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
-        val uncheckedDays = dailyCheckMap.filter { entry ->
-            entry.value.any { it.status == "미점검" }
-        }.keys
-        if (uncheckedDays.isEmpty()) return today
-        return uncheckedDays.minByOrNull { abs(it - today) }
+        profileBar?.findViewById<TextView>(R.id.tv_user_name)?.text = UserSession.userName
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
@@ -189,7 +134,7 @@ class HomeActivity : AppCompatActivity() {
             spannable.setSpan(ForegroundColorSpan(grayColor), separatorIndex, progressText.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
 
-        findViewById<TextView>(R.id.tv_progress).text = spannable
+        findViewById<TextView>(R.id.tv_progress)?.text = spannable
         adjustRecyclerMinHeight()
     }
 
@@ -198,113 +143,12 @@ class HomeActivity : AppCompatActivity() {
         val spacer = findViewById<View>(R.id.rv_spacer)
         val scroll = findViewById<NestedScrollView>(R.id.home_scroll)
 
-        rv.post {
+        rv?.post {
             val rvBottom = rv.bottom
             val scrollBottom = scroll.bottom
             val gap = scrollBottom - rvBottom
-            spacer.layoutParams.height = if (gap > 0) gap else 0
-            spacer.requestLayout()
-        }
-    }
-
-    private fun hasUncheckedItem(day: Int): Boolean {
-        val list = dailyCheckMap[day] ?: return false
-        return list.any { it.status == "미점검" }
-    }
-
-    private fun fillCalendarReal() {
-        val grid = findViewById<GridLayout>(R.id.calendar_grid)
-        val tvMonth = findViewById<TextView>(R.id.tv_month)
-
-        grid.removeAllViews()
-        val calendar = Calendar.getInstance()
-        tvMonth.text = "${calendar.get(Calendar.YEAR)}년 ${calendar.get(Calendar.MONTH) + 1}월"
-        calendar.set(Calendar.DAY_OF_MONTH, 1)
-
-        val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
-        val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-
-        val prevCalendar = calendar.clone() as Calendar
-        prevCalendar.add(Calendar.MONTH, -1)
-        val prevMaxDay = prevCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-
-        for (i in 1 until firstDayOfWeek) {
-            addCalendarDay(grid, prevMaxDay - (firstDayOfWeek - 1 - i), false)
-        }
-        for (day in 1..daysInMonth) {
-            addCalendarDay(grid, day, true)
-        }
-        val totalCells = (firstDayOfWeek - 1) + daysInMonth
-        for (day in 1..((7 - (totalCells % 7)) % 7)) {
-            addCalendarDay(grid, day, false)
-        }
-    }
-
-    private fun addCalendarDay(grid: GridLayout, day: Int, isCurrentMonth: Boolean) {
-        val dayContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            layoutParams = GridLayout.LayoutParams().apply {
-                width = 0
-                columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-                rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
-            }
-        }
-
-        val daySize = (resources.displayMetrics.density * 36).toInt()
-        val dayFrame = FrameLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(daySize, daySize)
-        }
-
-        val tv = TextView(this).apply {
-            text = day.toString()
-            gravity = Gravity.CENTER
-            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
-            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-
-            if (isCurrentMonth) {
-                setOnClickListener {
-                    selectedDay = day
-                    fillCalendarReal()
-                    updateDailyCheckList(selectedDay)
-                }
-            }
-        }
-
-        if (isCurrentMonth) {
-            tv.setTextColor(ContextCompat.getColor(this, R.color.gray700_gray400))
-            if (day == selectedDay) {
-                tv.background = circleDrawable(ContextCompat.getColor(this, R.color.orange500))
-                tv.setTextColor(ContextCompat.getColor(this, R.color.white_black))
-            }
-        } else {
-            tv.setTextColor(ContextCompat.getColor(this, R.color.gray200_gray800))
-        }
-
-        val alarmDot = if (isCurrentMonth) {
-            ImageView(this).apply {
-                setImageResource(R.drawable.ellipse_alram)
-                visibility = if (hasUncheckedItem(day)) View.VISIBLE else View.INVISIBLE
-                val size = (resources.displayMetrics.density * 6).toInt()
-                layoutParams = LinearLayout.LayoutParams(size, size).apply { topMargin = (resources.displayMetrics.density * 4).toInt() }
-            }
-        } else {
-            View(this).apply {
-                val size = (resources.displayMetrics.density * 6).toInt()
-                layoutParams = LinearLayout.LayoutParams(size, size).apply { topMargin = (resources.displayMetrics.density * 4).toInt() }
-            }
-        }
-
-        dayFrame.addView(tv)
-        dayContainer.addView(dayFrame)
-        dayContainer.addView(alarmDot)
-        grid.addView(dayContainer)
-    }
-
-    private fun circleDrawable(color: Int): GradientDrawable {
-        return GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(color)
+            spacer?.layoutParams?.height = if (gap > 0) gap else 0
+            spacer?.requestLayout()
         }
     }
 

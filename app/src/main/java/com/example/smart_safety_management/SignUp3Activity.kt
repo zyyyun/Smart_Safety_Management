@@ -9,16 +9,9 @@ import androidx.appcompat.app.AppCompatActivity
 
 class SignUp3Activity : AppCompatActivity() {
 
-    private lateinit var userRole: UserRole
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.sign_up_3)
-
-        // enum 복원
-        userRole = UserRole.valueOf(
-            intent.getStringExtra(EXTRA_USER_ROLE) ?: UserRole.WORKER.name
-        )
 
         // 뒤로가기 버튼
         findViewById<ImageButton>(R.id.backButton).setOnClickListener {
@@ -35,8 +28,7 @@ class SignUp3Activity : AppCompatActivity() {
         val id = findViewById<EditText>(R.id.et_id).text.toString()
 
         val intent = Intent(this, SignUp4Activity::class.java)
-        intent.putExtra("EXTRA_USER_ID", id)   // 아이디 전달
-        intent.putExtra(EXTRA_USER_ROLE, userRole.name) // 기존 enum 유지
+        intent.putExtra(EXTRA_USER_ID, id) // 아이디만 전달 (역할은 UserSession 전역 변수 사용)
         startActivity(intent)
     }
 
