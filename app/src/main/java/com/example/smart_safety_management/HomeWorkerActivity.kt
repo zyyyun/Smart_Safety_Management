@@ -23,14 +23,14 @@ import androidx.core.widget.doAfterTextChanged
 import kotlin.math.abs
 
 private val dailyCheckMap = mapOf(
-    21 to listOf(
+    20 to listOf(
         DailyCheckItem("B구역 1열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("C구역 3열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
     22 to listOf(
         DailyCheckItem("A구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
-    23 to listOf(
+    21 to listOf(
         DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
