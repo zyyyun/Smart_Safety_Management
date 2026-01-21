@@ -89,7 +89,7 @@ fun LivePlaybackController(
                 .weight(1f)          // 👈 핵심: 남은 공간만 차지하도록 설정
                 .height(4.dp)
                 .padding(horizontal = 8.dp) // 아이콘들과의 간격 추가
-                .alpha(0.6f),
+                ,
             color = MainOrange,
             trackColor = Color.White,
             strokeCap = StrokeCap.Round
@@ -137,7 +137,7 @@ fun LiveComponentPreview() {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White.copy(alpha = 0.8f))
+                .background(Color.White)
                 .padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween // 위아래 끝으로 배치
         ) {
