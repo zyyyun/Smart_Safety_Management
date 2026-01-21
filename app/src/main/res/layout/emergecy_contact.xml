@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <RelativeLayout
+        android:id="@+id/frame_275"
+        android:layout_width="327dp"
+        android:layout_height="76dp"
+        android:background="@drawable/bg_cancel_button_red"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="20dp">
+
+        <ImageView
+            android:id="@+id/iv_callbox"
+            android:layout_width="37.5dp"
+            android:layout_height="37.5dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="18.5dp"
+            android:src="@drawable/callbox"
+            android:contentDescription="콜박스 아이콘" />
+
+        <LinearLayout
+            android:id="@+id/ll_text_group"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/iv_callbox"
+            android:layout_centerVertical="true"
+            android:layout_marginStart="8dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_label_top"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="비상연락"
+                android:textColor="@color/gray900_gray50"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_label_bottom"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="비상연락 리스트를 확인할 수 있습니다."
+                android:textColor="@color/gray700_gray400"
+                android:textSize="14sp"
+                android:textStyle="normal" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/iv_back_icon"
+            android:layout_width="6dp"
+            android:layout_height="12dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:layout_marginEnd="14dp"
+            android:src="@drawable/backicon"
+            android:scaleX="-1"
+            app:tint="@color/red500"
+            android:contentDescription="이동 아이콘" />
+
+    </RelativeLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
