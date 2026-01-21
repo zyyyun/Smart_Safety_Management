@@ -41,7 +41,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.smart_safety_management.ui.theme.*
 import kotlinx.coroutines.launch
 
-// ✅ 조치 데이터 모델 추가
+// ✅ 조치 데이터 모델
 data class ActionWorkerData(
     val actionType: String,
     val title: String,
@@ -67,7 +67,7 @@ fun ActionDetailWorkerScreen(
     var content by remember { mutableStateOf(dummyData.content) }
     var attachedPhotos by remember { mutableStateOf<List<String>>(emptyList()) }
     
-    // 작성 완료 다이얼로그 상태 추가
+    // 작성 완료 다이얼로그 상태
     var showActionCompletedDialog by remember { mutableStateOf(false) }
     
     // 스크롤 상태 관리
@@ -377,6 +377,7 @@ fun ActionDetailWorkerScreen(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier.padding(end = 12.dp)
                                         ) {
+                                            // ✅ 선택된 아이콘 제거 완료
                                             Icon(
                                                 painter = painterResource(id = R.drawable.dropbox),
                                                 contentDescription = null,
@@ -449,7 +450,7 @@ fun ActionDetailWorkerScreen(
                                 .padding(horizontal = 8.dp)
                                 .height(60.dp),
                             shape = RoundedCornerShape(8.dp),
-                            textStyle = TextStyle(fontSize = 18.sp, fontFamily = Pretendard, color = inputTextColor),
+                            textStyle = TextStyle(fontSize = 16.sp, fontFamily = Pretendard, color = inputTextColor),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
                                 unfocusedBorderColor = borderColor,
                                 focusedBorderColor = MainOrange,
@@ -476,7 +477,7 @@ fun ActionDetailWorkerScreen(
                                 .height(120.dp)
                                 .padding(horizontal = 8.dp),
                             shape = RoundedCornerShape(8.dp),
-                            textStyle = TextStyle(fontSize = 18.sp, fontFamily = Pretendard, color = inputTextColor),
+                            textStyle = TextStyle(fontSize = 16.sp, fontFamily = Pretendard, color = inputTextColor),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
                                 unfocusedBorderColor = borderColor,
                                 focusedBorderColor = MainOrange,
@@ -556,7 +557,6 @@ fun ActionDetailWorkerScreen(
 
                         Button(
                             onClick = { 
-                                // ✅ 작성 완료 버튼 클릭 시 다이얼로그 표시
                                 showActionCompletedDialog = true 
                             },
                             modifier = Modifier.fillMaxWidth().height(52.dp)
@@ -582,7 +582,6 @@ fun ActionDetailWorkerScreen(
             }
         }
 
-        // ✅ 작성 완료 다이얼로그 호출
         if (showActionCompletedDialog) {
             ActionCompletedDialog(
                 onDismiss = { showActionCompletedDialog = false },
