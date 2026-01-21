@@ -111,6 +111,14 @@
                         android:layout_marginTop="24dp"
                         android:overScrollMode="never" />
 
+                    <!-- 구분선 추가 -->
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="40dp"
+                        android:layout_marginBottom="40dp"
+                        android:background="@color/gray100_gray950" />
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
