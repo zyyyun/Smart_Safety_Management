@@ -35,8 +35,14 @@ class LogInActivity : AppCompatActivity() {
         // 로그인 버튼
         val loginBtn = findViewById<Button>(R.id.log_in_button)
         loginBtn.setOnClickListener {
-            val intent = Intent(this, HomeActivity::class.java)
+            // 전역 변수 UserSession에서 역할 확인
+            val intent = if (UserSession.userRole == UserRole.MANAGER) {
+                Intent(this, HomeActivity::class.java)
+            } else {
+                Intent(this, HomeWorkerActivity::class.java)
+            }
             startActivity(intent)
+            finish()
         }
     }
 }

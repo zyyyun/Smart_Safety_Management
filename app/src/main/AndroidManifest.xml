@@ -61,6 +61,7 @@
 
         <!-- 메인 홈 화면 -->
         <activity android:name=".HomeActivity"/>
+        <activity android:name=".HomeWorkerActivity"/>
 
         <!-- 월별로 보기 화면 -->
         <activity
