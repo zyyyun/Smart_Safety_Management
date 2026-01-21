@@ -108,7 +108,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                    .padding(horizontal = 16.dp, vertical = 24.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 Text(

@@ -114,13 +114,13 @@ fun DailyListWorkerScreen(onComplete: () -> Unit = {}) {
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = date,
                     onValueChange = { date = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                     shape = RoundedCornerShape(8.dp),
                     textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fieldTextColor),
                     trailingIcon = {
@@ -147,7 +147,7 @@ fun DailyListWorkerScreen(onComplete: () -> Unit = {}) {
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
@@ -156,7 +156,7 @@ fun DailyListWorkerScreen(onComplete: () -> Unit = {}) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp)
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 4.dp),
                     shape = RoundedCornerShape(8.dp),
                     placeholder={
                         Text (
@@ -183,7 +183,7 @@ fun DailyListWorkerScreen(onComplete: () -> Unit = {}) {
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -195,7 +195,7 @@ fun DailyListWorkerScreen(onComplete: () -> Unit = {}) {
                 ) {
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 8.dp)
+                            .padding(horizontal = 4.dp)
                             .size(120.dp)
                             .background(fieldBgColor, shape = RoundedCornerShape(8.dp))
                             .clickable {
