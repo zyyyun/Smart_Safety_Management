@@ -74,16 +74,22 @@ class SettingActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        // 초대코드 입력 성공 여부 확인 및 UI 처리
+        // 초대코드 입력 여부 확인 및 UI 처리
+        checkInviteCodeVisibility()
+    }
+    override fun onResume() {
+        super.onResume()
+        // 다른 화면에서 돌아왔을 때 UI를 다시 확인하여 갱신
         checkInviteCodeVisibility()
     }
 
     private fun checkInviteCodeVisibility() {
-        val prefs = getSharedPreferences("onboarding_prefs", Context.MODE_PRIVATE)
-        // '성공' 했을 때만 안 뜨게 변경
-        val isInviteSuccess = prefs.getBoolean("invite_code_success", false)
-
-        if (isInviteSuccess) {
+        val isSuccess = if (UserSession.userRole == UserRole.MANAGER) {
+            UserSession.isInviteSuccessManager
+        } else {
+            UserSession.isInviteSuccessWorker
+        }
+        if (isSuccess) {
             findViewById<LinearLayout>(R.id.item_enter_invite_code).visibility = View.GONE
         } else {
             findViewById<LinearLayout>(R.id.item_enter_invite_code).visibility = View.VISIBLE
