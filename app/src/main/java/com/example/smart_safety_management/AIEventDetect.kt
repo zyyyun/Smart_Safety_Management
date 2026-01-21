@@ -41,7 +41,7 @@ data class EventData(
     val accidentType: String,
     val location: String,
     val content: String,
-    val occurrenceTime: String = "",
+    val occurrenceTime: String = "", // 발생 시간이지만 일단 스트링으로 더미 데이터 추가,
     val deviceName: String = "",
     val accuracy: String = ""
 )
@@ -59,16 +59,16 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
     var selectedFilter by remember { mutableStateOf("전체") }
 
     val allPendingEvents = listOf(
-        EventData(accidentType = "위험", location = "C구역 2열", content = "화재사고가 감지되었습니다."),
-        EventData(accidentType = "경고", location = "C구역 2열", content = "쓰러짐이 감지되었습니다."),
-        EventData(accidentType = "주의", location = "C구역 2열", content = "이동경로 미정돈이 감지되었습니다.")
+        EventData(accidentType = "위험", location = "C구역 2열", content = "화재사고가 감지되었습니다.","지금"),
+        EventData(accidentType = "경고", location = "C구역 2열", content = "쓰러짐이 감지되었습니다.","1분 전"),
+        EventData(accidentType = "주의", location = "C구역 2열", content = "이동경로 미정돈이 감지되었습니다.","3분 전")
     )
     val allCompletedEvents = listOf(
-        EventData(accidentType = "주의", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다."),
-        EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.")
+        EventData(accidentType = "주의", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.","1분 전"),
+        EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.","1분 전")
     )
     val allFalseDetectionEvents = listOf(
-        EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.")
+        EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.","1분 전")
     )
 
     val allEvents = allPendingEvents + allCompletedEvents + allFalseDetectionEvents
@@ -220,6 +220,14 @@ fun EventItem(event: EventData, status: EventStatus, onEventClick: (EventData) -
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(text = event.content, color = textColor, fontWeight = FontWeight.Normal, fontSize = 14.sp)
             }
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = event.occurrenceTime,
+                fontSize = 12.sp,
+                fontFamily = Pretendard,
+                color = textColor,
+                modifier = Modifier.offset( x = (12).dp, y = (-23).dp)
+            )
         }
     }
 }
