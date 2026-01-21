@@ -119,6 +119,8 @@
                         android:layout_marginBottom="40dp"
                         android:background="@color/gray100_gray950" />
 
+                    <include layout="@layout/view_emergecy_contact"/>
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
