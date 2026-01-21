@@ -103,12 +103,13 @@
                         android:textColor="@color/gray900_gray50"
                         android:letterSpacing="0"/>
 
-                    <!-- 하단까지 채우기 위한 스페이서 -->
-                    <View
-                        android:id="@+id/rv_spacer"
+                    <!-- AI 이벤트 감지 리스트 -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rv_worker_event"
                         android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1" />
+                        android:layout_height="293dp"
+                        android:layout_marginTop="24dp"
+                        android:overScrollMode="never" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

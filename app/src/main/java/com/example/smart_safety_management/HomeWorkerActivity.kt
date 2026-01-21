@@ -9,7 +9,6 @@ import androidx.core.widget.NestedScrollView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.util.Calendar
-import android.graphics.Color
 import android.content.Intent
 import android.graphics.Paint
 import android.text.Spannable
@@ -20,7 +19,6 @@ import android.widget.EditText
 import android.widget.ImageButton
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
-import kotlin.math.abs
 
 private val dailyCheckMap = mapOf(
     20 to listOf(
@@ -48,6 +46,7 @@ private val dailyCheckMap = mapOf(
 class HomeWorkerActivity : AppCompatActivity() {
 
     private lateinit var dailyAdapter: DailyCheckAdapter
+    private lateinit var eventAdapter: WorkerEventAdapter
     private var selectedDay: Int? = null
     private var isInviteDialogShowing = false
 
@@ -78,10 +77,17 @@ class HomeWorkerActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingActivity::class.java))
         }
 
-        val rv = findViewById<RecyclerView>(R.id.rv_daily_check)
-        rv.layoutManager = LinearLayoutManager(this)
+        // 일일안전점검 리스트 초기화
+        val rvDaily = findViewById<RecyclerView>(R.id.rv_daily_check)
+        rvDaily.layoutManager = LinearLayoutManager(this)
         dailyAdapter = DailyCheckAdapter(emptyList())
-        rv.adapter = dailyAdapter
+        rvDaily.adapter = dailyAdapter
+
+        // 조치요청 리스트 초기화
+        val rvEvent = findViewById<RecyclerView>(R.id.rv_worker_event)
+        rvEvent.layoutManager = LinearLayoutManager(this)
+        eventAdapter = WorkerEventAdapter(getSampleEvents())
+        rvEvent.adapter = eventAdapter
 
         selectedDay = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
         dailyAdapter.initTooltip()
@@ -96,6 +102,18 @@ class HomeWorkerActivity : AppCompatActivity() {
         )
 
         updateDailyCheckList(selectedDay)
+    }
+
+    private fun getSampleEvents(): List<Pair<EventData, EventStatus>> {
+        return listOf(
+            EventData(accidentType = "위험", location = "C구역 2열", content = "화재사고가 감지되었습니다.") to EventStatus.PENDING,
+            EventData(accidentType = "경고", location = "C구역 2열", content = "쓰러짐이 감지되었습니다.") to EventStatus.PENDING,
+            EventData(accidentType = "주의", location = "C구역 2열", content = "이동경로 미정돈이 감지되었습니다.") to EventStatus.PENDING,
+            // 조치완료 및 오탐처리 추가
+            EventData(accidentType = "주의", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.") to EventStatus.COMPLETED,
+            EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.") to EventStatus.COMPLETED
+            //EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.") to EventStatus.FALSE_DETECTION
+        )
     }
 
     private fun updateWorkerDay() {
@@ -163,7 +181,6 @@ class HomeWorkerActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeDialog() {
-        // 근로자용 플래그 확인
         if (!UserSession.isInviteDoneWorker) showInviteCodeDialog()
     }
 

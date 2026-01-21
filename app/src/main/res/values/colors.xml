@@ -19,9 +19,13 @@
 
     <!-- red -->
     <color name="red500">#EF4444</color>
+    <color name="red500alpha12_red500alpha36">#1FEF4444</color>
     
     <!-- blue -->
     <color name="blue500">#3B82F6</color>"
+    
+    <!-- amber -->
+    <color name="amber500alpha12_amber500alpha36">#1FFFB114</color>"
 
     <!-- gray -->
     <color name="base">#FFFFFF</color>
@@ -42,6 +46,7 @@
     <color name="gray500_gray650">#B1B8BE</color>
     <color name="gray600">#6D7882</color>
     <color name="gray700">#58616A</color>
+    <color name="gray700_gray200">#58616A</color>
     <color name="gray700_gray400">#58616A</color>
     <color name="gray800_gray200">#33363D</color>
     <color name="gray900">#131416</color>
