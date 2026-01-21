@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -15,6 +17,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.ui.theme.*
+import androidx.compose.ui.graphics.StrokeCap
 
 // ✅ 라이브 상태 인디케이터 (상단용)
 @Composable
@@ -80,19 +83,17 @@ fun LivePlaybackController(
             )
         }
 
-        // 2. 중앙: 재생바 (Slider) - 너비를 유연하게 조절
-        Slider(
-            value = sliderPosition,
-            onValueChange = onSliderValueChange,
-            colors = SliderDefaults.colors(
-                activeTrackColor = MainOrange,
-                inactiveTrackColor = Color.White,
-                thumbColor = Color.Transparent,
-                disabledThumbColor = Color.Transparent
-            ),
-            modifier = Modifier.weight(1f)
+        LinearProgressIndicator(
+            progress = { sliderPosition },
+            modifier = Modifier
+                .weight(1f)          // 👈 핵심: 남은 공간만 차지하도록 설정
+                .height(4.dp)
+                .padding(horizontal = 8.dp) // 아이콘들과의 간격 추가
+                .alpha(0.6f),
+            color = MainOrange,
+            trackColor = Color.White,
+            strokeCap = StrokeCap.Round
         )
-
         // 3. 오른쪽: 재생 시간
         Text(
             text = timeText,
@@ -112,7 +113,6 @@ fun LivePlaybackController(
                 tint = Color.White
             )
         }
-
         // 5. 오른쪽: 전체화면 버튼
         IconButton(
             onClick = onFullscreenClick,
