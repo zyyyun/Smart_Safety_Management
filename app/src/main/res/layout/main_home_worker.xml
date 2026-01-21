@@ -94,6 +94,15 @@
                         android:layout_marginBottom="40dp"
                         android:background="@color/gray100_gray950" />
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="조치요청"
+                        android:fontFamily="@font/pretendard_semibold"
+                        android:textSize="18dp"
+                        android:textColor="@color/gray900_gray50"
+                        android:letterSpacing="0"/>
+
                     <!-- 하단까지 채우기 위한 스페이서 -->
                     <View
                         android:id="@+id/rv_spacer"
