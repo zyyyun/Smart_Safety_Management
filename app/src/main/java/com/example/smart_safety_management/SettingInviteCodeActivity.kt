@@ -51,12 +51,19 @@ class SettingInviteCodeActivity : AppCompatActivity() {
         // 입력하기 버튼 클릭 시
         btnSubmit.setOnClickListener {
             val inputCode = etInviteCode.text.toString().trim()
-            
+
+            // SettingInviteCodeActivity.kt 내부의 성공 로직
             if (inputCode == "1234") {
-                // 초대코드 일치 시 저장
-                saveInviteSuccess()
-                Toast.makeText(this, "초대코드가 확인되었습니다.", Toast.LENGTH_SHORT).show()
-                finish() // 이전 화면으로 돌아감
+                // 현재 역할에 맞춰 성공 상태 업데이트
+                if (UserSession.userRole == UserRole.MANAGER) {
+                    UserSession.isInviteDoneManager = true
+                    UserSession.isInviteSuccessManager = true
+                } else {
+                    UserSession.isInviteDoneWorker = true
+                    UserSession.isInviteSuccessWorker = true
+                }
+                Toast.makeText(this, "초대 코드가 등록되었습니다.", Toast.LENGTH_SHORT).show()
+                finish() // 설정 메인으로 돌아가면 checkInviteCodeVisibility에 의해 메뉴가 사라짐
             } else {
                 // 일치하지 않을 때 (필요시 에러 처리 추가)
                 Toast.makeText(this, "잘못된 초대코드입니다.", Toast.LENGTH_SHORT).show()

@@ -17,27 +17,32 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.ui.theme.*
 
-// ✅ 카메라 데이터 모델
+// ✅ 카메라 데이터 모델 (이미지 리소스 변수 추가)
 data class CCTVCameraData(
     val id: String,
     val name: String,
     val location: String,
     val events: List<String>,
-    val image: Int
+    val image: Int // PNG 혹은 벡터 이미지 리소스 ID
 )
 
-// ✅ 카메라 더미 데이터 리스트
+// ✅ 카메라 더미 데이터 리스트 (각 ID에 맞게 이미지 할당)
 val mockCCTVList = listOf(
     CCTVCameraData("1", "CAM01", "A구역 1열", listOf("안전모 미착용", "운반사고", "통로사고"), R.drawable.cctvcam1),
     CCTVCameraData("2", "CAM02", "B구역 3열", listOf("협착사고", "운반사고", "쓰러짐", "통로사고"), R.drawable.cctvcam2),
@@ -65,14 +70,15 @@ enum class CCTVEventType(val label: String) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CCTVManagementScreen(
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    onCameraClick: (CCTVCameraData) -> Unit = {} // ✅ 카메라 클릭 콜백 추가
 ) {
     Smart_Safety_ManagementTheme {
         val isLight = MaterialTheme.colors.isLight
         val editColor = TextMedium
         val titleColor = if (isLight) Color.Black else TextGray5
         val dividerColor = if (isLight) Lightgray else GrayBackground
-        val frameDividerColor = if (isLight) TextGray5 else TextGray20
+        val frameDividerColor =  if (isLight) TextGray5 else TextGray20
 
         // ✅ 상태 관리
         var isEditMode by remember { mutableStateOf(false) }
@@ -80,17 +86,12 @@ fun CCTVManagementScreen(
         val selectedEvents = remember { mutableStateListOf<String>("전체") }
         val selectedCameras = remember { mutableStateListOf<String>() }
 
-        // ✅ 설치 구역 + 감지 이벤트 통합 필터링 로직
         val filteredCCTVList = remember(selectedEvents.toList(), selectedArea) {
             mockCCTVList.filter { camera ->
-                // 1. 구역 필터링
                 val matchesArea = if (selectedArea == "전체 구역") true 
                                  else camera.location.contains(selectedArea.split(" ")[0])
-
-                // 2. 이벤트 필터링
                 val matchesEvent = if (selectedEvents.contains("전체")) true
                                   else camera.events.any { it in selectedEvents }
-
                 matchesArea && matchesEvent
             }
         }
@@ -101,7 +102,7 @@ fun CCTVManagementScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = "CCTV 관리",
+                            text = if (isEditMode) "편집" else "CCTV 관리", 
                             fontWeight = FontWeight.Bold,
                             color = titleColor,
                             fontFamily = Pretendard,
@@ -110,7 +111,14 @@ fun CCTVManagementScreen(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBackClick) {
+                        IconButton(onClick = {
+                            if (isEditMode) {
+                                isEditMode = false 
+                                selectedCameras.clear()
+                            } else {
+                                onBackClick() 
+                            }
+                        }) {
                             Icon(
                                 painter = painterResource(id = R.drawable.backicon),
                                 contentDescription = "Back",
@@ -119,17 +127,16 @@ fun CCTVManagementScreen(
                         }
                     },
                     actions = {
-                        TextButton(onClick = { 
-                            isEditMode = !isEditMode 
-                            if (!isEditMode) selectedCameras.clear()
-                        }) {
-                            Text(
-                                text = if (isEditMode) "완료" else "편집",
-                                color = if (isEditMode) MainOrange else editColor,
-                                fontFamily = Pretendard,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                        if (!isEditMode) {
+                            TextButton(onClick = { isEditMode = true }) {
+                                Text(
+                                    text = "편집",
+                                    color = editColor,
+                                    fontFamily = Pretendard,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     },
                     backgroundColor = MaterialTheme.colors.onPrimary,
@@ -142,16 +149,19 @@ fun CCTVManagementScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(top = 24.dp, start = 24.dp, end = 24.dp, bottom = 36.dp)
+                    .padding(top = 24.dp, bottom = 36.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                // ✅ 편집 모드가 아닐 때만 필터 설정 표시
                 AnimatedVisibility(
                     visible = !isEditMode,
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(24.dp),
+                        modifier = Modifier.padding(horizontal = 24.dp).graphicsLayer(clip = false),
+
+                    ) {
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             LabelText("설치구역")
                             CCTVCustomDropdown(
@@ -161,8 +171,26 @@ fun CCTVManagementScreen(
                                 isLight = isLight
                             )
                         }
-                        
-                        Divider(color = dividerColor, thickness = 1.dp)
+
+                        Divider(
+                            color = dividerColor,
+                            thickness = 1.dp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .layout { measurable, constraints ->
+                                    val paddingPx = 24.dp.roundToPx()
+                                    val expandedWidth = constraints.maxWidth + (paddingPx * 2)
+                                    val placeable = measurable.measure(
+                                        constraints.copy(
+                                            minWidth = expandedWidth,
+                                            maxWidth = expandedWidth
+                                        )
+                                    )
+                                    layout(constraints.maxWidth, placeable.height) {
+                                        placeable.place(-paddingPx, 0)
+                                    }
+                                }
+                        )
 
                         LabelText("감지 이벤트")
 
@@ -196,21 +224,51 @@ fun CCTVManagementScreen(
                         Divider(color = dividerColor, thickness = 1.dp)
                     }
                 }
-                
-                // ✅ 편집 모드일 때 나타나는 액션 바
+
                 if (isEditMode) {
-                    EditModeActionBar(
-                        isLight = isLight,
-                        onSelectAll = {
-                            selectedCameras.clear()
-                            selectedCameras.addAll(filteredCCTVList.map { it.id })
+                    val isAllSelected = filteredCCTVList.isNotEmpty() && selectedCameras.size == filteredCCTVList.size
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colors.onPrimary)
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
+                            EditModeActionBar(
+                                isLight = isLight,
+                                isAllSelected = isAllSelected,
+                                onSelectAll = { checked ->
+                                    selectedCameras.clear()
+                                    if (checked) {
+                                        selectedCameras.addAll(filteredCCTVList.map { it.id })
+                                    }
+                                },
+                                onAddClick = { /* 카메라 추가 로직 */ },
+                                onDeleteClick = { /* 선택 삭제 로직 */ }
+                            )
                         }
-                    )
+
+                        Divider(color = dividerColor, thickness = 1.dp)
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(10.dp)
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Black.copy(alpha = 0.05f),
+                                            Color.Transparent
+                                        )
+                                    )
+                                )
+                        )
+                    }
                 }
 
-                LabelText("카메라 목록")
-                
-                Column {
+                LabelText("카메라 목록", modifier = Modifier.padding(horizontal = 24.dp))
+
+                Column(modifier = Modifier.padding(horizontal = 24.dp)) {
                     filteredCCTVList.forEachIndexed { index, camera ->
                         CamFrame(
                             camera = camera,
@@ -219,9 +277,10 @@ fun CCTVManagementScreen(
                             onSelect = { isSelected ->
                                 if (isSelected) selectedCameras.add(camera.id)
                                 else selectedCameras.remove(camera.id)
-                            }
+                            },
+                            onCameraClick = { onCameraClick(camera) } // ✅ 상세 페이지 이동 리스너 전달
                         )
-                        
+
                         if (index < filteredCCTVList.size - 1) {
                             Divider(
                                 color = frameDividerColor,
@@ -229,15 +288,6 @@ fun CCTVManagementScreen(
                                 modifier = Modifier.padding(vertical = 24.dp)
                             )
                         }
-                    }
-                    if (filteredCCTVList.isEmpty()) {
-                        Text(
-                            text = "해당하는 카메라가 없습니다.",
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            color = editColor,
-                            fontFamily = Pretendard
-                        )
                     }
                 }
             }
@@ -251,7 +301,8 @@ fun CamFrame(
     camera: CCTVCameraData,
     isEditMode: Boolean,
     isSelected: Boolean,
-    onSelect: (Boolean) -> Unit
+    onSelect: (Boolean) -> Unit,
+    onCameraClick: () -> Unit = {} // ✅ 콜백 추가
 ) {
     val isLight = MaterialTheme.colors.isLight
     val buttonColor = if (isLight) TextGray else TextGray60
@@ -260,14 +311,15 @@ fun CamFrame(
     val frameBgColor = if (isLight) TextGray5 else TextGray20
 
     Row(
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
         modifier = Modifier.fillMaxWidth().graphicsLayer(clip = false)
     ) {
         if (isEditMode) {
             Checkbox(
                 checked = isSelected,
                 onCheckedChange = onSelect,
-                colors = CheckboxDefaults.colors(checkedColor = MainOrange)
+                colors = CheckboxDefaults.colors(checkedColor = MainOrange),
+                modifier = Modifier.offset(y = (-12).dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
         }
@@ -275,15 +327,17 @@ fun CamFrame(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .height(157.dp)
+                .height(133.dp)
                 .background(color = MaterialTheme.colors.onPrimary, shape = RoundedCornerShape(12.dp))
                 .graphicsLayer(clip = false)
-                .clickable { if (isEditMode) onSelect(!isSelected) }
+                .clickable { 
+                    if (isEditMode) onSelect(!isSelected) 
+                    else onCameraClick() // ✅ 편집 모드가 아닐 때 상세 화면 이동
+                }
         ) {
             Row(
                 modifier = Modifier.fillMaxSize().graphicsLayer(clip = false)
             ) {
-                // 왼쪽: 이미지 박스 (100x100, 12dp 라운드 적용, 패딩 없이 모서리 밀착)
                 Image(
                     painter = painterResource(id = camera.image),
                     contentDescription = null,
@@ -293,12 +347,11 @@ fun CamFrame(
                     contentScale = ContentScale.Crop
                 )
 
-                // 오른쪽: 정보 영역 (start 패딩 16.dp만 적용)
                 Column(
                     modifier = Modifier
                         .fillMaxHeight()
                         .weight(1f)
-                        .padding(start = 16.dp),
+                        .padding(start = 16.dp, top = 0.dp),
                     verticalArrangement = Arrangement.Top
                 ) {
                     Row(
@@ -306,8 +359,7 @@ fun CamFrame(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
-                        Column {
-                            // 카메라 이름
+                        Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.cctvcam),
@@ -325,7 +377,6 @@ fun CamFrame(
                                 )
                             }
                             Spacer(modifier = Modifier.height(6.dp))
-                            // 위치 정보
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.cctvlocation),
@@ -341,7 +392,6 @@ fun CamFrame(
                                 )
                             }
 
-                            // ✅ 감지 이벤트 라벨 및 목록 (위치 텍스트 아래 16dp 간격)
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = "감지 이벤트",
@@ -350,7 +400,7 @@ fun CamFrame(
                                 fontFamily = Pretendard
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            
+
                             FlowRow(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -371,9 +421,11 @@ fun CamFrame(
                         if (!isEditMode) {
                             Icon(
                                 painter = painterResource(id = R.drawable.option),
-                                contentDescription = null,
+                                contentDescription = "Option",
                                 tint = buttonColor,
-                                modifier = Modifier.offset(x = (-5).dp, y = 3.dp)
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .padding(top = 4.dp, end = 4.dp)
                             )
                         }
                     }
@@ -384,7 +436,13 @@ fun CamFrame(
 }
 
 @Composable
-fun EditModeActionBar(isLight: Boolean, onSelectAll: () -> Unit) {
+fun EditModeActionBar(
+    isLight: Boolean,
+    isAllSelected: Boolean,
+    onSelectAll: (Boolean) -> Unit,
+    onAddClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -393,15 +451,14 @@ fun EditModeActionBar(isLight: Boolean, onSelectAll: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(
-            modifier = Modifier.clickable { onSelectAll() },
+            modifier = Modifier.clickable { onSelectAll(!isAllSelected) },
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .background(Color.Transparent, RoundedCornerShape(4.dp))
+            Checkbox(
+                checked = isAllSelected,
+                onCheckedChange = onSelectAll,
+                colors = CheckboxDefaults.colors(checkedColor = MainOrange)
             )
-            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = "전체 선택",
                 fontFamily = Pretendard,
@@ -410,14 +467,30 @@ fun EditModeActionBar(isLight: Boolean, onSelectAll: () -> Unit) {
             )
         }
 
-        Button(
-            onClick = { /* 삭제 로직 */ },
-            colors = ButtonDefaults.buttonColors(backgroundColor = StatusRed),
-            shape = RoundedCornerShape(8.dp),
-            elevation = ButtonDefaults.elevation(0.dp, 0.dp),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "삭제", color = Color.White, fontFamily = Pretendard, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = "카메라 추가",
+                modifier = Modifier.clickable { onAddClick() },
+                fontFamily = Pretendard,
+                fontSize = 16.sp,
+                color = MainOrange,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "  |  ",
+                color = if (isLight) GrayBorder else TextDark,
+                fontSize = 14.sp
+            )
+            Text(
+                text = "선택 삭제",
+                modifier = Modifier.clickable { onDeleteClick() },
+                fontFamily = Pretendard,
+                fontSize = 16.sp,
+                color = MainOrange,
+                fontWeight = FontWeight.SemiBold
+            )
         }
     }
 }
@@ -484,11 +557,12 @@ fun CCTVCustomDropdown(
 }
 
 @Composable
-fun LabelText(text: String) {
+fun LabelText(text: String, modifier: Modifier = Modifier) {
     val isLight = MaterialTheme.colors.isLight
     val color = if (isLight) TextGray60 else TextGray
     Text(
         text = text,
+        modifier = modifier,
         fontFamily = Pretendard,
         color = color,
         fontSize = 16.sp,

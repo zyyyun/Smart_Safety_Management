@@ -29,13 +29,6 @@ import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import kotlin.math.abs
-import android.content.Context
-import com.example.smart_safety_management.screens.location.LocationActivity
-import com.example.smart_safety_management.screens.realtime.RealTimeActivity
-
-private const val PREF_NAME = "onboarding_prefs"
-private const val KEY_INVITE_DONE = "invite_code_done"
-private const val KEY_INVITE_SUCCESS = "invite_code_success"
 
 private val dailyCheckMap = mapOf(
     7 to listOf(
@@ -64,19 +57,17 @@ class HomeActivity : AppCompatActivity() {
 
     private lateinit var dailyAdapter: DailyCheckAdapter
     private var selectedDay: Int? = null
-
     private var isInviteDialogShowing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_home)
 
-        // 저장된 이름 불러오기
-        loadUserName()
+        initUI()
+    }
 
-        // 테스트를 위해 초기 상태가 필요하다면 아래 주석을 한 번만 풀고 실행했다가 다시 주석처리하세요.
-        // resetInviteForTest()
-        
+    private fun initUI() {
+        updateProfileName()
         checkInviteCodeDialog()
 
         val topBar = findViewById<View>(R.id.top_bar)
@@ -84,22 +75,22 @@ class HomeActivity : AppCompatActivity() {
         val alarmDot = findViewById<View>(R.id.view_alarm_dot)
         val btnSetting = topBar.findViewById<ImageButton>(R.id.btn_setting)
 
-        val hasUnreadNotice = true
-        alarmDot.visibility = if (hasUnreadNotice) View.VISIBLE else View.GONE
+        alarmDot.visibility = if (true) View.VISIBLE else View.GONE 
 
         btnAlarm.setOnClickListener {
-            val intent = Intent(this, NoticeActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, NoticeActivity::class.java))
         }
 
         btnSetting.setOnClickListener {
-            val intent = Intent(this, SettingActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, SettingActivity::class.java))
         }
 
         findViewById<View>(R.id.layout_monthly_action).setOnClickListener {
-            val intent = Intent(this, MonthlyListActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, MonthlyListActivity::class.java))
+        }
+
+        findViewById<View>(R.id.btn_add).setOnClickListener {
+            startActivity(Intent(this, DailyListActivity::class.java))
         }
 
         val rv = findViewById<RecyclerView>(R.id.rv_daily_check)
@@ -107,13 +98,10 @@ class HomeActivity : AppCompatActivity() {
         dailyAdapter = DailyCheckAdapter(emptyList())
         rv.adapter = dailyAdapter
 
-        // 홈 화면 진입 시 실제 날짜와 가장 가까운 미점검 항목이 있는 날짜를 찾아서 선택합니다.
         selectedDay = findClosestUncheckedDay()
-
         dailyAdapter.initTooltip()
 
         val scroll = findViewById<NestedScrollView>(R.id.home_scroll)
-
         scroll.setOnScrollChangeListener(
             NestedScrollView.OnScrollChangeListener { _, scrollX, scrollY, oldX, oldY ->
                 if (scrollX != oldX || scrollY != oldY) {
@@ -122,45 +110,32 @@ class HomeActivity : AppCompatActivity() {
             }
         )
 
-        findViewById<View>(R.id.btn_add).setOnClickListener {
-            val intent = Intent(this, DailyListActivity::class.java)
-            startActivity(intent)
-        }
-
         fillCalendarReal()
-        // 초기 선택된 날짜에 맞는 리스트를 표시합니다.
         updateDailyCheckList(selectedDay)
+        setupBottomNavigation()
+    }
 
-        // 하단바 설정
+    private fun setupBottomNavigation() {
         val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)
-        bottomNav.selectedItemId = R.id.nav_home // 현재 홈 화면이므로 홈 아이콘 활성화
+        bottomNav.selectedItemId = R.id.nav_home
 
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_home -> {
-                    // 이미 홈 화면이므로 아무것도 하지 않음
-                    true
-                }
+                R.id.nav_home -> true
                 R.id.nav_ai -> {
-                    // AI감지 화면으로 이동
-                    val intent = Intent(this, AIEventActivity::class.java)
-                    startActivity(intent)
+                    startActivity(Intent(this, AIEventActivity::class.java))
                     true
                 }
                 R.id.nav_live -> {
-                    // 실시간 상황 화면으로 이동
-                     startActivity(Intent(this, RealTimeActivity::class.java))
+                    Toast.makeText(this, "실시간 상황 화면으로 이동", Toast.LENGTH_SHORT).show()
                     true
                 }
                 R.id.nav_history -> {
-                    // 이력 화면으로 이동
-                    val intent = Intent(this, HistoryActivity::class.java)
-                    startActivity(intent)
+                    startActivity(Intent(this, HistoryActivity::class.java))
                     true
                 }
                 R.id.nav_location -> {
-                    // 위치 정보 화면으로 이동
-                     startActivity(Intent(this, LocationActivity::class.java))
+                    Toast.makeText(this, "위치 정보 화면으로 이동", Toast.LENGTH_SHORT).show()
                     true
                 }
                 else -> false
@@ -170,37 +145,25 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // 설정에서 이름을 변경하고 돌아왔을 때 반영되도록 함
-        loadUserName()
+        updateProfileName()
     }
 
-    private fun loadUserName() {
-        val sharedPref = getSharedPreferences(PREF_USER_NAME, Context.MODE_PRIVATE)
-        val userName = sharedPref.getString(KEY_USER_NAME, "안정우")
+    private fun updateProfileName() {
         val profileBar = findViewById<View>(R.id.profile_bar)
-        profileBar.findViewById<TextView>(R.id.tv_user_name).text = userName
+        profileBar.findViewById<TextView>(R.id.tv_user_name).text = UserSession.userName
     }
 
-    /**
-     * 오늘 날짜 기준으로 미점검 항목이 있는 날 중 가장 가까운 날짜를 반환합니다.
-     */
     private fun findClosestUncheckedDay(): Int? {
         val today = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
-        
-        // 미점검 항목이 있는 날짜들만 필터링
         val uncheckedDays = dailyCheckMap.filter { entry ->
             entry.value.any { it.status == "미점검" }
         }.keys
-
-        if (uncheckedDays.isEmpty()) return today // 미점검이 없으면 오늘 날짜 반환
-
-        // 오늘과 가장 가까운 날짜 찾기 (절대값 기준)
+        if (uncheckedDays.isEmpty()) return today
         return uncheckedDays.minByOrNull { abs(it - today) }
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
         if (ev?.action == MotionEvent.ACTION_DOWN) {
-            // 터치 시 툴팁을 제거
             dailyAdapter.dismissTooltip()
         }
         return super.dispatchTouchEvent(ev)
@@ -216,8 +179,8 @@ class HomeActivity : AppCompatActivity() {
         val progressText = "$uncheckedCount/$totalCount"
         val spannable = SpannableString(progressText)
 
-        val orangeColor = ContextCompat.getColor(this, R.color.orange500) // 미점검 개수
-        val grayColor = ContextCompat.getColor(this, R.color.gray600) // 전체 개수
+        val orangeColor = ContextCompat.getColor(this, R.color.orange500)
+        val grayColor = ContextCompat.getColor(this, R.color.gray600)
         
         val separatorIndex = progressText.indexOf("/")
         
@@ -254,12 +217,8 @@ class HomeActivity : AppCompatActivity() {
         val tvMonth = findViewById<TextView>(R.id.tv_month)
 
         grid.removeAllViews()
-
         val calendar = Calendar.getInstance()
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH)
-
-        tvMonth.text = "${year}년 ${month + 1}월"
+        tvMonth.text = "${calendar.get(Calendar.YEAR)}년 ${calendar.get(Calendar.MONTH) + 1}월"
         calendar.set(Calendar.DAY_OF_MONTH, 1)
 
         val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
@@ -270,17 +229,13 @@ class HomeActivity : AppCompatActivity() {
         val prevMaxDay = prevCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
 
         for (i in 1 until firstDayOfWeek) {
-            val prevDay = prevMaxDay - (firstDayOfWeek - 1 - i)
-            addCalendarDay(grid, prevDay, false)
+            addCalendarDay(grid, prevMaxDay - (firstDayOfWeek - 1 - i), false)
         }
-
         for (day in 1..daysInMonth) {
             addCalendarDay(grid, day, true)
         }
-
         val totalCells = (firstDayOfWeek - 1) + daysInMonth
-        val nextDaysToShow = (7 - (totalCells % 7)) % 7
-        for (day in 1..nextDaysToShow) {
+        for (day in 1..((7 - (totalCells % 7)) % 7)) {
             addCalendarDay(grid, day, false)
         }
     }
@@ -317,13 +272,13 @@ class HomeActivity : AppCompatActivity() {
         }
 
         if (isCurrentMonth) {
-            tv.setTextColor(Color.parseColor("#58616A"))
+            tv.setTextColor(ContextCompat.getColor(this, R.color.gray700_gray400))
             if (day == selectedDay) {
-                tv.background = circleDrawable("#FF5722")
-                tv.setTextColor(Color.WHITE)
+                tv.background = circleDrawable(ContextCompat.getColor(this, R.color.orange500))
+                tv.setTextColor(ContextCompat.getColor(this, R.color.white_black))
             }
         } else {
-            tv.setTextColor(Color.parseColor("#BEC5CC"))
+            tv.setTextColor(ContextCompat.getColor(this, R.color.gray200_gray800))
         }
 
         val alarmDot = if (isCurrentMonth) {
@@ -331,16 +286,12 @@ class HomeActivity : AppCompatActivity() {
                 setImageResource(R.drawable.ellipse_alram)
                 visibility = if (hasUncheckedItem(day)) View.VISIBLE else View.INVISIBLE
                 val size = (resources.displayMetrics.density * 6).toInt()
-                layoutParams = LinearLayout.LayoutParams(size, size).apply {
-                    topMargin = (resources.displayMetrics.density * 4).toInt()
-                }
+                layoutParams = LinearLayout.LayoutParams(size, size).apply { topMargin = (resources.displayMetrics.density * 4).toInt() }
             }
         } else {
             View(this).apply {
                 val size = (resources.displayMetrics.density * 6).toInt()
-                layoutParams = LinearLayout.LayoutParams(size, size).apply {
-                    topMargin = (resources.displayMetrics.density * 4).toInt()
-                }
+                layoutParams = LinearLayout.LayoutParams(size, size).apply { topMargin = (resources.displayMetrics.density * 4).toInt() }
             }
         }
 
@@ -350,23 +301,19 @@ class HomeActivity : AppCompatActivity() {
         grid.addView(dayContainer)
     }
 
-    private fun circleDrawable(color: String): GradientDrawable {
+    private fun circleDrawable(color: Int): GradientDrawable {
         return GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(Color.parseColor(color))
+            setColor(color)
         }
     }
 
     private fun checkInviteCodeDialog() {
-        val prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE)
-        val isInviteDone = prefs.getBoolean(KEY_INVITE_DONE, false)
-        // 이미 성공했거나 팝업을 본 적이 있다면 띄우지 않음
-        if (!isInviteDone) showInviteCodeDialog()
+        if (!UserSession.isInviteDoneManager) showInviteCodeDialog()
     }
 
     private fun showInviteCodeDialog() {
         isInviteDialogShowing = true
-
         val dialogView = layoutInflater.inflate(R.layout.invite_code, null)
         val etInviteCode = dialogView.findViewById<EditText>(R.id.et_invite_code)
         val btnSubmit = dialogView.findViewById<View>(R.id.btn_submit)
@@ -380,20 +327,11 @@ class HomeActivity : AppCompatActivity() {
             .setCancelable(false)
             .create()
 
-        dialog.setOnDismissListener {
-            isInviteDialogShowing = false
-        }
-
         btnSubmit.setOnClickListener {
             val inputCode = etInviteCode.text.toString().trim()
-            if (inputCode.isEmpty()) {
-                tvError.visibility = View.VISIBLE
-                etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
-                return@setOnClickListener
-            }
             if (inputCode == "1234") {
-                // 성공적으로 입력함
-                saveInviteDone(success = true)
+                UserSession.isInviteDoneManager = true
+                UserSession.isInviteSuccessManager = true
                 dialog.dismiss()
             } else {
                 tvError.visibility = View.VISIBLE
@@ -407,8 +345,7 @@ class HomeActivity : AppCompatActivity() {
         }
 
         tvSkip.setOnClickListener {
-            // 건너뜀 (다시는 안 뜨지만, 설정에서는 보여야 함)
-            saveInviteDone(success = false)
+            UserSession.isInviteDoneManager = true
             dialog.dismiss()
         }
 
@@ -417,18 +354,5 @@ class HomeActivity : AppCompatActivity() {
         val params = dialog.window?.attributes
         params?.width = (resources.displayMetrics.widthPixels * 0.85).toInt()
         dialog.window?.attributes = params
-    }
-
-    private fun saveInviteDone(success: Boolean) {
-        val prefs = getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit()
-        prefs.putBoolean(KEY_INVITE_DONE, true) // 팝업 완료 기록
-        if (success) {
-            prefs.putBoolean(KEY_INVITE_SUCCESS, true) // 성공 기록
-        }
-        prefs.apply()
-    }
-
-    private fun resetInviteForTest() {
-        getSharedPreferences(PREF_NAME, MODE_PRIVATE).edit().clear().apply()
     }
 }

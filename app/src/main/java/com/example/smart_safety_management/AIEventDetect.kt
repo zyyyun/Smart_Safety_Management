@@ -1,5 +1,6 @@
 package com.example.smart_safety_management
 
+import android.content.Intent
 import android.content.res.Configuration
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
@@ -14,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -162,6 +164,7 @@ fun EventItem(event: EventData, status: EventStatus, onEventClick: (EventData) -
     val isLight = MaterialTheme.colors.isLight
     val alphaval = if (isLight) 0.1f else 0.36f
 
+
     val buttonColor = if (isPending) {
         when (event.accidentType) {
             "위험" -> Color(0xFFEF4444).copy(alphaval)
@@ -238,6 +241,7 @@ fun CurrentDateText() {
 
 @Composable
 fun MyTopAppBar(backgroundColor: Color) {
+    val context = LocalContext.current
     TopAppBar(
         backgroundColor = backgroundColor,
         contentColor = Color.White,
@@ -259,7 +263,11 @@ fun MyTopAppBar(backgroundColor: Color) {
             )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box {
-                    IconButton(onClick = { }) {
+                    IconButton(onClick = {
+
+                        val intent = Intent(context, NoticeActivity::class.java)
+                        context.startActivity(intent)
+                    }) {
                         Icon(painter = painterResource(id = R.drawable.alarm), contentDescription = "알림", tint = Color.White)
                     }
                     Icon(
@@ -269,7 +277,12 @@ fun MyTopAppBar(backgroundColor: Color) {
                         modifier = Modifier.align(Alignment.TopEnd).offset(x = (-8).dp, y = 7.dp).size(6.dp)
                     )
                 }
-                IconButton(onClick = { }) {
+                IconButton(onClick = {
+
+                    val intent = Intent(context, SettingActivity::class.java)
+                    context.startActivity(intent)
+
+                }) {
                     Icon(painter = painterResource(id = R.drawable.setting), contentDescription = "설정", tint = Color.White)
                 }
             }

@@ -1,6 +1,5 @@
 package com.example.smart_safety_management
 
-import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -19,7 +18,7 @@ class SettingProfileActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_my_profile)
 
-        // 초기 데이터 로드
+        // 초기 데이터 로드 (전역 변수 UserSession 사용)
         loadUserData()
 
         // 뒤로가기 버튼 클릭 시 현재 액티비티 종료
@@ -34,9 +33,7 @@ class SettingProfileActivity : AppCompatActivity() {
     }
 
     private fun loadUserData() {
-        val sharedPref = getSharedPreferences(PREF_USER_NAME, Context.MODE_PRIVATE)
-        val userName = sharedPref.getString(KEY_USER_NAME, "안정우")
-        findViewById<TextView>(R.id.tv_user_name).text = userName
+        findViewById<TextView>(R.id.tv_user_name).text = UserSession.userName
     }
 
     private fun showChangeNameDialog() {
@@ -55,8 +52,7 @@ class SettingProfileActivity : AppCompatActivity() {
         val btnSave = dialogView.findViewById<Button>(R.id.btn_save)
 
         // 현재 이름을 EditText에 세팅
-        val currentName = findViewById<TextView>(R.id.tv_user_name).text.toString()
-        etName.setText(currentName)
+        etName.setText(UserSession.userName)
         etName.setSelection(etName.length()) // 커서를 끝으로 이동
         tvCount.text = "${etName.length()}/20"
 
@@ -94,14 +90,10 @@ class SettingProfileActivity : AppCompatActivity() {
         btnSave.setOnClickListener {
             val newName = etName.text.toString().trim()
             if (newName.isNotEmpty()) {
-                // SharedPreferences에 저장
-                val sharedPref = getSharedPreferences(PREF_USER_NAME, Context.MODE_PRIVATE)
-                with(sharedPref.edit()) {
-                    putString(KEY_USER_NAME, newName)
-                    apply()
-                }
+                // 전역 변수 UserSession에 저장 (통일됨)
+                UserSession.userName = newName
 
-                // UI 업데이트
+                // 현재 UI 업데이트
                 findViewById<TextView>(R.id.tv_user_name).text = newName
                 alertDialog.dismiss()
             }
