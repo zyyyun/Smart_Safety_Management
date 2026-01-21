@@ -111,6 +111,12 @@
         <activity
             android:name=".SettingCreateWorkplaceActivity"
             android:exported="false"/>
+        <!-- 실시간 상황 화면 -->
+        <activity android:name=".screens.realtime.RealTimeActivity" />
+
+        <!-- 위치정보 화면 -->
+        <activity android:name=".screens.location.LocationActivity" />
+
 
         <!-- 설정 - 초대하기 화면 -->
         <activity

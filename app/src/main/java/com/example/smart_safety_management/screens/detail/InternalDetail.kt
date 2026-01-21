@@ -112,7 +112,7 @@ fun InternalDetailScreen(
             // ✅ 위치 카드 (피그마 327*52에 1.048 적용)
             Row(
                 modifier = Modifier
-                    .width(342.7.dp)     // 327 × 1.048
+                    .fillMaxWidth() .width(360.dp)     // 327 × 1.048
                     .height(54.5.dp)     // 52 × 1.048
                     .clip(RoundedCornerShape(10.dp))
                     .border(1.dp, border, RoundedCornerShape(10.dp))

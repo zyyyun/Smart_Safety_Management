@@ -29,6 +29,8 @@ import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import kotlin.math.abs
+import com.example.smart_safety_management.screens.location.LocationActivity
+import com.example.smart_safety_management.screens.realtime.RealTimeActivity
 
 private val dailyCheckMap = mapOf(
     7 to listOf(
@@ -75,7 +77,7 @@ class HomeActivity : AppCompatActivity() {
         val alarmDot = findViewById<View>(R.id.view_alarm_dot)
         val btnSetting = topBar.findViewById<ImageButton>(R.id.btn_setting)
 
-        alarmDot.visibility = if (true) View.VISIBLE else View.GONE 
+        alarmDot.visibility = if (true) View.VISIBLE else View.GONE
 
         btnAlarm.setOnClickListener {
             startActivity(Intent(this, NoticeActivity::class.java))
@@ -117,25 +119,34 @@ class HomeActivity : AppCompatActivity() {
 
     private fun setupBottomNavigation() {
         val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)
-        bottomNav.selectedItemId = R.id.nav_home
+        bottomNav.selectedItemId = R.id.nav_home // 현재 홈 화면이므로 홈 아이콘 활성화
 
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_home -> true
+                R.id.nav_home -> {
+                    // 이미 홈 화면이므로 아무것도 하지 않음
+                    true
+                }
                 R.id.nav_ai -> {
-                    startActivity(Intent(this, AIEventActivity::class.java))
+                    // AI감지 화면으로 이동
+                    val intent = Intent(this, AIEventActivity::class.java)
+                    startActivity(intent)
                     true
                 }
                 R.id.nav_live -> {
-                    Toast.makeText(this, "실시간 상황 화면으로 이동", Toast.LENGTH_SHORT).show()
-                    true
+                    // 실시간 상황 화면으로 이동
+                     startActivity(Intent(this, RealTimeActivity::class.java))
+                     true
                 }
                 R.id.nav_history -> {
-                    startActivity(Intent(this, HistoryActivity::class.java))
+                    // 이력 화면으로 이동
+                    val intent = Intent(this, HistoryActivity::class.java)
+                    startActivity(intent)
                     true
                 }
                 R.id.nav_location -> {
-                    Toast.makeText(this, "위치 정보 화면으로 이동", Toast.LENGTH_SHORT).show()
+                    // 위치 정보 화면으로 이동
+                     startActivity(Intent(this, LocationActivity::class.java))
                     true
                 }
                 else -> false
@@ -153,17 +164,26 @@ class HomeActivity : AppCompatActivity() {
         profileBar.findViewById<TextView>(R.id.tv_user_name).text = UserSession.userName
     }
 
+    /**
+     * 오늘 날짜 기준으로 미점검 항목이 있는 날 중 가장 가까운 날짜를 반환합니다.
+     */
     private fun findClosestUncheckedDay(): Int? {
         val today = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
+
+        // 미점검 항목이 있는 날짜들만 필터링
         val uncheckedDays = dailyCheckMap.filter { entry ->
             entry.value.any { it.status == "미점검" }
         }.keys
-        if (uncheckedDays.isEmpty()) return today
+
+        if (uncheckedDays.isEmpty()) return today // 미점검이 없으면 오늘 날짜 반환
+
+        // 오늘과 가장 가까운 날짜 찾기 (절대값 기준)
         return uncheckedDays.minByOrNull { abs(it - today) }
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
         if (ev?.action == MotionEvent.ACTION_DOWN) {
+            // 터치 시 툴팁을 제거
             dailyAdapter.dismissTooltip()
         }
         return super.dispatchTouchEvent(ev)
