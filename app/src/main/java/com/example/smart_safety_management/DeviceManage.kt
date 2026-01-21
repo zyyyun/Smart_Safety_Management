@@ -231,7 +231,7 @@ fun BatteryItem(data: DeviceBatteryData, onAlarmClick: () -> Unit) {
     val watchColor = if (isWatchLow) StatusRed else StatusBlue
     val watchTextColor = if (isWatchLow) StatusRed else mainTextColor
 
-    Box(modifier = Modifier.width(330.dp).height(160.dp).background(color = bgColor, shape = RoundedCornerShape(12.dp)).border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(12.dp)).padding(16.dp)) {
+    Box(modifier = Modifier.height(160.dp).background(color = bgColor, shape = RoundedCornerShape(12.dp)).border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(12.dp)).padding(16.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Image(painter = painterResource(id = R.drawable.avatar), contentDescription = null, modifier = Modifier.size(56.dp))
