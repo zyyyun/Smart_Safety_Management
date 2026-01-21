@@ -317,7 +317,7 @@ fun AIEventDetailScreen(
                         Spacer(modifier = Modifier.height(18.dp))
 
                         Image(
-                            painter = painterResource(id = R.drawable.cam),
+                            painter = painterResource(id = R.drawable.event),
                             contentDescription = "실시간 화면",
                             modifier = Modifier
                                 .fillMaxWidth()
