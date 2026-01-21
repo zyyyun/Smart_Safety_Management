@@ -23,24 +23,24 @@ import androidx.core.widget.doAfterTextChanged
 import kotlin.math.abs
 
 private val dailyCheckMap = mapOf(
-    7 to listOf(
+    21 to listOf(
         DailyCheckItem("B구역 1열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("C구역 3열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
-    12 to listOf(
+    22 to listOf(
         DailyCheckItem("A구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
-    15 to listOf(
+    23 to listOf(
         DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
         DailyCheckItem("D구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
         DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
-    25 to listOf(
+    24 to listOf(
         DailyCheckItem("C구역 2열", "정리미흡으로 안전사고 발생 우려", "미점검")
     ),
-    26 to listOf(
+    25 to listOf(
         DailyCheckItem("A구역 4열", "정리미흡으로 인적사고 발생 우려", "미점검")
     )
 )
@@ -60,6 +60,7 @@ class HomeWorkerActivity : AppCompatActivity() {
 
     private fun initUI() {
         updateProfileName()
+        updateWorkerDay()
         checkInviteCodeDialog()
 
         val topBar = findViewById<View>(R.id.top_bar)
@@ -95,6 +96,15 @@ class HomeWorkerActivity : AppCompatActivity() {
         )
 
         updateDailyCheckList(selectedDay)
+    }
+
+    private fun updateWorkerDay() {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH) + 1
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+        val tvWorkerDay = findViewById<TextView>(R.id.tv_worker_day)
+        tvWorkerDay?.text = "${year}년 ${month}월 ${day}일"
     }
 
     override fun onResume() {
