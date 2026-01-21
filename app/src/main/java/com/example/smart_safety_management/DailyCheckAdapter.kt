@@ -43,6 +43,13 @@ class DailyCheckAdapter(
         holder.desc.text = item.desc
         holder.statusText.text = item.status
 
+        // 역할에 따른 아이콘 표시 여부 설정 (관리자일 때만 보임)
+        if (UserSession.userRole == UserRole.MANAGER) {
+            holder.statusIcon.visibility = View.VISIBLE
+        } else {
+            holder.statusIcon.visibility = View.GONE
+        }
+
         if (item.status == "점검완료") {
             holder.cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.context,R.color.gray50_gray900))
             holder.title.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray500_gray650))
