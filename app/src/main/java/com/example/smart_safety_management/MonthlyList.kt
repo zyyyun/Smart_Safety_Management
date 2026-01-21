@@ -131,7 +131,8 @@ fun MonthlyListScreen() {
                         Text(
                             text = "월별로 보기", 
                             fontWeight = FontWeight.Bold, 
-                            color = MaterialTheme.colors.onSurface, 
+                            color = MaterialTheme.colors.onSurface,
+                            fontSize = 24.sp,
                             fontFamily = Pretendard,
                             modifier = Modifier.offset(x = (-20).dp)
                         ) 
@@ -183,11 +184,11 @@ fun ReportHeader(report: DailyInspectionReport) {
             color = MaterialTheme.colors.onBackground
         )
         Spacer(modifier = Modifier.width(8.dp))
-        Box(modifier = Modifier.background(color = MaterialTheme.colors.surface, shape = RoundedCornerShape(percent = 50)).border(width = 1.dp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), shape = RoundedCornerShape(percent = 50)).padding(horizontal = 12.dp, vertical = 4.dp)) {
+        Box(modifier = Modifier.background(color = MaterialTheme.colors.surface, shape = RoundedCornerShape(percent = 50)).border(width = 1.dp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), shape = RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 2.dp)) {
             Text(text = buildAnnotatedString {
                 withStyle(style = SpanStyle(color = if (allChecked) TextMedium else MaterialTheme.colors.primary, fontFamily = Pretendard)) { append(checkedCount.toString()) }
                 withStyle(style = SpanStyle(color = TextMedium, fontFamily = Pretendard)) { append("/${totalCount}") }
-            }, fontSize = 16.sp,letterSpacing = (2).sp)
+            }, fontSize = 14.sp,letterSpacing = (2).sp)
         }
     }
 }
@@ -366,7 +367,7 @@ fun YearMonthSelector(yearMonth: YearMonth, onMonthChange: (YearMonth) -> Unit) 
         Spacer(modifier = Modifier.width(20.dp))
         Text(
             text = "${yearMonth.year}년 ${yearMonth.monthValue}월",
-            fontSize = 23.sp,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = Pretendard,
             color = MaterialTheme.colors.onBackground
