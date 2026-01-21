@@ -69,12 +69,14 @@ class HomeWorkerActivity : AppCompatActivity() {
 
         alarmDot.visibility = if (true) View.VISIBLE else View.GONE
 
+        // 알림 버튼 -> 알림 화면
         btnAlarm.setOnClickListener {
             startActivity(Intent(this, NoticeActivity::class.java))
         }
 
+        // 설정 버튼 -> 근로자용 설정 화면
         btnSetting.setOnClickListener {
-            startActivity(Intent(this, SettingActivity::class.java))
+            startActivity(Intent(this, SettingWorkerActivity::class.java))
         }
 
         // 일일안전점검 리스트 초기화

@@ -82,6 +82,9 @@
         <activity
             android:name=".SettingActivity"
             android:exported="false"/>"
+        <activity
+            android:name=".SettingWorkerActivity"
+            android:exported="false"/>
 
         <!-- 설정 - 초대코드 입력 화면 -->
         <activity
@@ -111,6 +114,7 @@
         <activity
             android:name=".SettingCreateWorkplaceActivity"
             android:exported="false"/>
+
         <!-- 실시간 상황 화면 -->
         <activity android:name=".screens.realtime.RealTimeActivity" />
 
