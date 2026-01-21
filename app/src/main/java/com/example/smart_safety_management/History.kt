@@ -228,7 +228,6 @@ fun HistoryTopAppBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(y = 6.dp)
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
