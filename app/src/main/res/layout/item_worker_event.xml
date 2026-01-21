@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/card_event"
     android:layout_width="match_parent"
@@ -11,44 +11,64 @@
     app:strokeWidth="1dp"
     app:strokeColor="@color/gray100_gray950">
 
-    <LinearLayout
+    <!-- 겹치기용 컨테이너 -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="14dp"
-        android:gravity="center_vertical">
+        android:layout_height="wrap_content">
 
-        <ImageView
-            android:id="@+id/iv_event_icon"
-            android:layout_width="39dp"
-            android:layout_height="55dp"
-            android:layout_marginEnd="8dp"
-            android:src="@drawable/warning_icon" />
-
+        <!-- 본문 영역 -->
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:padding="14dp"
+            android:gravity="center_vertical">
 
-            <TextView
-                android:id="@+id/tv_event_location"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/pretendard_semibold"
-                android:text="C구역 2열"
-                android:textColor="@color/gray900_gray50"
-                android:textSize="16dp" />
+            <ImageView
+                android:id="@+id/iv_event_icon"
+                android:layout_width="39dp"
+                android:layout_height="55dp"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/warning_icon" />
 
-            <TextView
-                android:id="@+id/tv_event_content"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:fontFamily="@font/pretendard_regular"
-                android:text="화재사고가 감지되었습니다."
-                android:textColor="@color/gray700_gray200"
-                android:textSize="14dp" />
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_event_location"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/pretendard_semibold"
+                    android:text="C구역 2열"
+                    android:textColor="@color/gray900_gray50"
+                    android:textSize="16dp" />
+
+                <TextView
+                    android:id="@+id/tv_event_content"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/pretendard_regular"
+                    android:text="화재사고가 감지되었습니다."
+                    android:textColor="@color/gray700_gray200"
+                    android:textSize="14dp" />
+            </LinearLayout>
         </LinearLayout>
 
-    </LinearLayout>
+        <!-- 우측 상단 상태 텍스트 -->
+        <TextView
+            android:id="@+id/tv_event_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="12dp"
+            android:text="지금"
+            android:textSize="12dp"
+            android:fontFamily="@font/pretendard_medium"
+            android:textColor="@color/gray700_gray400"/>
+    </FrameLayout>
+
 </com.google.android.material.card.MaterialCardView>

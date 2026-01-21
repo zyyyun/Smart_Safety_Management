@@ -108,13 +108,13 @@ class HomeWorkerActivity : AppCompatActivity() {
 
     private fun getSampleEvents(): List<Pair<EventData, EventStatus>> {
         return listOf(
-            EventData(accidentType = "위험", location = "C구역 2열", content = "화재사고가 감지되었습니다.") to EventStatus.PENDING,
-            EventData(accidentType = "경고", location = "C구역 2열", content = "쓰러짐이 감지되었습니다.") to EventStatus.PENDING,
-            EventData(accidentType = "주의", location = "C구역 2열", content = "이동경로 미정돈이 감지되었습니다.") to EventStatus.PENDING,
+            EventData(accidentType = "위험", location = "C구역 2열", content = "화재사고가 감지되었습니다.", "지금") to EventStatus.PENDING,
+            EventData(accidentType = "경고", location = "C구역 2열", content = "쓰러짐이 감지되었습니다.", "1분 전") to EventStatus.PENDING,
+            EventData(accidentType = "주의", location = "C구역 2열", content = "이동경로 미정돈이 감지되었습니다.", "3분 전") to EventStatus.PENDING,
             // 조치완료 및 오탐처리 추가
-            EventData(accidentType = "주의", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.") to EventStatus.COMPLETED,
-            EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.") to EventStatus.COMPLETED
-            //EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.") to EventStatus.FALSE_DETECTION
+            EventData(accidentType = "주의", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.", "1분 전") to EventStatus.COMPLETED,
+            EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.", "1분 전") to EventStatus.COMPLETED
+            //EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.", "1분 전") to EventStatus.FALSE_DETECTION
         )
     }
 

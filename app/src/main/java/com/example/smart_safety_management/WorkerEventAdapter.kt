@@ -19,6 +19,7 @@ class WorkerEventAdapter(
         val ivIcon: ImageView = view.findViewById(R.id.iv_event_icon)
         val tvLocation: TextView = view.findViewById(R.id.tv_event_location)
         val tvContent: TextView = view.findViewById(R.id.tv_event_content)
+        val tvStatus: TextView = view.findViewById(R.id.tv_event_time)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -33,6 +34,7 @@ class WorkerEventAdapter(
 
         holder.tvLocation.text = event.location
         holder.tvContent.text = event.content
+        holder.tvStatus.text = event.occurrenceTime
 
         val isPending = status == EventStatus.PENDING
 
@@ -77,6 +79,7 @@ class WorkerEventAdapter(
             // 텍스트 및 아이콘 색상 복원 (진하게)
             holder.tvLocation.setTextColor(ContextCompat.getColor(context, R.color.gray900_gray50))
             holder.tvContent.setTextColor(ContextCompat.getColor(context, R.color.gray600))
+            holder.tvStatus.setTextColor(ContextCompat.getColor(context, R.color.gray700_gray400))
             holder.ivIcon.clearColorFilter()
             holder.ivIcon.alpha = 1.0f
         } else {
@@ -88,15 +91,11 @@ class WorkerEventAdapter(
             val completedTextColor = ContextCompat.getColor(context, R.color.gray500_gray650)
             holder.tvLocation.setTextColor(completedTextColor)
             holder.tvContent.setTextColor(completedTextColor)
+            holder.tvStatus.setTextColor(completedTextColor)
             holder.ivIcon.setColorFilter(completedTextColor)
             holder.ivIcon.alpha = 1.0f // 투명도 대신 지정된 색상을 사용
         }
     }
 
     override fun getItemCount() = items.size
-
-    fun updateList(newItems: List<Pair<EventData, EventStatus>>) {
-        items = newItems
-        notifyDataSetChanged()
-    }
 }
