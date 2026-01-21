@@ -20,10 +20,9 @@ import com.example.smart_safety_management.HomeActivity
 import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
 import com.example.smart_safety_management.screens.detail.InternalDetailScreen
+import com.example.smart_safety_management.screens.dialog.MapDialog
 import com.example.smart_safety_management.screens.location.LocationActivity
 import com.example.smart_safety_management.ui.theme.*
-
-import com.example.smart_safety_management.screens.dialog.MapDialog // (지금은 안 쓰면 지워도 됨)
 
 class RealTimeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,8 +40,11 @@ private fun RealTimeNavigation() {
     val context = LocalContext.current
     val activity = context as? Activity
 
-    // ✅ 상세로 넘어갈 아이템 상태 (추가)
+    // ✅ 상세로 넘어갈 아이템 상태
     var selectedItem by remember { mutableStateOf<LiveCardItem?>(null) }
+
+    // ✅ 지도 다이얼로그 상태 (리스트/상세 공통)
+    var showMap by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
@@ -94,20 +96,32 @@ private fun RealTimeNavigation() {
         }
     ) { paddingValues ->
 
-        // ✅ 여기서 화면 분기 (추가)
+        // ✅ 화면 분기
         if (selectedItem == null) {
             RealTimeScreen(
                 modifier = Modifier.padding(paddingValues),
                 onCardClick = { item ->
-                    selectedItem = item   // ✅ 카드 누르면 상세로 전환
+                    selectedItem = item
                 }
             )
         } else {
             InternalDetailScreen(
                 item = selectedItem!!,
-                onBack = { selectedItem = null }, // ✅ 뒤로가기 누르면 다시 리스트
-                onMapClick = { /* 필요하면 여기에서 지도 연결 */ },
+                onBack = { selectedItem = null },
+                onMapClick = { showMap = true },           // ✅ 상세 우측 상단 버튼 연결
                 modifier = Modifier.padding(paddingValues)
+            )
+        }
+
+        // ✅ MapDialog를 Activity 레벨에서 공통으로 띄움 (리스트/상세 어디서든)
+        if (showMap) {
+            MapDialog(
+                item = selectedItem,
+                onDismiss = { showMap = false },
+                onMoveCamera = {
+                    showMap = false
+                    // TODO: 여기서 원하는 동작(카메라 이동/해당 CAM 상세로 이동 등) 연결
+                }
             )
         }
     }

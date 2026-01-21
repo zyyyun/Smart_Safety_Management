@@ -1,7 +1,6 @@
 package com.example.smart_safety_management.screens.location
 
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -36,9 +35,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.zIndex
 import com.example.smart_safety_management.R
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
+import androidx.compose.ui.zIndex
 
 /* -------------------- data -------------------- */
 
@@ -88,12 +87,12 @@ fun LocationScreen(
     modifier: Modifier = Modifier,
     bottomBarHeight: Dp = 68.dp,
     isDark: Boolean,
-    onTabSelect: (Int) -> Unit = {}
+    _onTabSelect: (Int) -> Unit = {} // 미사용 경고 제거
 ) {
     val c = LocalSafeColors.current
-    val dark = c.isDark
+    val dark = isDark // ✅ 외부에서 넘겨준 다크 여부를 기준으로 통일
 
-    // ✅ 요청: 다크일 때 시트 "완전 검정"
+    // ✅ 다크일 때 시트 "완전 검정"
     val sheetBg = if (dark) Color(0xFF000000) else c.surface
 
     val textPrimary = c.text
@@ -103,8 +102,6 @@ fun LocationScreen(
     val pillBg = if (dark) c.bg.copy(alpha = 0.10f) else c.surface
     val pillBorder = c.border
     val iconTint = c.text
-
-    val ORANGE = Color(0xFFFF7A00)
 
     var selectedWorkerId by remember { mutableStateOf<String?>(null) }
 
@@ -183,9 +180,7 @@ fun LocationScreen(
         val targetPx = revealHeight.toPxSafe()
             .coerceIn(minSheetHeight.toPxSafe(), maxSheetHeight.toPxSafe())
 
-        if (sheetHeightPx < targetPx) {
-            sheetHeightPx = targetPx
-        }
+        if (sheetHeightPx < targetPx) sheetHeightPx = targetPx
     }
 
     /* -------------------- UI -------------------- */
@@ -198,18 +193,8 @@ fun LocationScreen(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(selectedWorkerId) {
-                    detectTapGestures { selectedWorkerId = null }
-                }
+                .pointerInput(selectedWorkerId) { detectTapGestures { selectedWorkerId = null } }
         )
-
-        if (isDark) {
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.35f))
-            )
-        }
 
         Box(
             modifier = Modifier
@@ -218,8 +203,8 @@ fun LocationScreen(
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color.Black.copy(alpha = if (isDark) 0.70f else 0.55f),
-                            Color.Black.copy(alpha = if (isDark) 0.45f else 0.30f),
+                            Color.Black.copy(alpha = 0.55f),
+                            Color.Black.copy(alpha = 0.30f),
                             Color.Transparent
                         )
                     )
@@ -272,28 +257,28 @@ fun LocationScreen(
 
             Spacer(Modifier.height(10.dp))
 
-            // ✅ 요청: 다크일 때 구역 버튼(칩) 검정 + 핀도 다크 이미지(이미 위에서 적용됨)
+            // ✅ 다크모드: 칩 배경은 항상 검정 / 선택은 "텍스트만 흰색"
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(areas) { area ->
                     val isSelected = selectedArea == area
                     val chipWidth = if (area == "전체") 48.dp else 59.dp
 
-                    // ✅ 다크모드에서 원하는 칩 스타일
                     val chipBg = when {
-                        isSelected -> Color(0xFFFF7A00)      // 선택: 주황
-                        dark -> Color(0xFF000000)            // 비선택: 검정
-                        else -> Color.White
+                        dark -> Color.Black // ✅ 다크는 항상 검정
+                        else -> if (isSelected) Color(0xFFFF7A00) else Color.White
                     }
 
                     val chipBorder = when {
+                        dark -> Color(0xFF2A2F37)
                         isSelected -> Color(0xFFFF7A00)
-                        dark -> Color(0xFF2A2F37)            // 비선택: 어두운 테두리
                         else -> Color(0xFFE5E7EB)
                     }
 
                     val chipTextColor = when {
-                        isSelected -> Color.White              // 선택됨
-                        else -> Color(0xFF9CA3AF)               // 비선택 회색
+                        dark && isSelected -> Color.White
+                        dark -> Color(0xFF9CA3AF)
+                        isSelected -> Color.White
+                        else -> Color(0xFF6B7280)
                     }
 
                     Box(
@@ -301,12 +286,8 @@ fun LocationScreen(
                             .width(chipWidth)
                             .height(28.dp)
                             .clip(RoundedCornerShape(999.dp))
-                            .background(Color.Black)            // ✅ 항상 검정
-                            .border(
-                                1.dp,
-                                Color(0xFF2A2F37),
-                                RoundedCornerShape(999.dp)
-                            )
+                            .background(chipBg)
+                            .border(1.dp, chipBorder, RoundedCornerShape(999.dp))
                             .clickable {
                                 selectedArea = area
                                 selectedWorkerId = null
@@ -317,12 +298,10 @@ fun LocationScreen(
                             text = area,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
-                            color = chipTextColor,              // ✅ 텍스트만 상태 표현
+                            color = chipTextColor,
                             maxLines = 1
                         )
                     }
-
-
                 }
             }
         }
@@ -344,11 +323,8 @@ fun LocationScreen(
                     .padding(bottom = 16.dp)
             ) {
                 SheetHandle(
-                    handleColor = if (isDark) Color(0xFF2A3646) else Color(0xFFE5E7EB),
-                    modifier = Modifier.draggable(
-                        state = dragState,
-                        orientation = Orientation.Vertical
-                    )
+                    handleColor = if (dark) Color(0xFF2A3646) else Color(0xFFE5E7EB),
+                    modifier = Modifier.draggable(state = dragState, orientation = Orientation.Vertical)
                 )
 
                 SheetSummary(
@@ -363,8 +339,7 @@ fun LocationScreen(
                 TableHeader(
                     textSecondary = textSecondary,
                     divider = dividerStrong,
-                    isDark = dark,
-                    sheetBg = sheetBg
+                    dark = dark
                 )
 
                 LazyColumn(
@@ -395,7 +370,7 @@ fun LocationScreen(
                 title = "안전모 CAM",
                 onDismiss = { showCamDialog = false },
                 onMicClick = { },
-                isDark = isDark
+                isDark = dark
             )
         }
     }
@@ -493,20 +468,15 @@ private fun SheetSummary(
 private fun TableHeader(
     textSecondary: Color,
     divider: Color,
-    isDark: Boolean,   // (받아도 되지만 아래에서 재계산)
-    sheetBg: Color,    // (사용 안 해도 됨)
+    dark: Boolean
 ) {
-    val c = LocalSafeColors.current
-    val dark = c.isDark   // ✅ 여기서 다크모드 확정 (넘어온 isDark 무시)
-
-    // ✅ "진한 주황 바" 배경 (다크에서만)
+    // ✅ 요청: #FB923C · 36%
     val headerBg = if (dark) {
-        Color(0xFF5A3516)       // 🔥 진한 주황 바
+        Color(0xFFFB923C).copy(alpha = 0.36f)
     } else {
-        Color(0xFFFFF4EC)        // 라이트 유지
+        Color(0xFFFFF4EC)
     }
 
-    // ✅ 텍스트는 다크에서는 흰색
     val headerText = if (dark) Color.White else textSecondary
 
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -536,9 +506,6 @@ private fun TableHeader(
     }
 }
 
-
-
-
 @Composable
 private fun TableRowItem(
     row: WorkerRow,
@@ -550,8 +517,7 @@ private fun TableRowItem(
     iconTint: Color,
     divider: Color
 ) {
-    val c = LocalSafeColors.current
-    val dark = c.isDark
+    val darkText = LocalSafeColors.current.isDark
 
     val rowAlpha = when {
         !hasSelection -> 1f
@@ -559,12 +525,7 @@ private fun TableRowItem(
         else -> 0.35f
     }
 
-    // ✅ 다크모드용 회색 텍스트
-    val bodyTextColor = if (dark) {
-        Color(0xFF9CA3AF)
-    } else {
-        textPrimary
-    }
+    val bodyTextColor = if (darkText) Color(0xFF9CA3AF) else textPrimary
 
     Row(
         modifier = Modifier
@@ -574,12 +535,9 @@ private fun TableRowItem(
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 🔽 회색 적용
         BodyCell(row.role, 0.18f, bodyTextColor)
         BodyCell(row.name, 0.22f, bodyTextColor)
         BodyCell(row.location, 0.30f, bodyTextColor)
-
-        // ✅ 상태는 기존 색 유지
         BodyCell(row.statusText, 0.18f, row.statusColor)
 
         Box(
@@ -599,7 +557,6 @@ private fun TableRowItem(
 
     Divider(color = divider, thickness = 1.dp)
 }
-
 
 @Composable
 private fun RowScope.HeaderCell(text: String, w: Float, color: Color) {
@@ -639,6 +596,9 @@ private fun CamDialog(
     val bg = if (isDark) c.bg else Color.White
     val text = c.text
     val closeTint = c.sub
+
+    // ✅ 다크모드일 때 버튼 텍스트/아이콘을 검정으로
+    val actionColor = if (isDark) Color.Black else Color.White
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -707,7 +667,7 @@ private fun CamDialog(
                     Icon(
                         painter = painterResource(id = R.drawable.mic),
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = actionColor, // ✅ 다크: 검정 / 라이트: 흰색
                         modifier = Modifier.size(24.dp)
                     )
 
@@ -715,7 +675,7 @@ private fun CamDialog(
 
                     Text(
                         text = "눌러서 말하기",
-                        color = Color.White,
+                        color = actionColor, // ✅ 다크: 검정 / 라이트: 흰색
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -724,3 +684,4 @@ private fun CamDialog(
         }
     }
 }
+

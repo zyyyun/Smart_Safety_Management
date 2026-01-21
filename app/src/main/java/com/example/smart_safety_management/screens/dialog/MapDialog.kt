@@ -73,6 +73,7 @@ fun MapDialog(
     }
 
     val c = LocalSafeColors.current
+    val isDark = c.isDark
 
     val initialCamId = remember(item?.camId) {
         when (item?.camId) {
@@ -88,7 +89,11 @@ fun MapDialog(
     val selected = cams.firstOrNull { it.camId == selectedCamId } ?: cams[0]
 
     val infoBg = c.surface
-    val infoText = c.sub
+    val infoLabel = c.sub
+
+    // ✅ 요청 반영: 다크일 때 값(오른쪽) 흰색, 버튼 텍스트/아이콘 검정
+    val infoValue = if (isDark) Color.White else c.sub
+    val actionColor = if (isDark) Color.Black else Color.White
 
     // 사이즈(확대 버전)
     val dialogW = 348.dp
@@ -105,6 +110,7 @@ fun MapDialog(
     val dy = (selH - baseH)
 
     data class Marker(val camId: String, val x: Dp, val y: Dp)
+
     val markers = remember {
         listOf(
             Marker("CAM 0", 42.68.dp, 202.04.dp),
@@ -175,20 +181,20 @@ fun MapDialog(
                             )
 
                             markers.forEach { m ->
-                                val isSelected = m.camId == selectedCamId
-                                val w = if (isSelected) selW else baseW
-                                val h = if (isSelected) selH else baseH
+                                val isSelectedMarker = m.camId == selectedCamId
+                                val w = if (isSelectedMarker) selW else baseW
+                                val h = if (isSelectedMarker) selH else baseH
 
                                 Icon(
                                     painter = painterResource(
-                                        id = if (isSelected) R.drawable.cctv_b else R.drawable.cctv
+                                        id = if (isSelectedMarker) R.drawable.cctv_b else R.drawable.cctv
                                     ),
                                     contentDescription = null,
                                     tint = Color.Unspecified,
                                     modifier = Modifier
                                         .offset(
-                                            x = if (isSelected) m.x - dx else m.x,
-                                            y = if (isSelected) m.y - dy else m.y
+                                            x = if (isSelectedMarker) m.x - dx else m.x,
+                                            y = if (isSelectedMarker) m.y - dy else m.y
                                         )
                                         .size(width = w, height = h)
                                         .clickable { selectedCamId = m.camId }
@@ -199,7 +205,7 @@ fun MapDialog(
                         /* ---------- 정보 카드 ---------- */
                         Card(
                             shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = infoBg), // ✅ 더 진하게
+                            colors = CardDefaults.cardColors(containerColor = infoBg),
                             border = BorderStroke(1.dp, c.border),
                             modifier = Modifier.fillMaxWidth()
                         ) {
@@ -215,20 +221,20 @@ fun MapDialog(
                                         "%02d",
                                         selected.camId.removePrefix("CAM ").trim().toInt()
                                     ),
-                                    leftColor = infoText,   // ✅ 더 어두운 회색
-                                    rightColor = infoText   // ✅ 더 어두운 회색
+                                    leftColor = infoLabel,
+                                    rightColor = infoValue // ✅ 다크: 흰색
                                 )
 
                                 InfoRow(
                                     left = "발생위치",
                                     right = selected.location,
-                                    leftColor = infoText,
-                                    rightColor = infoText
+                                    leftColor = infoLabel,
+                                    rightColor = infoValue // ✅ 다크: 흰색
                                 )
 
                                 Text(
                                     text = "탐지모델",
-                                    color = infoText,        // ✅ 더 어두운 회색
+                                    color = infoLabel,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -237,7 +243,6 @@ fun MapDialog(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    // ✅ TagPillCompact도 같은 톤으로 보이게 isRisk=true 사용
                                     selected.tags.forEach { tag ->
                                         TagPillCompact(text = tag, isRisk = true)
                                     }
@@ -259,7 +264,7 @@ fun MapDialog(
                                     ) {
                                         Text(
                                             text = "카메라 바로가기",
-                                            color = Color.White,
+                                            color = actionColor, // ✅ 다크: 검정
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 15.sp
                                         )
@@ -267,7 +272,7 @@ fun MapDialog(
                                         Icon(
                                             painter = painterResource(id = R.drawable.camera),
                                             contentDescription = null,
-                                            tint = Color.White,
+                                            tint = actionColor,  // ✅ 다크: 검정
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }

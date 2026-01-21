@@ -784,18 +784,23 @@ fun LiveBadge(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun CamPill(text: String, isRisk: Boolean = false) {
+fun CamPill(
+    text: String,
+    isRisk: Boolean = false
+) {
     val c = LocalSafeColors.current
     val isDark = c.isDark
 
+    // ✅ 다크모드: 피그마 기준 CAM 배경색
     val camBg = when {
-        isDark -> Color(0xFF3A4250)
-        else -> Color(0xFF4B5563)
+        isDark -> Color(0xFF8A949E)   // 🔥 피그마 기준 색상
+        else -> Color(0xFF4B5563)     // 기존 라이트 색 유지
     }.let { base ->
         if (isRisk) base.copy(alpha = 0.85f) else base
     }
 
-    val camText = if (isDark) c.chipText else Color.White
+    // 텍스트는 기존 정책 유지
+    val camText = if (isDark) Color.White else Color.White
 
     Box(
         modifier = Modifier
@@ -811,6 +816,7 @@ fun CamPill(text: String, isRisk: Boolean = false) {
         )
     }
 }
+
 
 @Composable
 fun PlaceText(text: String, color: Color) {
@@ -881,39 +887,41 @@ fun TagsRowSingleLine(tags: List<String>, isRisk: Boolean = false) {
 }
 
 @Composable
-fun TagPillCompact(text: String, isRisk: Boolean = false) {
+fun TagPillCompact(
+    text: String,
+    isRisk: Boolean = false
+) {
     val c = LocalSafeColors.current
     val isDark = c.isDark
 
-    val bg = when {
-        isDark && isRisk -> Color(0xFF2A3038)
-        isDark && !isRisk -> c.chip
-        !isDark && isRisk -> Color(0xFFF3F4F6)
-        else -> Color.White
+    // ✅ 사고 위험성 태그 배경 (피그마 기준)
+    val bgColor = when {
+        isDark -> Color(0xFF131416)          // 🔥 요청한 색
+        else -> Color(0xFFE5E7EB)            // 라이트모드 기존 톤(필요시 조정)
     }
 
-    val fg = when {
-        isRisk && isDark -> Color(0xFF9AA1AA)
-        isRisk && !isDark -> Color(0xFF6B7280)
-        else -> c.chipText
+    val textColor = if (isDark) {
+        Color(0xFF9CA3AF)                    // 다크에서 살짝 밝은 회색
+    } else {
+        Color(0xFF374151)
     }
-
-    val borderColor = if (!isDark) Color(0xFFE5E7EB) else c.border
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(bg)
-            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .background(bgColor)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
         Text(
             text = text,
-            color = fg,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium
+            color = textColor,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1
         )
     }
 }
+
 
 /* -------------------- risk detect -------------------- */
 

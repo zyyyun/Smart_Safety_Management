@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
@@ -20,7 +21,6 @@ import com.example.smart_safety_management.HomeActivity
 import com.example.smart_safety_management.R
 import com.example.smart_safety_management.screens.realtime.RealTimeActivity
 import com.example.smart_safety_management.ui.theme.*
-import androidx.compose.foundation.layout.fillMaxSize
 
 class LocationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,6 +37,9 @@ class LocationActivity : ComponentActivity() {
 private fun LocationNavigation() {
     val context = LocalContext.current
     val activity = context as? Activity
+
+    // ✅ 테마 기준으로 다크 여부 자동 결정
+    val dark = LocalSafeColors.current.isDark
 
     Scaffold(
         bottomBar = {
@@ -87,14 +90,13 @@ private fun LocationNavigation() {
             }
         }
     ) { paddingValues ->
-        // ✅ paddingValues를 LocationScreen에 전달 (modifier 추가했기 때문에 가능!)
+        // ✅ paddingValues를 LocationScreen에 전달
         LocationScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = paddingValues.calculateBottomPadding()),
             bottomBarHeight = paddingValues.calculateBottomPadding(),
-            isDark = false
+            isDark = dark // ✅ 여기서 자동 다크 적용
         )
-
     }
 }

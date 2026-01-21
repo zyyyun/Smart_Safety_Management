@@ -128,9 +128,16 @@ fun InternalDetailScreen(
             Spacer(Modifier.height(24.dp))
 
             // ✅ 전경 (텍스트 + 카드: cardW 폭 덩어리 중앙 배치)
+            val sectionTitleColor = Color(0xFF676F76) // ✅ 피그마 기준
+
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Column(modifier = Modifier.width(cardW)) {
-                    Text("전경", fontSize = 14.sp, color = text, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "전경",
+                        fontSize = 14.sp,
+                        color = sectionTitleColor, // ✅ 변경
+                        fontWeight = FontWeight.SemiBold
+                    )
                     Spacer(Modifier.height(16.dp))
                     PreviewCard(imageRes = item.overviewThumb, border = border)
                 }
@@ -138,10 +145,15 @@ fun InternalDetailScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ✅ 현장
+// ✅ 현장
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Column(modifier = Modifier.width(cardW)) {
-                    Text("현장", fontSize = 14.sp, color = text, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "현장",
+                        fontSize = 14.sp,
+                        color = sectionTitleColor, // ✅ 변경
+                        fontWeight = FontWeight.SemiBold
+                    )
                     Spacer(Modifier.height(16.dp))
                     PreviewCard(imageRes = item.siteThumb, border = border)
                 }
@@ -149,10 +161,15 @@ fun InternalDetailScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ✅ 현장캡쳐: 텍스트 + 썸네일 LazyRow를 "같은 cardW 폭" 안에 넣어 시작선 맞춤
+// ✅ 현장캡쳐: 텍스트 + 썸네일 LazyRow를 "같은 cardW 폭" 안에 넣어 시작선 맞춤
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Column(modifier = Modifier.width(cardW)) {
-                    Text("현장캡쳐", fontSize = 14.sp, color = text, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "현장캡쳐",
+                        fontSize = 14.sp,
+                        color = sectionTitleColor, // ✅ 변경
+                        fontWeight = FontWeight.SemiBold
+                    )
                     Spacer(Modifier.height(16.dp))
 
                     LazyRow(
@@ -179,6 +196,7 @@ fun InternalDetailScreen(
                     }
                 }
             }
+
 
             Spacer(Modifier.height(20.dp))
         }
