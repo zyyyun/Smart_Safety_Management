@@ -138,6 +138,16 @@
             android:name=".SettingPeopleManagementActivity"
             android:exported="false"/>
 
+        <!-- 설정 - CCTV관리 화면 -->
+        <activity
+            android:name=".SettingCctvManagementActivity"
+            android:exported="false"/>
+
+        <!-- 설정 - 기기관리 화면 -->
+        <activity android:name=".SettingDeviceManagementActivity"
+            android:exported="false"/>
+
+
     </application>
 
 </manifest>
