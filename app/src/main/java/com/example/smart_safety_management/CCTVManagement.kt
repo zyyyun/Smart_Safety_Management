@@ -70,7 +70,8 @@ enum class CCTVEventType(val label: String) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CCTVManagementScreen(
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    onCameraClick: (CCTVCameraData) -> Unit = {} // ✅ 카메라 클릭 콜백 추가
 ) {
     Smart_Safety_ManagementTheme {
         val isLight = MaterialTheme.colors.isLight
@@ -84,7 +85,6 @@ fun CCTVManagementScreen(
         var selectedArea by remember { mutableStateOf("전체 구역") }
         val selectedEvents = remember { mutableStateListOf<String>("전체") }
         val selectedCameras = remember { mutableStateListOf<String>() }
-        val horizontalPadding = 24.dp
 
         val filteredCCTVList = remember(selectedEvents.toList(), selectedArea) {
             mockCCTVList.filter { camera ->
@@ -149,7 +149,7 @@ fun CCTVManagementScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(top = 24.dp, bottom = 36.dp) // 🌟 가로 패딩(24.dp)을 제거합니다.
+                    .padding(top = 24.dp, bottom = 36.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 AnimatedVisibility(
@@ -157,7 +157,6 @@ fun CCTVManagementScreen(
                     enter = fadeIn(),
                     exit = fadeOut()
                 ) {
-                    // 🌟 필터 섹션에만 개별적으로 가로 패딩 24.dp를 부여합니다.
                     Column(
                         verticalArrangement = Arrangement.spacedBy(24.dp),
                         modifier = Modifier.padding(horizontal = 24.dp).graphicsLayer(clip = false),
@@ -177,23 +176,16 @@ fun CCTVManagementScreen(
                             color = dividerColor,
                             thickness = 1.dp,
                             modifier = Modifier
-                                .fillMaxWidth() // 일단 부모가 허용하는 최대 너비를 확보
+                                .fillMaxWidth()
                                 .layout { measurable, constraints ->
                                     val paddingPx = 24.dp.roundToPx()
-
-                                    // 1. 실제 그려질 너비는 부모 패딩 2배를 더한 값
                                     val expandedWidth = constraints.maxWidth + (paddingPx * 2)
-
-                                    // 2. 강제로 확장된 너비로 측정
                                     val placeable = measurable.measure(
                                         constraints.copy(
                                             minWidth = expandedWidth,
                                             maxWidth = expandedWidth
                                         )
                                     )
-
-                                    // 3. [중요] 부모에게는 원래의 maxWidth(패딩 제외 너비)만큼만 차지한다고 보고하고,
-                                    // 실제 배치는 왼쪽으로 paddingPx만큼 밀어서 시작합니다.
                                     layout(constraints.maxWidth, placeable.height) {
                                         placeable.place(-paddingPx, 0)
                                     }
@@ -236,13 +228,11 @@ fun CCTVManagementScreen(
                 if (isEditMode) {
                     val isAllSelected = filteredCCTVList.isNotEmpty() && selectedCameras.size == filteredCCTVList.size
 
-                    // 🌟 부모의 가로 패딩이 없으므로 이 Column은 자연스럽게 화면 끝까지 닿습니다.
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(MaterialTheme.colors.onPrimary)
                     ) {
-                        // 액션 바 콘텐츠는 다시 24.dp 패딩을 주어 정렬을 맞춤
                         Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
                             EditModeActionBar(
                                 isLight = isLight,
@@ -258,10 +248,8 @@ fun CCTVManagementScreen(
                             )
                         }
 
-                        // 구분선 (가로 전체)
                         Divider(color = dividerColor, thickness = 1.dp)
 
-                        // ✅ 하단 그림자 (가로 전체 끝까지 닿음)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -278,7 +266,6 @@ fun CCTVManagementScreen(
                     }
                 }
 
-                // 🌟 하단 목록 제목과 리스트에도 가로 패딩 추가
                 LabelText("카메라 목록", modifier = Modifier.padding(horizontal = 24.dp))
 
                 Column(modifier = Modifier.padding(horizontal = 24.dp)) {
@@ -290,7 +277,8 @@ fun CCTVManagementScreen(
                             onSelect = { isSelected ->
                                 if (isSelected) selectedCameras.add(camera.id)
                                 else selectedCameras.remove(camera.id)
-                            }
+                            },
+                            onCameraClick = { onCameraClick(camera) } // ✅ 상세 페이지 이동 리스너 전달
                         )
 
                         if (index < filteredCCTVList.size - 1) {
@@ -313,7 +301,8 @@ fun CamFrame(
     camera: CCTVCameraData,
     isEditMode: Boolean,
     isSelected: Boolean,
-    onSelect: (Boolean) -> Unit
+    onSelect: (Boolean) -> Unit,
+    onCameraClick: () -> Unit = {} // ✅ 콜백 추가
 ) {
     val isLight = MaterialTheme.colors.isLight
     val buttonColor = if (isLight) TextGray else TextGray60
@@ -341,12 +330,14 @@ fun CamFrame(
                 .height(133.dp)
                 .background(color = MaterialTheme.colors.onPrimary, shape = RoundedCornerShape(12.dp))
                 .graphicsLayer(clip = false)
-                .clickable { if (isEditMode) onSelect(!isSelected) }
+                .clickable { 
+                    if (isEditMode) onSelect(!isSelected) 
+                    else onCameraClick() // ✅ 편집 모드가 아닐 때 상세 화면 이동
+                }
         ) {
             Row(
                 modifier = Modifier.fillMaxSize().graphicsLayer(clip = false)
             ) {
-                // 왼쪽: 이미지 박스 (100x100, 12dp 라운드 적용, 패딩 없이 모서리 밀착)
                 Image(
                     painter = painterResource(id = camera.image),
                     contentDescription = null,
@@ -356,7 +347,6 @@ fun CamFrame(
                     contentScale = ContentScale.Crop
                 )
 
-                // 오른쪽: 정보 영역 (start 패딩 16.dp만 적용)
                 Column(
                     modifier = Modifier
                         .fillMaxHeight()
@@ -369,9 +359,7 @@ fun CamFrame(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
-                        // 🌟 Column에 weight(1f)를 주어 아이콘을 오른쪽 끝으로 확실히 보냅니다.
                         Column(modifier = Modifier.weight(1f)) {
-                            // 카메라 이름
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.cctvcam),
@@ -389,7 +377,6 @@ fun CamFrame(
                                 )
                             }
                             Spacer(modifier = Modifier.height(6.dp))
-                            // 위치 정보
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.cctvlocation),
@@ -405,7 +392,6 @@ fun CamFrame(
                                 )
                             }
 
-                            // ✅ 감지 이벤트 라벨 및 목록 (위치 텍스트 아래 16dp 간격)
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = "감지 이벤트",
@@ -464,7 +450,6 @@ fun EditModeActionBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // ✅ 왼쪽: 체크박스 + 전체 선택 텍스트
         Row(
             modifier = Modifier.clickable { onSelectAll(!isAllSelected) },
             verticalAlignment = Alignment.CenterVertically
@@ -482,7 +467,6 @@ fun EditModeActionBar(
             )
         }
 
-        // ✅ 오른쪽: 카메라 추가 | 선택 삭제
         Row(
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -603,7 +587,7 @@ fun CCTVEventSelectButton(
                 shape = RoundedCornerShape(20.dp)
             )
             .clickable { onClick() }
-            .padding(horizontal = 14.dp, vertical = 2.dp),
+            .padding(horizontal = 10.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
