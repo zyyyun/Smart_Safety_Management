@@ -45,6 +45,13 @@ import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import kotlin.math.roundToInt
+import android.preference.PreferenceManager
+import androidx.compose.ui.viewinterop.AndroidView
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+
 
 class SettingWorkplaceLocationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,6 +80,7 @@ fun SettingWorkplaceLocationScreen(
     LaunchedEffect(c.isDark) {
         android.util.Log.d("THEME_CHECK", "isDark=${c.isDark}")
     }
+
     val isPreview = LocalInspectionMode.current
     val focusManager = LocalFocusManager.current
     val density = LocalDensity.current
@@ -81,7 +89,7 @@ fun SettingWorkplaceLocationScreen(
     var dropdownExpanded by remember { mutableStateOf(false) }
     var isRegistered by remember { mutableStateOf(false) }
 
-    // ✅ 지도 이동값(핀은 고정, 지도만 움직임)
+    // ✅ (OSMDroid로 바꾸면 이 값은 사실상 필요 없지만, 일단 남겨둠)
     var mapOffset by remember { mutableStateOf(Offset.Zero) }
 
     // ✅ 하단 시트 높이(측정값)
@@ -104,7 +112,7 @@ fun SettingWorkplaceLocationScreen(
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
 
-            // ✅ 지도 배경(이미지는 그대로 유지)
+            // ✅ 지도 배경 (Preview는 기존처럼 박스, 실제 실행은 OSMDroid 지도)
             if (isPreview) {
                 Box(
                     modifier = Modifier
@@ -130,36 +138,32 @@ fun SettingWorkplaceLocationScreen(
                         }
                 )
             } else {
-                Image(
-                    painter = painterResource(id = R.drawable.setting_map),
-                    contentDescription = "map",
+                AndroidView(
                     modifier = Modifier
                         .fillMaxSize()
-                        .offset {
-                            IntOffset(
-                                mapOffset.x.roundToInt(),
-                                mapOffset.y.roundToInt()
-                            )
-                        }
-                        .pointerInput(Unit) {
-                            detectDragGestures(
-                                onDragStart = {
-                                    dropdownExpanded = false
-                                    focusManager.clearFocus()
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    mapOffset += dragAmount
-                                }
-                            )
-                        }
                         .pointerInput(Unit) {
                             detectTapGestures(onTap = {
                                 dropdownExpanded = false
                                 focusManager.clearFocus()
                             })
                         },
-                    contentScale = ContentScale.Crop
+                    factory = { context ->
+                        // ✅ OSMDroid 기본 설정
+                        Configuration.getInstance().load(
+                            context,
+                            PreferenceManager.getDefaultSharedPreferences(context)
+                        )
+                        Configuration.getInstance().userAgentValue = context.packageName
+
+                        MapView(context).apply {
+                            setTileSource(TileSourceFactory.MAPNIK)
+                            setMultiTouchControls(true)
+
+                            // ✅ 초기 위치(원하면 바꿔도 됨)
+                            controller.setZoom(18.0)
+                            controller.setCenter(GeoPoint(37.4563, 126.7052))
+                        }
+                    }
                 )
             }
 
@@ -198,16 +202,17 @@ fun SettingWorkplaceLocationScreen(
                         .offset(x = 0.dp, y = (-130).dp)
                         .size(110.dp)
                 )
-
             }
 
-            // ✅ floating 버튼
-            MapFloatButton(
-                onClick = { /* TODO */ },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 24.dp, bottom = sheetHeightDp + 24.dp)
-            )
+            // ✅ floating 버튼 (등록 전만 노출)
+            if (!isRegistered) {
+                MapFloatButton(
+                    onClick = { /* TODO */ },
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 24.dp, bottom = sheetHeightDp + 24.dp)
+                )
+            }
 
             // ✅ 하단 카드(높이 측정)
             Box(
@@ -238,6 +243,7 @@ fun SettingWorkplaceLocationScreen(
         }
     }
 }
+
 
 @Composable
 private fun MapFloatButton(
@@ -298,13 +304,13 @@ private fun TopBarFixed(
                     onClick = onBack,
                     modifier = Modifier.size(40.dp)
                 ) {
-                    // ✅ 다크에선 Icons로(리소스가 라이트 전용이면 대비 문제 생김)
                     Icon(
                         painter = painterResource(id = R.drawable.arrow_back),
                         contentDescription = "back",
-                        tint = Color.White,
+                        tint = if (c.isDark) Color.White else Color.Black,
                         modifier = Modifier.size(20.dp)
                     )
+
 
                 }
 
@@ -357,10 +363,10 @@ private fun SearchBarOverlay(
         ) {
             // ✅ 다크/라이트 공용 아이콘
             Icon(
-                imageVector = Icons.Filled.Search,
+                painter = painterResource(id = R.drawable.search),
                 contentDescription = "search",
                 tint = c.sub,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(24.dp)
             )
 
             Spacer(Modifier.width(8.dp))
@@ -383,7 +389,9 @@ private fun SearchBarOverlay(
                         fontSize = 21.sp,
                         lineHeight = 18.sp,
                         color = c.text,
-                        fontFamily = Pretendard
+                        fontFamily = Pretendard,
+                        fontWeight = FontWeight.Medium
+
                     ),
                     decorationBox = { inner ->
                         if (query.isEmpty()) {
@@ -392,7 +400,8 @@ private fun SearchBarOverlay(
                                 fontSize = 21.sp,
                                 lineHeight = 18.sp,
                                 color = c.sub,
-                                fontFamily = Pretendard
+                                fontFamily = Pretendard,
+                                fontWeight = FontWeight.Medium
                             )
                         }
                         inner()
@@ -475,7 +484,7 @@ private fun BottomInfoCard(
             .fillMaxWidth()
             .height(if (isRegistered) 320.dp else 280.dp)
             .clip(RoundedCornerShape(topStart = sheetRadius, topEnd = sheetRadius))
-            .background(sheetBg) // ✅ 변경: 다크면 완전 검정
+            .background(sheetBg)
             .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 30.dp)
     ) {
 
@@ -487,7 +496,7 @@ private fun BottomInfoCard(
                     text = address,
                     fontSize = 20.sp,
                     fontFamily = Pretendard,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold, // ✅ 변경: Bold -> SemiBold (등록 전/후 통일)
                     color = strongText,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -496,7 +505,6 @@ private fun BottomInfoCard(
 
                 Spacer(Modifier.height(30.dp))
 
-                // ✅ 우편번호: 다크모드면 #CDD1D5
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "우편번호",
@@ -517,7 +525,6 @@ private fun BottomInfoCard(
 
                 Spacer(Modifier.height(14.dp))
 
-                // ✅ 도로명: 다크모드면 #CDD1D5
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "도로명",
@@ -556,8 +563,6 @@ private fun BottomInfoCard(
                 )
             }
 
-
-
         } else {
 
             Row(
@@ -568,12 +573,15 @@ private fun BottomInfoCard(
                     .padding(horizontal = 12.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.postend),
+                Icon(
+                    painter = painterResource(id = R.drawable.postend_check),
                     contentDescription = null,
+                    tint = Color.Unspecified,
                     modifier = Modifier.size(16.dp)
                 )
-                Spacer(Modifier.width(4.dp))
+
+                Spacer(Modifier.width(6.dp))
+
                 Text(
                     text = "등록완료",
                     fontFamily = Pretendard,
@@ -601,7 +609,6 @@ private fun BottomInfoCard(
 
                 Spacer(Modifier.height(postAddrToZipSpace))
 
-                // ✅ 우편번호: 다크모드면 #CDD1D5
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "우편번호",
@@ -622,7 +629,6 @@ private fun BottomInfoCard(
 
                 Spacer(Modifier.height(14.dp))
 
-                // ✅ 도로명: 다크모드면 #CDD1D5
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "도로명",
@@ -646,7 +652,6 @@ private fun BottomInfoCard(
 
             Row(Modifier.fillMaxWidth()) {
 
-                // 🔹 위치 삭제
                 OutlinedButton(
                     onClick = onDelete,
                     modifier = Modifier
@@ -662,14 +667,13 @@ private fun BottomInfoCard(
                         text = "위치 삭제",
                         fontSize = 18.sp,
                         fontFamily = Pretendard,
-                        fontWeight = FontWeight.Medium,
-                        color = if (c.isDark) Color(0xFF8A949E) else strongText   // ✅ 변경
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (c.isDark) Color(0xFF8A949E) else Color(0xFF58616A)
                     )
                 }
 
                 Spacer(Modifier.width(12.dp))
 
-                // 🔹 위치 수정
                 Button(
                     onClick = onEdit,
                     modifier = Modifier
@@ -677,22 +681,22 @@ private fun BottomInfoCard(
                         .height(54.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (c.isDark) Color(0xFF131416) else Color(0xFFF3F4F6) // ✅ 변경
+                        containerColor = if (c.isDark) Color(0xFF131416) else Color(0xFFF3F4F6)
                     )
                 ) {
                     Text(
                         text = "위치 수정",
                         fontSize = 18.sp,
                         fontFamily = Pretendard,
-                        fontWeight = FontWeight.Medium,
-                        color = if (c.isDark) Color(0xFF8A949E) else strongText   // ✅ 변경
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (c.isDark) Color(0xFF8A949E) else Color(0xFF58616A)
                     )
                 }
             }
-
         }
     }
 }
+
 
 
 @Preview(

@@ -72,6 +72,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation(libs.firebase.crashlytics.buildtools)
     implementation(libs.gson)
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
