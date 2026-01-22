@@ -73,6 +73,11 @@
             android:name=".MonthlyListActivity"
             android:exported="false" />
 
+        <!-- 조치 결과 등록 화면(근로자) -->
+        <activity
+            android:name=".ActionDetailActivity"
+            android:exported="false"/>
+
         <!-- 알림 화면 -->
         <activity
             android:name=".NoticeActivity"

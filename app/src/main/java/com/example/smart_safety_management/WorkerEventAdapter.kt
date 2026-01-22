@@ -1,5 +1,6 @@
 package com.example.smart_safety_management
 
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -44,14 +45,15 @@ class WorkerEventAdapter(
         holder.card.isFocusable = false
         holder.card.isEnabled = false
 
-        // 조치대기(PENDING)일 때만 클릭 활성화
+        // 조치대기(PENDING)일 때만 클릭 활성화 및 ActionDetailActivity로 이동
         if (isPending) {
             holder.card.isClickable = true
             holder.card.isFocusable = true
             holder.card.isEnabled = true
 
             holder.card.setOnClickListener {
-                onItemClick?.invoke(event)
+                val intent = Intent(context, ActionDetailActivity::class.java)
+                context.startActivity(intent)
             }
         }
         
@@ -93,7 +95,7 @@ class WorkerEventAdapter(
             holder.tvContent.setTextColor(completedTextColor)
             holder.tvStatus.setTextColor(completedTextColor)
             holder.ivIcon.setColorFilter(completedTextColor)
-            holder.ivIcon.alpha = 1.0f // 투명도 대신 지정된 색상을 사용
+            holder.ivIcon.alpha = 1.0f 
         }
     }
 
