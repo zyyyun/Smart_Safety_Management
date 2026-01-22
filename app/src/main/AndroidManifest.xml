@@ -168,6 +168,11 @@
         <activity android:name=".EmergencyContactActivity"
             android:exported="false"/>
 
+        <!-- 현장위치 설정 화면 -->
+        <activity
+            android:name=".SettingWorkplaceLocationActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>
