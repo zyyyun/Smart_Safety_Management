@@ -28,6 +28,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
+import com.example.smart_safety_management.screens.location.LocationActivity
+import com.example.smart_safety_management.screens.realtime.RealTimeActivity
 import kotlin.math.abs
 
 private val dailyCheckMap = mapOf(
@@ -127,7 +129,7 @@ class HomeActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_live -> {
-                    Toast.makeText(this, "실시간 상황 화면으로 이동", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this, RealTimeActivity::class.java))
                     true
                 }
                 R.id.nav_history -> {
@@ -135,7 +137,7 @@ class HomeActivity : AppCompatActivity() {
                     true
                 }
                 R.id.nav_location -> {
-                    Toast.makeText(this, "위치 정보 화면으로 이동", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this, LocationActivity::class.java))
                     true
                 }
                 else -> false

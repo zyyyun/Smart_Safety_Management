@@ -313,7 +313,7 @@ private fun TopBarFixed(
                     }
                 }
 
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(3.dp))
 
                 Text(
                     text = "현장위치 설정",
@@ -514,7 +514,7 @@ private fun BottomInfoCard(
                         fontSize = 20.sp,
                         fontFamily = Pretendard,
                         fontWeight = FontWeight.Medium,
-                        color = grayText,
+                        color = strongText,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
@@ -533,7 +533,7 @@ private fun BottomInfoCard(
                         text = "도로명",
                         fontSize = 20.sp,
                         fontFamily = Pretendard,
-                        color = grayText,
+                        color = strongText,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
@@ -617,8 +617,8 @@ private fun BottomInfoCard(
                         text = "우편번호",
                         fontSize = 20.sp,
                         fontFamily = Pretendard,
-                        fontWeight = FontWeight.Black,
-                        color = grayText,
+                        fontWeight = FontWeight.Medium,
+                        color = strongText,
                         style = TextStyle.Default,
                         modifier = Modifier.weight(1f)
                     )
@@ -639,7 +639,7 @@ private fun BottomInfoCard(
                         fontSize = 20.sp,
                         fontFamily = Pretendard,
                         fontWeight = FontWeight.Medium,
-                        color = grayText,
+                        color = strongText,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
