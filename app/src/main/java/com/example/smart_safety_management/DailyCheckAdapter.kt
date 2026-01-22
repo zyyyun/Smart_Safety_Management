@@ -55,7 +55,11 @@ class DailyCheckAdapter(
             holder.title.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray500_gray650))
             holder.desc.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray500_gray650))
 
+            // 점검완료: 클릭 불가, 정적 배경 사용
+            holder.statusLayout.isClickable = false
+            holder.statusLayout.isFocusable = false
             holder.statusLayout.setBackgroundResource(R.drawable.bg_status_checked)
+            
             holder.statusText.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.teal500))
             holder.statusIcon.setImageResource(R.drawable.checked)
             holder.statusIcon.setColorFilter(ContextCompat.getColor(holder.itemView.context,R.color.teal500))
@@ -67,16 +71,24 @@ class DailyCheckAdapter(
             holder.title.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.black_white))
             holder.desc.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray800_gray200))
 
+            // 미점검: 클릭 가능
+            holder.statusLayout.isClickable = true
+            holder.statusLayout.isFocusable = true
+            // 셀렉터 적용
             holder.statusLayout.setBackgroundResource(R.drawable.bg_status_unchecked)
+            
             holder.statusText.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.orange500_black))
             holder.statusIcon.setImageResource(R.drawable.orange_bell)
             holder.statusIcon.setColorFilter(ContextCompat.getColor(holder.itemView.context, R.color.orange500_black))
             
             // 미점검 시 테두리 추가
-            holder.cardView.strokeWidth = holder.itemView.context.resources.getDimensionPixelSize(androidx.cardview.R.dimen.cardview_default_elevation) / 2
-            holder.cardView.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.orange400alpha20_orange400)
-            // 명시적으로 1dp 정도를 주려면 아래와 같이 설정 (보통 px 단위)
             holder.cardView.strokeWidth = (1.142 * holder.itemView.context.resources.displayMetrics.density).toInt()
+            holder.cardView.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.orange400alpha20_orange400)
+
+            // 클릭 리스너 예시 (필요시 구현)
+            holder.statusLayout.setOnClickListener {
+                // 점검 동작 수행 등
+            }
         }
 
         if (!isTooltipDismissed && position == tooltipPosition && item.status == "미점검") {
