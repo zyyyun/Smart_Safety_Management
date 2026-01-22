@@ -5,13 +5,32 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.BottomNavigation
+import androidx.compose.material.BottomNavigationItem
+import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Scaffold
+import androidx.compose.material.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.AIEventActivity
@@ -22,7 +41,11 @@ import com.example.smart_safety_management.R
 import com.example.smart_safety_management.screens.detail.InternalDetailScreen
 import com.example.smart_safety_management.screens.dialog.MapDialog
 import com.example.smart_safety_management.screens.location.LocationActivity
-import com.example.smart_safety_management.ui.theme.*
+import com.example.smart_safety_management.ui.theme.GrayBorder
+import com.example.smart_safety_management.ui.theme.LocalSafeColors
+import com.example.smart_safety_management.ui.theme.MainOrange
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.ui.theme.TextDark
 
 class RealTimeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,16 +63,27 @@ private fun RealTimeNavigation() {
     val context = LocalContext.current
     val activity = context as? Activity
 
-    // ✅ 상세로 넘어갈 아이템 상태
     var selectedItem by remember { mutableStateOf<LiveCardItem?>(null) }
-
-    // ✅ 지도 다이얼로그 상태 (리스트/상세 공통)
     var showMap by remember { mutableStateOf(false) }
 
+    // ✅ 바텀바 색을 SafeColors 기준으로 통일 (다크/라이트 자동)
+    val c = LocalSafeColors.current
+    val bottomBg = c.bottomBar
+
+    // ✅ 시스템 네비게이션 바(제스처 영역) 색도 동일하게
+    val view = LocalView.current
+    SideEffect {
+        (view.context as? Activity)?.window?.navigationBarColor = bottomBg.toArgb()
+    }
+
     Scaffold(
+        // ✅ 바닥(검정 띠 영역)까지 같은 톤으로 채우기
+        backgroundColor = bottomBg,
         bottomBar = {
             BottomNavigation(
-                backgroundColor = if (MaterialTheme.colors.isLight) TextGray5 else TextGray20,
+                modifier = Modifier.navigationBarsPadding()
+                    .height(90.dp),
+                backgroundColor = bottomBg,
                 elevation = 10.dp
             ) {
                 val items = listOf(
@@ -62,8 +96,6 @@ private fun RealTimeNavigation() {
 
                 items.forEach { (title, iconRes, route) ->
                     BottomNavigationItem(
-                        icon = { Icon(painter = painterResource(id = iconRes), contentDescription = title) },
-                        label = { Text(text = title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
                         selected = route == "nav_live",
                         onClick = {
                             when (route) {
@@ -89,39 +121,56 @@ private fun RealTimeNavigation() {
                             }
                         },
                         selectedContentColor = MainOrange,
-                        unselectedContentColor = if (MaterialTheme.colors.isLight) GrayBorder else TextDark
+                        unselectedContentColor = if (MaterialTheme.colors.isLight) GrayBorder else TextDark,
+                        alwaysShowLabel = false,
+
+                        // ✅ 아이콘+텍스트 간격 조절 & 텍스트 1줄 고정
+                        icon = {
+                            Column(
+                                modifier = Modifier.padding(top = 14.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    painter = painterResource(id = iconRes),
+                                    contentDescription = title,
+                                    modifier = Modifier.size(28.dp)
+                                )
+
+                                Spacer(modifier = Modifier.height(7.dp)) // ✅ 간격 (원하면 8.dp)
+
+                                Text(
+                                    text = title,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
                     )
                 }
             }
         }
     ) { paddingValues ->
 
-        // ✅ 화면 분기
         if (selectedItem == null) {
             RealTimeScreen(
                 modifier = Modifier.padding(paddingValues),
-                onCardClick = { item ->
-                    selectedItem = item
-                }
+                onCardClick = { item -> selectedItem = item }
             )
         } else {
             InternalDetailScreen(
                 item = selectedItem!!,
                 onBack = { selectedItem = null },
-                onMapClick = { showMap = true },           // ✅ 상세 우측 상단 버튼 연결
+                onMapClick = { showMap = true },
                 modifier = Modifier.padding(paddingValues)
             )
         }
 
-        // ✅ MapDialog를 Activity 레벨에서 공통으로 띄움 (리스트/상세 어디서든)
         if (showMap) {
             MapDialog(
                 item = selectedItem,
                 onDismiss = { showMap = false },
-                onMoveCamera = {
-                    showMap = false
-                    // TODO: 여기서 원하는 동작(카메라 이동/해당 CAM 상세로 이동 등) 연결
-                }
+                onMoveCamera = { showMap = false }
             )
         }
     }

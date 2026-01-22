@@ -41,22 +41,27 @@ val LightSafeColors = SafeColors(
     tableHeaderBg = ORANGE.copy(alpha = 0.12f),
 )
 
+// SafeColors.kt
+
 val DarkSafeColors = SafeColors(
     isDark = true,
 
-    bg = Color(0xFF0B0D10),
-    topBar = Color(0xFF000000), // ✅ TopBar를 "완전 진한 검정"으로
-    surface = Color(0xFF1E232B),
-    border = Color(0xFF2A303A),
-    text = Color.White,
-    sub = Color(0xFFC5CCD6),
-    bottomBar = Color(0xFF0B0D10),
-    chip = Color(0xFF2A303A),
-    chipText = Color.White,
-    divider = Color(0xFF2A303A),
+    bg = Color(0xFF000000),
+    surface = Color(0xFF111318),
+    topBar = Color(0xFF111318),
 
-    selectedBg = ORANGE.copy(alpha = 0.22f),
-    tableHeaderBg = ORANGE.copy(alpha = 0.22f),
+    // ✅ 여기 핵심
+    bottomBar = Color(0xFF131416),
+
+    border = Color(0xFF2A2F37),
+    divider = Color(0xFF1F2937),
+    text = Color.White,
+    sub = Color(0xFF9CA3AF),
+    chip = Color(0xFF1F2937),
+    chipText = Color(0xFF9CA3AF),
+    selectedBg = Color(0xFF1F2937),
+    tableHeaderBg = Color(0xFF131416)
 )
+
 
 val LocalSafeColors = staticCompositionLocalOf { LightSafeColors }
