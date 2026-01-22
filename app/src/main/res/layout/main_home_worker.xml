@@ -83,14 +83,14 @@
                         android:id="@+id/list_header"
                         layout="@layout/view_list_header"/>
 
+                    <!-- 구분선 추가 -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_daily_check"
                         android:layout_width="match_parent"
-                        android:layout_marginTop="14dp"
                         android:layout_height="293dp"
+                        android:layout_marginTop="14dp"
                         android:overScrollMode="never" />
 
-                    <!-- 구분선 추가 -->
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
@@ -128,7 +128,10 @@
                         android:id="@+id/view_emergency"
                         layout="@layout/view_emergecy_contact"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
+                        android:layout_height="wrap_content"
+                        android:clickable="true"
+                        android:focusable="true"
+                        />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

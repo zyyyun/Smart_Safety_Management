@@ -52,10 +52,10 @@ val mockContacts = listOf(
     Contact("한지민", "010-0123-4567")
 )
 
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 @Composable
-fun EmergencyContactScreen() {
+fun EmergencyContactScreen(
+    onBackClick: () -> Unit = {}
+) {
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     val filteredContacts = if (searchQuery.isBlank()) {
@@ -89,7 +89,7 @@ fun EmergencyContactScreen() {
                             )
                         },
                         navigationIcon = {
-                            IconButton(onClick = { }) {
+                            IconButton(onClick = onBackClick) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.backicon),
                                     contentDescription = "Back",
@@ -214,4 +214,11 @@ fun ContactListItem(contact: Contact) {
         }
     }
     Divider(color = DividerColor)
+}
+
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
+@Composable
+fun EmergencyContactScreenPreview() {
+    EmergencyContactScreen()
 }

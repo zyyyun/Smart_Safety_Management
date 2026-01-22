@@ -61,6 +61,7 @@ class HomeWorkerActivity : AppCompatActivity() {
         updateProfileName()
         updateWorkerDay()
         checkInviteCodeDialog()
+        emergencyContact()
 
         val topBar = findViewById<View>(R.id.top_bar)
         val btnAlarm = topBar.findViewById<ImageButton>(R.id.btn_alarm)
@@ -232,4 +233,13 @@ class HomeWorkerActivity : AppCompatActivity() {
         params?.width = (resources.displayMetrics.widthPixels * 0.85).toInt()
         dialog.window?.attributes = params
     }
+    private fun emergencyContact() {
+        val emergencyArea = findViewById<View>(R.id.layout_emergency_root)
+        emergencyArea.isClickable = true
+        emergencyArea.setOnClickListener {
+            val intent = Intent(this, EmergencyContactActivity::class.java)
+            startActivity(intent)
+        }
+    }
+
 }

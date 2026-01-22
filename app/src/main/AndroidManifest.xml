@@ -164,6 +164,10 @@
             android:name=".DeviceManageWorkerActivity"
             android:exported="false"/>
 
+        <!-- 근로자 - 비상연락리스트 화면 -->
+        <activity android:name=".EmergencyContactActivity"
+            android:exported="false"/>
+
     </application>
 
 </manifest>

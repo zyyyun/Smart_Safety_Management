@@ -6,7 +6,7 @@
     android:layout_height="wrap_content">
 
     <RelativeLayout
-        android:id="@+id/frame_275"
+        android:id="@+id/layout_emergency_root"
         android:layout_width="0dp"
         android:layout_height="76dp"
         android:background="@drawable/bg_cancel_button_red"
