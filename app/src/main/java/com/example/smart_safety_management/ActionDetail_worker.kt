@@ -61,7 +61,11 @@ fun ActionDetailWorkerScreen(
         content = "D구역 1열에서 근로자 1명 쓰러짐"
     )
 
-    // ✅ 더미 데이터로 초기값 설정
+    // 라이브 컴포넌트와 사용하기위한 상태 변수
+    var pos by remember { mutableStateOf(0.5f) }
+    var playing by remember { mutableStateOf(true) }
+
+    // 더미데이터
     var actionType by remember { mutableStateOf(dummyData.actionType) }
     var title by remember { mutableStateOf(dummyData.title) }
     var content by remember { mutableStateOf(dummyData.content) }
@@ -171,14 +175,40 @@ fun ActionDetailWorkerScreen(
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         LabelText("실시간 화면")
-                        Image(
-                            painter = painterResource(id = R.drawable.workeraction),
-                            contentDescription = "실시간 화면",
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .wrapContentHeight(),
-                            contentScale = ContentScale.FillWidth
-                        )
+                        ) {
+                            // 2. 배경 이미지 (기억하라고 하신 코드)
+                            Image(
+                                painter = painterResource(id = R.drawable.event),
+                                contentDescription = "실시간 화면",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.FillWidth
+                            )
+
+                            // 3. 상단 LIVE 인디케이터 배치
+                            LiveIndicator(
+                                isLive = true,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd) // 왼쪽 상단에 배치
+                                    .padding(12.dp)            // 이미지 안쪽 여백
+                            )
+
+                            // 4. 하단 재생바 및 컨트롤러 배치
+                            LivePlaybackController(
+                                sliderPosition = pos,
+                                onSliderValueChange = { pos = it },
+                                timeText = "05:20",
+                                isPlaying = playing,
+                                onPlayPauseClick = { playing = !playing },
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter) // 하단 중앙에 배치
+                                    .clip(RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)) // 이미지 모서리에 맞춰 하단 깎기
+                            )
+                        }
                         Spacer(modifier = Modifier.height(20.dp))
                     }
                 }

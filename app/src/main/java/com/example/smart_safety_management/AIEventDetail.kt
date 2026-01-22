@@ -32,8 +32,11 @@ fun AIEventDetailScreen(
 ) {
     var isActionCompleted by remember { mutableStateOf(initialActionCompleted) }
     var showFalseDetectionDialog by remember { mutableStateOf(false) }
+    var pos by remember { mutableStateOf(0.5f) }
+    var playing by remember { mutableStateOf(true) }
 
     Smart_Safety_ManagementTheme {
+
         val isLight = MaterialTheme.colors.isLight
         val CategoryColor = if (isLight) TextGray60 else TextGray
         val locationColor = if (isLight) TextGray20 else TextGray5
@@ -316,14 +319,41 @@ fun AIEventDetailScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        Image(
-                            painter = painterResource(id = R.drawable.event),
-                            contentDescription = "실시간 화면",
+                        Box(
+
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.FillWidth
-                        )
+                        ) {
+
+                            Image(
+                                painter = painterResource(id = R.drawable.event),
+                                contentDescription = "실시간 화면",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.FillWidth
+                            )
+
+                            // 3. 상단 LIVE 인디케이터 배치
+                            LiveIndicator(
+                                isLive = true,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd) // 왼쪽 상단에 배치
+                                    .padding(12.dp)            // 이미지 안쪽 여백
+                            )
+
+                            // 4. 하단 재생바 및 컨트롤러 배치
+                            LivePlaybackController(
+                                sliderPosition = pos,
+                                onSliderValueChange = { pos = it },
+                                timeText = "05:20",
+                                isPlaying = playing,
+                                onPlayPauseClick = { playing = !playing },
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter) // 하단 중앙에 배치
+                                    .clip(RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)) // 이미지 모서리에 맞춰 하단 깎기
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(60.dp))
                     }
