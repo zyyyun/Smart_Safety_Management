@@ -25,9 +25,10 @@ import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.ui.theme.*
 
 @Composable
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
-//@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
-fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
+fun DailyDetailWorkerScreen(
+    onBackClick: () -> Unit = {},
+    onReportClick: () -> Unit = {}
+) {
     // 상세 화면에 표시될 초기값 (예시 데이터)
     var date by remember { mutableStateOf("2026-05-07") }
     var location by remember { mutableStateOf("C구역 2열") }
@@ -226,7 +227,7 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
 
                 // 수정하기 버튼
                 Button(
-                    onClick = { /* 수정하기 로직 */ },
+                    onClick = onReportClick,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(55.dp)
@@ -252,7 +253,8 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 @Composable
 fun DailyDetailWorkerScreenPreview() {
     DailyDetailWorkerScreen()

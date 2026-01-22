@@ -117,48 +117,50 @@ fun EmergencyContactScreen(
                     )
 
                     AnimatedVisibility(visible = isSearchActive) {
-                        Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colors.onPrimary) {
-                            BasicTextField(
-                                value = searchQuery,
-                                onValueChange = { searchQuery = it },
-                                modifier = Modifier
-                                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp)
-                                    .fillMaxWidth(),
-                                textStyle = TextStyle(
-                                    fontSize = 18.sp,
-                                    color = searchTextColor
-                                ),
-                                singleLine = true,
-                                decorationBox = { innerTextField ->
-                                    Box(
-                                        modifier = Modifier
-                                            .height(40.dp)
-                                            .background(color = searchBoxColor,
-                                                shape = RoundedCornerShape(8.dp)
+                        Column {
+                            Surface(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colors.onPrimary) {
+                                BasicTextField(
+                                    value = searchQuery,
+                                    onValueChange = { searchQuery = it },
+                                    modifier = Modifier
+                                        .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 12.dp)
+                                        .fillMaxWidth(),
+                                    textStyle = TextStyle(
+                                        fontSize = 18.sp,
+                                        color = searchTextColor
+                                    ),
+                                    singleLine = true,
+                                    decorationBox = { innerTextField ->
+                                        Box(
+                                            modifier = Modifier
+                                                .height(40.dp)
+                                                .background(color = searchBoxColor,
+                                                    shape = RoundedCornerShape(8.dp)
+                                                    )
+                                                .border(
+                                                    width = 1.dp,
+                                                    color = searchBoxBorder,
+                                                    shape = RoundedCornerShape(8.dp)
                                                 )
-                                            .border(
-                                                width = 1.dp,
-                                                color = searchBoxBorder,
-                                                shape = RoundedCornerShape(8.dp)
-                                            )
-                                            .padding(horizontal = 12.dp),
-                                        contentAlignment = Alignment.CenterStart
+                                                .padding(horizontal = 12.dp),
+                                            contentAlignment = Alignment.CenterStart
 
-                                    ) {
-                                        if (searchQuery.isEmpty()) {
-                                            Text(
-                                                text = "이름 또는 전화번호를 입력하세요.",
-                                                fontSize = 16.sp,
-                                                color = searchInfoColor
-                                            )
+                                        ) {
+                                            if (searchQuery.isEmpty()) {
+                                                Text(
+                                                    text = "이름 또는 전화번호를 입력하세요.",
+                                                    fontSize = 16.sp,
+                                                    color = searchInfoColor
+                                                )
+                                            }
+                                            innerTextField()
                                         }
-                                        innerTextField()
                                     }
-                                }
-                            )
+                                )
+                            }
+                            Divider()
                         }
                     }
-                    Divider()
                 }
             },
             backgroundColor = MaterialTheme.colors.onPrimary

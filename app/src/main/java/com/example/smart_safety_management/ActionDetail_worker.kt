@@ -304,6 +304,7 @@ fun ActionDetailWorkerScreen(
                                             color = CategoryColor,
                                             fontSize = 14.sp,
                                             fontFamily = Pretendard,
+                                            fontWeight = FontWeight.Normal,
                                             modifier = Modifier.offset(y = (4).dp)
                                         )
                                     }
@@ -603,7 +604,8 @@ fun ActionDetailWorkerScreen(
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 18.sp,
                                 fontFamily = Pretendard,
-                                color = MaterialTheme.colors.onPrimary
+                                color = MaterialTheme.colors.onPrimary,
+                                letterSpacing = (-0.3).sp
                             )
                         }
                         Spacer(modifier = Modifier.height(60.dp))
