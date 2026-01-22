@@ -279,7 +279,7 @@ fun BatteryItem(data: DeviceBatteryData, onAlarmClick: () -> Unit) {
                         )
                     }
                 }
-                Button(onClick = onAlarmClick, colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)) {
+                Button(onClick = onAlarmClick, colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),modifier = Modifier.width(84.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(painter = painterResource(id = R.drawable.alarm), contentDescription = null, tint = MaterialTheme.colors.onPrimary, modifier = Modifier.scale(0.75f))
                         Spacer(modifier = Modifier.width(4.dp))
