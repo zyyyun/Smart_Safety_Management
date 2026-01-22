@@ -22,6 +22,9 @@ import androidx.navigation.compose.rememberNavController
 import com.example.smart_safety_management.screens.location.LocationActivity
 import com.example.smart_safety_management.screens.realtime.RealTimeActivity
 import com.example.smart_safety_management.ui.theme.*
+import com.google.accompanist.systemuicontroller.rememberSystemUiController
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 
 class AIEventActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,6 +45,27 @@ fun AIEventNavigation() {
     // 현재 내비게이션 경로 확인
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    // 상태바 컨트롤러
+    val systemUiController = rememberSystemUiController()
+
+    // 현재 화면에 따라 상태바 색 변경
+    SideEffect {
+        when (currentRoute) {
+            "detect" -> {
+                systemUiController.setStatusBarColor(
+                    color = MainOrange,   // 주황색
+                    darkIcons = true
+                )
+            }
+            else -> {
+                systemUiController.setStatusBarColor(
+                    color = Color.White,  // 기본(흰색)
+                    darkIcons = true
+                )
+            }
+        }
+    }
 
     Scaffold(
         bottomBar = {

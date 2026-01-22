@@ -8,7 +8,7 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="중대재해예방 플랫폼"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Smart_Safety_Management">
@@ -60,8 +60,12 @@
         <activity android:name=".PasswordChangedActivity"/>
 
         <!-- 메인 홈 화면 -->
-        <activity android:name=".HomeActivity"/>
-        <activity android:name=".HomeWorkerActivity"/>
+        <activity
+            android:name=".HomeActivity"
+            android:theme="@style/Theme.Smart_Safety_Management.Status.Orange" />
+        <activity
+            android:name=".HomeWorkerActivity"
+            android:theme="@style/Theme.Smart_Safety_Management.Status.Orange" />
 
         <!-- 일일안전점검 화면 -->
         <activity
@@ -108,12 +112,13 @@
         <!-- AI 이벤트 감지 화면 -->
         <activity
             android:name=".AIEventActivity"
-            android:exported="true"/>
+            android:exported="true" />
 
         <!-- 이력화면 -->
         <activity
             android:name=".HistoryActivity"
-            android:exported="true" />
+            android:exported="true"
+            android:theme="@style/Theme.Smart_Safety_Management.Status.Orange" />
 
         <!-- 설정 - 비밀번호 수정 화면 -->
         <activity
