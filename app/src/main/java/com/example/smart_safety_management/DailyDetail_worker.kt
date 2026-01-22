@@ -50,6 +50,7 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
                             fontWeight = FontWeight.Bold,
                             color = mainTextColor,
                             fontFamily = Pretendard,
+                            fontSize = 24.sp,
                             modifier = Modifier.offset(x = (-24).dp)
                         )
                     },
@@ -72,13 +73,13 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 16.dp, vertical = 20.dp)
+                    .padding(horizontal = 24.dp, vertical = 20.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 // 작성일
                 Text(
                     text = "작성일",
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(vertical = 4.dp)
@@ -88,7 +89,7 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
                     value = date,
                     onValueChange = { date = it },
                     readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = fontColor),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fontColor),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         Column {
@@ -104,7 +105,7 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
                 // 위치
                 Text(
                     text = "위치",
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(vertical = 4.dp)
@@ -114,7 +115,7 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
                     value = location,
                     onValueChange = { location = it },
                     readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = fontColor),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fontColor),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         Column {
@@ -130,7 +131,7 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
                 // 위험요인
                 Text(
                     text = "위험요인",
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(vertical = 4.dp)
@@ -140,7 +141,7 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
                     value = riskFactor,
                     onValueChange = { riskFactor = it },
                     readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp,
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,
                         color = fontColor),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
@@ -157,7 +158,7 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
                 // 안전대책
                 Text(
                     text = "안전대책",
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(vertical = 4.dp)
@@ -167,7 +168,7 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
                     value = safetyMeasure,
                     onValueChange = { safetyMeasure = it },
                     readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 16.sp, color = fontColor),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fontColor),
                     modifier = Modifier.fillMaxWidth(),
                     decorationBox = { innerTextField ->
                         Column {
@@ -183,7 +184,7 @@ fun DailyDetailWorkerScreen(onBackClick: () -> Unit = {}) {
                 // 현장사진
                 Text(
                     text = "현장사진",
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(vertical = 4.dp)

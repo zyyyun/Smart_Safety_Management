@@ -34,6 +34,10 @@ class SettingProfileActivity : AppCompatActivity() {
 
     private fun loadUserData() {
         findViewById<TextView>(R.id.tv_user_name).text = UserSession.userName
+        
+        // 현재 역할(권한) 표시
+        val authorityTv = findViewById<TextView>(R.id.tv_user_name_authority)
+        authorityTv.text = if (UserSession.userRole == UserRole.MANAGER) "관리자" else "근로자"
     }
 
     private fun showChangeNameDialog() {

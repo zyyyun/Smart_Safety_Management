@@ -36,7 +36,7 @@ import java.util.Calendar
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 @Composable
-fun DailyListScreen(onComplete: () -> Unit = {}) {
+fun DailyListWorkerScreen(onComplete: () -> Unit = {}) {
     val activity = LocalContext.current as? ComponentActivity
     val calendar = Calendar.getInstance()
     val year = calendar.get(Calendar.YEAR)
@@ -44,15 +44,11 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
     val day = calendar.get(Calendar.DAY_OF_MONTH)
 
     var date by remember { mutableStateOf("$year-${month + 1}-$day") }
-    var location by remember { mutableStateOf("") }
     var riskFactor by remember { mutableStateOf("") }
-    var safetyMeasure by remember { mutableStateOf("") }
     var attachedPhotos by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val isFormComplete = date.isNotBlank() &&
-            location.isNotBlank() &&
             riskFactor.isNotBlank() &&
-            safetyMeasure.isNotBlank() &&
             attachedPhotos.isNotEmpty()
 
     val context = LocalContext.current
@@ -69,22 +65,24 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
 
     Smart_Safety_ManagementTheme {
         // 테마 블록 내부에서 색상 정의 (다크모드 인지 가능)
-        val labelColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
-        val calendarIconTint = if (MaterialTheme.colors.isLight) Color.Unspecified else GrayBorder
-        val fieldBgColor = if (MaterialTheme.colors.isLight) Color.White else TextGray20
-        val borderColor = if (MaterialTheme.colors.isLight) GrayBorder else TextDark
-        val textColor = if (MaterialTheme.colors.isLight) TextGray else TextGray60
-        val fieldTextColor = if (MaterialTheme.colors.isLight) TextGray20 else TextGray20
+        val isLight = MaterialTheme.colors.isLight
+        val labelColor = if (isLight) TextGray60 else TextGray
+        val calendarIconTint = if (isLight) Color.Unspecified else GrayBorder
+        val fieldBgColor = if (isLight) Color.White else TextGray20
+        val borderColor = if (isLight) GrayBorder else TextDark
+        val textColor = if (isLight) TextGray else TextGray60
+        val placeholder = if(isLight) TextLight else TextGray30
+        val fieldTextColor = if(isLight) TextGray20 else TextGray5
         Scaffold(
             backgroundColor = MaterialTheme.colors.onPrimary,
             topBar = {
                 TopAppBar(
                     title = {
                         Text(
-                            text = "일일안전점검 작성",
+                            text = "일일안전점검 보고",
                             fontWeight = FontWeight.Bold,
-                            fontSize = 24.sp,
                             color = MaterialTheme.colors.onSurface,
+                            fontSize = 24.sp,
                             fontFamily = Pretendard,
                             modifier = Modifier.offset(x = (-24).dp)
                         )
@@ -108,7 +106,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 16.dp, vertical = 24.dp)
+                    .padding(horizontal = 16.dp, vertical = 20.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 Text(
@@ -116,15 +114,15 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = date,
                     onValueChange = { date = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,color = fieldTextColor),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fieldTextColor),
                     trailingIcon = {
                         IconButton(onClick = { datePickerDialog.show() }) {
                             Icon(
@@ -145,35 +143,11 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "위치", 
+                    text = "점검결과",
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = location,
-                    onValueChange = { location = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal=8.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,color = fieldTextColor),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        textColor = MaterialTheme.colors.onSurface,
-                        unfocusedBorderColor = borderColor,
-                        focusedBorderColor = MaterialTheme.colors.primary,
-                        backgroundColor = fieldBgColor
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = "위험요인", 
-                    fontSize = 16.sp,
-                    color = labelColor,
-                    fontFamily = Pretendard,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
@@ -182,9 +156,18 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp)
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 4.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,color = fieldTextColor),
+                    placeholder={
+                        Text (
+                            text = "점검 내용을 작성해주세요.",
+                            fontFamily = Pretendard,
+                            fontSize = 18.sp,
+                            color = placeholder
+                        )
+                    },
+                    singleLine = false,
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,color = fieldTextColor ),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         textColor = MaterialTheme.colors.onSurface,
                         unfocusedBorderColor = borderColor,
@@ -196,38 +179,11 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = "안전대책", 
+                    text = "사진",
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = safetyMeasure,
-                    onValueChange = { safetyMeasure = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .padding(horizontal = 8.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fieldTextColor),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        textColor = MaterialTheme.colors.onSurface,
-                        unfocusedBorderColor = borderColor,
-                        focusedBorderColor = MaterialTheme.colors.primary,
-                        backgroundColor = fieldBgColor
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = "현장사진",
-                    fontSize = 16.sp,
-                    color = labelColor,
-                    fontFamily = Pretendard,
-                    modifier = Modifier.padding(horizontal = 8.dp)
+                    modifier = Modifier.padding(horizontal = 4.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -239,7 +195,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                 ) {
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 8.dp)
+                            .padding(horizontal = 4.dp)
                             .size(120.dp)
                             .background(fieldBgColor, shape = RoundedCornerShape(8.dp))
                             .clickable {
@@ -287,7 +243,6 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
                 Spacer(modifier = Modifier.height(48.dp))
                 Button(
                     onClick = { if (isFormComplete)

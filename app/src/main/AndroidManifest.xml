@@ -63,10 +63,20 @@
         <activity android:name=".HomeActivity"/>
         <activity android:name=".HomeWorkerActivity"/>
 
+        <!-- 일일안전점검 화면 -->
+        <activity
+            android:name=".DailyDetailActivity"
+            android:exported="false"/>
+
         <!-- 월별로 보기 화면 -->
         <activity
             android:name=".MonthlyListActivity"
             android:exported="false" />
+
+        <!-- 조치 결과 등록 화면(근로자) -->
+        <activity
+            android:name=".ActionDetailActivity"
+            android:exported="false"/>
 
         <!-- 알림 화면 -->
         <activity
@@ -82,6 +92,9 @@
         <activity
             android:name=".SettingActivity"
             android:exported="false"/>"
+        <activity
+            android:name=".SettingWorkerActivity"
+            android:exported="false"/>
 
         <!-- 설정 - 초대코드 입력 화면 -->
         <activity
@@ -111,12 +124,12 @@
         <activity
             android:name=".SettingCreateWorkplaceActivity"
             android:exported="false"/>
+
         <!-- 실시간 상황 화면 -->
         <activity android:name=".screens.realtime.RealTimeActivity" />
 
         <!-- 위치정보 화면 -->
         <activity android:name=".screens.location.LocationActivity" />
-
 
         <!-- 설정 - 초대하기 화면 -->
         <activity
@@ -144,9 +157,16 @@
             android:exported="false"/>
 
         <!-- 설정 - 기기관리 화면 -->
-        <activity android:name=".SettingDeviceManagementActivity"
+        <activity
+            android:name=".SettingDeviceManagementActivity"
+            android:exported="false"/>
+        <activity
+            android:name=".DeviceManageWorkerActivity"
             android:exported="false"/>
 
+        <!-- 근로자 - 비상연락리스트 화면 -->
+        <activity android:name=".EmergencyContactActivity"
+            android:exported="false"/>
 
     </application>
 

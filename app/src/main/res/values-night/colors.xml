@@ -4,9 +4,9 @@
     <!-- Orange -->
     <color name="orange50">#FFE9D9</color>
     <color name="orange50alpha_orange200alpha">#5CFB923C</color>
-    <color name="orange200alpha_orange400">#FB923C</color>
     <color name="orange400">#5CFB923C</color>
     <color name="orange400alpha36">#5CFB923C</color>
+    <color name="orange400alpha20_orange400">#FB923C</color>
     <color name="orange400alpha12_orange400alpha36">#5CFB923C</color>
     <color name="orange500">#F97316</color>
     <color name="orange500_gray950">#1E2124</color>
@@ -19,9 +19,13 @@
 
     <!-- red -->
     <color name="red500">#EF4444</color>
+    <color name="red500alpha12_red500alpha36">#5CEF4444</color>
 
     <!-- blue -->
     <color name="blue500">#3B82F6</color>"
+
+    <!-- amber -->
+    <color name="amber500alpha12_amber500alpha36">#5CFFB114</color>"
 
     <!-- gray -->
     <color name="base">#000000</color>
@@ -42,6 +46,7 @@
     <color name="gray500_gray650">#464C53</color>
     <color name="gray600">#6D7882</color>
     <color name="gray700">#58616A</color>
+    <color name="gray700_gray200">#CDD1D5</color>
     <color name="gray700_gray400">#8A949E</color>
     <color name="gray800_gray200">#CDD1D5</color>
     <color name="gray900">#131416</color>

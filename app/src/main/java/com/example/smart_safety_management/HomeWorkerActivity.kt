@@ -9,7 +9,6 @@ import androidx.core.widget.NestedScrollView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.util.Calendar
-import android.graphics.Color
 import android.content.Intent
 import android.graphics.Paint
 import android.text.Spannable
@@ -20,7 +19,6 @@ import android.widget.EditText
 import android.widget.ImageButton
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
-import kotlin.math.abs
 
 private val dailyCheckMap = mapOf(
     7 to listOf(
@@ -30,7 +28,7 @@ private val dailyCheckMap = mapOf(
     12 to listOf(
         DailyCheckItem("A구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
-    15 to listOf(
+    22 to listOf(
         DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
@@ -48,6 +46,7 @@ private val dailyCheckMap = mapOf(
 class HomeWorkerActivity : AppCompatActivity() {
 
     private lateinit var dailyAdapter: DailyCheckAdapter
+    private lateinit var eventAdapter: WorkerEventAdapter
     private var selectedDay: Int? = null
     private var isInviteDialogShowing = false
 
@@ -60,7 +59,9 @@ class HomeWorkerActivity : AppCompatActivity() {
 
     private fun initUI() {
         updateProfileName()
+        updateWorkerDay()
         checkInviteCodeDialog()
+        emergencyContact()
 
         val topBar = findViewById<View>(R.id.top_bar)
         val btnAlarm = topBar.findViewById<ImageButton>(R.id.btn_alarm)
@@ -69,18 +70,30 @@ class HomeWorkerActivity : AppCompatActivity() {
 
         alarmDot.visibility = if (true) View.VISIBLE else View.GONE
 
+        // 알림 버튼 -> 알림 화면
         btnAlarm.setOnClickListener {
             startActivity(Intent(this, NoticeActivity::class.java))
         }
 
+        // 설정 버튼 -> 근로자용 설정 화면
         btnSetting.setOnClickListener {
-            startActivity(Intent(this, SettingActivity::class.java))
+            startActivity(Intent(this, SettingWorkerActivity::class.java))
         }
 
-        val rv = findViewById<RecyclerView>(R.id.rv_daily_check)
-        rv.layoutManager = LinearLayoutManager(this)
+        // 일일안전점검 리스트 헤더 처리 (추가 버튼 숨김)
+        findViewById<View>(R.id.list_header)?.findViewById<View>(R.id.btn_add)?.visibility = View.GONE
+
+        // 일일안전점검 리스트 초기화
+        val rvDaily = findViewById<RecyclerView>(R.id.rv_daily_check)
+        rvDaily.layoutManager = LinearLayoutManager(this)
         dailyAdapter = DailyCheckAdapter(emptyList())
-        rv.adapter = dailyAdapter
+        rvDaily.adapter = dailyAdapter
+
+        // 조치요청 리스트 초기화
+        val rvEvent = findViewById<RecyclerView>(R.id.rv_worker_event)
+        rvEvent.layoutManager = LinearLayoutManager(this)
+        eventAdapter = WorkerEventAdapter(getSampleEvents())
+        rvEvent.adapter = eventAdapter
 
         selectedDay = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
         dailyAdapter.initTooltip()
@@ -95,6 +108,27 @@ class HomeWorkerActivity : AppCompatActivity() {
         )
 
         updateDailyCheckList(selectedDay)
+    }
+
+    private fun getSampleEvents(): List<Pair<EventData, EventStatus>> {
+        return listOf(
+            EventData(accidentType = "위험", location = "C구역 2열", content = "화재사고가 감지되었습니다.", "지금") to EventStatus.PENDING,
+            EventData(accidentType = "경고", location = "C구역 2열", content = "쓰러짐이 감지되었습니다.", "1분 전") to EventStatus.PENDING,
+            EventData(accidentType = "주의", location = "C구역 2열", content = "이동경로 미정돈이 감지되었습니다.", "3분 전") to EventStatus.PENDING,
+            // 조치완료 및 오탐처리 추가
+            EventData(accidentType = "주의", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.", "1분 전") to EventStatus.COMPLETED,
+            EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.", "1분 전") to EventStatus.COMPLETED
+            //EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.", "1분 전") to EventStatus.FALSE_DETECTION
+        )
+    }
+
+    private fun updateWorkerDay() {
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH) + 1
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+        val tvWorkerDay = findViewById<TextView>(R.id.tv_worker_day)
+        tvWorkerDay?.text = "${year}년 ${month}월 ${day}일"
     }
 
     override fun onResume() {
@@ -153,7 +187,6 @@ class HomeWorkerActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeDialog() {
-        // 근로자용 플래그 확인
         if (!UserSession.isInviteDoneWorker) showInviteCodeDialog()
     }
 
@@ -200,4 +233,13 @@ class HomeWorkerActivity : AppCompatActivity() {
         params?.width = (resources.displayMetrics.widthPixels * 0.85).toInt()
         dialog.window?.attributes = params
     }
+    private fun emergencyContact() {
+        val emergencyArea = findViewById<View>(R.id.layout_emergency_root)
+        emergencyArea.isClickable = true
+        emergencyArea.setOnClickListener {
+            val intent = Intent(this, EmergencyContactActivity::class.java)
+            startActivity(intent)
+        }
+    }
+
 }

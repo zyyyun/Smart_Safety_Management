@@ -8,7 +8,10 @@ import android.graphics.drawable.ColorDrawable
 import android.view.*
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.PopupWindow
+import android.widget.TextView
 import androidx.core.view.doOnPreDraw
 
 class TooltipPopup(private val context: Context) {
@@ -30,7 +33,30 @@ class TooltipPopup(private val context: Context) {
             val tooltipView = LayoutInflater.from(context)
                 .inflate(R.layout.view_tooltip, FrameLayout(context), false)
 
-            // 뷰 크기 측정 (wrap_content 대응)
+            val tooltipIcon = tooltipView.findViewById<ImageView>(R.id.tooltip_icon)
+            val tooltipText = tooltipView.findViewById<TextView>(R.id.tooltip_text)
+            val tooltipArrow = tooltipView.findViewById<View>(R.id.tooltip_arrow)
+
+            // 역할에 따른 텍스트, 아이콘, 그리고 화살표 위치 설정
+            if (UserSession.userRole == UserRole.MANAGER) {
+                tooltipIcon.visibility = View.VISIBLE
+                tooltipText.text = "누르면 근로자에게 알림이 가요"
+                
+                // 관리자 기본 화살표 위치
+                val params = tooltipArrow.layoutParams as LinearLayout.LayoutParams
+                params.marginStart = dp(168)
+                tooltipArrow.layoutParams = params
+            } else {
+                tooltipIcon.visibility = View.GONE
+                tooltipText.text = "눌러서 일일안전점검 리스트를 작성할 수 있어요"
+                
+                // 근로자용 화살표 위치
+                val params = tooltipArrow.layoutParams as LinearLayout.LayoutParams
+                params.marginStart = dp(249)
+                tooltipArrow.layoutParams = params
+            }
+
+            // 뷰 크기 측정
             tooltipView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
             cachedWidth = tooltipView.measuredWidth
             cachedHeight = tooltipView.measuredHeight
@@ -86,21 +112,18 @@ class TooltipPopup(private val context: Context) {
         val anchorW = anchorView.width
         val anchorH = anchorView.height
 
-        // 화살표의 중심을 버튼의 중심에 맞추는 계산
-        // 1. 버튼의 중앙 X 좌표
         val anchorCenterX = anchorX + (anchorW / 2)
+        
+        // 화살표 위치에 따른 X 좌표 계산 (중심점 기준 보정)
+        val arrowStartMarginDp = if (UserSession.userRole == UserRole.MANAGER) 168 else 249
+        val arrowCenterXInTooltip = dp(arrowStartMarginDp) + dp(6) // marginStart + (화살표 너비 12dp / 2)
 
-        // 2. 툴팁 내 화살표 중심 위치 (marginStart 168dp + 너비 12dp의 절반 6dp = 174dp)
-        val arrowCenterXInTooltip = dp(174)
-
-        // 3. 팝업의 시작 X 좌표 계산
         var x = anchorCenterX - arrowCenterXInTooltip
         var y = anchorY - cachedHeight - marginPx
 
         val windowRect = Rect()
         anchorView.getWindowVisibleDisplayFrame(windowRect)
 
-        // 화면 밖으로 나가지 않도록 보정
         if (x < windowRect.left) x = windowRect.left
         if (x + cachedWidth > windowRect.right) x = windowRect.right - cachedWidth
 

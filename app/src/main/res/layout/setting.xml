@@ -525,7 +525,7 @@
                     android:layout_marginStart="16dp"
                     android:fontFamily="@font/pretendard_semibold"
                     android:gravity="center_vertical"
-                    android:text="장치관리"
+                    android:text="기기관리"
                     android:letterSpacing="0"
                     android:textColor="@color/gray800_gray200"
                     android:textSize="18sp" />

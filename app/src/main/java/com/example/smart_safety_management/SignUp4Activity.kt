@@ -12,10 +12,11 @@ class SignUp4Activity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.sign_up_4)
 
-        val userId = intent.getStringExtra("EXTRA_USER_ID") ?: ""
+        // UserSession에 저장된 이름을 가져와서 환영 메시지 설정
+        val userName = UserSession.userName
 
         val welcomeText = findViewById<TextView>(R.id.txt_welcome)
-        welcomeText.text = "환영합니다 ${userId}님!"
+        welcomeText.text = "환영합니다 ${userName}님!"
 
         val loginButton = findViewById<Button>(R.id.next_button)
         loginButton.setOnClickListener {
