@@ -131,7 +131,6 @@
         <!-- 위치정보 화면 -->
         <activity android:name=".screens.location.LocationActivity" />
 
-
         <!-- 설정 - 초대하기 화면 -->
         <activity
             android:name=".SettingInviteActivity"
@@ -158,9 +157,12 @@
             android:exported="false"/>
 
         <!-- 설정 - 기기관리 화면 -->
-        <activity android:name=".SettingDeviceManagementActivity"
+        <activity
+            android:name=".SettingDeviceManagementActivity"
             android:exported="false"/>
-
+        <activity
+            android:name=".DeviceManageWorkerActivity"
+            android:exported="false"/>
 
     </application>
 

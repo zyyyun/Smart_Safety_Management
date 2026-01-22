@@ -37,9 +37,9 @@ class SettingWorkerActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingPeopleManagementActivity::class.java))
         }
 
-        // 장치관리
+        // 기기관리
         findViewById<LinearLayout>(R.id.item_machine_management).setOnClickListener {
-            startActivity(Intent(this, SettingDeviceManagementActivity::class.java))
+            startActivity(Intent(this, DeviceManageWorkerActivity::class.java))
         }
 
         checkInviteCodeVisibility()
