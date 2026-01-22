@@ -71,10 +71,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@android:color/transparent"
-                android:overlapAnchor="false"
-                android:spinnerMode="dropdown"
+                android:dropDownWidth="100dp"
                 android:entries="@array/people_filter_array"
-                android:paddingStart="12dp" />
+                android:overlapAnchor="false"
+                android:popupBackground="@drawable/bg_spinner_popup"
+                android:spinnerMode="dropdown"
+                android:stateListAnimator="@null"
+                android:popupElevation="0dp"/>
 
             <ImageView
                 android:layout_width="12dp"

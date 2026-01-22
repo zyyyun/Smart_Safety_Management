@@ -57,7 +57,8 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
             R.array.people_filter_array,
             R.layout.spinner_item
         )
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        // 스피너 드롭다운 디자인 설정
+        spinnerAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown)
         filterSpinner.adapter = spinnerAdapter
 
         // 필터 스피너 설정
