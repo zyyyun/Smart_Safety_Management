@@ -264,44 +264,46 @@ fun ActionDetailScreen(
                             )
                         )
                         
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier
-                                .width(this@BoxWithConstraints.maxWidth)
-                                .background(btnBackColor)
-                        ) {
-                            options.forEach { option ->
-                                DropdownMenuItem(
-                                    onClick = {
-                                        actionType = option
-                                        expanded = false
-                                    }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            text = option,
-                                            fontFamily = Pretendard,
-                                            fontSize = 18.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = inputTextColor
-                                        )
-                                        val iconRes = when(option) {
-                                            "조치공유" -> R.drawable.priority1
-                                            "조치필요" -> R.drawable.priority2
-                                            "즉시조치" -> R.drawable.priority3
-                                            else -> null
+                        MaterialTheme(shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(8.dp))) {
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false },
+                                modifier = Modifier
+                                    .width(this@BoxWithConstraints.maxWidth)
+                                    .background(btnBackColor)
+                            ) {
+                                options.forEach { option ->
+                                    DropdownMenuItem(
+                                        onClick = {
+                                            actionType = option
+                                            expanded = false
                                         }
-                                        if (iconRes != null) {
-                                            Icon(
-                                                painter = painterResource(id = iconRes),
-                                                contentDescription = null,
-                                                tint = Color.Unspecified
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = option,
+                                                fontFamily = Pretendard,
+                                                fontSize = 18.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = inputTextColor
                                             )
+                                            val iconRes = when(option) {
+                                                "조치공유" -> R.drawable.priority1
+                                                "조치필요" -> R.drawable.priority2
+                                                "즉시조치" -> R.drawable.priority3
+                                                else -> null
+                                            }
+                                            if (iconRes != null) {
+                                                Icon(
+                                                    painter = painterResource(id = iconRes),
+                                                    contentDescription = null,
+                                                    tint = Color.Unspecified
+                                                )
+                                            }
                                         }
                                     }
                                 }

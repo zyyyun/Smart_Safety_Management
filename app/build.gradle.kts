@@ -69,6 +69,7 @@ dependencies {
     implementation(libs.androidx.compose.material) // M2 Compose
     implementation(libs.androidx.material.icons.extended)
     implementation("androidx.navigation:navigation-compose:2.8.5")
+    implementation("com.google.accompanist:accompanist-systemuicontroller:0.34.0")
     implementation("androidx.compose.material3:material3")
     implementation(libs.firebase.crashlytics.buildtools)
     implementation(libs.gson)

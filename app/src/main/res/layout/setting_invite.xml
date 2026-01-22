@@ -207,6 +207,8 @@
         android:textAllCaps="false"
         android:textColor="@color/white_black"
         android:textSize="18sp"
+        android:stateListAnimator="@null"
+        app:elevation="0dp"
         app:cornerRadius="8dp"
         app:layout_constraintBottom_toBottomOf="parent" />
 

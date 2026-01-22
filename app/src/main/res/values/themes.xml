@@ -1,12 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base application theme. -->
-    <style name="Theme.Smart_Safety_Management" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- 자간(letterSpacing)을 0으로 설정 -->
-        <item name="android:letterSpacing">0</item>
+    <!-- Base application theme -->
+    <style name="Theme.Smart_Safety_Management"
+        parent="Theme.MaterialComponents.DayNight.NoActionBar">
 
-        <!-- 버튼의 기본 스타일에서 대문자 변환 끄기 및 자간 설정 -->
+        <item name="android:letterSpacing">0</item>
         <item name="materialButtonStyle">@style/Widget.App.Button</item>
+
+        <!-- 기본 상태바 -->
+        <item name="android:statusBarColor">@color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <!-- 예외: 주황 상태바 -->
+    <style
+        name="Theme.Smart_Safety_Management.Status.Orange"
+        parent="Theme.Smart_Safety_Management">
+
+        <item name="android:statusBarColor">@color/orange500_gray950</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 
     <!-- 버튼 커스텀 스타일 -->

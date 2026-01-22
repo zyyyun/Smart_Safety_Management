@@ -193,13 +193,17 @@ fun EventItem(event: EventData, status: EventStatus, onEventClick: (EventData) -
 
     Button(
         onClick = { onEventClick(event) },
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 8.dp).height(83.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(backgroundColor = buttonColor),
         elevation = ButtonDefaults.elevation(0.dp, 0.dp),
         border = BorderStroke(1.dp, borderColor)
     ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically // 기본적으로 아이콘과 내용은 세로 중앙 정렬
+        ) {
             val iconRes = when (event.accidentType) {
                 "위험" -> R.drawable.danger_icon
                 "경고" -> R.drawable.warning_icon
@@ -207,26 +211,44 @@ fun EventItem(event: EventData, status: EventStatus, onEventClick: (EventData) -
                 else -> 0
             }
 
-            if (iconRes != 0) {
-                Icon(
-                    painter = painterResource(id = iconRes),
-                    contentDescription = event.accidentType,
-                    modifier = Modifier.padding(end = 8.dp).offset(x = (-5).dp, y = 5.dp),
-                    tint = iconTint
-                )
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (iconRes != 0) {
+                    Icon(
+                        painter = painterResource(id = iconRes),
+                        contentDescription = event.accidentType,
+                        modifier = Modifier.padding(end = 8.dp), // offset 대신 padding으로 간격 조정
+                        tint = iconTint
+                    )
+                }
+
+                Column(horizontalAlignment = Alignment.Start) {
+                    Text(
+                        text = event.location,
+                        color = locationColor,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = event.content,
+                        color = textColor,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 14.sp
+                    )
+                }
             }
-            Column(horizontalAlignment = Alignment.Start) {
-                Text(text = event.location, color = locationColor, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(3.dp))
-                Text(text = event.content, color = textColor, fontWeight = FontWeight.Normal, fontSize = 14.sp)
-            }
-            Spacer(modifier = Modifier.weight(1f))
+
+            // 2. 오른쪽 상단 영역 (발생 시간)
             Text(
                 text = event.occurrenceTime,
                 fontSize = 12.sp,
                 fontFamily = Pretendard,
                 color = textColor,
-                modifier = Modifier.offset( x = (12).dp, y = (-23).dp)
+                modifier = Modifier
+                    .align(Alignment.Top) // 🌟 Row의 맨 위쪽으로 붙임 (비율 유지의 핵심)
             )
         }
     }
