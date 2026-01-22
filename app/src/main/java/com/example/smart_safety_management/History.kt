@@ -23,6 +23,8 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -138,9 +140,6 @@ fun HistoryScreen() {
         }
     }
 }
-
-// ... 나머지 컴포저블 (HistorySearchBar, HistoryTopAppBar, FilterBottomSheetContent 등)은 기존과 동일하므로 생략하거나 그대로 유지 ...
-// (전체 코드를 다시 쓰는 대신 bottomBar 부분만 수정해서 덮어쓰거나, 전체를 다시 씀)
 
 @Composable
 fun HistorySearchBar(
@@ -289,6 +288,11 @@ fun FilterBottomSheetContent() {
     val placeholderColor = if (isLight) TextLight else TextGray30
     val alphavalue = if (isLight) 0.1f else 0.36f
 
+    val density = LocalDensity.current
+    var areaBoxWidth by remember { mutableStateOf(0) }
+    var actionByBoxWidth by remember { mutableStateOf(0) }
+    var eventBoxWidth by remember { mutableStateOf(0) }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -347,11 +351,11 @@ fun FilterBottomSheetContent() {
         Spacer(modifier = Modifier.height(28.dp))
         Text(text = "상태", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = CategoryColor, modifier = Modifier.padding(horizontal = 24.dp))
         Spacer(modifier = Modifier.height(16.dp))
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             val statusOptions = listOf("조치완료", "오탐처리")
             statusOptions.forEach { option ->
                 val isSelected = selectedStatus == option
-                Button(onClick = { selectedStatus = option }, modifier = Modifier.size(width = 168.dp, height = 37.dp), colors = ButtonDefaults.buttonColors(backgroundColor = if (isSelected) MainOrange.copy(alphavalue) else bgColor), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), border = BorderStroke(1.dp, if (isSelected) MainOrange else borderColor)) {
+                Button(onClick = { selectedStatus = option }, modifier = Modifier.height( 37.dp).weight(1f), colors = ButtonDefaults.buttonColors(backgroundColor = if (isSelected) MainOrange.copy(alphavalue) else bgColor), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), border = BorderStroke(1.dp, if (isSelected) MainOrange else borderColor)) {
                     Text(text = option, color = toptextColor, fontFamily = Pretendard, fontSize = 14.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
                 }
             }
@@ -361,7 +365,7 @@ fun FilterBottomSheetContent() {
             val riskOptions = listOf("주의", "경고", "위험")
             riskOptions.forEach { option ->
                 val isSelected = selectedRisk == option
-                Button(onClick = { selectedRisk = option }, modifier = Modifier.size(width = 110.dp, height = 40.dp), colors = ButtonDefaults.buttonColors(backgroundColor = if (isSelected) MainOrange.copy(alphavalue) else bgColor), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), border = BorderStroke(1.dp, if (isSelected) MainOrange else borderColor)) {
+                Button(onClick = { selectedRisk = option }, modifier = Modifier.height (40.dp).weight(1f), colors = ButtonDefaults.buttonColors(backgroundColor = if (isSelected) MainOrange.copy(alphavalue) else bgColor), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), border = BorderStroke(1.dp, if (isSelected) MainOrange else borderColor)) {
                     Text(text = option, color = toptextColor, fontFamily = Pretendard, fontSize = 14.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
                 }
             }
@@ -371,14 +375,31 @@ fun FilterBottomSheetContent() {
             Column {
                 Text(text = "구역", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = CategoryColor)
                 Spacer(modifier = Modifier.height(16.dp))
-                Box(modifier = Modifier.size(width = 160.dp, height = 45.dp).background(color = bgColor, shape = RoundedCornerShape(8.dp)).border(1.dp, borderColor, RoundedCornerShape(8.dp)).clickable { isAreaDropDownExpanded = true }, contentAlignment = Alignment.CenterStart) {
+                Box(modifier = Modifier
+                    .size(width = 160.dp, height = 45.dp)
+                    .onSizeChanged { areaBoxWidth = it.width }
+                    .background(color = bgColor, shape = RoundedCornerShape(8.dp))
+                    .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+                    .clickable { isAreaDropDownExpanded = true }, 
+                    contentAlignment = Alignment.CenterStart
+                ) {
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(text = selectedArea, fontFamily = Pretendard, fontSize = 14.sp, color = if (selectedArea == "전체") placeholderColor else textColor)
                         Icon(painter = painterResource(id = R.drawable.dropbox), contentDescription = null, tint = if (isLight) Color.Unspecified else TextGray, modifier = Modifier.size(width = 14.dp, height = 9.dp))
                     }
-                    DropdownMenu(expanded = isAreaDropDownExpanded, onDismissRequest = { isAreaDropDownExpanded = false }, offset = DpOffset(x = 0.dp, y = 8.dp), modifier = Modifier.background(MaterialTheme.colors.surface)) {
-                        listOf("A구역", "B구역", "C구역", "D구역").forEach { option ->
-                            DropdownMenuItem(onClick = { selectedArea = option; isAreaDropDownExpanded = false }) { Text(text = option, fontFamily = Pretendard, color = textColor) }
+                    MaterialTheme(
+                        colors = MaterialTheme.colors.copy(surface = bgColor),
+                        shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(8.dp))
+                    ) {
+                        DropdownMenu(
+                            expanded = isAreaDropDownExpanded, 
+                            onDismissRequest = { isAreaDropDownExpanded = false }, 
+                            offset = DpOffset(x = 0.dp, y = 8.dp), 
+                            modifier = Modifier.width(with(density) { areaBoxWidth.toDp() })
+                        ) {
+                            listOf("A구역", "B구역", "C구역", "D구역").forEach { option ->
+                                DropdownMenuItem(onClick = { selectedArea = option; isAreaDropDownExpanded = false }) { Text(text = option, fontFamily = Pretendard, color = textColor) }
+                            }
                         }
                     }
                 }
@@ -386,23 +407,64 @@ fun FilterBottomSheetContent() {
             Column {
                 Text(text = "조치자", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = CategoryColor)
                 Spacer(modifier = Modifier.height(16.dp))
-                Box(modifier = Modifier.size(width = 160.dp, height = 45.dp).background(bgColor, shape = RoundedCornerShape(8.dp)).border(1.dp, borderColor, RoundedCornerShape(8.dp)).clickable { isActionByNameDropDownExpanded = true }, contentAlignment = Alignment.CenterStart) {
+                Box(modifier = Modifier
+                    .size(width = 160.dp, height = 45.dp)
+                    .onSizeChanged { actionByBoxWidth = it.width }
+                    .background(bgColor, shape = RoundedCornerShape(8.dp))
+                    .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+                    .clickable { isActionByNameDropDownExpanded = true }, 
+                    contentAlignment = Alignment.CenterStart
+                ) {
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(text = selectedActionByName, fontFamily = Pretendard, fontSize = 14.sp, color = if (selectedActionByName == "전체") placeholderColor else textColor)
                         Icon(painter = painterResource(id = R.drawable.dropbox), contentDescription = null, tint = if (isLight) Color.Unspecified else TextGray, modifier = Modifier.size(width = 14.dp, height = 9.dp))
+                    }
+                    MaterialTheme(
+                        colors = MaterialTheme.colors.copy(surface = bgColor),
+                        shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(8.dp))
+                    ) {
+                        DropdownMenu(
+                            expanded = isActionByNameDropDownExpanded, 
+                            onDismissRequest = { isActionByNameDropDownExpanded = false }, 
+                            offset = DpOffset(x = 0.dp, y = 8.dp), 
+                            modifier = Modifier.width(with(density) { actionByBoxWidth.toDp() })
+                        ) {
+                            listOf("전체", "홍길동", "김철수", "이영희").forEach { option ->
+                                DropdownMenuItem(onClick = { selectedActionByName = option; isActionByNameDropDownExpanded = false }) { Text(text = option, fontFamily = Pretendard, color = textColor) }
+                            }
+                        }
                     }
                 }
             }
         }
         Spacer(modifier = Modifier.height(28.dp)); Text(text = "이벤트유형", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = CategoryColor, modifier = Modifier.padding(horizontal = 24.dp)); Spacer(modifier = Modifier.height(16.dp))
-        Box(modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth().height(45.dp).background(bgColor, shape = RoundedCornerShape(8.dp)).border(1.dp, borderColor, RoundedCornerShape(8.dp)).clickable { isEventDropDownExpanded = true }, contentAlignment = Alignment.CenterStart) {
+        Box(modifier = Modifier
+            .padding(horizontal = 24.dp)
+            .fillMaxWidth()
+            .height(45.dp)
+            .onSizeChanged { eventBoxWidth = it.width }
+            .background(bgColor, shape = RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+            .clickable { isEventDropDownExpanded = true }, 
+            contentAlignment = Alignment.CenterStart
+        ) {
             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(text = selectedEvent, fontFamily = Pretendard, fontSize = 14.sp, color = if (selectedEvent == "전체") placeholderColor else textColor)
                 Icon(painter = painterResource(id = R.drawable.dropbox), contentDescription = null, tint = if (isLight) Color.Unspecified else TextGray, modifier = Modifier.size(width = 14.dp, height = 9.dp))
             }
-            DropdownMenu(expanded = isEventDropDownExpanded, onDismissRequest = { isEventDropDownExpanded = false }, offset = DpOffset(x = 0.dp, y = 8.dp), modifier = Modifier.fillMaxWidth(0.9f).background(MaterialTheme.colors.surface)) {
-                listOf("안전모 미착용", "통로사고", "충돌사고", "운반사고", "화재사고", "협착사고", "쓰러짐").forEach { option ->
-                    DropdownMenuItem(onClick = { selectedEvent = option; isEventDropDownExpanded = false }) { Text(text = option, fontFamily = Pretendard, color = textColor) }
+            MaterialTheme(
+                colors = MaterialTheme.colors.copy(surface = bgColor),
+                shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(8.dp))
+            ) {
+                DropdownMenu(
+                    expanded = isEventDropDownExpanded, 
+                    onDismissRequest = { isEventDropDownExpanded = false }, 
+                    offset = DpOffset(x = 0.dp, y = 8.dp), 
+                    modifier = Modifier.width(with(density) { eventBoxWidth.toDp() })
+                ) {
+                    listOf("안전모 미착용", "통로사고", "충돌사고", "운반사고", "화재사고", "협착사고", "쓰러짐").forEach { option ->
+                        DropdownMenuItem(onClick = { selectedEvent = option; isEventDropDownExpanded = false }) { Text(text = option, fontFamily = Pretendard, color = textColor) }
+                    }
                 }
             }
         }
@@ -467,13 +529,38 @@ fun HistorySecondaryAppBar(selectedTab: String, onTabSelected: (String) -> Unit)
     val isLight = MaterialTheme.colors.isLight
     val categoryBackgroundColor = MaterialTheme.colors.onPrimary
     val textColor = if(isLight) TextLight else TextGray30
-    TabRow(selectedTabIndex = tabs.indexOf(selectedTab), backgroundColor = categoryBackgroundColor, contentColor = Color.White, modifier = Modifier.height(60.dp), indicator = { tabPositions ->
-        TabRowDefaults.Indicator(Modifier.tabIndicatorOffset(tabPositions[tabs.indexOf(selectedTab)]), color = MainOrange, height = 2.dp)
-    }, divider = {}) {
+    val borderColor = if (isLight) GrayBorder else TextDark
+    
+    TabRow(
+        selectedTabIndex = tabs.indexOf(selectedTab),
+        backgroundColor = categoryBackgroundColor,
+        contentColor = Color.White,
+        modifier = Modifier.height(60.dp),
+        indicator = { tabPositions ->
+            TabRowDefaults.Indicator(
+                Modifier.tabIndicatorOffset(tabPositions[tabs.indexOf(selectedTab)]),
+                color = MainOrange,
+                height = 2.dp
+            )
+        },
+        divider = {
+            Divider(color = borderColor, thickness = 1.dp)
+        }
+    ) {
         tabs.forEach { title ->
-            Tab(selected = selectedTab == title, onClick = { onTabSelected(title) }, text = {
-                Text(text = title, fontSize = 18.sp, fontFamily = Pretendard, color = if (selectedTab == title) MainOrange else textColor, fontWeight = if (selectedTab == title) FontWeight.Bold else FontWeight.Medium)
-            })
+            Tab(
+                selected = selectedTab == title,
+                onClick = { onTabSelected(title) },
+                text = {
+                    Text(
+                        text = title,
+                        fontSize = 18.sp,
+                        fontFamily = Pretendard,
+                        color = if (selectedTab == title) MainOrange else textColor,
+                        fontWeight = if (selectedTab == title) FontWeight.Bold else FontWeight.Medium
+                    )
+                }
+            )
         }
     }
 }
@@ -483,4 +570,13 @@ fun HistorySecondaryAppBar(selectedTab: String, onTabSelected: (String) -> Unit)
 @Composable
 fun HistoryScreenPreview() {
     HistoryScreen()
+}
+
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Filter BottomSheet - Light")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Filter BottomSheet - Dark")
+@Composable
+fun FilterBottomSheetPreview() {
+    Smart_Safety_ManagementTheme {
+        FilterBottomSheetContent()
+    }
 }
