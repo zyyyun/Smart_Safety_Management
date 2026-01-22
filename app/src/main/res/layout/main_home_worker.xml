@@ -119,7 +119,12 @@
                         android:layout_marginBottom="40dp"
                         android:background="@color/gray100_gray950" />
 
-                    <include layout="@layout/view_emergecy_contact"/>
+                    <!-- 비상연락 -->
+                    <include
+                        android:id="@+id/view_emergency"
+                        layout="@layout/view_emergecy_contact"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
