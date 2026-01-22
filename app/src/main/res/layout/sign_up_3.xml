@@ -204,7 +204,7 @@
         android:textColor="@color/white_black"
         android:textSize="18sp"
         android:stateListAnimator="@null"
-        app:cornerRadius="7dp"
+        app:cornerRadius="8dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/til_write_re_password"
         app:layout_constraintEnd_toEndOf="parent"/>

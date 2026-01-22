@@ -167,7 +167,7 @@
         android:textColor="@color/white_black"
         android:textSize="18sp"
         android:stateListAnimator="@null"
-        app:cornerRadius="7dp"
+        app:cornerRadius="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
