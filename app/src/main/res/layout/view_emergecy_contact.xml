@@ -10,6 +10,8 @@
         android:layout_width="327dp"
         android:layout_height="76dp"
         android:background="@drawable/bg_cancel_button_red"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
         android:clickable="true"
         android:focusable="true"
         app:layout_constraintTop_toTopOf="parent"

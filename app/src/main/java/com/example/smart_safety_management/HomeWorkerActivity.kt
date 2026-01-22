@@ -21,24 +21,24 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 
 private val dailyCheckMap = mapOf(
-    20 to listOf(
+    7 to listOf(
         DailyCheckItem("B구역 1열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("C구역 3열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
-    22 to listOf(
+    12 to listOf(
         DailyCheckItem("A구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
-    21 to listOf(
+    22 to listOf(
         DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
         DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
         DailyCheckItem("D구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
         DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
     ),
-    24 to listOf(
+    25 to listOf(
         DailyCheckItem("C구역 2열", "정리미흡으로 안전사고 발생 우려", "미점검")
     ),
-    25 to listOf(
+    26 to listOf(
         DailyCheckItem("A구역 4열", "정리미흡으로 인적사고 발생 우려", "미점검")
     )
 )
