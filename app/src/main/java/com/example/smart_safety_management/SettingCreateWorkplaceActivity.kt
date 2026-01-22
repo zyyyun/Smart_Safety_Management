@@ -5,9 +5,11 @@ import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -31,9 +33,34 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
         val etWorkplaceName = findViewById<EditText>(R.id.et_workplace_name)
         val btnCreate = findViewById<Button>(R.id.btn_create)
         val rvWorkplace = findViewById<RecyclerView>(R.id.rv_workplace)
+        val line = findViewById<View>(R.id.line)
+        val txtCreatedWorkplace = findViewById<TextView>(R.id.txt_created_workplace)
 
         // 저장된 리스트 불러오기
         loadWorkplaceList()
+
+        // UI 상태 업데이트 함수 (버튼 및 리스트 관련 뷰 가시성)
+        fun updateUIState() {
+            // 버튼 상태 업데이트
+            if (etWorkplaceName.text.isNullOrEmpty() || workplaceList.size >= 1) {
+                btnCreate.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.gray50_gray900))
+                btnCreate.setTextColor(ContextCompat.getColor(this, R.color.gray400_gray700))
+            } else {
+                btnCreate.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.orange500))
+                btnCreate.setTextColor(ContextCompat.getColor(this, R.color.white_black))
+            }
+
+            // 리스트 관련 뷰 가시성 업데이트
+            if (workplaceList.isEmpty()) {
+                line.visibility = View.GONE
+                txtCreatedWorkplace.visibility = View.GONE
+                rvWorkplace.visibility = View.GONE
+            } else {
+                line.visibility = View.VISIBLE
+                txtCreatedWorkplace.visibility = View.VISIBLE
+                rvWorkplace.visibility = View.VISIBLE
+            }
+        }
 
         // 어댑터 초기화
         workplaceAdapter = WorkplaceAdapter(
@@ -44,6 +71,7 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
             onDeleteClick = { position ->
                 workplaceAdapter.removeItem(position)
                 saveWorkplaceList() // 삭제 후 저장
+                updateUIState() // 삭제 후 UI 상태 업데이트
             }
         )
 
@@ -58,23 +86,25 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
             finish()
         }
 
+        // 초기 UI 상태 설정
+        updateUIState()
+
         // 입력값에 따른 버튼 색상 변경
         etWorkplaceName.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                if (s.isNullOrEmpty()) {
-                    btnCreate.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@SettingCreateWorkplaceActivity, R.color.gray50_gray900))
-                    btnCreate.setTextColor(ContextCompat.getColor(this@SettingCreateWorkplaceActivity, R.color.gray400_gray700))
-                } else {
-                    btnCreate.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@SettingCreateWorkplaceActivity, R.color.orange500))
-                    btnCreate.setTextColor(ContextCompat.getColor(this@SettingCreateWorkplaceActivity, R.color.white_black))
-                }
+                updateUIState()
             }
             override fun afterTextChanged(s: Editable?) {}
         })
 
         // 추가 버튼 클릭 시 리스트에 추가 및 저장
         btnCreate.setOnClickListener {
+            /*if (workplaceList.size >= 1) {
+                Toast.makeText(this, "현장은 하나만 등록할 수 있습니다.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }*/
+
             val name = etWorkplaceName.text.toString().trim()
             if (name.isNotEmpty()) {
                 val newItem = WorkplaceItem(name)
@@ -83,9 +113,10 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
                 
                 etWorkplaceName.text.clear()
                 rvWorkplace.scrollToPosition(workplaceList.size - 1)
-            } else {
+                updateUIState() // 추가 후 UI 상태 업데이트
+            } /*else {
                 Toast.makeText(this, "현장명을 입력해주세요.", Toast.LENGTH_SHORT).show()
-            }
+            }*/
         }
     }
 
