@@ -3,6 +3,7 @@ package com.example.smart_safety_management
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -39,21 +40,21 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import kotlin.math.roundToInt
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import com.example.smart_safety_management.ui.theme.ClipartKorea
-import com.example.smart_safety_management.ui.theme.Pretendard
-
-
 
 class SettingWorkplaceLocationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+
         setContent {
-            MaterialTheme {
+            // ✅ 반드시 이걸로 감싸야 LocalSafeColors가 다크/라이트로 바뀜
+            Smart_Safety_ManagementTheme {
                 SettingWorkplaceLocationScreen(
                     onBack = { finish() },
                     onConfirm = { finish() }
@@ -68,16 +69,22 @@ fun SettingWorkplaceLocationScreen(
     onBack: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val c = LocalSafeColors.current // 🌙 다크/라이트 팔레트
+    LaunchedEffect(c.isDark) {
+        android.util.Log.d("THEME_CHECK", "isDark=${c.isDark}")
+    }
     val isPreview = LocalInspectionMode.current
     val focusManager = LocalFocusManager.current
     val density = LocalDensity.current
 
     var query by remember { mutableStateOf("") }
-
-
     var dropdownExpanded by remember { mutableStateOf(false) }
     var isRegistered by remember { mutableStateOf(false) }
+
+    // ✅ 지도 이동값(핀은 고정, 지도만 움직임)
     var mapOffset by remember { mutableStateOf(Offset.Zero) }
+
+    // ✅ 하단 시트 높이(측정값)
     var sheetHeightDp by remember { mutableStateOf(252.dp) }
 
     val address = "인천광역시 남동구 예술로 197 (인천아시아드 주경기장)"
@@ -85,26 +92,24 @@ fun SettingWorkplaceLocationScreen(
     val road = "송도동 162-1"
 
     val orange = Color(0xFFFF7A00)
-    val grayText = Color(0xFF6B7280)
-    val border = Color(0xFFE5E7EB)
 
-    // 상태바 높이
+    // ✅ 상태바 높이
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val topBarH = 40.dp
     val searchTop = statusTop + topBarH + 46.dp
 
     Scaffold(
-        containerColor = Color.White,
+        containerColor = c.bg, // 🌙 전체 배경
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
 
-            // ✅ 지도 배경: 드래그로 이동 + 탭하면 드롭다운 닫기/포커스 해제
+            // ✅ 지도 배경(이미지는 그대로 유지)
             if (isPreview) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color(0xFFE5E7EB))
+                        .background(if (c.isDark) Color(0xFF0B0F14) else Color(0xFFE5E7EB))
                         .pointerInput(Unit) {
                             detectDragGestures(
                                 onDragStart = {
@@ -167,7 +172,6 @@ fun SettingWorkplaceLocationScreen(
                 },
                 expanded = dropdownExpanded,
                 onExpandedChange = { dropdownExpanded = it },
-                border = border,
                 isPreview = isPreview,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -185,27 +189,27 @@ fun SettingWorkplaceLocationScreen(
                 )
             } else {
                 Image(
-                    painter = painterResource(id = R.drawable.worker_orange),
+                    painter = painterResource(
+                        id = if (c.isDark) R.drawable.worker_orange_dark else R.drawable.worker_orange
+                    ),
                     contentDescription = "pin",
                     modifier = Modifier
                         .align(Alignment.Center)
                         .offset(x = 0.dp, y = (-130).dp)
                         .size(110.dp)
                 )
+
             }
 
-            // ✅ background.svg + loc.svg 한쌍 버튼 (지도랑 상관없이 고정)
+            // ✅ floating 버튼
             MapFloatButton(
                 onClick = { /* TODO */ },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(
-                        end = 24.dp,
-                        bottom = sheetHeightDp + 24.dp
-                    )
-            ) // ✅★★★★ 여기 닫는 괄호가 꼭 있어야 함
+                    .padding(end = 24.dp, bottom = sheetHeightDp + 24.dp)
+            )
 
-            // ✅ 하단 카드(높이 측정해서 sheetHeightDp 업데이트)
+            // ✅ 하단 카드(높이 측정)
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -218,13 +222,10 @@ fun SettingWorkplaceLocationScreen(
                     address = address,
                     zipcode = zipcode,
                     road = road,
-                    orange = orange,
-                    grayText = grayText,
                     onConfirm = { isRegistered = true },
                     onDelete = { isRegistered = false },
-                    onEdit = { /* 보여주기용 */ }
+                    onEdit = { /* TODO */ }
                 )
-
             }
 
             // ✅ TopBar
@@ -258,7 +259,7 @@ private fun MapFloatButton(
         Image(
             painter = painterResource(id = R.drawable.loc),
             contentDescription = "loc",
-            modifier = Modifier.size(44.dp), // ✅ loc 아이콘 크기 조절 여기
+            modifier = Modifier.size(44.dp),
             contentScale = ContentScale.Fit
         )
     }
@@ -271,13 +272,14 @@ private fun TopBarFixed(
     statusTop: Dp,
     modifier: Modifier = Modifier
 ) {
+    val c = LocalSafeColors.current
     val topBarH = 60.dp
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(statusTop + topBarH)
-            .background(Color.White)
+            .background(c.topBar) // 🌙 다크면 어둡게
     ) {
         Box(
             modifier = Modifier
@@ -296,21 +298,14 @@ private fun TopBarFixed(
                     onClick = onBack,
                     modifier = Modifier.size(40.dp)
                 ) {
-                    if (isPreview) {
-                        Icon(
-                            imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = "back",
-                            tint = Color(0xFF111827),
-                            modifier = Modifier.size(width = 12.dp, height = 20.dp)
-                        )
-                    } else {
-                        Icon(
-                            painter = painterResource(id = R.drawable.back_b),
-                            contentDescription = "back",
-                            tint = Color.Unspecified,
-                            modifier = Modifier.size(width = 12.dp, height = 20.dp)
-                        )
-                    }
+                    // ✅ 다크에선 Icons로(리소스가 라이트 전용이면 대비 문제 생김)
+                    Icon(
+                        painter = painterResource(id = R.drawable.arrow_back),
+                        contentDescription = "back",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+
                 }
 
                 Spacer(Modifier.width(3.dp))
@@ -320,7 +315,7 @@ private fun TopBarFixed(
                     fontSize = 26.sp,
                     fontFamily = Pretendard,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF111827),
+                    color = c.text,
                     maxLines = 1
                 )
             }
@@ -334,10 +329,10 @@ private fun SearchBarOverlay(
     onQueryChange: (String) -> Unit,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
-    border: Color,
     isPreview: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val c = LocalSafeColors.current
     val items = listOf("스타트업 파크 A동", "스타트업 파크 B동", "스타트업 파크 C동")
 
     val density = LocalDensity.current
@@ -355,26 +350,18 @@ private fun SearchBarOverlay(
                     fieldWidthDp = with(density) { coords.size.width.toDp() }
                 }
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color.White)
-                .border(1.dp, border, RoundedCornerShape(12.dp))
+                .background(c.surface)                 // 🌙
+                .border(1.dp, c.border, RoundedCornerShape(12.dp))
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (isPreview) {
-                Icon(
-                    imageVector = Icons.Filled.Search,
-                    contentDescription = "search",
-                    tint = Color(0xFF9CA3AF),
-                    modifier = Modifier.size(18.dp)
-                )
-            } else {
-                Icon(
-                    painter = painterResource(id = R.drawable.search),
-                    contentDescription = "search",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(26.dp)
-                )
-            }
+            // ✅ 다크/라이트 공용 아이콘
+            Icon(
+                imageVector = Icons.Filled.Search,
+                contentDescription = "search",
+                tint = c.sub,
+                modifier = Modifier.size(18.dp)
+            )
 
             Spacer(Modifier.width(8.dp))
 
@@ -395,7 +382,7 @@ private fun SearchBarOverlay(
                     textStyle = TextStyle(
                         fontSize = 21.sp,
                         lineHeight = 18.sp,
-                        color = Color(0xFF111827),
+                        color = c.text,
                         fontFamily = Pretendard
                     ),
                     decorationBox = { inner ->
@@ -404,7 +391,7 @@ private fun SearchBarOverlay(
                                 "주소를 검색하세요",
                                 fontSize = 21.sp,
                                 lineHeight = 18.sp,
-                                color = Color(0xFF9CA3AF),
+                                color = c.sub,
                                 fontFamily = Pretendard
                             )
                         }
@@ -420,22 +407,26 @@ private fun SearchBarOverlay(
             modifier = Modifier
                 .width(if (fieldWidthDp > 0.dp) fieldWidthDp else Dp.Unspecified)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color.White)
-                .border(1.dp, border, RoundedCornerShape(12.dp))
+                .background(c.surface)                // 🌙
+                .border(1.dp, c.border, RoundedCornerShape(12.dp))
         ) {
             items.forEach { item ->
                 val isB = item.contains("B동")
                 DropdownMenuItem(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(if (isB) Color(0xFFFEF1E7) else Color.Transparent),
+                        .background(
+                            if (isB) {
+                                if (c.isDark) Color(0xFF5A3516) else Color(0xFFFEF1E7)
+                            } else Color.Transparent
+                        ),
                     text = {
                         Text(
                             text = item,
                             fontFamily = Pretendard,
                             fontSize = 16.sp,
                             lineHeight = 16.sp,
-                            color = Color(0xFF111827)
+                            color = c.text
                         )
                     },
                     onClick = {
@@ -455,46 +446,43 @@ private fun BottomInfoCard(
     address: String,
     zipcode: String,
     road: String,
-    orange: Color,
-    grayText: Color,
     onConfirm: () -> Unit,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val c = LocalSafeColors.current
     val sheetRadius = 20.dp
-    val strongText = Color(0xFF111827)
-    val divider = Color(0xFFE5E7EB)
-    val badgeBg = Color(0xFFCDF7EC) // 피그마 #CDF7EC
 
-    // ✅ 등록 전: 정보만 더 아래로(버튼은 그대로)
-    val preInfoDown = 10.dp   // ← (기존보다 살짝 더) 8~12dp 사이로 조절 추천
+    // ✅ 다크모드 시트 배경: 완전 검정
+    val sheetBg = if (c.isDark) Color(0xFF000000) else c.surface
 
-    // ✅ 등록 후: 뱃지+정보만 아래로(버튼은 그대로)
-    val badgeDown = 10.dp      // 뱃지만 아래로
-    val postInfoDown = 8.dp   // 주소/우편번호/도로명 블록 아래로
+    val strongText = c.text
+    val divider = c.divider
 
-    // ✅ 등록 후: 주소 ↔ 우편번호 간격 더 띄우기
-    val postAddrToZipSpace = 24.dp  // ← 기존 16dp였다면 24dp 추천(20~28dp 조절)
+    // ✅ 피그마 기준 #CDD1D5 (우편번호/도로명 정보)
+    val infoGray = Color(0xFFCDD1D5)
+
+    val badgeBg = if (c.isDark) Color(0xFF0E3B2B) else Color(0xFFCDF7EC)
+
+    val preInfoDown = 10.dp
+    val badgeDown = 10.dp
+    val postInfoDown = 8.dp
+    val postAddrToZipSpace = 24.dp
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .height(if (isRegistered) 320.dp else 280.dp)
             .clip(RoundedCornerShape(topStart = sheetRadius, topEnd = sheetRadius))
-            .background(Color.White)
+            .background(sheetBg) // ✅ 변경: 다크면 완전 검정
             .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 30.dp)
     ) {
 
         if (!isRegistered) {
-            /* =================================================
-               ✅ 등록 전 화면: 정보만 아래로 내리고 버튼은 그대로
-               ================================================= */
 
-            // ✅ 정보(주소/우편번호/도로명)만 아래로
             Column(modifier = Modifier.padding(top = preInfoDown)) {
 
-                // 주소
                 Text(
                     text = address,
                     fontSize = 20.sp,
@@ -508,47 +496,49 @@ private fun BottomInfoCard(
 
                 Spacer(Modifier.height(30.dp))
 
+                // ✅ 우편번호: 다크모드면 #CDD1D5
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "우편번호",
                         fontSize = 20.sp,
                         fontFamily = Pretendard,
                         fontWeight = FontWeight.Medium,
-                        color = strongText,
+                        color = if (c.isDark) infoGray else strongText,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
                         text = zipcode,
                         fontSize = 20.sp,
                         fontFamily = Pretendard,
-                        color = strongText,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        color = if (c.isDark) infoGray else strongText
                     )
                 }
 
                 Spacer(Modifier.height(14.dp))
 
+                // ✅ 도로명: 다크모드면 #CDD1D5
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "도로명",
                         fontSize = 20.sp,
                         fontFamily = Pretendard,
-                        color = strongText,
+                        fontWeight = FontWeight.Medium,
+                        color = if (c.isDark) infoGray else strongText,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
                         text = road,
                         fontSize = 20.sp,
                         fontFamily = Pretendard,
-                        color = strongText,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        color = if (c.isDark) infoGray else strongText
                     )
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // 등록 버튼
             Button(
                 onClick = onConfirm,
                 modifier = Modifier
@@ -558,13 +548,15 @@ private fun BottomInfoCard(
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316))
             ) {
                 Text(
-                    "위치 등록",
+                    text = "위치 등록",
                     fontSize = 20.sp,
                     fontFamily = Pretendard,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White
+                    color = if (c.isDark) Color.Black else Color.White
                 )
             }
+
+
 
         } else {
 
@@ -592,10 +584,8 @@ private fun BottomInfoCard(
                 )
             }
 
-            // ✅ 뱃지-주소 간격 (조금 줄이기)
             Spacer(Modifier.height(1.dp))
 
-            // ✅ 정보 블록(주소+우편번호+도로명)만 아래로
             Column(modifier = Modifier.padding(top = postInfoDown)) {
 
                 Text(
@@ -609,53 +599,54 @@ private fun BottomInfoCard(
                     lineHeight = 24.sp
                 )
 
-                // ✅ 주소 ↔ 우편번호 간격 더 띄우기(여기만 바꾸면 됨)
                 Spacer(Modifier.height(postAddrToZipSpace))
 
+                // ✅ 우편번호: 다크모드면 #CDD1D5
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "우편번호",
                         fontSize = 20.sp,
                         fontFamily = Pretendard,
                         fontWeight = FontWeight.Medium,
-                        color = strongText,
-                        style = TextStyle.Default,
+                        color = if (c.isDark) infoGray else strongText,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
                         text = zipcode,
                         fontSize = 20.sp,
                         fontFamily = Pretendard,
-                        color = strongText,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Medium,
+                        color = if (c.isDark) infoGray else strongText
                     )
                 }
 
                 Spacer(Modifier.height(14.dp))
 
+                // ✅ 도로명: 다크모드면 #CDD1D5
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = "도로명",
                         fontSize = 20.sp,
                         fontFamily = Pretendard,
                         fontWeight = FontWeight.Medium,
-                        color = strongText,
+                        color = if (c.isDark) infoGray else strongText,
                         modifier = Modifier.weight(1f)
                     )
                     Text(
                         text = road,
                         fontSize = 20.sp,
                         fontFamily = Pretendard,
-                        color = strongText,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        color = if (c.isDark) infoGray else strongText
                     )
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // 등록 후 버튼(삭제/수정) — 위치 그대로
             Row(Modifier.fillMaxWidth()) {
+
+                // 🔹 위치 삭제
                 OutlinedButton(
                     onClick = onDelete,
                     modifier = Modifier
@@ -663,55 +654,75 @@ private fun BottomInfoCard(
                         .height(54.dp),
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, divider),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (c.isDark) Color(0xFF000000) else c.surface
+                    )
                 ) {
                     Text(
-                        "위치 삭제",
+                        text = "위치 삭제",
                         fontSize = 18.sp,
                         fontFamily = Pretendard,
                         fontWeight = FontWeight.Medium,
-                        color = strongText
+                        color = if (c.isDark) Color(0xFF8A949E) else strongText   // ✅ 변경
                     )
                 }
 
                 Spacer(Modifier.width(12.dp))
 
+                // 🔹 위치 수정
                 Button(
                     onClick = onEdit,
                     modifier = Modifier
                         .weight(1f)
                         .height(54.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6))
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (c.isDark) Color(0xFF131416) else Color(0xFFF3F4F6) // ✅ 변경
+                    )
                 ) {
                     Text(
-                        "위치 수정",
+                        text = "위치 수정",
                         fontSize = 18.sp,
                         fontFamily = Pretendard,
                         fontWeight = FontWeight.Medium,
-                        color = strongText
+                        color = if (c.isDark) Color(0xFF8A949E) else strongText   // ✅ 변경
                     )
                 }
             }
+
         }
     }
 }
 
 
-
-
-
-    @Preview(
-    name = "Setting Workplace Location",
+@Preview(
+    name = "Setting Workplace Location (Light)",
     showBackground = true,
     device = Devices.PIXEL_7
 )
 @Composable
 fun SettingWorkplaceLocationPreview() {
-    MaterialTheme {
+    Smart_Safety_ManagementTheme(darkTheme = false) {
         SettingWorkplaceLocationScreen(
             onBack = {},
             onConfirm = {}
         )
     }
 }
+
+@Preview(
+    name = "Setting Workplace Location (Dark)",
+    showBackground = true,
+    device = Devices.PIXEL_7
+)
+@Composable
+fun SettingWorkplaceLocationDarkPreview() {
+    Smart_Safety_ManagementTheme(darkTheme = true) {
+        SettingWorkplaceLocationScreen(
+            onBack = {},
+            onConfirm = {}
+        )
+    }
+}
+
+
