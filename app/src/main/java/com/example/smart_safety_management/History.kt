@@ -355,7 +355,7 @@ fun FilterBottomSheetContent() {
             val statusOptions = listOf("조치완료", "오탐처리")
             statusOptions.forEach { option ->
                 val isSelected = selectedStatus == option
-                Button(onClick = { selectedStatus = option }, modifier = Modifier.height( 37.dp).weight(1f), colors = ButtonDefaults.buttonColors(backgroundColor = if (isSelected) MainOrange.copy(alphavalue) else bgColor), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), border = BorderStroke(1.dp, if (isSelected) MainOrange else borderColor)) {
+                Button(onClick = { selectedStatus = option }, modifier = Modifier.height(37.dp).weight(1f), colors = ButtonDefaults.buttonColors(backgroundColor = if (isSelected) MainOrange.copy(alphavalue) else bgColor), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), border = BorderStroke(1.dp, if (isSelected) MainOrange else borderColor)) {
                     Text(text = option, color = toptextColor, fontFamily = Pretendard, fontSize = 14.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
                 }
             }
@@ -365,7 +365,7 @@ fun FilterBottomSheetContent() {
             val riskOptions = listOf("주의", "경고", "위험")
             riskOptions.forEach { option ->
                 val isSelected = selectedRisk == option
-                Button(onClick = { selectedRisk = option }, modifier = Modifier.height (40.dp).weight(1f), colors = ButtonDefaults.buttonColors(backgroundColor = if (isSelected) MainOrange.copy(alphavalue) else bgColor), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), border = BorderStroke(1.dp, if (isSelected) MainOrange else borderColor)) {
+                Button(onClick = { selectedRisk = option }, modifier = Modifier.height(40.dp).weight(1f), colors = ButtonDefaults.buttonColors(backgroundColor = if (isSelected) MainOrange.copy(alphavalue) else bgColor), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), border = BorderStroke(1.dp, if (isSelected) MainOrange else borderColor)) {
                     Text(text = option, color = toptextColor, fontFamily = Pretendard, fontSize = 14.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
                 }
             }

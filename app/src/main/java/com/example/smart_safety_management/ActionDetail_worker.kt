@@ -481,7 +481,7 @@ fun ActionDetailWorkerScreen(
                                 .padding(horizontal = 8.dp)
                                 .height(60.dp),
                             shape = RoundedCornerShape(8.dp),
-                            textStyle = TextStyle(fontSize = 16.sp, fontFamily = Pretendard, color = inputTextColor),
+                            textStyle = TextStyle(fontSize = 18.sp, fontFamily = Pretendard, color = inputTextColor),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
                                 unfocusedBorderColor = borderColor,
                                 focusedBorderColor = MainOrange,
@@ -508,7 +508,7 @@ fun ActionDetailWorkerScreen(
                                 .height(120.dp)
                                 .padding(horizontal = 8.dp),
                             shape = RoundedCornerShape(8.dp),
-                            textStyle = TextStyle(fontSize = 16.sp, fontFamily = Pretendard, color = inputTextColor),
+                            textStyle = TextStyle(fontSize = 18.sp, fontFamily = Pretendard, color = inputTextColor),
                             colors = TextFieldDefaults.outlinedTextFieldColors(
                                 unfocusedBorderColor = borderColor,
                                 focusedBorderColor = MainOrange,
