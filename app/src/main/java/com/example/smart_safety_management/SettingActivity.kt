@@ -46,9 +46,10 @@ class SettingActivity : AppCompatActivity() {
 
         // 현장 위치 아이템 클릭 시 화면 이동
         findViewById<LinearLayout>(R.id.item_workplace_location_setting).setOnClickListener {
-            //val intent = Intent(this, SettingWorkplaceLocationActivity::class.java)
+            val intent = Intent(this@SettingActivity, SettingWorkplaceLocationActivity::class.java)
             startActivity(intent)
         }
+
 
         // 초대하기 아이템 클릭 시 화면 이동
         findViewById<LinearLayout>(R.id.item_invite).setOnClickListener {
