@@ -79,6 +79,9 @@ class HomeWorkerActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingWorkerActivity::class.java))
         }
 
+        // 일일안전점검 리스트 헤더 처리 (추가 버튼 숨김)
+        findViewById<View>(R.id.list_header)?.findViewById<View>(R.id.btn_add)?.visibility = View.GONE
+
         // 일일안전점검 리스트 초기화
         val rvDaily = findViewById<RecyclerView>(R.id.rv_daily_check)
         rvDaily.layoutManager = LinearLayoutManager(this)

@@ -76,13 +76,17 @@
                         android:fontFamily="@font/pretendard_bold"
                         android:textSize="24dp"
                         android:letterSpacing="0"
+                        android:layout_marginBottom="16dp"
                         android:textColor="@color/gray900_gray50"/>
 
-                    <include layout="@layout/view_list_header" />
+                    <include 
+                        android:id="@+id/list_header"
+                        layout="@layout/view_list_header"/>
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_daily_check"
                         android:layout_width="match_parent"
+                        android:layout_marginTop="14dp"
                         android:layout_height="293dp"
                         android:overScrollMode="never" />
 
