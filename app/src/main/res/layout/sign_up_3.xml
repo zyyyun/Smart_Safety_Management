@@ -181,7 +181,7 @@
             android:layout_height="64dp"
             app:boxBackgroundColor="@color/white_gray900"
             android:fontFamily="@font/pretendard_medium"
-            android:hint="비밀번호를 입력해주세요"
+            android:hint="비밀번호를 한번 더 입력해주세요"
             android:letterSpacing="0"
             android:inputType="textPassword"
             android:maxLines="1"

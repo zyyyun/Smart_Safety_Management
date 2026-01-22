@@ -301,7 +301,8 @@ fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: S
                 text = item.description, 
                 fontSize = 14.sp, 
                 fontFamily = Pretendard, 
-                color = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
+                color = if (MaterialTheme.colors.isLight) TextGray60 else TextGray,
+                maxLines = 2
             )
         }
         Spacer(modifier = Modifier.width(8.dp))

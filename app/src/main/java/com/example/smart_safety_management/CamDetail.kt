@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -149,20 +150,34 @@ fun CamDetailScreen(
                 CamInfoItem("호스트 PW", mockCamInfo.hostpw, categoryColor, mainColor)
                 CamInfoItem("최근 연결", mockCamInfo.lastconnect, categoryColor, mainColor)
                 
-                // ✅ 상태값에 따른 텍스트 및 색상 적용
+                // ✅ 상태값에 따른 텍스트 및 색상 적용, 편집 아이콘 제거 및 여백 삭제
                 CamInfoItem(
                     label = "상태",
                     value = if (mockCamInfo.state) "정상" else "미수신",
                     labelColor = categoryColor,
-                    valueColor = if (mockCamInfo.state) StatusGreenDark else StatusRed
+                    valueColor = if (mockCamInfo.state) StatusGreenDark else StatusRed,
+                    showEditIcon = false
                 )
 
+                // ✅ 첫 번째 경계선: 화면 끝까지 닿도록 수정
                 Divider(
                     color = dividerColor,
                     thickness = 1.dp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 24.dp, bottom = 24.dp)
+                        .layout { measurable, constraints ->
+                            val paddingPx = 24.dp.roundToPx()
+                            val expandedWidth = constraints.maxWidth + (paddingPx * 2)
+                            val placeable = measurable.measure(
+                                constraints.copy(
+                                    minWidth = expandedWidth,
+                                    maxWidth = expandedWidth
+                                )
+                            )
+                            layout(constraints.maxWidth, placeable.height) {
+                                placeable.place(-paddingPx, 0)
+                            }
+                        }
                 )
                 Text(
                     text = "촬영",
@@ -235,12 +250,26 @@ fun CamDetailScreen(
                         }
                     }
                 }
+                
+                // ✅ 두 번째 경계선: 화면 끝까지 닿도록 수정
                 Divider(
                     color = dividerColor,
                     thickness = 1.dp,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 24.dp, bottom = 24.dp)
+                        .layout { measurable, constraints ->
+                            val paddingPx = 24.dp.roundToPx()
+                            val expandedWidth = constraints.maxWidth + (paddingPx * 2)
+                            val placeable = measurable.measure(
+                                constraints.copy(
+                                    minWidth = expandedWidth,
+                                    maxWidth = expandedWidth
+                                )
+                            )
+                            layout(constraints.maxWidth, placeable.height) {
+                                placeable.place(-paddingPx, 0)
+                            }
+                        }
                 )
                 Text(
                     text = "설치위치",
@@ -317,25 +346,27 @@ fun CustomDropdown(
             )
         }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .width(106.dp)
-                .background(bgColor)
-        ) {
-            options.forEach { option ->
-                DropdownMenuItem(onClick = {
-                    onOptionSelected(option)
-                    expanded = false
-                }) {
-                    Text(
-                        text = option,
-                        color = textColor,
-                        fontFamily = Pretendard,
-                        fontSize = 14.sp
-                    )
-
+        // ✅ 펼쳐진 리스트의 모서리 곡률과 너비를 드롭박스와 동일하게 설정
+        MaterialTheme(shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(8.dp))) {
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .width(106.dp) // 드롭박스 버튼 너비와 동일하게 설정
+                    .background(bgColor)
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(onClick = {
+                        onOptionSelected(option)
+                        expanded = false
+                    }) {
+                        Text(
+                            text = option,
+                            color = textColor,
+                            fontFamily = Pretendard,
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             }
         }
@@ -343,7 +374,13 @@ fun CustomDropdown(
 }
 
 @Composable
-fun CamInfoItem(label: String, value: String, labelColor: Color, valueColor: Color) {
+fun CamInfoItem(
+    label: String, 
+    value: String, 
+    labelColor: Color, 
+    valueColor: Color,
+    showEditIcon: Boolean = true // ✅ 아이콘 표시 여부 추가
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -362,13 +399,18 @@ fun CamInfoItem(label: String, value: String, labelColor: Color, valueColor: Col
             color = valueColor,
             textAlign = TextAlign.End
         )
-        Spacer(modifier = Modifier.width(16.dp))
-        Icon(
-            painter = painterResource(id = R.drawable.edit),
-            contentDescription = "edit",
-            tint = TextMedium,
-            modifier = Modifier.size(18.dp)
-        )
+        
+        // ✅ showEditIcon이 true일 때만 아이콘과 여백을 표시
+        if (showEditIcon) {
+            Spacer(modifier = Modifier.width(16.dp))
+            Icon(
+                painter = painterResource(id = R.drawable.edit),
+                contentDescription = "edit",
+                tint = TextMedium,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        // ✅ else { Spacer(18.dp) } 부분을 제거하여, 아이콘이 없을 때 텍스트가 패딩 끝까지 가도록 수정함
     }
 }
 

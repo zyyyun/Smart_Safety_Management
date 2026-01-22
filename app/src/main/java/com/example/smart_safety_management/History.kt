@@ -571,12 +571,3 @@ fun HistorySecondaryAppBar(selectedTab: String, onTabSelected: (String) -> Unit)
 fun HistoryScreenPreview() {
     HistoryScreen()
 }
-
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Filter BottomSheet - Light")
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Filter BottomSheet - Dark")
-@Composable
-fun FilterBottomSheetPreview() {
-    Smart_Safety_ManagementTheme {
-        FilterBottomSheetContent()
-    }
-}
