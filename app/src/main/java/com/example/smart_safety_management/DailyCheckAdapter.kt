@@ -1,6 +1,7 @@
 package com.example.smart_safety_management
 
 import DailyCheckItem
+import android.content.Intent
 import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
@@ -85,9 +86,11 @@ class DailyCheckAdapter(
             holder.cardView.strokeWidth = (1.142 * holder.itemView.context.resources.displayMetrics.density).toInt()
             holder.cardView.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.orange400alpha20_orange400)
 
-            // 클릭 리스너 예시 (필요시 구현)
+            // 클릭 리스너 구현
             holder.statusLayout.setOnClickListener {
-                // 점검 동작 수행 등
+                val context = holder.itemView.context
+                val intent = Intent(context, DailyDetailActivity::class.java)
+                context.startActivity(intent)
             }
         }
 

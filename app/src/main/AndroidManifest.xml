@@ -63,6 +63,11 @@
         <activity android:name=".HomeActivity"/>
         <activity android:name=".HomeWorkerActivity"/>
 
+        <!-- 일일안전점검 화면 -->
+        <activity
+            android:name=".DailyDetailActivity"
+            android:exported="false"/>
+
         <!-- 월별로 보기 화면 -->
         <activity
             android:name=".MonthlyListActivity"
