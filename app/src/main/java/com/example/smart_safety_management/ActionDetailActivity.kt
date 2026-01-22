@@ -9,7 +9,7 @@ class ActionDetailActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             // ActionDetail.kt에 정의된 ActionDetailScreen 호출
-            ActionDetailScreen(onBackClick = { finish() })
+            ActionDetailWorkerScreen(onBackClick = { finish() })
         }
     }
 }
