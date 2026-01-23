@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +26,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -75,7 +79,7 @@ fun CCTVManagementScreen(
         val editColor = TextMedium
         val titleColor = if (isLight) Color.Black else TextGray5
         val dividerColor = if (isLight) Lightgray else GrayBackground
-        val checkboxBorderColor = if (isLight) GrayBorder else TextDark
+        val checkboxColor = if (isLight) GrayBorder else TextDark
 
         var isEditMode by remember { mutableStateOf(false) }
         var selectedArea by remember { mutableStateOf("전체 구역") }
@@ -107,8 +111,10 @@ fun CCTVManagementScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(top = 24.dp, bottom = 36.dp)
-                    .verticalScroll(rememberScrollState())
+                    // ✅ 편집 모드일 때 상단바와의 간격을 16.dp로 조절
+                    .padding(top = if (isEditMode) 16.dp else 24.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(if (isEditMode) 16.dp else 0.dp)
             ) {
                 // 필터 섹션
                 AnimatedVisibility(visible = !isEditMode, enter = fadeIn(), exit = fadeOut()) {
@@ -128,16 +134,15 @@ fun CCTVManagementScreen(
                         selectedCameras = selectedCameras,
                         dividerColor = dividerColor,
                         isLight = isLight,
-                        checkboxBorderColor = checkboxBorderColor
+                        checkboxColor = checkboxColor
                     )
                 }
-
+                
+                // ✅ 편집 모드일 때는 Spacer와 라벨을 제거하여 카메라 리스트가 전체선택 바에 더 가깝게 붙도록 수정
                 if (!isEditMode) {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                     LabelText("카메라 목록", modifier = Modifier.padding(horizontal = 24.dp))
-                    Spacer(modifier = Modifier.height(24.dp))
-                } else {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
 
                 // 카메라 리스트
@@ -146,8 +151,10 @@ fun CCTVManagementScreen(
                     isEditMode = isEditMode,
                     selectedCameras = selectedCameras,
                     onCameraClick = onCameraClick,
-                    checkboxBorderColor = checkboxBorderColor
+                    checkboxColor = checkboxColor
                 )
+
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
@@ -215,7 +222,7 @@ fun CCTVCameraList(
     isEditMode: Boolean,
     selectedCameras: SnapshotStateList<String>,
     onCameraClick: (CCTVCameraData) -> Unit,
-    checkboxBorderColor: Color
+    checkboxColor: Color
 ) {
     val frameDividerColor = if (MaterialTheme.colors.isLight) TextGray5 else TextGray20
     Column(modifier = Modifier.padding(horizontal = 24.dp)) {
@@ -229,10 +236,12 @@ fun CCTVCameraList(
                     else selectedCameras.remove(camera.id)
                 },
                 onCameraClick = { onCameraClick(camera) },
-                checkboxBorderColor = checkboxBorderColor
+                checkboxColor = checkboxColor
             )
             if (index < cameras.size - 1) {
-                Divider(color = frameDividerColor, thickness = 1.dp, modifier = Modifier.padding(vertical = 32.dp))
+                // ✅ 편집 모드일 때 프레임 간 상하 간격을 더 좁게 조절
+                val verticalPadding = if (isEditMode) 12.dp else 32.dp
+                Divider(color = frameDividerColor, thickness = 1.dp, modifier = Modifier.padding(vertical = verticalPadding))
             }
         }
     }
@@ -246,7 +255,7 @@ fun CamFrame(
     isSelected: Boolean,
     onSelect: (Boolean) -> Unit,
     onCameraClick: () -> Unit = {},
-    checkboxBorderColor: Color
+    checkboxColor: Color
 ) {
     val isLight = MaterialTheme.colors.isLight
     val buttonColor = if (isLight) TextGray else TextGray60
@@ -256,25 +265,40 @@ fun CamFrame(
 
     Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().graphicsLayer(clip = false)) {
         if (isEditMode) {
+            // ✅ 시각적 박스 시작점을 24dp 선에 맞춤 (-14dp)
             Checkbox(
                 checked = isSelected,
                 onCheckedChange = onSelect,
                 colors = CheckboxDefaults.colors(
-                    checkedColor = MainOrange, // ✅ 체크 시 배경색 MainOrange
-                    uncheckedColor = checkboxBorderColor,
-                    checkmarkColor = MaterialTheme.colors.onPrimary // ✅ 체크 표시 테마 대응
+                    checkedColor = MainOrange,
+                    uncheckedColor = checkboxColor,
+                    checkmarkColor = MaterialTheme.colors.onPrimary
                 ),
-                modifier = Modifier.offset(x = (-12).dp, y = (-12).dp)
+                modifier = Modifier.offset(x = (-14).dp, y = (-12).dp)
             )
+            // ✅ 시각적 박스 끝(20dp)에서 프레임 시작까지 16dp 간격 확보
+            Spacer(modifier = Modifier.width(2.dp))
         }
 
         Box(
-            modifier = Modifier.weight(1f).wrapContentHeight().background(color = MaterialTheme.colors.onPrimary, shape = RoundedCornerShape(12.dp)).graphicsLayer(clip = false)
+            modifier = Modifier
+                .weight(1f)
+                // ✅ 편집모드일 때 사진 프레임이 포함된 요소를 체크박스 쪽으로 8.dp만큼 더 가깝게 이동
+                .then(if (isEditMode) Modifier.offset(x = (-8).dp) else Modifier)
+                .wrapContentHeight()
+                .background(color = MaterialTheme.colors.onPrimary, shape = RoundedCornerShape(12.dp))
+                .graphicsLayer(clip = false)
                 .clickable { if (isEditMode) onSelect(!isSelected) else onCameraClick() }
         ) {
             Row(modifier = Modifier.fillMaxWidth().graphicsLayer(clip = false) ) {
                 Image(painter = painterResource(id = camera.image), contentDescription = null, modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
-                Column(modifier = Modifier.weight(1f).padding(start = 16.dp), verticalArrangement = Arrangement.Top) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        // ✅ 편집모드일 때 텍스트 요소를 왼쪽으로 8.dp만큼 더 가깝게 이동 (16 -> 8)
+                        .padding(start = if (isEditMode) 8.dp else 16.dp),
+                    verticalArrangement = Arrangement.Top
+                ) {
                     Row(modifier = Modifier.fillMaxWidth().graphicsLayer(clip = false), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -339,7 +363,7 @@ fun CCTVEditActionBar(
     selectedCameras: SnapshotStateList<String>, 
     dividerColor: Color, 
     isLight: Boolean,
-    checkboxBorderColor: Color
+    checkboxColor: Color
 ) {
     val isAllSelected = filteredCCTVList.isNotEmpty() && selectedCameras.size == filteredCCTVList.size
     Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colors.onPrimary)) {
@@ -353,7 +377,7 @@ fun CCTVEditActionBar(
                 }, 
                 onAddClick = { }, 
                 onDeleteClick = { },
-                checkboxBorderColor = checkboxBorderColor
+                checkboxColor = checkboxColor
             )
         }
         Divider(color = dividerColor, thickness = 1.dp)
@@ -401,20 +425,23 @@ fun EditModeActionBar(
     onSelectAll: (Boolean) -> Unit, 
     onAddClick: () -> Unit, 
     onDeleteClick: () -> Unit,
-    checkboxBorderColor: Color
+    checkboxColor: Color
 ) {
     Row(modifier = Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         Row(modifier = Modifier.clickable { onSelectAll(!isAllSelected) }, verticalAlignment = Alignment.CenterVertically) {
+            // ✅ 시각적 상자 시작점을 맞추기 위해 -14dp 오프셋
             Checkbox(
                 checked = isAllSelected, 
                 onCheckedChange = onSelectAll, 
                 colors = CheckboxDefaults.colors(
-                    checkedColor = MainOrange, // ✅ 체크 시 배경색 MainOrange
-                    uncheckedColor = checkboxBorderColor,
-                    checkmarkColor = MaterialTheme.colors.onPrimary // ✅ 체크 표시 테마 대응
+                    checkedColor = MainOrange,
+                    uncheckedColor = checkboxColor,
+                    checkmarkColor = MaterialTheme.colors.onPrimary 
                 ),
-                modifier = Modifier.offset(x = (-12).dp)
+                modifier = Modifier.offset(x = (-14).dp)
             )
+            // ✅ 텍스트와 16dp 간격 확보
+            Spacer(modifier = Modifier.width(2.dp))
             Text(text = "전체 선택", fontFamily = Pretendard, fontSize = 16.sp, color = if (isLight) TextGray20 else TextGray5)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -430,18 +457,62 @@ fun CCTVCustomDropdown(options: List<String>, selectedOption: String, onOptionSe
     var expanded by remember { mutableStateOf(false) }
     val bgColor = if (isLight) Color.White else TextGray20
     val borderColor = if (isLight) GrayBorder else TextDark
+    val dropboxBorder = if (isLight) TextGray5 else TextGray20
+    val selectAlpha = if (isLight) 0.12f else 0.36f
+
+    val density = LocalDensity.current
+    var buttonWidth by remember { mutableStateOf(0) }
+
     Box(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.fillMaxWidth().height(52.dp).background(color = bgColor, shape = RoundedCornerShape(8.dp)).border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(8.dp)).clickable { expanded = !expanded }.padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .onSizeChanged { buttonWidth = it.width }
+                .background(color = bgColor, shape = RoundedCornerShape(8.dp))
+                .border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(8.dp))
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically, 
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(text = selectedOption, fontFamily = Pretendard, fontSize = 16.sp, color = if (isLight) TextGray20 else TextGray5)
             Icon(painter = painterResource(id = R.drawable.dropbox), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(14.dp, 9.dp))
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.fillMaxWidth(0.9f).background(bgColor)) {
-            options.forEach { option ->
-                DropdownMenuItem(onClick = { onOptionSelected(option); expanded = false }) {
-                    Text(text = option, color = if (isLight) TextGray20 else TextGray5, fontFamily = Pretendard, fontSize = 16.sp)
+        
+        MaterialTheme(
+            colors = MaterialTheme.colors.copy(surface = bgColor),
+            shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(8.dp))
+        ) {
+            DropdownMenu(
+                expanded = expanded, 
+                onDismissRequest = { expanded = false }, 
+                modifier = Modifier
+                    .width(with(density) { buttonWidth.toDp() })
+                    .background(bgColor)
+            ) {
+                options.forEachIndexed { index, option ->
+                    val interactionSource = remember { MutableInteractionSource() }
+                    val isPressed by interactionSource.collectIsPressedAsState()
+                    
+                    DropdownMenuItem(
+                        onClick = { onOptionSelected(option); expanded = false },
+                        interactionSource = interactionSource,
+                        modifier = Modifier.background(
+                            if (isPressed) MainOrange.copy(alpha = selectAlpha) else bgColor
+                        )
+                    ) {
+                        Text(
+                            text = option, 
+                            color = if (isLight) TextGray20 else TextGray5, 
+                            fontFamily = Pretendard, 
+                            fontSize = 16.sp
+                        )
+                    }
+                    
+                    if (index < options.size - 1) {
+                        Divider(color = dropboxBorder, thickness = 1.dp)
+                    }
                 }
             }
         }

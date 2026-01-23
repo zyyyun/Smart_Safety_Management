@@ -6,6 +6,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +25,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -84,40 +87,44 @@ fun HistoryScreen() {
                 FilterBottomSheetContent()
             }
         ) {
-            Scaffold(
-                topBar = {
-                    Column {
-                        HistoryTopAppBar(
-                            isAscending = isAscending,
-                            onSortToggle = { isAscending = !isAscending },
-                            onFilterClick = {
-                                coroutineScope.launch {
-                                    sheetState.show()
-                                }
-                            },
-                            onSearchIconClick = { isSearchMode = !isSearchMode },
-                            backgroundColor = topBarBackgroundColor
+            // ✅ [핵심] Scaffold 제거: Activity의 Scaffold와 중복되지 않도록 Column으로 레이아웃 구성
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(topBarBackgroundColor)
+            ) {
+                // 1. 상단바 영역
+                Column {
+                    HistoryTopAppBar(
+                        isAscending = isAscending,
+                        onSortToggle = { isAscending = !isAscending },
+                        onFilterClick = {
+                            coroutineScope.launch {
+                                sheetState.show()
+                            }
+                        },
+                        onSearchIconClick = { isSearchMode = !isSearchMode },
+                        backgroundColor = Color.Transparent
+                    )
+                    if (isSearchMode) {
+                        HistorySearchBar(
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { searchQuery = it },
+                            width = 350.dp 
                         )
-                        if (isSearchMode) {
-                            HistorySearchBar(
-                                searchQuery = searchQuery,
-                                onSearchQueryChange = { searchQuery = it },
-                                width = 350.dp 
-                            )
-                            Divider(color = if (isLight) GrayBorder else TextDark, thickness = 1.dp)
-                        }
-                        HistorySecondaryAppBar(
-                            selectedTab = selectedTab,
-                            onTabSelected = { selectedTab = it }
-                        )
+                        Divider(color = if (isLight) GrayBorder else TextDark, thickness = 1.dp)
                     }
-                },
-                backgroundColor = topBarBackgroundColor
-            ) { paddingValues ->
+                    HistorySecondaryAppBar(
+                        selectedTab = selectedTab,
+                        onTabSelected = { selectedTab = it }
+                    )
+                }
+
+                // 2. 콘텐츠 영역: weight(1f)를 주어 바텀바 바로 위까지 공간을 모두 사용
                 Surface(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                        .weight(1f)
+                        .fillMaxWidth(),
                     color = MaterialTheme.colors.onPrimary,
                     shape = RectangleShape
                 ) {
@@ -132,13 +139,16 @@ fun HistoryScreen() {
                         dummyHistoryData.forEach { data ->
                             HistoryItemFrame(data)
                         }
-                        Spacer(modifier = Modifier.height(80.dp))
+                        // 리스트 끝 여백
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             }
         }
     }
 }
+
+// ... 나머지 컴포저블들은 기존과 동일 (생략 없이 전체 유지) ...
 
 @Composable
 fun HistorySearchBar(
@@ -284,8 +294,10 @@ fun FilterBottomSheetContent() {
     val borderColor = if (isLight) GrayBorder else TextDark
     val textColor = if (isLight) TextGray20 else TextGray5
     val bgColor = if (isLight) Color.White else TextGray20
+    val dropboxBorder = if (isLight) TextGray5 else TextGray20
     val placeholderColor = if (isLight) TextLight else TextGray30
     val alphavalue = if (isLight) 0.1f else 0.36f
+    val selectAlpha = if (isLight) 0.12f else 0.36f
 
     val density = LocalDensity.current
     var areaBoxWidth by remember { mutableStateOf(0) }
@@ -373,7 +385,6 @@ fun FilterBottomSheetContent() {
         }
         Spacer(modifier = Modifier.height(28.dp)); Divider(color = borderColor, thickness = 1.dp); Spacer(modifier = Modifier.height(28.dp))
         
-        // ✅ 구역, 조치자 드롭박스 영역 수정
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = "구역", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = CategoryColor)
@@ -399,10 +410,20 @@ fun FilterBottomSheetContent() {
                             expanded = isAreaDropDownExpanded, 
                             onDismissRequest = { isAreaDropDownExpanded = false }, 
                             offset = DpOffset(x = 0.dp, y = 8.dp), 
-                            modifier = Modifier.width(with(density) { areaBoxWidth.toDp() })
+                            modifier = Modifier.width(with(density) { areaBoxWidth.toDp() }).background(bgColor)
                         ) {
-                            listOf("A구역", "B구역", "C구역", "D구역").forEach { option ->
-                                DropdownMenuItem(onClick = { selectedArea = option; isAreaDropDownExpanded = false }) { Text(text = option, fontFamily = Pretendard, color = textColor) }
+                            val areaOptions = listOf("A구역", "B구역", "C구역", "D구역")
+                            areaOptions.forEachIndexed { index, option ->
+                                val interactionSource = remember { MutableInteractionSource() }
+                                val isPressed by interactionSource.collectIsPressedAsState()
+                                DropdownMenuItem(
+                                    onClick = { selectedArea = option; isAreaDropDownExpanded = false },
+                                    interactionSource = interactionSource,
+                                    modifier = Modifier.background(if (isPressed) MainOrange.copy(alpha = selectAlpha) else bgColor)
+                                ) { 
+                                    Text(text = option, fontFamily = Pretendard, color = textColor) 
+                                }
+                                if (index < areaOptions.size - 1) Divider(color = dropboxBorder, thickness = 1.dp)
                             }
                         }
                     }
@@ -432,10 +453,20 @@ fun FilterBottomSheetContent() {
                             expanded = isActionByNameDropDownExpanded, 
                             onDismissRequest = { isActionByNameDropDownExpanded = false }, 
                             offset = DpOffset(x = 0.dp, y = 8.dp), 
-                            modifier = Modifier.width(with(density) { actionByBoxWidth.toDp() })
+                            modifier = Modifier.width(with(density) { actionByBoxWidth.toDp() }).background(bgColor)
                         ) {
-                            listOf("전체", "홍길동", "김철수", "이영희").forEach { option ->
-                                DropdownMenuItem(onClick = { selectedActionByName = option; isActionByNameDropDownExpanded = false }) { Text(text = option, fontFamily = Pretendard, color = textColor) }
+                            val actionOptions = listOf("전체", "홍길동", "김철수", "이영희")
+                            actionOptions.forEachIndexed { index, option ->
+                                val interactionSource = remember { MutableInteractionSource() }
+                                val isPressed by interactionSource.collectIsPressedAsState()
+                                DropdownMenuItem(
+                                    onClick = { selectedActionByName = option; isActionByNameDropDownExpanded = false },
+                                    interactionSource = interactionSource,
+                                    modifier = Modifier.background(if (isPressed) MainOrange.copy(alpha = selectAlpha) else bgColor)
+                                ) { 
+                                    Text(text = option, fontFamily = Pretendard, color = textColor) 
+                                }
+                                if (index < actionOptions.size - 1) Divider(color = dropboxBorder, thickness = 1.dp)
                             }
                         }
                     }
@@ -465,15 +496,25 @@ fun FilterBottomSheetContent() {
                     expanded = isEventDropDownExpanded, 
                     onDismissRequest = { isEventDropDownExpanded = false }, 
                     offset = DpOffset(x = 0.dp, y = 8.dp), 
-                    modifier = Modifier.width(with(density) { eventBoxWidth.toDp() })
+                    modifier = Modifier.width(with(density) { eventBoxWidth.toDp() }).background(bgColor)
                 ) {
-                    listOf("안전모 미착용", "통로사고", "충돌사고", "운반사고", "화재사고", "협착사고", "쓰러짐").forEach { option ->
-                        DropdownMenuItem(onClick = { selectedEvent = option; isEventDropDownExpanded = false }) { Text(text = option, fontFamily = Pretendard, color = textColor) }
+                    val eventOptions = listOf("안전모 미착용", "통로사고", "충돌사고", "운반사고", "화재사고", "협착사고", "쓰러짐")
+                    eventOptions.forEachIndexed { index, option ->
+                        val interactionSource = remember { MutableInteractionSource() }
+                        val isPressed by interactionSource.collectIsPressedAsState()
+                        DropdownMenuItem(
+                            onClick = { selectedEvent = option; isEventDropDownExpanded = false },
+                            interactionSource = interactionSource,
+                            modifier = Modifier.background(if (isPressed) MainOrange.copy(alpha = selectAlpha) else bgColor)
+                        ) { 
+                            Text(text = option, fontFamily = Pretendard, color = textColor) 
+                        }
+                        if (index < eventOptions.size - 1) Divider(color = dropboxBorder, thickness = 1.dp)
                     }
                 }
             }
         }
-        Spacer(modifier = Modifier.height(40.dp)); Button(onClick = { /* 적용 로직 */ }, modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth().height(60.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp)) {
+        Spacer(modifier = Modifier.height(40.dp)); Button(onClick = { /* 적용 */ }, modifier = Modifier.padding(horizontal = 24.dp).fillMaxWidth().height(60.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp)) {
             Text(text = "적용하기", color = MaterialTheme.colors.onPrimary, fontFamily = Pretendard, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(modifier = Modifier.height(24.dp))

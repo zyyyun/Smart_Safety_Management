@@ -74,7 +74,7 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
         val fieldBgColor = if (MaterialTheme.colors.isLight) Color.White else TextGray20
         val borderColor = if (MaterialTheme.colors.isLight) GrayBorder else TextDark
         val textColor = if (MaterialTheme.colors.isLight) TextGray else TextGray60
-        val fieldTextColor = if (MaterialTheme.colors.isLight) TextGray20 else TextGray20
+        val fieldTextColor = if (MaterialTheme.colors.isLight) TextGray20 else TextGray5
         Scaffold(
             backgroundColor = MaterialTheme.colors.onPrimary,
             topBar = {

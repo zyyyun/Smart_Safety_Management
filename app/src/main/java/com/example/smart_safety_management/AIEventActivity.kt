@@ -8,10 +8,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.compose.NavHost
@@ -43,73 +45,39 @@ fun AIEventNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // ✅ 다크 모드 상태 확인
     val isDarkTheme = isSystemInDarkTheme()
     val systemUiController = rememberSystemUiController()
 
-    // ✅ 경로와 다크 모드 여부에 따른 상태바 색상 제어
     SideEffect {
         val statusBarColor = when (currentRoute) {
-            "detect" -> {
-                if (isDarkTheme) {
-                    // TODO: 다크 모드일 때 detect 화면 상태바 색상 (예: GrayBackground)
-                    GrayBackground 
-                } else {
-                    MainOrange
-                }
-            }
-            else -> {
-                if (isDarkTheme) {
-                    // TODO: 다크 모드일 때 기타 화면 상태바 색상
-                    Color.Black
-                } else {
-                    Color.White
-                }
-            }
+            "detect" -> if (isDarkTheme) GrayBackground else MainOrange
+            else -> if (isDarkTheme) Color.Black else Color.White
         }
-
         systemUiController.setStatusBarColor(
             color = statusBarColor,
-            // 다크 모드일 때는 밝은 아이콘(darkIcons = false), 라이트 모드일 때는 어두운 아이콘(darkIcons = true)
             darkIcons = !isDarkTheme
         )
     }
 
     Scaffold(
         bottomBar = {
-            if (currentRoute == "detect") {
-                AIEventBottomBar()
-            }
+            // ✅ 모든 화면에서 공통 바텀바 유지 (필요 시 조건부 노출)
+            AIEventBottomBar()
         }
     ) { paddingValues ->
-        NavHost(
-            navController = navController,
-            startDestination = "detect",
-            modifier = Modifier.padding(paddingValues)
-        ) {
-            composable("detect") {
-                AIEventDetectScreen(
-                    onEventClick = { event ->
-                        if (event.content.contains("쓰러짐") && event.location == "C구역 2열") {
-                            navController.navigate("detail")
+        // ✅ Scaffold의 paddingValues를 하단 여백으로 정확히 적용
+        Surface(modifier = Modifier.padding(paddingValues)) {
+            NavHost(
+                navController = navController,
+                startDestination = "detect"
+            ) {
+                composable("detect") {
+                    AIEventDetectScreen(
+                        onEventClick = { event ->
+                            context.startActivity(Intent(context, ActionDetailActivity::class.java))
                         }
-                    }
-                )
-            }
-
-            composable("detail") {
-                AIEventDetailScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onRequestAction = {
-                        navController.navigate("action_detail")
-                    }
-                )
-            }
-
-            composable("action_detail") {
-                ActionDetailScreen(
-                    onBackClick = { navController.popBackStack() }
-                )
+                    )
+                }
             }
         }
     }
@@ -117,14 +85,28 @@ fun AIEventNavigation() {
 
 @Composable
 fun AIEventBottomBar() {
+    val isLight = MaterialTheme.colors.isLight
+    // ✅ 바텀바 배경색을 테마에 맞춰 고정하여 흰 여백 방지
+    val navBgColor = if (isLight) TextGray5.toArgb() else TextGray20.toArgb()
+
     AndroidView(
         factory = { context ->
             val fullView = LayoutInflater.from(context).inflate(R.layout.main_home, null) as ViewGroup
             val bottomNav = fullView.findViewById<BottomNavigationView>(R.id.bottom_nav)
             (bottomNav.parent as? ViewGroup)?.removeView(bottomNav)
 
-            bottomNav.selectedItemId = R.id.nav_ai
+            // ✅ [핵심] 시스템 인셋 자동 패딩 비활성화
+            bottomNav.setOnApplyWindowInsetsListener { _, insets -> insets }
+            bottomNav.setPadding(0, 0, 0, 0)
 
+            bottomNav.elevation = 0f
+            bottomNav.setBackgroundColor(navBgColor)
+            bottomNav.layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+
+            bottomNav.selectedItemId = R.id.nav_ai
             bottomNav.setOnItemSelectedListener { item ->
                 when (item.itemId) {
                     R.id.nav_home -> {
@@ -148,6 +130,7 @@ fun AIEventBottomBar() {
                 }
             }
             bottomNav
-        }
+        },
+        modifier = Modifier.wrapContentHeight()
     )
 }
