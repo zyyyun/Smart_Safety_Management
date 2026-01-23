@@ -16,7 +16,7 @@
         android:text="초대코드 입력"
         android:letterSpacing="0"
         android:textColor="@color/gray800_gray200"
-        android:textSize="22sp"
+        android:textSize="18sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -31,7 +31,7 @@
         android:text="문자로 받은 초대코드가 있으신가요?"
         android:letterSpacing="0"
         android:textColor="@color/gray700_gray400"
-        android:textSize="14sp"
+        android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_title" />
 
@@ -82,7 +82,7 @@
         android:text="초대코드는 설정 메뉴에서도 등록할 수 있습니다."
         android:letterSpacing="0"
         android:textColor="#F97316"
-        android:textSize="12sp"
+        android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_error" />
