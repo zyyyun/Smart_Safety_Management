@@ -250,18 +250,29 @@ private fun MapFloatButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val c = LocalSafeColors.current
+    val darkBg = Color(0xFF1D2D47) // 피그마 기준 다크 배경색
+
     Box(
         modifier = modifier
             .size(56.dp)
-            .clickable(onClick = onClick),
+            .clip(CircleShape)           // ✅ 원형 유지
+            .clickable(onClick = onClick)
+            // ✅ 다크모드일 때만 단색 배경
+            .background(if (c.isDark) darkBg else Color.Transparent),
         contentAlignment = Alignment.Center
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.background),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Fit
-        )
+        // 🌞 라이트모드: 기존 흰 배경 이미지 사용
+        if (!c.isDark) {
+            Image(
+                painter = painterResource(id = R.drawable.background),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+        }
+
+        // 아이콘은 공통
         Image(
             painter = painterResource(id = R.drawable.loc),
             contentDescription = "loc",
@@ -270,6 +281,7 @@ private fun MapFloatButton(
         )
     }
 }
+
 
 @Composable
 private fun TopBarFixed(
@@ -281,11 +293,18 @@ private fun TopBarFixed(
     val c = LocalSafeColors.current
     val topBarH = 60.dp
 
+    // ✅ 여기 추가
+    val topBarBg = if (c.isDark) {
+        c.topBar          // 다크모드는 기존 유지
+    } else {
+        Color.White       // 🔥 라이트모드는 완전 흰색
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(statusTop + topBarH)
-            .background(c.topBar) // 🌙 다크면 어둡게
+            .background(topBarBg)
     ) {
         Box(
             modifier = Modifier
@@ -310,15 +329,13 @@ private fun TopBarFixed(
                         tint = if (c.isDark) Color.White else Color.Black,
                         modifier = Modifier.size(20.dp)
                     )
-
-
                 }
 
                 Spacer(Modifier.width(3.dp))
 
                 Text(
                     text = "현장위치 설정",
-                    fontSize = 26.sp,
+                    fontSize = 24.sp,
                     fontFamily = Pretendard,
                     fontWeight = FontWeight.Bold,
                     color = c.text,
@@ -328,6 +345,7 @@ private fun TopBarFixed(
         }
     }
 }
+
 
 @Composable
 private fun SearchBarOverlay(
@@ -462,48 +480,122 @@ private fun BottomInfoCard(
 ) {
     val c = LocalSafeColors.current
     val sheetRadius = 20.dp
-
-    // ✅ 다크모드 시트 배경: 완전 검정
     val sheetBg = if (c.isDark) Color(0xFF000000) else c.surface
-
     val strongText = c.text
     val divider = c.divider
-
-    // ✅ 피그마 기준 #CDD1D5 (우편번호/도로명 정보)
     val infoGray = Color(0xFFCDD1D5)
-
     val badgeBg = if (c.isDark) Color(0xFF0E3B2B) else Color(0xFFCDF7EC)
 
-    val preInfoDown = 10.dp
-    val badgeDown = 10.dp
-    val postInfoDown = 8.dp
-    val postAddrToZipSpace = 24.dp
+    // ✅ 버튼 원래 크기 + 하단 24dp 고정용
+    val buttonH = 54.dp
+    val bottomGap = 24.dp
+    val bottomReserve = buttonH + bottomGap + 20.dp // 버튼+간격+여유
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
+            // ✅ 일단 원래 높이로 복구 (여기서부터 다시 조절)
             .height(if (isRegistered) 320.dp else 280.dp)
             .clip(RoundedCornerShape(topStart = sheetRadius, topEnd = sheetRadius))
             .background(sheetBg)
-            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 30.dp)
     ) {
 
-        if (!isRegistered) {
-
-            Column(modifier = Modifier.padding(top = preInfoDown)) {
-
+        // ✅ 정보 영역(버튼이랑 안 겹치게 bottomReserve 확보)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = bottomReserve)
+        ) {
+            if (!isRegistered) {
                 Text(
                     text = address,
                     fontSize = 20.sp,
                     fontFamily = Pretendard,
-                    fontWeight = FontWeight.SemiBold, // ✅ 변경: Bold -> SemiBold (등록 전/후 통일)
+                    fontWeight = FontWeight.SemiBold,
                     color = strongText,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 24.sp
                 )
 
-                Spacer(Modifier.height(30.dp))
+                Spacer(Modifier.height(24.dp))
+
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "우편번호",
+                        fontSize = 20.sp,
+                        fontFamily = Pretendard,
+                        fontWeight = FontWeight.Medium,
+                        color = if (c.isDark) infoGray else strongText,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = zipcode,
+                        fontSize = 20.sp,
+                        fontFamily = Pretendard,
+                        fontWeight = FontWeight.Medium,
+                        color = if (c.isDark) infoGray else strongText
+                    )
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "도로명",
+                        fontSize = 20.sp,
+                        fontFamily = Pretendard,
+                        fontWeight = FontWeight.Medium,
+                        color = if (c.isDark) infoGray else strongText,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = road,
+                        fontSize = 20.sp,
+                        fontFamily = Pretendard,
+                        fontWeight = FontWeight.Medium,
+                        color = if (c.isDark) infoGray else strongText
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(badgeBg)
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.postend_check),
+                        contentDescription = null,
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "등록완료",
+                        fontFamily = Pretendard,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF12B76A),
+                        lineHeight = 13.sp
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                Text(
+                    text = address,
+                    fontSize = 20.sp,
+                    fontFamily = Pretendard,
+                    fontWeight = FontWeight.SemiBold,
+                    color = strongText,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 24.sp
+                )
+
+                Spacer(Modifier.height(24.dp))
 
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -543,14 +635,18 @@ private fun BottomInfoCard(
                     )
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.weight(1f))
-
+        // ✅ 버튼 영역(시트 내부에서만 고정) - 원래 크기 유지
+        if (!isRegistered) {
             Button(
                 onClick = onConfirm,
                 modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(start = 20.dp, end = 20.dp, bottom = bottomGap)
                     .fillMaxWidth()
-                    .height(54.dp),
+                    .height(buttonH),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316))
             ) {
@@ -562,101 +658,17 @@ private fun BottomInfoCard(
                     color = if (c.isDark) Color.Black else Color.White
                 )
             }
-
         } else {
-
             Row(
                 modifier = Modifier
-                    .padding(top = badgeDown)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(badgeBg)
-                    .padding(horizontal = 12.dp, vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(start = 20.dp, end = 20.dp, bottom = bottomGap)
+                    .fillMaxWidth()
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.postend_check),
-                    contentDescription = null,
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(16.dp)
-                )
-
-                Spacer(Modifier.width(6.dp))
-
-                Text(
-                    text = "등록완료",
-                    fontFamily = Pretendard,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF12B76A),
-                    lineHeight = 13.sp
-                )
-            }
-
-            Spacer(Modifier.height(1.dp))
-
-            Column(modifier = Modifier.padding(top = postInfoDown)) {
-
-                Text(
-                    text = address,
-                    fontSize = 20.sp,
-                    fontFamily = Pretendard,
-                    fontWeight = FontWeight.SemiBold,
-                    color = strongText,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 24.sp
-                )
-
-                Spacer(Modifier.height(postAddrToZipSpace))
-
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "우편번호",
-                        fontSize = 20.sp,
-                        fontFamily = Pretendard,
-                        fontWeight = FontWeight.Medium,
-                        color = if (c.isDark) infoGray else strongText,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = zipcode,
-                        fontSize = 20.sp,
-                        fontFamily = Pretendard,
-                        fontWeight = FontWeight.Medium,
-                        color = if (c.isDark) infoGray else strongText
-                    )
-                }
-
-                Spacer(Modifier.height(14.dp))
-
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "도로명",
-                        fontSize = 20.sp,
-                        fontFamily = Pretendard,
-                        fontWeight = FontWeight.Medium,
-                        color = if (c.isDark) infoGray else strongText,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = road,
-                        fontSize = 20.sp,
-                        fontFamily = Pretendard,
-                        fontWeight = FontWeight.Medium,
-                        color = if (c.isDark) infoGray else strongText
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Row(Modifier.fillMaxWidth()) {
-
                 OutlinedButton(
                     onClick = onDelete,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(54.dp),
+                    modifier = Modifier.weight(1f).height(buttonH),
                     shape = RoundedCornerShape(12.dp),
                     border = BorderStroke(1.dp, divider),
                     colors = ButtonDefaults.outlinedButtonColors(
@@ -676,9 +688,7 @@ private fun BottomInfoCard(
 
                 Button(
                     onClick = onEdit,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(54.dp),
+                    modifier = Modifier.weight(1f).height(buttonH),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (c.isDark) Color(0xFF131416) else Color(0xFFF3F4F6)
@@ -696,6 +706,7 @@ private fun BottomInfoCard(
         }
     }
 }
+
 
 
 

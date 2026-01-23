@@ -102,7 +102,12 @@ fun LocationScreen(
     val textSecondary = c.sub
     val dividerStrong = c.divider
     val dividerLight = c.divider.copy(alpha = 0.7f)
-    val pillBg = if (dark) c.bg.copy(alpha = 0.10f) else c.surface
+    val pillBg = if (dark) {
+        Color(0xFF131416)
+    } else {
+        c.surface
+    }
+
     val pillBorder = c.border
     val iconTint = c.text
 
@@ -257,7 +262,7 @@ fun LocationScreen(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Medium,
                 fontFamily = ClipartKorea,
-                color = LocalSafeColors.current.text,
+                color = Color.White,
                 modifier = Modifier.padding(start = 10.dp)
 
             )
@@ -283,10 +288,11 @@ fun LocationScreen(
 
                     val chipTextColor = when {
                         dark && isSelected -> Color.White
-                        dark -> Color(0xFF9CA3AF)
+                        dark -> Color(0xFF58616A)
                         isSelected -> Color.White
                         else -> Color(0xFF6B7280)
                     }
+
 
                     Box(
                         modifier = Modifier
@@ -328,7 +334,6 @@ fun LocationScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp)
                     .padding(bottom = 16.dp)
             ) {
                 SheetHandle(
@@ -429,12 +434,14 @@ private fun SheetSummary(
                 modifier = Modifier.clickable { onBackToAll() }
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.back),
-                    contentDescription = "뒤로",
-                    tint = textPrimary,
-                    modifier = Modifier.size(18.dp)
+                    painter = painterResource(id = R.drawable.arrow_back_dark), // ✅ 변경
+                    contentDescription = "뒤로가기",
+                    tint = Color.Unspecified, // ✅ 원본 아이콘 색 그대로 사용
+                    modifier = Modifier.size(14.dp)
                 )
+
                 Spacer(Modifier.width(6.dp))
+
                 Text(
                     text = "선택한 작업자 현황",
                     color = textPrimary,
@@ -476,6 +483,7 @@ private fun SheetSummary(
     }
 }
 
+
 @Composable
 private fun TableHeader(
     textSecondary: Color,
@@ -500,7 +508,7 @@ private fun TableHeader(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 HeaderCell("구분", 0.18f, headerText)
@@ -544,7 +552,7 @@ private fun TableRowItem(
             .fillMaxWidth()
             .graphicsLayer(alpha = rowAlpha)
             .clickable { onRowClick() }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp), // ✅ 10dp -> 8dp
         verticalAlignment = Alignment.CenterVertically
     ) {
         BodyCell(row.role, 0.18f, bodyTextColor)
@@ -568,21 +576,29 @@ private fun TableRowItem(
     }
 
     Divider(color = divider, thickness = 1.dp)
+
 }
 
 @Composable
 private fun RowScope.HeaderCell(text: String, w: Float, color: Color) {
-    Text(
-        text = text,
-        color = color,
-        fontSize = 16.sp,
-        fontWeight = FontWeight.SemiBold,
-        fontFamily = Pretendard,
-        modifier = Modifier.weight(w),
-        textAlign = TextAlign.Center,
-        maxLines = 1
-    )
+    Box(
+        modifier = Modifier
+            .weight(w)
+            .heightIn(min = 24.dp), // ✅ 헤더 텍스트 높이 안정화 (원하면 28.dp)
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = color,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            fontFamily = Pretendard,
+            textAlign = TextAlign.Center,
+            maxLines = 1
+        )
+    }
 }
+
 
 @Composable
 private fun RowScope.BodyCell(text: String, w: Float, color: Color) {
@@ -607,7 +623,9 @@ private fun CamDialog(
 ) {
     val c = LocalSafeColors.current
 
-    val bg = if (isDark) c.bg else Color.White
+    // ✅ 카드(다이얼로그) 배경: 피그마 #1E2124 (다크모드일 때)
+    val bg = if (isDark) Color(0xFF1E2124) else Color.White
+
     val text = c.text
     val closeTint = c.sub
 
@@ -636,9 +654,9 @@ private fun CamDialog(
                 ) {
                     Text(
                         text = title,
-                        fontWeight = FontWeight.Bold,
                         fontFamily = Pretendard,
-                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
                         color = text,
                         modifier = Modifier
                             .widthIn(min = 93.dp)
@@ -682,7 +700,7 @@ private fun CamDialog(
                     Icon(
                         painter = painterResource(id = R.drawable.mic),
                         contentDescription = null,
-                        tint = actionColor, // ✅ 다크: 검정 / 라이트: 흰색
+                        tint = actionColor,
                         modifier = Modifier.size(24.dp)
                     )
 
@@ -690,7 +708,7 @@ private fun CamDialog(
 
                     Text(
                         text = "눌러서 말하기",
-                        color = actionColor, // ✅ 다크: 검정 / 라이트: 흰색
+                        color = actionColor,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = Pretendard

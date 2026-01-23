@@ -81,8 +81,8 @@ private fun RealTimeNavigation() {
         backgroundColor = bottomBg,
         bottomBar = {
             BottomNavigation(
-                modifier = Modifier.navigationBarsPadding()
-                    .height(90.dp),
+                // ✅ LocationActivity와 동일: height 강제 지정 제거
+                modifier = Modifier.navigationBarsPadding(),
                 backgroundColor = bottomBg,
                 elevation = 10.dp
             ) {
@@ -123,23 +123,20 @@ private fun RealTimeNavigation() {
                         selectedContentColor = MainOrange,
                         unselectedContentColor = if (MaterialTheme.colors.isLight) GrayBorder else TextDark,
                         alwaysShowLabel = false,
-
-                        // ✅ 아이콘+텍스트 간격 조절 & 텍스트 1줄 고정
+                        // ✅ LocationActivity와 동일한 크기/간격
                         icon = {
-                            Column(
-                                modifier = Modifier.padding(top = 14.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(
                                     painter = painterResource(id = iconRes),
                                     contentDescription = title,
-                                    modifier = Modifier.size(28.dp)
+                                    modifier = Modifier.size(22.dp)
                                 )
 
-                                Spacer(modifier = Modifier.height(7.dp)) // ✅ 간격 (원하면 8.dp)
+                                Spacer(modifier = Modifier.height(6.dp))
 
                                 Text(
                                     text = title,
-                                    fontSize = 14.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis

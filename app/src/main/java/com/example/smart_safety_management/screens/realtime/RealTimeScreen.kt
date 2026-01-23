@@ -122,11 +122,13 @@ fun RealTimeScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF000000), // ✅ 무조건 블랙
+                    // ✅ 라이트/다크 자동으로 따라가게 변경
+                    containerColor  =if (isDark) Color(0xFF000000) else Color.White,
                     titleContentColor = c.text,
                     actionIconContentColor = c.sub
                 )
             )
+
 
 
             // ✅ 본문
@@ -800,16 +802,20 @@ fun CamPill(
     val c = LocalSafeColors.current
     val isDark = c.isDark
 
-    // ✅ 다크모드: 피그마 기준 CAM 배경색
+    // ✅ CAM 번호 배경색 (라이트 / 다크)
     val camBg = when {
-        isDark -> Color(0xFF8A949E)   // 🔥 피그마 기준 색상
-        else -> Color(0xFF4A525A)     // 기존 라이트 색 유지
+        isDark -> Color(0xFF8A949E)   // 🌙 다크모드 배경
+        else   -> Color(0xFF58616A)   // 🌞 라이트모드 배경
     }.let { base ->
         if (isRisk) base.copy(alpha = 0.85f) else base
     }
 
-    // 텍스트는 기존 정책 유지
-    val camText = if (isDark) Color.White else Color.White
+// ✅ CAM 번호 텍스트 색
+    val camText = when {
+        isDark -> Color.Black         // 🌙 다크모드 → 검정
+        else   -> Color.White         // 🌞 라이트모드 → 흰색
+    }
+
 
 
     Box(
@@ -820,7 +826,7 @@ fun CamPill(
     ) {
         Text(
             text = text,
-            color = Color(0xFF000000),
+            color = camText,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = Pretendard
