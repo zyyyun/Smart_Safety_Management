@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -42,23 +43,40 @@ fun AIEventNavigation() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // ✅ 다크 모드 상태 확인
+    val isDarkTheme = isSystemInDarkTheme()
     val systemUiController = rememberSystemUiController()
 
+    // ✅ 경로와 다크 모드 여부에 따른 상태바 색상 제어
     SideEffect {
-        when (currentRoute) {
+        val statusBarColor = when (currentRoute) {
             "detect" -> {
-                systemUiController.setStatusBarColor(color = MainOrange, darkIcons = true)
+                if (isDarkTheme) {
+                    // TODO: 다크 모드일 때 detect 화면 상태바 색상 (예: GrayBackground)
+                    GrayBackground 
+                } else {
+                    MainOrange
+                }
             }
             else -> {
-                systemUiController.setStatusBarColor(color = Color.White, darkIcons = true)
+                if (isDarkTheme) {
+                    // TODO: 다크 모드일 때 기타 화면 상태바 색상
+                    Color.Black
+                } else {
+                    Color.White
+                }
             }
         }
+
+        systemUiController.setStatusBarColor(
+            color = statusBarColor,
+            // 다크 모드일 때는 밝은 아이콘(darkIcons = false), 라이트 모드일 때는 어두운 아이콘(darkIcons = true)
+            darkIcons = !isDarkTheme
+        )
     }
 
     Scaffold(
         bottomBar = {
-            // ✅ 기존 Compose BottomNavigation을 제거하고 XML 바텀바를 삽입합니다.
-            // currentRoute가 "detect"일 때만 바텀바가 보이도록 설정 유지
             if (currentRoute == "detect") {
                 AIEventBottomBar()
             }
@@ -101,19 +119,12 @@ fun AIEventNavigation() {
 fun AIEventBottomBar() {
     AndroidView(
         factory = { context ->
-            // 1. main_home.xml 레이아웃 인플레이트
             val fullView = LayoutInflater.from(context).inflate(R.layout.main_home, null) as ViewGroup
-
-            // 2. 바텀바 찾기
             val bottomNav = fullView.findViewById<BottomNavigationView>(R.id.bottom_nav)
-
-            // 3. 기존 부모 뷰에서 분리 (필수)
             (bottomNav.parent as? ViewGroup)?.removeView(bottomNav)
 
-            // 4. 초기 상태 설정
             bottomNav.selectedItemId = R.id.nav_ai
 
-            // 5. 클릭 이벤트 설정 (기존 Activity 이동 로직 유지)
             bottomNav.setOnItemSelectedListener { item ->
                 when (item.itemId) {
                     R.id.nav_home -> {
