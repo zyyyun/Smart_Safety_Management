@@ -83,13 +83,27 @@
                         android:id="@+id/list_header"
                         layout="@layout/view_list_header"/>
 
-                    <!-- 구분선 추가 -->
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_daily_check"
+                    <!-- 일일안전점검 리스트 부분 수정 -->
+                    <FrameLayout
                         android:layout_width="match_parent"
                         android:layout_height="293dp"
-                        android:layout_marginTop="14dp"
-                        android:overScrollMode="never" />
+                        android:layout_marginTop="14dp">
+
+                        <!-- 구분선 추가 -->
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rv_daily_check"
+                            android:layout_width="match_parent"
+                            android:layout_height="293dp"
+                            android:layout_marginTop="14dp"
+                            android:overScrollMode="never" />
+
+                        <!-- 하단 그림자 뷰 추가 -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="24dp"
+                            android:layout_gravity="bottom"
+                            android:background="@drawable/bg_list_fade_edge"/>
+                    </FrameLayout>
 
                     <View
                         android:layout_width="match_parent"
@@ -107,13 +121,27 @@
                         android:textColor="@color/gray900_gray50"
                         android:letterSpacing="0"/>
 
-                    <!-- AI 이벤트 감지 리스트 -->
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_worker_event"
+                    <!-- 조치요청 리스트 부분 수정 -->
+                    <FrameLayout
                         android:layout_width="match_parent"
                         android:layout_height="293dp"
-                        android:layout_marginTop="24dp"
-                        android:overScrollMode="never" />
+                        android:layout_marginTop="24dp">
+
+                        <!-- AI 이벤트 감지 리스트 -->
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rv_worker_event"
+                            android:layout_width="match_parent"
+                            android:layout_height="293dp"
+                            android:layout_marginTop="24dp"
+                            android:overScrollMode="never" />
+
+                        <!-- 하단 그림자 뷰 추가 -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="24dp"
+                            android:layout_gravity="bottom"
+                            android:background="@drawable/bg_list_fade_edge" />
+                    </FrameLayout>
 
                     <!-- 구분선 추가 -->
                     <View
@@ -138,5 +166,6 @@
 
         </FrameLayout>
     </androidx.core.widget.NestedScrollView>
+
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
