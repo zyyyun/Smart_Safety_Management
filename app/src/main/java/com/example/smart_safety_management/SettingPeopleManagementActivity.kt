@@ -1,5 +1,7 @@
 package com.example.smart_safety_management
 
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -9,6 +11,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ListView
 import android.widget.Spinner
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -61,6 +64,9 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
             filterItems
         ) {
             override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                // 부모 리스트뷰의 기본 리플(selector)을 투명하게 설정하여 제거
+                (parent as? ListView)?.selector = ColorDrawable(Color.TRANSPARENT)
+
                 val view = layoutInflater.inflate(R.layout.item_spinner_dropdown, parent, false)
                 val tv = if (view is TextView) view else view.findViewById(android.R.id.text1)
                 tv.text = getItem(position)
