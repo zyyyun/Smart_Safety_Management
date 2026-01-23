@@ -144,8 +144,8 @@
 
                 <ImageView
                     android:id="@+id/btn_edit_name"
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="10dp"
+                    android:layout_height="16dp"
                     android:layout_marginStart="8dp"
                     android:src="@drawable/right_arrow"
                     android:tint="@color/gray600"/>
@@ -189,8 +189,8 @@
                 android:textSize="18sp"/>
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="10dp"
+                android:layout_height="16dp"
                 android:layout_marginStart="8dp"
                 android:src="@drawable/right_arrow"
                 android:tint="@color/gray100_gray950"/>
@@ -234,8 +234,8 @@
                 android:textSize="18sp"/>
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="10dp"
+                android:layout_height="16dp"
                 android:layout_marginStart="8dp"
                 android:src="@drawable/right_arrow"
                 android:tint="@color/gray600"/>
@@ -279,8 +279,8 @@
                 android:textSize="18sp"/>
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="10dp"
+                android:layout_height="16dp"
                 android:layout_marginStart="8dp"
                 android:src="@drawable/right_arrow"
                 android:tint="@color/gray600"/>
@@ -338,8 +338,8 @@
                 android:gravity="end|center_vertical">
 
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="10dp"
+                    android:layout_height="16dp"
                     android:layout_marginStart="8dp"
                     android:src="@drawable/right_arrow"
                     android:tint="@color/gray600"/>
