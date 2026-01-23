@@ -97,5 +97,12 @@ class SettingChangePasswordActivity : AppCompatActivity() {
         }
 
         alertDialog.show()
+        alertDialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+
+            val params = attributes
+            params.width = (resources.displayMetrics.widthPixels * 0.85).toInt()
+            attributes = params
+        }
     }
 }

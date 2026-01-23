@@ -108,4 +108,11 @@ private fun SettingInviteCodeActivity.showFailConfirmDialog() {
     }
 
     dialog.show()
+    dialog.window?.apply {
+        setBackgroundDrawableResource(android.R.color.transparent)
+
+        val params = attributes
+        params.width = (resources.displayMetrics.widthPixels * 0.85).toInt()
+        attributes = params
+    }
 }
