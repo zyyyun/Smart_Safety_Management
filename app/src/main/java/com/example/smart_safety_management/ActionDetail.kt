@@ -168,7 +168,7 @@ fun ActionDetailScreen(
                                 "감지 이벤트" to "쓰러짐",
                                 "발생 시간" to "2025-05-07 16:05:20",
                                 "장치명" to "CAM03",
-                                "발생 위치" to "D구역 1열"
+                                "발생위치" to "D구역 1열"
                             )
 
                             detailItems.forEach { (label, value) ->
@@ -223,7 +223,7 @@ fun ActionDetailScreen(
                             value = if (actionType.isEmpty()) "조치 유형 선택" else actionType,
                             onValueChange = { },
                             readOnly = true,
-                            modifier = Modifier.fillMaxWidth().height(60.dp),
+                            modifier = Modifier.fillMaxWidth().height(59.dp),
                             textStyle = TextStyle(
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Medium,
@@ -333,7 +333,7 @@ fun ActionDetailScreen(
                         onValueChange = { title = it },
                         modifier = Modifier.fillMaxWidth()
                             .padding(horizontal = 8.dp)
-                            .height(60.dp),
+                            .height(59.dp),
                         shape = RoundedCornerShape(8.dp),
                         textStyle = TextStyle(fontSize = 16.sp, fontFamily = Pretendard, color = inputTextColor),
                         colors = TextFieldDefaults.outlinedTextFieldColors(

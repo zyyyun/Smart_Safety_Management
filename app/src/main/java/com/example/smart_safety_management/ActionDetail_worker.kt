@@ -322,7 +322,7 @@ fun ActionDetailWorkerScreen(
                                     "감지 이벤트" to "쓰러짐",
                                     "발생 시간" to "2025-05-07 16:05:20",
                                     "장치명" to "CAM03",
-                                    "발생 위치" to "D구역 1열"
+                                    "발생위치" to "D구역 1열"
                                 )
 
                                 detailItems.forEach { (label, value) ->
