@@ -77,8 +77,7 @@
                 android:popupBackground="@drawable/bg_spinner_popup"
                 android:spinnerMode="dropdown"
                 android:stateListAnimator="@null"
-                android:popupElevation="0dp"
-                android:listSelector="@android:color/transparent"/>
+                android:popupElevation="0dp"/>
 
             <ImageView
                 android:layout_width="12dp"
