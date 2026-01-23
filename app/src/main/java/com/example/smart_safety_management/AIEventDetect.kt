@@ -44,7 +44,7 @@ data class EventData(
     val accidentType: String,
     val location: String,
     val content: String,
-    val occurrenceTime: String = "", // 발생 시간이지만 일단 스트링으로 더미 데이터 추가,
+    val occurrenceTime: String = "",
     val deviceName: String = "",
     val accuracy: String = ""
 )
@@ -90,26 +90,35 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
         val topBarBackgroundColor = if (MaterialTheme.colors.isLight) MainOrange else GrayBackground
         val subTextColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
         
-        Scaffold(
-            topBar = {
-                Surface(color = topBarBackgroundColor, elevation = 0.dp) {
-                    Column {
-                        MyTopAppBar(Color.Transparent)
-                        MySecondaryTopAppBar(selectedFilter, counts, Color.Transparent) { newFilter ->
-                            selectedFilter = newFilter
-                        }
-                    }
+        // ✅ [핵심] Scaffold 제거: 외부 Scaffold와 중복 패딩을 방지하기 위해 Column으로 레이아웃 구성
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(topBarBackgroundColor)
+        ) {
+            // 상단바 영역
+            Column {
+                MyTopAppBar(Color.Transparent)
+                MySecondaryTopAppBar(selectedFilter, counts, Color.Transparent) { newFilter ->
+                    selectedFilter = newFilter
                 }
-            },
-            // bottomBar = { MyBottomNavigation("nav_ai") }, // 하단바 제거
-            backgroundColor = topBarBackgroundColor 
-        ) { paddingValues ->
+            }
+
+            // 콘텐츠 영역: weight(1f)를 주어 바텀바 바로 위까지 공간을 모두 사용
             Surface(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
                 color = MaterialTheme.colors.onPrimary,
                 shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Spacer(modifier = Modifier.height(16.dp))
                     CurrentDateText()
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -141,6 +150,9 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
                                 EventItem(event, EventStatus.FALSE_DETECTION, onEventClick)
                             }
                         }
+                        
+                        // 리스트 끝 추가 여백
+                        Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             }
@@ -151,7 +163,8 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
 @Composable
 fun NoEventText() {
     val historyColor = if(MaterialTheme.colors.isLight) TextGray60 else TextGray
-    val textColor = if(MaterialTheme.colors.isLight) TextGray else TextGray60
+    val textColor = MaterialTheme.colors.onSurface.copy(alpha = 0.5f)
+    
     Text(
         text = buildAnnotatedString {
             append("지난 내역은 ")
@@ -167,14 +180,13 @@ fun NoEventText() {
     )
 }
 
-// --- 3. UI 컴포넌트 ---
+// --- 3. UI 컴포넌트 (기존과 동일) ---
 
 @Composable
 fun EventItem(event: EventData, status: EventStatus, onEventClick: (EventData) -> Unit = {}) {
     val isPending = status == EventStatus.PENDING
     val isLight = MaterialTheme.colors.isLight
     val alphaval = if (isLight) 0.1f else 0.36f
-
 
     val buttonColor = if (isPending) {
         when (event.accidentType) {
@@ -204,16 +216,15 @@ fun EventItem(event: EventData, status: EventStatus, onEventClick: (EventData) -
 
     Button(
         onClick = { onEventClick(event) },
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 8.dp).height(83.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).height(83.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(backgroundColor = buttonColor),
         elevation = ButtonDefaults.elevation(0.dp, 0.dp),
         border = BorderStroke(1.dp, borderColor)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically // 기본적으로 아이콘과 내용은 세로 중앙 정렬
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             val iconRes = when (event.accidentType) {
                 "위험" -> R.drawable.danger_icon
@@ -230,37 +241,24 @@ fun EventItem(event: EventData, status: EventStatus, onEventClick: (EventData) -
                     Icon(
                         painter = painterResource(id = iconRes),
                         contentDescription = event.accidentType,
-                        modifier = Modifier.padding(end = 6.dp), // offset 대신 padding으로 간격 조정
+                        modifier = Modifier.padding(end = 6.dp),
                         tint = iconTint
                     )
                 }
 
                 Column(horizontalAlignment = Alignment.Start) {
-                    Text(
-                        text = event.location,
-                        color = locationColor,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp
-                    )
+                    Text(text = event.location, color = locationColor, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = event.content,
-                        color = textColor,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = 14.sp
-                    )
+                    Text(text = event.content, color = textColor, fontWeight = FontWeight.Normal, fontSize = 14.sp)
                 }
             }
 
-            // 2. 오른쪽 상단 영역 (발생 시간)
             Text(
                 text = event.occurrenceTime,
                 fontSize = 12.sp,
                 fontFamily = Pretendard,
                 color = textColor,
-                modifier = Modifier
-                    .align(Alignment.Top)
-                    .offset(y = (-3).dp)// 🌟 Row의 맨 위쪽으로 붙임 (비율 유지의 핵심)
+                modifier = Modifier.align(Alignment.Top).offset(y = (-3).dp)
             )
         }
     }
@@ -306,7 +304,6 @@ fun MyTopAppBar(backgroundColor: Color) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box {
                     IconButton(onClick = {
-
                         val intent = Intent(context, NoticeActivity::class.java)
                         context.startActivity(intent)
                     }) {
@@ -320,10 +317,8 @@ fun MyTopAppBar(backgroundColor: Color) {
                     )
                 }
                 IconButton(onClick = {
-
                     val intent = Intent(context, SettingActivity::class.java)
                     context.startActivity(intent)
-
                 }) {
                     Icon(painter = painterResource(id = R.drawable.setting), contentDescription = "설정", tint = Color.White)
                 }
@@ -387,42 +382,6 @@ fun FilterButton(text: String, count: Int, isSelected: Boolean, onClick: () -> U
                     color = if (isLight) MainOrange else (if (isSelected) MainOrange else TextLight)
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun MyBottomNavigation(
-    selectedRoute: String,
-    onRouteSelected: (String) -> Unit,
-    isLight: Boolean
-) {
-    val items = listOf(
-        BottomNavItem("안전점검", R.drawable.home, "nav_home"),
-        BottomNavItem("AI감지", R.drawable.ai, "nav_ai"),
-        BottomNavItem("실시간상황", R.drawable.live, "nav_live"),
-        BottomNavItem("이력", R.drawable.history, "nav_history"),
-        BottomNavItem("위치정보", R.drawable.location, "nav_location")
-    )
-
-    BottomNavigation(
-        backgroundColor = if (isLight) TextGray5 else TextGray20,
-        elevation = 10.dp
-    ) {
-        items.forEach { item ->
-            BottomNavigationItem(
-                icon = {
-                    Icon(
-                        painter = painterResource(id = item.iconResId),
-                        contentDescription = item.title
-                    )
-                },
-                label = { Text(item.title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
-                selected = selectedRoute == item.screenRoute,
-                onClick = { onRouteSelected(item.screenRoute) },
-                selectedContentColor = MaterialTheme.colors.primary,
-                unselectedContentColor = if (isLight) GrayBorder else TextDark
-            )
         }
     }
 }

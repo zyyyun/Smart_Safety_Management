@@ -210,7 +210,8 @@ fun CamDetailScreen(
                 FilmingInfo(
                     label = "감지 이벤트",
                     labelColor = categoryColor,
-                    showLabelIcon = true
+                    showLabelIcon = false,
+                    isVertical = true // ✅ 아이콘이 없어도 아래로 배치되도록 설정
                 ) {
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
@@ -231,7 +232,12 @@ fun CamDetailScreen(
                     }
                 }
 
-                FilmingInfo("가동 시간", categoryColor, true) {
+                FilmingInfo(
+                    label = "가동 시간", 
+                    labelColor = categoryColor, 
+                    showLabelIcon = false, 
+                    isVertical = true // ✅ 아이콘이 없어도 아래로 배치되도록 설정
+                ) {
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -410,7 +416,6 @@ fun CamInfoItem(
                 modifier = Modifier.size(18.dp)
             )
         }
-        // ✅ else { Spacer(18.dp) } 부분을 제거하여, 아이콘이 없을 때 텍스트가 패딩 끝까지 가도록 수정함
     }
 }
 
@@ -419,6 +424,7 @@ fun FilmingInfo(
     label: String,
     labelColor: Color,
     showLabelIcon: Boolean = false,
+    isVertical: Boolean = false, // ✅ 레이아웃 방향 제어를 위한 파라미터 추가
     valueContent: @Composable () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -443,14 +449,15 @@ fun FilmingInfo(
                 )
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            if (!showLabelIcon) {
+            // ✅ 세로 모드가 아닐 때만 Row 내부에 내용을 배치 (가로 배치)
+            if (!isVertical) {
+                Spacer(modifier = Modifier.weight(1f))
                 valueContent()
             }
         }
 
-        if (showLabelIcon) {
+        // ✅ 세로 모드이거나 아이콘이 표시될 때 내용을 아래에 배치 (세로 배치)
+        if (isVertical || showLabelIcon) {
             Spacer(modifier = Modifier.height(12.dp))
             valueContent()
         }

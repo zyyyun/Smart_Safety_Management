@@ -244,14 +244,12 @@ fun BatteryItem(data: DeviceBatteryData, onAlarmClick: () -> Unit) {
     Box(modifier = Modifier.height(160.dp).background(color = bgColor, shape = RoundedCornerShape(12.dp)).border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(12.dp)).padding(16.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Image(painter = painterResource(id = R.drawable.avatar), contentDescription = null, modifier = Modifier.size(56.dp))
+                Image(painter = painterResource(id = R.drawable.avatar), contentDescription = null, modifier = Modifier.size(40.dp))
                 Spacer(modifier = Modifier.width(12.dp))
-                // ✅ weight(1f)와 padding(end = 8.dp)를 적용하여 버튼과 최대한의 간격 유지
                 Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                     Text(text = data.name, color = mainTextColor, fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = Pretendard)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // ✅ 폰트 크기를 13.sp로 소폭 축소하여 좁은 화면 대응
                         Text(text = data.role, color = subTextColor, fontSize = 13.sp, fontWeight = FontWeight.Medium, fontFamily = Pretendard)
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
@@ -276,14 +274,13 @@ fun BatteryItem(data: DeviceBatteryData, onAlarmClick: () -> Unit) {
                                 }
                             },
                             color = if (data.isGpsConnected) StatusGreenDark else StatusRed,
-                            fontSize = 13.sp, // ✅ 14 -> 13으로 축소
+                            fontSize = 13.sp, 
                             fontFamily = Pretendard,
                             maxLines = 1 
                         )
                     }
                 }
-                // ✅ contentPadding의 horizontal 값을 줄여 버튼의 가로 길이를 최소화
-                Button(onClick = onAlarmClick, colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)) {
+                Button(onClick = onAlarmClick, colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(painter = painterResource(id = R.drawable.alarm), contentDescription = null, tint = MaterialTheme.colors.onPrimary, modifier = Modifier.scale(0.75f))
                         Spacer(modifier = Modifier.width(4.dp))
@@ -340,19 +337,29 @@ fun DeviceAlarmDialog(onDismissRequest: () -> Unit) {
 fun DeviceAlarmDialogContent(onDismissRequest: () -> Unit) {
     val cardBgColor = if (MaterialTheme.colors.isLight) Color.White else GrayBackground
     Card(
-        modifier = Modifier.width(330.dp).height(259.dp),
+        modifier = Modifier.width(330.dp).wrapContentHeight(), // ✅ 고정 높이 대신 내용에 맞게 조절
         shape = RoundedCornerShape(16.dp), 
         elevation = 0.dp, 
         backgroundColor = cardBgColor
     ) {
-        Column(modifier = Modifier.fillMaxSize().padding(top = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 16.dp), // ✅ 하단 여백을 16.dp로 설정
+            horizontalAlignment = Alignment.CenterHorizontally, 
+            verticalArrangement = Arrangement.Top
+        ) {
             Icon(painter = painterResource(id = R.drawable.bell_icon), null, tint = MainOrange, modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(24.dp))
             Text(text = "알림 발송 완료", fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = "해당 인원에게 알림을 발송하였습니다.", color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center, fontFamily = Pretendard)
             Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onDismissRequest, modifier = Modifier.width(290.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange, contentColor = Color.White), shape = RoundedCornerShape(12.dp)) {
+            Button(
+                onClick = onDismissRequest, 
+                modifier = Modifier.width(290.dp).height(55.dp), 
+                elevation = ButtonDefaults.elevation(0.dp, 0.dp), 
+                colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange, contentColor = Color.White), 
+                shape = RoundedCornerShape(12.dp)
+            ) {
                 Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, fontFamily = Pretendard)
             }
         }

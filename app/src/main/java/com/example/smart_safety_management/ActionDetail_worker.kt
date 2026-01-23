@@ -101,6 +101,17 @@ fun ActionDetailWorkerScreen(
         val btnBackColor = if (isLight) Color.White else TextGray20
         val detailBtnColor = if (isLight) Lightgray else GrayBackground
 
+        // 1. 이벤트 아이콘 설정 (위험, 경고, 주의에 따라 변경)
+        val eventIconRes = R.drawable.warning_icon 
+
+        // 2. 아이콘 종류에 따른 "감지 이벤트" 밸류 텍스트 색상 설정
+        val eventValueColor = when (eventIconRes) {
+            R.drawable.danger_icon -> Color(0xFFEF4444)  // 위험 아이콘일 때 색상
+            R.drawable.warning_icon -> Color(0xFFF97316) // 경고 아이콘일 때 색상
+            R.drawable.caution_icon -> Color(0xFFFFB114) // 주의 아이콘일 때 색상
+            else -> textColor
+        }
+
         ModalBottomSheetLayout(
             sheetState = sheetState,
             sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
@@ -284,8 +295,8 @@ fun ActionDetailWorkerScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        painter = painterResource(id = R.drawable.warning_icon),
-                                        contentDescription = "경고",
+                                        painter = painterResource(id = eventIconRes), // 변수 적용
+                                        contentDescription = "이벤트 아이콘",
                                         modifier = Modifier
                                             .padding(end = 8.dp)
                                             .offset(x = (-5).dp, y = 5.dp),
@@ -339,9 +350,13 @@ fun ActionDetailWorkerScreen(
                                             fontFamily = Pretendard,
                                             fontWeight = FontWeight.Medium
                                         )
+                                        
+                                        // "감지 이벤트" 라벨일 경우에만 전용 색상 적용
+                                        val displayColor = if (label == "감지 이벤트") eventValueColor else textColor
+
                                         Text(
                                             text = value,
-                                            color = textColor,
+                                            color = displayColor,
                                             fontSize = 16.sp,
                                             fontFamily = Pretendard,
                                             fontWeight = FontWeight.Medium
