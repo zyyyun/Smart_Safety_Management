@@ -192,21 +192,6 @@ class HomeActivity : AppCompatActivity() {
         }
 
         findViewById<TextView>(R.id.tv_progress).text = spannable
-        adjustRecyclerMinHeight()
-    }
-
-    private fun adjustRecyclerMinHeight() {
-        val rv = findViewById<RecyclerView>(R.id.rv_daily_check)
-        val spacer = findViewById<View>(R.id.rv_spacer)
-        val scroll = findViewById<NestedScrollView>(R.id.home_scroll)
-
-        rv.post {
-            val rvBottom = rv.bottom
-            val scrollBottom = scroll.bottom
-            val gap = scrollBottom - rvBottom
-            spacer.layoutParams.height = if (gap > 0) gap else 0
-            spacer.requestLayout()
-        }
     }
 
     private fun hasDailyCheckItem(day: Int): Boolean {
