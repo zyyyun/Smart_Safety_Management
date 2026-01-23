@@ -65,13 +65,12 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
                 val tv = if (view is TextView) view else view.findViewById(android.R.id.text1)
                 tv.text = getItem(position)
 
-                // 위치에 따라 라운드가 다른 배경 적용
-                val backgroundRes = when (position) {
-                    0 -> R.drawable.bg_spinner_item_top
-                    count - 1 -> R.drawable.bg_spinner_item_bottom
-                    else -> R.drawable.bg_spinner_item_middle
+                // 위치에 따라 다른 배경(리플 효과) 적용
+                when (position) {
+                    0 -> tv.setBackgroundResource(R.drawable.ripple_orange_top_round)
+                    count - 1 -> tv.setBackgroundResource(R.drawable.ripple_orange_bottom_round)
+                    else -> tv.setBackgroundResource(R.drawable.ripple_orange_middle)
                 }
-                view.setBackgroundResource(backgroundRes)
 
                 return view
             }
