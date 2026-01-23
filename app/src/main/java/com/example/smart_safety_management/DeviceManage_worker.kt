@@ -77,7 +77,9 @@ fun DeviceManageWorkerScreen(
                         } 
                     },
                     backgroundColor = MaterialTheme.colors.onPrimary,
-                    elevation = 0.dp
+                    elevation = 0.dp,
+                    // ✅ TopAppBar의 높이를 44.dp로 조정하여 텍스트 상하 여백을 약 10.dp로 맞춤
+                    modifier = Modifier.height(44.dp)
                 )
             }
         ) { paddingValues ->

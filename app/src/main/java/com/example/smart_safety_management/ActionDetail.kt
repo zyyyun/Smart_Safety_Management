@@ -2,10 +2,13 @@ package com.example.smart_safety_management
 
 import android.content.res.Configuration
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,6 +62,20 @@ fun ActionDetailScreen(
         val inputTextColor = if (isLight) TextGray20 else TextGray5
         val photoColor = if (isLight) TextLight else TextGray30
         val btnBackColor = if (isLight) Color.White else TextGray20
+        val dropboxBorder = if (isLight) TextGray5 else TextGray20
+        val selectAlpha = if (isLight) 0.12f else 0.36f
+
+        // 1. 이벤트 아이콘 설정 (위험, 경고, 주의에 따라 변경)
+        val eventIconRes = R.drawable.warning_icon 
+
+        // 2. 아이콘 종류에 따른 "감지 이벤트" 밸류 텍스트 색상 설정
+        // 여기에 원하는 색상(예: Red, Orange 등)을 직접 지정하시면 됩니다.
+        val eventValueColor = when (eventIconRes) {
+            R.drawable.danger_icon -> Color(0xFFEF4444)  // 위험 아이콘일 때 색상
+            R.drawable.warning_icon -> Color(0xFFF97316) // 경고 아이콘일 때 색상
+            R.drawable.caution_icon -> Color(0xFFFFB114) // 주의 아이콘일 때 색상
+            else -> textColor
+        }
 
         Scaffold(
             topBar = {
@@ -131,8 +148,8 @@ fun ActionDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    painter = painterResource(id = R.drawable.warning_icon),
-                                    contentDescription = "경고",
+                                    painter = painterResource(id = eventIconRes), // 변수 적용
+                                    contentDescription = "이벤트 아이콘",
                                     modifier = Modifier
                                         .padding(end = 8.dp)
                                         .offset(x = (-5).dp, y = 5.dp),
@@ -185,9 +202,13 @@ fun ActionDetailScreen(
                                         fontFamily = Pretendard,
                                         fontWeight = FontWeight.Medium
                                     )
+                                    
+                                    // 3. "감지 이벤트" 라벨일 경우에만 전용 색상 적용
+                                    val displayColor = if (label == "감지 이벤트") eventValueColor else textColor
+                                    
                                     Text(
                                         text = value,
-                                        color = textColor,
+                                        color = displayColor,
                                         fontSize = 16.sp,
                                         fontFamily = Pretendard,
                                         fontWeight = FontWeight.Medium
@@ -251,76 +272,80 @@ fun ActionDetailScreen(
                                         Icon(
                                             painter = painterResource(id = R.drawable.dropbox),
                                             contentDescription = null,
-                                            tint = Color.Unspecified
+                                            tint = if (expanded) MainOrange else dropboxBorder,
+                                            modifier = Modifier.size(24.dp)
                                         )
                                     }
                                 }
                             },
                             colors = TextFieldDefaults.outlinedTextFieldColors(
-                                unfocusedBorderColor = borderColor,
                                 focusedBorderColor = MainOrange,
-                                textColor = inputTextColor,
+                                unfocusedBorderColor = dropboxBorder,
                                 backgroundColor = btnBackColor
                             )
                         )
-                        
-                        MaterialTheme(shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(8.dp))) {
-                            DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false },
-                                modifier = Modifier
-                                    .width(this@BoxWithConstraints.maxWidth)
-                                    .background(btnBackColor)
-                            ) {
-                                options.forEach { option ->
-                                    DropdownMenuItem(
-                                        onClick = {
-                                            actionType = option
-                                            expanded = false
-                                        }
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Text(
-                                                text = option,
-                                                fontFamily = Pretendard,
-                                                fontSize = 18.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = inputTextColor
+
+                        // 투명한 클릭 영역
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) { expanded = !expanded }
+                        )
+
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier
+                                .width(maxWidth)
+                                .background(btnBackColor, shape = RoundedCornerShape(8.dp))
+                                .border(1.dp, dropboxBorder, shape = RoundedCornerShape(8.dp))
+                        ) {
+                            options.forEach { selection ->
+                                val itemIconRes = when (selection) {
+                                    "조치공유" -> R.drawable.priority1
+                                    "조치필요" -> R.drawable.priority2
+                                    "즉시조치" -> R.drawable.priority3
+                                    else -> null
+                                }
+
+                                DropdownMenuItem(
+                                    onClick = {
+                                        actionType = selection
+                                        expanded = false
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(if (actionType == selection) MainOrange.copy(alpha = selectAlpha) else Color.Transparent)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (itemIconRes != null) {
+                                            Icon(
+                                                painter = painterResource(id = itemIconRes),
+                                                contentDescription = null,
+                                                tint = Color.Unspecified
                                             )
-                                            val iconRes = when(option) {
-                                                "조치공유" -> R.drawable.priority1
-                                                "조치필요" -> R.drawable.priority2
-                                                "즉시조치" -> R.drawable.priority3
-                                                else -> null
-                                            }
-                                            if (iconRes != null) {
-                                                Icon(
-                                                    painter = painterResource(id = iconRes),
-                                                    contentDescription = null,
-                                                    tint = Color.Unspecified
-                                                )
-                                            }
+                                            Spacer(modifier = Modifier.width(12.dp))
                                         }
+                                        Text(
+                                            text = selection,
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            fontFamily = Pretendard,
+                                            color = inputTextColor
+                                        )
                                     }
                                 }
                             }
                         }
-
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .clickable { expanded = true }
-                        )
                     }
 
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Text(
-                        text = "제목",
+                        text = "조치 제목",
                         fontWeight = FontWeight.Medium,
                         color = CategoryColor,
                         fontFamily = Pretendard,
@@ -328,17 +353,17 @@ fun ActionDetailScreen(
                         modifier = Modifier.offset(x = 8.dp)
                     )
                     Spacer(modifier = Modifier.height(15.dp))
+
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
-                        modifier = Modifier.fillMaxWidth()
-                            .padding(horizontal = 8.dp)
-                            .height(59.dp),
+                        placeholder = { Text("제목을 입력하세요", color = photoColor, fontSize = 18.sp, fontFamily = Pretendard) },
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).height(59.dp),
+                        textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium, fontFamily = Pretendard, color = inputTextColor),
                         shape = RoundedCornerShape(8.dp),
-                        textStyle = TextStyle(fontSize = 16.sp, fontFamily = Pretendard, color = inputTextColor),
                         colors = TextFieldDefaults.outlinedTextFieldColors(
-                            unfocusedBorderColor = borderColor,
                             focusedBorderColor = MainOrange,
+                            unfocusedBorderColor = borderColor,
                             backgroundColor = btnBackColor
                         )
                     )
@@ -346,7 +371,7 @@ fun ActionDetailScreen(
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Text(
-                        text = "내용",
+                        text = "상세 내용",
                         fontWeight = FontWeight.Medium,
                         color = CategoryColor,
                         fontFamily = Pretendard,
@@ -354,18 +379,20 @@ fun ActionDetailScreen(
                         modifier = Modifier.offset(x = 8.dp)
                     )
                     Spacer(modifier = Modifier.height(15.dp))
+
                     OutlinedTextField(
                         value = content,
                         onValueChange = { content = it },
+                        placeholder = { Text("내용을 입력하세요", color = photoColor, fontSize = 18.sp, fontFamily = Pretendard) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(120.dp)
-                            .padding(horizontal = 8.dp),
+                            .padding(horizontal = 8.dp)
+                            .height(180.dp),
+                        textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium, fontFamily = Pretendard, color = inputTextColor),
                         shape = RoundedCornerShape(8.dp),
-                        textStyle = TextStyle(fontSize = 16.sp, fontFamily = Pretendard, color = inputTextColor),
                         colors = TextFieldDefaults.outlinedTextFieldColors(
-                            unfocusedBorderColor = borderColor,
                             focusedBorderColor = MainOrange,
+                            unfocusedBorderColor = borderColor,
                             backgroundColor = btnBackColor
                         )
                     )
@@ -373,121 +400,116 @@ fun ActionDetailScreen(
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Text(
-                        text = "사진",
+                        text = "사진 첨부",
                         fontWeight = FontWeight.Medium,
                         color = CategoryColor,
                         fontFamily = Pretendard,
                         fontSize = 16.sp,
                         modifier = Modifier.offset(x = 8.dp)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(15.dp))
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 8.dp)
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        // 사진 추가 버튼
                         Box(
                             modifier = Modifier
-                                .size(120.dp)
-                                .clickable {
-                                    attachedPhotos = attachedPhotos + "photoUri_${System.currentTimeMillis()}"
-                                },
+                                .size(100.dp)
+                                .background(btnBackColor, shape = RoundedCornerShape(8.dp))
+                                .dashedBorder(1.dp, borderColor, 8.dp)
+                                .clickable { /* 사진 추가 로직 */ },
                             contentAlignment = Alignment.Center
                         ) {
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                val pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
-                                drawRoundRect(
-                                    color = btnBackColor,
-                                    cornerRadius = CornerRadius(8.dp.toPx())
-                                )
-                                drawRoundRect(
-                                    color = borderColor,
-                                    style = Stroke(width = 1.dp.toPx(), pathEffect = pathEffect),
-                                    cornerRadius = CornerRadius(8.dp.toPx())
-                                )
-                            }
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(
-                                    painter = painterResource(id = R.drawable.camera_icon),
-                                    contentDescription = "사진첨부",
-                                    tint = photoColor
+                                    imageVector = Icons.Default.Photo,
+                                    contentDescription = "Add Photo",
+                                    tint = photoColor,
+                                    modifier = Modifier.size(32.dp)
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "사진첨부",
+                                    text = "${attachedPhotos.size}/5",
                                     color = photoColor,
-                                    fontSize = 18.sp
+                                    fontSize = 14.sp,
+                                    fontFamily = Pretendard
                                 )
                             }
                         }
 
-                        attachedPhotos.reversed().forEach { photoUri ->
-                            Spacer(modifier = Modifier.width(8.dp))
+                        // 첨부된 사진들 표시 영역
+                        attachedPhotos.forEach { photoUri ->
                             Box(
                                 modifier = Modifier
-                                    .size(120.dp)
-                                    .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Filled.Photo, contentDescription = "Attached Photo: $photoUri", tint = if (isLight) Color.Gray else TextGray)
-                            }
+                                    .size(100.dp)
+                                    .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                            )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(40.dp))
 
+                    // 전송 버튼
                     Button(
-                        onClick = { /* 작성 완료 로직 */ },
-                        modifier = Modifier.fillMaxWidth().height(52.dp)
-                            .padding(horizontal = 8.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            backgroundColor = MainOrange,
-                            contentColor = Color.White
-                        ),
-                        elevation = ButtonDefaults.elevation(0.dp, 0.dp)
+                        onClick = { /* 전송 로직 */ },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange)
                     ) {
                         Text(
-                            text = "작성완료",
-                            fontWeight = FontWeight.SemiBold,
+                            text = "작성 완료",
+                            color = Color.White,
                             fontSize = 18.sp,
-                            fontFamily = Pretendard,
-                            color = MaterialTheme.colors.onPrimary
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = Pretendard
                         )
                     }
-                    Spacer(modifier = Modifier.height(60.dp))
+
+                    Spacer(modifier = Modifier.height(40.dp))
                 }
             }
         }
     }
 }
 
-// 커스텀 세로 스크롤바 모디파이어
+// 점선 테두리를 위한 Modifier 확장 함수
+fun Modifier.dashedBorder(width: Dp, color: Color, cornerRadius: Dp) = drawWithContent {
+    drawContent()
+    val stroke = Stroke(
+        width = width.toPx(),
+        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+    )
+    drawRoundRect(
+        color = color,
+        style = stroke,
+        cornerRadius = CornerRadius(cornerRadius.toPx())
+    )
+}
+
+// 스크롤바 Modifier
 fun Modifier.verticalScrollbar(
-    state: androidx.compose.foundation.ScrollState,
+    state: ScrollState,
     width: Dp = 4.dp,
-    color: Color = Color.Gray.copy(alpha = 0.5f)
+    color: Color = Color.Gray.copy(alpha = 0.5f),
+    paddingRight: Dp = 4.dp
 ): Modifier = drawWithContent {
     drawContent()
     if (state.maxValue > 0) {
         val scrollbarHeight = size.height * (size.height / (state.maxValue + size.height))
-        val scrollbarOffset = state.value * (size.height / (state.maxValue + size.height))
+        val scrollbarOffsetY = state.value * (size.height / (state.maxValue + size.height))
         drawRoundRect(
             color = color,
-            topLeft = Offset(size.width - width.toPx(), scrollbarOffset),
+            topLeft = Offset(size.width - width.toPx() - paddingRight.toPx(), scrollbarOffsetY),
             size = Size(width.toPx(), scrollbarHeight),
             cornerRadius = CornerRadius(width.toPx() / 2)
         )
     }
-}
-
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light Mode", heightDp = 2000)
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode", heightDp = 2000)
-@Composable
-fun ActionDetailScreenPreview() {
-    ActionDetailScreen()
 }

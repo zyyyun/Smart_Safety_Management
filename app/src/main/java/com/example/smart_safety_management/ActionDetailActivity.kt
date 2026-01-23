@@ -8,8 +8,8 @@ class ActionDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            // ActionDetail.kt에 정의된 ActionDetailScreen 호출
-            ActionDetailWorkerScreen(onBackClick = { finish() })
+            // ✅ [수정] ActionDetail.kt에 실제 정의된 함수 이름으로 변경
+            ActionDetailScreen(onBackClick = { finish() })
         }
     }
 }

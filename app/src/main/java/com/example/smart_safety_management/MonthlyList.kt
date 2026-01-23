@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,7 +89,6 @@ val TooltipShape = object : Shape {
 
         val path = Path().apply {
             addRoundRect(RoundRect(left = 0f, top = 0f, right = size.width, bottom = size.height - triangleHeight, cornerRadius = CornerRadius(cornerRadius)))
-            // ✅ 꼬리 위치를 우측 끝에서 30dp 지점으로 고정
             val tailOffsetX = with(density) { 30.dp.toPx() }
             val tailCenterX = size.width - tailOffsetX 
             moveTo(tailCenterX - triangleWidth / 2f, size.height - triangleHeight)
@@ -244,19 +242,29 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
             onClick = { if (item.status == InspectionStatus.UNCHECKED) onShowDialog() },
             elevation = ButtonDefaults.elevation(0.dp, 0.dp),
             colors = ButtonDefaults.buttonColors(backgroundColor = buttonBackgroundColor, contentColor = buttonContentColor),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-            shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.height(28.dp).widthIn(min = 80.dp)
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+            shape = RoundedCornerShape(50.dp),
+            modifier = Modifier.height(22.dp)
         ) {
-            val icon = if (item.status == InspectionStatus.UNCHECKED) Icons.Default.Notifications else Icons.Default.Check
             val iconTint = if (item.status == InspectionStatus.UNCHECKED && !MaterialTheme.colors.isLight) Color(0xFF000000) else LocalContentColor.current
             
-            Icon(
-                imageVector = icon, 
-                contentDescription = null, 
-                modifier = Modifier.size(16.dp),
-                tint = iconTint
-            )
+            // ✅ UNCHECKED일 때는 drawable/alarm을 사용하고, CHECKED일 때는 Icons.Default.Check를 사용하도록 수정
+            if (item.status == InspectionStatus.UNCHECKED) {
+                Icon(
+                    painter = painterResource(id = R.drawable.alarm),
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = iconTint
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    modifier = Modifier.size(12.dp),
+                    tint = iconTint
+                )
+            }
+            
             Spacer(modifier = Modifier.width(4.dp))
             Text(text = buttonText, fontWeight = FontWeight.Medium, fontSize = 12.sp, fontFamily = Pretendard, letterSpacing = (-0.3).sp)
         }
@@ -273,7 +281,6 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
                     .zIndex(10f)
                     .layout { measurable, constraints ->
                         val placeable = measurable.measure(constraints)
-                        // ✅ place(x = -placeable.width)를 통해 툴팁이 왼쪽으로 펼쳐지게 하여 잘림 방지
                         layout(0, 0) {
                             placeable.place(-placeable.width, 0)
                         }
@@ -360,19 +367,19 @@ fun UncheckedItemDialog(onDismissRequest: () -> Unit) {
 fun UncheckedItemDialogContent(onDismissRequest: () -> Unit) {
     val cardBgColor = if (MaterialTheme.colors.isLight) Color.White else GrayBackground
     Card(
-        modifier = Modifier.width(330.dp).height(250.dp),
+        modifier = Modifier.width(330.dp).height(259.dp),
         shape = RoundedCornerShape(16.dp), 
         elevation = 0.dp, 
         backgroundColor = cardBgColor
     ) {
-        Column(modifier = Modifier.fillMaxSize().padding(top=24.dp,bottom=16.dp),horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
+        Column(modifier = Modifier.fillMaxSize().padding(top = 24.dp),horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
             Icon(painter = painterResource(id = R.drawable.bell_icon), null, tint = MaterialTheme.colors.primary, modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(24.dp))
             Text(text = "점검요청 재알림", fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = "근로자에게 점검요청 재알림을 \n발송하였습니다.", color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center, fontFamily = Pretendard)
             Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onDismissRequest, modifier = Modifier.width(290.dp).height(52.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(12.dp)) {
+            Button(onClick = onDismissRequest, modifier = Modifier.width(290.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(12.dp)) {
                 Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, fontFamily = Pretendard)
             }
         }

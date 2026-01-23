@@ -100,10 +100,10 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
 
         // 추가 버튼 클릭 시 리스트에 추가 및 저장
         btnCreate.setOnClickListener {
-            /*if (workplaceList.size >= 1) {
-                Toast.makeText(this, "현장은 하나만 등록할 수 있습니다.", Toast.LENGTH_SHORT).show()
+            if (workplaceList.size >= 1) {
+                //Toast.makeText(this, "현장은 하나만 등록할 수 있습니다.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
-            }*/
+            }
 
             val name = etWorkplaceName.text.toString().trim()
             if (name.isNotEmpty()) {

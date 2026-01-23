@@ -213,7 +213,8 @@ fun AIEventDetailScreen(
                                                 fontSize = 18.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontFamily = Pretendard,
-                                                color = locationColor
+                                                color = locationColor,
+                                                letterSpacing = 0.sp
                                             )
                                         }
 
@@ -232,7 +233,8 @@ fun AIEventDetailScreen(
                                                 fontSize = 18.sp,
                                                 fontWeight = FontWeight.SemiBold,
                                                 fontFamily = Pretendard,
-                                                color = MaterialTheme.colors.onPrimary
+                                                color = MaterialTheme.colors.onPrimary,
+                                                letterSpacing = 0.sp
                                             )
                                         }
                                     }
@@ -286,7 +288,7 @@ fun AIEventDetailScreen(
                             contentScale = ContentScale.FillWidth
                         )
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(48.dp))
 
                         Text(
                             text = "발생위치",
@@ -307,7 +309,7 @@ fun AIEventDetailScreen(
                             contentScale = ContentScale.FillWidth
                         )
 
-                        Spacer(modifier = Modifier.height(32.dp))
+                        Spacer(modifier = Modifier.height(48.dp))
 
                         Text(
                             text = "실시간 화면",
