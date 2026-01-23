@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- 선택된 상태일 때 옅은 주황색 -->
-    <item android:state_activated="true" android:drawable="@color/orange400alpha12_orange400alpha36" />
-    <item android:state_pressed="true" android:drawable="@color/orange400alpha12_orange400alpha36" />
-    <!-- 기본 상태 (투명) -->
-    <item android:drawable="@android:color/transparent" />
-</selector>

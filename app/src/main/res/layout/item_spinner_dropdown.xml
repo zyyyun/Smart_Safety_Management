@@ -5,7 +5,7 @@
     android:layout_height="48dp"
     android:gravity="center_vertical"
     android:paddingStart="16dp"
-    android:background="@drawable/bg_spinner_item_divider"
+    android:background="@android:color/transparent"
     android:textColor="@color/gray900_gray50"
     android:textSize="16sp"
     android:fontFamily="@font/pretendard_medium" />
