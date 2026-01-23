@@ -452,33 +452,39 @@ private fun SheetSummary(
                 )
             }
         } else {
-            Text(
-                text = "작업자 현황",
-                color = textPrimary,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = Pretendard,
-                maxLines = 1
-            )
-
-            Spacer(Modifier.width(12.dp))
-
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(pillBg)
-                    .border(1.dp, pillBorder, RoundedCornerShape(999.dp))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+            Row(
+                modifier = Modifier.offset(x = 12.dp), // 👈 여기 숫자만 조절 (6~14dp 추천)
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "총 작업자 ${count}명",
-                    color = Color(0xFFFF7A00),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
+                    text = "작업자 현황",
+                    color = textPrimary,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
                     fontFamily = Pretendard,
                     maxLines = 1
                 )
+
+                Spacer(Modifier.width(12.dp))
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(pillBg)
+                        .border(1.dp, pillBorder, RoundedCornerShape(999.dp))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "총 작업자 ${count}명",
+                        color = Color(0xFFFF7A00),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        fontFamily = Pretendard,
+                        maxLines = 1
+                    )
+                }
             }
+
         }
     }
 }
