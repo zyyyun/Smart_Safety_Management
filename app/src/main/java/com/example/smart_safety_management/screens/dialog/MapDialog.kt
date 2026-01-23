@@ -43,7 +43,7 @@ fun MapDialog(
     val cams = remember {
         listOf(
             LiveCardItem(
-                "CAM 0", "도로", listOf("충돌", "안전모 미착용"),
+                "CAM 0", "도로", listOf("충돌", "안전모0xFF1E2124 미착용"),
                 R.drawable.thumb_site, "A구역 외부 도로",
                 R.drawable.thumb_road, R.drawable.thumb_site,
                 listOf(R.drawable.thumb_worker, R.drawable.thumb_workers, R.drawable.thumb_worker),
@@ -89,12 +89,14 @@ fun MapDialog(
     var selectedCamId by remember { mutableStateOf(initialCamId) }
     val selected = cams.firstOrNull { it.camId == selectedCamId } ?: cams[0]
 
-    val infoBg = Color(0xFF1E2124)
+    val infoBg = if (isDark) Color(0xFF1E2124) else Color.White
     val infoLabel = c.sub
 
     // ✅ 요청 반영: 다크일 때 값(오른쪽) 흰색, 버튼 텍스트/아이콘 검정
     val infoValue = if (isDark) Color.White else c.sub
     val actionColor = if (isDark) Color.Black else Color.White
+    val dialogBg = if (isDark) Color(0xFF1E2124) else Color.White
+
 
     // 사이즈(확대 버전)
     val dialogW = 348.dp
@@ -152,8 +154,7 @@ fun MapDialog(
 
             Card(
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF1E2124)),
+                colors = CardDefaults.cardColors(containerColor = dialogBg),
                 border = BorderStroke(1.dp, c.border),
                 modifier = Modifier.size(width = dialogW, height = dialogH)
             ) {
@@ -187,10 +188,16 @@ fun MapDialog(
                                 val w = if (isSelectedMarker) selW else baseW
                                 val h = if (isSelectedMarker) selH else baseH
 
+                                // ✅ Icon에서 쓸 리소스를 먼저 결정 (문법 오류 해결)
+                                val markerRes = when {
+                                    isDark && isSelectedMarker -> R.drawable.cctv_b_dark
+                                    isDark && !isSelectedMarker -> R.drawable.cctv_dark
+                                    !isDark && isSelectedMarker -> R.drawable.cctv_b      // 라이트 리소스가 없으면 dark로 임시 대체 가능
+                                    else -> R.drawable.cctv                               // 라이트 리소스가 없으면 dark로 임시 대체 가능
+                                }
+
                                 Icon(
-                                    painter = painterResource(
-                                        id = if (isSelectedMarker) R.drawable.cctv_b_dark else R.drawable.cctv_dark
-                                    ),
+                                    painter = painterResource(id = markerRes),
                                     contentDescription = null,
                                     tint = Color.Unspecified,
                                     modifier = Modifier
@@ -202,6 +209,7 @@ fun MapDialog(
                                         .clickable { selectedCamId = m.camId }
                                 )
                             }
+
                         }
 
                         /* ---------- 정보 카드 ---------- */
@@ -246,8 +254,12 @@ fun MapDialog(
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     selected.tags.forEach { tag ->
-                                        TagPillCompact(text = tag, isRisk = true)
+                                        TagPillCompact(
+                                            text = tag,
+                                            isRisk = isDark
+                                        )
                                     }
+
                                 }
 
                                 Button(

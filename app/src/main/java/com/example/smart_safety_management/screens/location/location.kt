@@ -461,7 +461,7 @@ private fun SheetSummary(
                 maxLines = 1
             )
 
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(12.dp))
 
             Box(
                 modifier = Modifier

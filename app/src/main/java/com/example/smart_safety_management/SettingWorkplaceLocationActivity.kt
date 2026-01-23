@@ -489,13 +489,13 @@ private fun BottomInfoCard(
     // ✅ 버튼 원래 크기 + 하단 24dp 고정용
     val buttonH = 54.dp
     val bottomGap = 24.dp
-    val bottomReserve = buttonH + bottomGap + 20.dp // 버튼+간격+여유
+    val bottomReserve = buttonH + bottomGap + 36.dp // 버튼+간격+여유
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             // ✅ 일단 원래 높이로 복구 (여기서부터 다시 조절)
-            .height(if (isRegistered) 320.dp else 280.dp)
+            .height(if (isRegistered) 340.dp else 300.dp)
             .clip(RoundedCornerShape(topStart = sheetRadius, topEnd = sheetRadius))
             .background(sheetBg)
     ) {
@@ -504,7 +504,7 @@ private fun BottomInfoCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = bottomReserve)
+                .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = bottomReserve)
         ) {
             if (!isRegistered) {
                 Text(

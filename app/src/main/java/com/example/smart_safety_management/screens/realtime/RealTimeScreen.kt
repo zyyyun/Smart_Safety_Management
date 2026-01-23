@@ -640,12 +640,12 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
     val isDark = c.isDark
     val isRisk = item.hasRisk()
 
-    val cardBg = if (isDark) c.surface else Color.White
+    val cardBg = if (isDark) c.surface else Color.White   // ✅ 카드 전체는 항상 흰색
 
     val infoBg = if (isDark) {
-        if (isRisk) Color(0xFF1F252C) else Color.Transparent
+        if (isRisk) Color(0xFF1F252C) else Color.White
     } else {
-        Color.White
+        if (isRisk) Color(0xFFF4F5F6) else Color.White    // ✅ 위험가능성만 회색
     }
 
     val infoText = if (isRisk) {
@@ -688,7 +688,6 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(infoBg)
                     .padding(horizontal = 12.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -700,7 +699,8 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
                     PlaceText(item.place, color = infoText)
                 }
 
-                TagsRowSingleLine(item.tags, isRisk = isRisk)
+                TagsRow(item.tags, isRisk = isRisk)
+
             }
         }
     }
@@ -715,10 +715,13 @@ fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
     val cardBg = if (isDark) c.surface else Color.White
 
     val infoBg = if (isDark) {
-        if (isRisk) Color(0xFF1F252C) else Color.Transparent
+        if (isRisk) Color(0xFF1F252C) else Color.White
     } else {
-        Color.White
+        if (isRisk) Color(0xFFF4F5F6) else Color.White
     }
+
+
+
 
     val infoText = if (isRisk) {
         if (isDark) Color(0xFF9AA1AA) else Color(0xFF6B7280)
@@ -756,7 +759,6 @@ fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(infoBg)
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -906,41 +908,48 @@ fun TagsRowSingleLine(tags: List<String>, isRisk: Boolean = false) {
 }
 
 @Composable
-fun TagPillCompact(
-    text: String,
-    isRisk: Boolean = false
-) {
+fun TagPillCompact(text: String, isRisk: Boolean = false) {
+
     val c = LocalSafeColors.current
     val isDark = c.isDark
 
-    // ✅ 사고 위험성 태그 배경 (피그마 기준)
-    val bgColor = when {
-        isDark -> Color(0xFF131416)
-        else -> Color(0xFFF4F5F6)
+    val bg = if (isDark) {
+        Color(0xFF2A3038)   // 다크 알약 배경
+    } else {
+        Color.Transparent   // ✅ 라이트: 하얀 배경 제거
     }
 
-    val textColor = if (isDark) {
-        Color(0xFF9CA3AF)                    // 다크에서 살짝 밝은 회색
+    val border = if (isDark) {
+        c.border
     } else {
-        Color(0xFF374151)
+        Color.Transparent   // ✅ 라이트: 테두리 제거
     }
+
+    val fg = if (isDark) {
+        Color(0xFF9CA3AF)
+    } else {
+        Color(0xFF58616A)   // ✅ 피그마 텍스트
+    }
+
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
-            .background(bgColor)
+            .background(bg)
+            .border(1.dp, border, RoundedCornerShape(999.dp))
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(
             text = text,
-            color = textColor,
             fontSize = 17.sp,
-            fontWeight = FontWeight.Medium,
             fontFamily = Pretendard,
+            fontWeight = FontWeight.Medium,
+            color = fg,
             maxLines = 1
         )
     }
 }
+
 
 
 /* -------------------- risk detect -------------------- */
