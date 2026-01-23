@@ -46,15 +46,14 @@
 
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:clipChildren="false"
             android:clipToPadding="false">
 
-        <!-- 본문 -->
+        <!-- 본문: height를 match_parent로 설정하여 화면을 꽉 채우게 함 -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-
+                android:layout_height="match_parent"
                 android:backgroundTint="@color/orange500_gray950"
                 app:cardElevation="0dp"
                 app:cardUseCompatPadding="false"
@@ -62,19 +61,27 @@
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:background="@drawable/bg_round_top_card"
                     android:orientation="vertical"
-                    android:paddingStart="24dp"
-                    android:paddingEnd="24dp"
                     android:paddingBottom="16dp"
                     android:paddingTop="24dp">
 
-                    <include layout="@layout/view_calendar"
+                    <!-- 캘린더 섹션 -->
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"/>
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp">
 
-                    <!-- 구분선 추가 -->
+                        <include layout="@layout/view_calendar"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"/>
+
+                    </LinearLayout>
+
+                    <!-- 구분선 -->
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
@@ -82,26 +89,46 @@
                         android:layout_marginBottom="40dp"
                         android:background="@color/gray100_gray950" />
 
-                    <include layout="@layout/view_list_header" />
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/rv_daily_check"
+                    <!-- 리스트 섹션: weight="1"을 주어 남는 공간을 모두 차지하게 함 -->
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:layout_marginEnd="16dp"
-                        android:nestedScrollingEnabled="false" />
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp">
 
-                    <View
-                        android:id="@+id/rv_spacer"
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp" />
+                        <include layout="@layout/view_list_header" />
+
+                        <androidx.recyclerview.widget.RecyclerView
+                            android:id="@+id/rv_daily_check"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="18dp"
+                            android:nestedScrollingEnabled="false" />
+
+                        <!-- 이 Spacer가 리스트가 짧을 때 남는 하단 공간을 흰색으로 채움 -->
+                        <View
+                            android:id="@+id/rv_spacer"
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1" />
+
+                    </LinearLayout>
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
         </FrameLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <!-- 하단바 그림자-->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="56dp"
+        android:background="@drawable/bg_bottom_shadow" />
 
     <!-- ===================== -->
     <!-- 고정 하단바 -->

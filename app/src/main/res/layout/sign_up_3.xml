@@ -11,7 +11,7 @@
         android:id="@+id/backButton"
         android:layout_width="23dp"
         android:layout_height="29dp"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="24dp"
         android:layout_marginTop="12dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         app:layout_constraintStart_toStartOf="parent"
@@ -121,7 +121,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_password_label"
-        app:endIconMode="password_toggle">
+        app:endIconMode="password_toggle"
+        app:passwordToggleDrawable="@drawable/selector_password_toggle">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_password"
@@ -173,7 +174,8 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_re_password_label"
-        app:endIconMode="password_toggle">
+        app:endIconMode="password_toggle"
+        app:passwordToggleDrawable="@drawable/selector_password_toggle">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_re_password"

@@ -33,6 +33,7 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
@@ -89,7 +90,9 @@ val TooltipShape = object : Shape {
 
         val path = Path().apply {
             addRoundRect(RoundRect(left = 0f, top = 0f, right = size.width, bottom = size.height - triangleHeight, cornerRadius = CornerRadius(cornerRadius)))
-            val tailCenterX = size.width * 0.9f 
+            // ✅ 꼬리 위치를 우측 끝에서 30dp 지점으로 고정
+            val tailOffsetX = with(density) { 30.dp.toPx() }
+            val tailCenterX = size.width - tailOffsetX 
             moveTo(tailCenterX - triangleWidth / 2f, size.height - triangleHeight)
             lineTo(tailCenterX, size.height)
             lineTo(tailCenterX + triangleWidth / 2f, size.height - triangleHeight)
@@ -100,7 +103,6 @@ val TooltipShape = object : Shape {
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
-//@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
 @Composable
 fun MonthlyListScreenPreview() {
@@ -237,14 +239,14 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
     val infiniteTransition = rememberInfiniteTransition(label = "tooltip_animation")
     val floatingOffset by infiniteTransition.animateFloat(initialValue = -5f, targetValue = 5f, animationSpec = infiniteRepeatable(animation = tween(durationMillis = 1000), repeatMode = RepeatMode.Reverse), label = "floating_offset")
 
-    Box(modifier = Modifier.zIndex(1f)) {
+    Box(modifier = Modifier.wrapContentSize()) {
         Button(
             onClick = { if (item.status == InspectionStatus.UNCHECKED) onShowDialog() },
             elevation = ButtonDefaults.elevation(0.dp, 0.dp),
             colors = ButtonDefaults.buttonColors(backgroundColor = buttonBackgroundColor, contentColor = buttonContentColor),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
             shape = RoundedCornerShape(20.dp),
-            modifier = Modifier.align(Alignment.CenterEnd).height(25.dp)
+            modifier = Modifier.height(28.dp).widthIn(min = 80.dp)
         ) {
             val icon = if (item.status == InspectionStatus.UNCHECKED) Icons.Default.Notifications else Icons.Default.Check
             val iconTint = if (item.status == InspectionStatus.UNCHECKED && !MaterialTheme.colors.isLight) Color(0xFF000000) else LocalContentColor.current
@@ -256,12 +258,27 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
                 tint = iconTint
             )
             Spacer(modifier = Modifier.width(4.dp))
-            Text(text = buttonText, fontWeight = FontWeight.Medium, fontSize = 12.sp, fontFamily = Pretendard,letterSpacing = (-0.3).sp)
+            Text(text = buttonText, fontWeight = FontWeight.Medium, fontSize = 12.sp, fontFamily = Pretendard, letterSpacing = (-0.3).sp)
         }
 
         if (item.specialNote != null && item.status == InspectionStatus.UNCHECKED) {
             val tooltipBgColor = if (MaterialTheme.colors.isLight) Lightgray else GrayBackground
-            AnimatedVisibility(visible = tooltipVisible, exit = fadeOut(), modifier = Modifier.align(Alignment.TopEnd).offset(y = (-40).dp).offset { IntOffset(0, floatingOffset.roundToInt()) }.zIndex(10f)) {
+            AnimatedVisibility(
+                visible = tooltipVisible, 
+                exit = fadeOut(), 
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(y = (-40).dp)
+                    .offset { IntOffset(0, floatingOffset.roundToInt()) }
+                    .zIndex(10f)
+                    .layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints)
+                        // ✅ place(x = -placeable.width)를 통해 툴팁이 왼쪽으로 펼쳐지게 하여 잘림 방지
+                        layout(0, 0) {
+                            placeable.place(-placeable.width, 0)
+                        }
+                    }
+            ) {
                 Surface(onClick = onTooltipTap, shape = TooltipShape, color = tooltipBgColor, elevation = 2.dp) {
                     Text(
                         text = item.specialNote, 
@@ -293,20 +310,42 @@ fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: S
 
     if (showDialog) UncheckedItemDialog(onDismissRequest = { showDialog = false })
 
-    Row(modifier = Modifier.fillMaxWidth().background(itemBackgroundColor, shape = shape).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(itemBackgroundColor, shape = shape)
+            .padding(16.dp), 
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = item.location, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
-            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = item.location, 
+                fontWeight = FontWeight.SemiBold, 
+                fontSize = 16.sp, 
+                fontFamily = Pretendard, 
+                color = MaterialTheme.colors.onSurface,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = item.description, 
                 fontSize = 14.sp, 
                 fontFamily = Pretendard, 
                 color = if (MaterialTheme.colors.isLight) TextGray60 else TextGray,
-                maxLines = 2
+                maxLines = 2,
+                modifier = Modifier.fillMaxWidth()
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        InspectionItemActions(item, tooltipVisible, { showDialog = true; dialogWasOpened = true; tooltipVisible = false }, { tooltipVisible = false }, buttonBackgroundColor, buttonContentColor, buttonText)
+        Spacer(modifier = Modifier.width(12.dp))
+        InspectionItemActions(
+            item = item, 
+            tooltipVisible = tooltipVisible, 
+            onShowDialog = { showDialog = true; dialogWasOpened = true; tooltipVisible = false }, 
+            onTooltipTap = { tooltipVisible = false }, 
+            buttonBackgroundColor = buttonBackgroundColor, 
+            buttonContentColor = buttonContentColor, 
+            buttonText = buttonText
+        )
     }
 }
 
@@ -321,19 +360,19 @@ fun UncheckedItemDialog(onDismissRequest: () -> Unit) {
 fun UncheckedItemDialogContent(onDismissRequest: () -> Unit) {
     val cardBgColor = if (MaterialTheme.colors.isLight) Color.White else GrayBackground
     Card(
-        modifier = Modifier.width(330.dp).height(259.dp),
+        modifier = Modifier.width(330.dp).height(250.dp),
         shape = RoundedCornerShape(16.dp), 
         elevation = 0.dp, 
         backgroundColor = cardBgColor
     ) {
-        Column(modifier = Modifier.fillMaxSize().padding(top = 24.dp),horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
+        Column(modifier = Modifier.fillMaxSize().padding(top=24.dp,bottom=16.dp),horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
             Icon(painter = painterResource(id = R.drawable.bell_icon), null, tint = MaterialTheme.colors.primary, modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(24.dp))
             Text(text = "점검요청 재알림", fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
             Spacer(modifier = Modifier.height(4.dp))
             Text(text = "근로자에게 점검요청 재알림을 \n발송하였습니다.", color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center, fontFamily = Pretendard)
             Spacer(modifier = Modifier.height(24.dp))
-            Button(onClick = onDismissRequest, modifier = Modifier.width(290.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(12.dp)) {
+            Button(onClick = onDismissRequest, modifier = Modifier.width(290.dp).height(52.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(12.dp)) {
                 Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, fontFamily = Pretendard)
             }
         }

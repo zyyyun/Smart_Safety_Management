@@ -11,7 +11,7 @@
         android:id="@+id/backButton"
         android:layout_width="23dp"
         android:layout_height="29dp"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="24dp"
         android:layout_marginTop="12dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         app:layout_constraintStart_toStartOf="parent"
@@ -76,7 +76,7 @@
                 <LinearLayout
                     android:id="@+id/item_my_info"
                     android:layout_width="match_parent"
-                    android:layout_height="24dp"
+                    android:layout_height="32dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:paddingStart="24dp"
@@ -88,18 +88,17 @@
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="24dp"
                         android:layout_height="24dp"
-                        android:backgroundTint="#F4F5F6"
+                        android:backgroundTint="@color/gray50"
                         app:cardCornerRadius="25dp"
                         app:cardElevation="0dp"
-                        app:strokeWidth="0dp">
+                        app:strokeWidth="0.7dp"
+                        app:strokeColor="@color/gray100">
 
                         <ImageView
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:layout_marginStart="5dp"
-                            android:layout_marginTop="8dp"
-                            android:layout_marginEnd="5dp"
-                            android:scaleType="centerInside"
+                            android:layout_marginTop="5dp"
+                            android:scaleType="fitCenter"
                             android:src="@drawable/profile" />
                     </com.google.android.material.card.MaterialCardView>
 
@@ -120,7 +119,7 @@
                 <LinearLayout
                     android:id="@+id/item_change_password"
                     android:layout_width="match_parent"
-                    android:layout_height="24dp"
+                    android:layout_height="32dp"
                     android:layout_marginTop="28dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
@@ -161,7 +160,7 @@
                 <LinearLayout
                     android:id="@+id/item_enter_invite_code"
                     android:layout_width="match_parent"
-                    android:layout_height="24dp"
+                    android:layout_height="32dp"
                     android:layout_marginTop="28dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
@@ -230,7 +229,7 @@
                 <LinearLayout
                     android:id="@+id/item_people_management"
                     android:layout_width="match_parent"
-                    android:layout_height="24dp"
+                    android:layout_height="32dp"
                     android:layout_marginTop="28dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
@@ -300,7 +299,7 @@
                 <LinearLayout
                     android:id="@+id/item_machine_management"
                     android:layout_width="match_parent"
-                    android:layout_height="24dp"
+                    android:layout_height="32dp"
                     android:layout_marginTop="28dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"

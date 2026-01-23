@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.SpanStyle
@@ -125,10 +126,8 @@ fun DeviceManageScreen(
             }
         ) { paddingValues ->
             Surface(modifier = Modifier.fillMaxWidth().padding(paddingValues), color = MaterialTheme.colors.onPrimary) {
-                // ✅ 메인 Column의 가로 패딩 제거
                 Column(modifier = Modifier.fillMaxSize().padding(top = 23.dp).verticalScroll(rememberScrollState())) {
                     
-                    // 검색바: 가로 패딩 적용
                     Box(modifier = Modifier.padding(horizontal = 23.dp).height(52.dp).background(color = MaterialTheme.colors.surface, shape = RoundedCornerShape(8.dp)).border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
                         TextField(
                             value = searchQuery, onValueChange = { searchQuery = it }, modifier = Modifier.fillMaxWidth(),
@@ -142,11 +141,9 @@ fun DeviceManageScreen(
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
-                    // ✅ 첫 번째 경계선: 화면 끝까지 닿음
                     Divider(color = dividerColor, thickness = 1.dp, modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // 메인 카테고리: 내부에 Spacer를 추가하여 시작/끝 간격 유지
                     Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp) ) {
                         Spacer(modifier = Modifier.width(23.dp))
                         MainCategoryList.forEach { category ->
@@ -163,7 +160,6 @@ fun DeviceManageScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // 서브 카테고리: 내부에 Spacer 추가
                     Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Spacer(modifier = Modifier.width(23.dp))
                         SubCategoryList.forEach { sub ->
@@ -173,15 +169,12 @@ fun DeviceManageScreen(
                     }
 
                     Spacer(modifier = Modifier.height(24.dp))
-                    // ✅ 두 번째 경계선: 화면 끝까지 닿음
                     Divider(color = dividerColor, thickness = 1.dp, modifier = Modifier.fillMaxWidth())
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // 배터리 현황 텍스트: 가로 패딩 적용
                     Text(text = "배터리 현황", modifier = Modifier.padding(horizontal = 23.dp), fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = categoryColor)
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // 리스트 영역: 가로 패딩 적용
                     Column(modifier = Modifier.padding(horizontal = 23.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (filteredBatteryList.isEmpty()) {
                             Text(text = "검색 결과가 없습니다.", modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp), textAlign = TextAlign.Center, color = subTextColor, fontFamily = Pretendard)
@@ -253,16 +246,26 @@ fun BatteryItem(data: DeviceBatteryData, onAlarmClick: () -> Unit) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Image(painter = painterResource(id = R.drawable.avatar), contentDescription = null, modifier = Modifier.size(56.dp))
                 Spacer(modifier = Modifier.width(12.dp))
+                // ✅ weight(1f)와 padding(end = 8.dp)를 적용하여 버튼과 최대한의 간격 유지
                 Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                     Text(text = data.name, color = mainTextColor, fontSize = 18.sp, fontWeight = FontWeight.Bold, fontFamily = Pretendard)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = data.role, color = subTextColor, fontSize = 14.sp, fontWeight = FontWeight.Medium, fontFamily = Pretendard)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        // ✅ 폰트 크기를 13.sp로 소폭 축소하여 좁은 화면 대응
+                        Text(text = data.role, color = subTextColor, fontSize = 13.sp, fontWeight = FontWeight.Medium, fontFamily = Pretendard)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Icon(
+                            painter = painterResource(id = R.drawable.dot_icon),
+                            contentDescription = null,
+                            tint = Color(0xFFD9D9D9),
+                            modifier = Modifier.size(3.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             painter = painterResource(id = if (data.isGpsConnected) R.drawable.gps2 else R.drawable.gps), 
                             contentDescription = null, 
-                            tint = if (data.isGpsConnected) StatusGreenDark else StatusRed
+                            tint = if (data.isGpsConnected) StatusGreenDark else StatusRed,
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
@@ -273,13 +276,14 @@ fun BatteryItem(data: DeviceBatteryData, onAlarmClick: () -> Unit) {
                                 }
                             },
                             color = if (data.isGpsConnected) StatusGreenDark else StatusRed,
-                            fontSize = 14.sp,
+                            fontSize = 13.sp, // ✅ 14 -> 13으로 축소
                             fontFamily = Pretendard,
-                            maxLines = 1
+                            maxLines = 1 
                         )
                     }
                 }
-                Button(onClick = onAlarmClick, colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),modifier = Modifier.width(84.dp)) {
+                // ✅ contentPadding의 horizontal 값을 줄여 버튼의 가로 길이를 최소화
+                Button(onClick = onAlarmClick, colors = ButtonDefaults.buttonColors(backgroundColor = MainOrange, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(painter = painterResource(id = R.drawable.alarm), contentDescription = null, tint = MaterialTheme.colors.onPrimary, modifier = Modifier.scale(0.75f))
                         Spacer(modifier = Modifier.width(4.dp))

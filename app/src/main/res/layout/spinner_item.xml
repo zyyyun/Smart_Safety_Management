@@ -4,6 +4,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:fontFamily="@font/pretendard_medium"
-    android:paddingVertical="12dp"
+    android:paddingStart="14dp"
     android:textColor="@color/gray800_gray200"
     android:textSize="18sp" />
