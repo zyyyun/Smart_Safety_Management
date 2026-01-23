@@ -44,6 +44,8 @@ import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.ui.theme.ClipartKorea
 import androidx.compose.ui.platform.LocalConfiguration
 import com.example.smart_safety_management.ui.theme.Pretendard
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+
 
 
 /* -------------------- Popup Position Provider -------------------- */
@@ -490,12 +492,14 @@ fun SimpleDropdown(
                         options.forEach { opt ->
                             val selected = opt == value
 
-                            // ✅ 선택된 항목 배경색:
-                            // - 라이트: #FEF1E7
-                            // - 다크: 기존 #664224 유지
-                            val selectedBg = when {
-                                selected && !isDark -> Color(0xFFFEF1E7)
-                                selected && isDark -> Color(0xFF664224)
+                            // ✅ 눌림(pressed) 상태 감지
+                            val interactionSource = remember { MutableInteractionSource() }
+                            val isPressed by interactionSource.collectIsPressedAsState()
+
+                            // ✅ 선택 + 누르는 중 모두 같은 색으로 칠하기
+                            val highlightBg = when {
+                                (selected || isPressed) && !isDark -> Color(0xFFFEF1E7) // 🌞 라이트
+                                (selected || isPressed) && isDark  -> Color(0xFF664224) // 🌙 다크
                                 else -> Color.Transparent
                             }
 
@@ -512,10 +516,11 @@ fun SimpleDropdown(
                                     onSelect(opt)
                                     onExpandedChange(false)
                                 },
+                                interactionSource = interactionSource, // ✅ 필수
                                 contentPadding = PaddingValues(horizontal = 24.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(selectedBg)
+                                    .background(highlightBg)
                             )
                         }
                     }
@@ -524,6 +529,8 @@ fun SimpleDropdown(
         }
     }
 }
+
+
 
 /* -------------------- Bottom Bar -------------------- */
 
