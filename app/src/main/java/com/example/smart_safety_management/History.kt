@@ -92,6 +92,7 @@ fun HistoryScreen() {
                 modifier = Modifier
                     .fillMaxSize()
                     .background(topBarBackgroundColor)
+                    .background(Color.Transparent)
             ) {
                 // 1. 상단바 영역
                 Column {
@@ -140,7 +141,7 @@ fun HistoryScreen() {
                             HistoryItemFrame(data)
                         }
                         // 리스트 끝 여백
-                        Spacer(modifier = Modifier.height(24.dp))
+                        //Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             }
