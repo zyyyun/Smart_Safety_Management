@@ -42,6 +42,9 @@ import com.example.smart_safety_management.screens.dialog.MapDialog
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.ui.theme.ClipartKorea
+import androidx.compose.ui.platform.LocalConfiguration
+import com.example.smart_safety_management.ui.theme.Pretendard
+
 
 /* -------------------- Popup Position Provider -------------------- */
 // ✅ 앵커(버튼) 바로 아래에 뜨도록 위치 계산
@@ -98,18 +101,19 @@ fun RealTimeScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "실시간 상황",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = "실시간상황",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Medium,
                         fontFamily = ClipartKorea,
                         color = c.text,
-                        modifier = Modifier.padding(start = 18.dp)
-
+                        modifier = Modifier.padding(start = 8.dp)
                     )
                 },
                 actions = {
-                    IconButton(onClick = { showMap = true },
-                        modifier = Modifier.padding(end = 20.dp)) {
+                    IconButton(
+                        onClick = { showMap = true },
+                        modifier = Modifier.padding(end = 20.dp)
+                    ) {
                         Icon(
                             painter = painterResource(id = R.drawable.map),
                             contentDescription = "지도",
@@ -118,11 +122,12 @@ fun RealTimeScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (isDark) c.topBar else Color.White,
+                    containerColor = Color(0xFF000000), // ✅ 무조건 블랙
                     titleContentColor = c.text,
                     actionIconContentColor = c.sub
                 )
             )
+
 
             // ✅ 본문
             RealTimeContent(
@@ -262,6 +267,8 @@ private fun RealTimeContent(
             .let { list -> if (selectedArea == "공간별") list else list.filter { it.place == selectedArea } }
             .let { list -> if (selectedCamId == null) list else list.filter { it.camId == selectedCamId } }
     }
+    val screenW = LocalConfiguration.current.screenWidthDp.dp
+    val rowW = screenW - 48.dp // 좌우 padding 24dp * 2
 
     // ✅ 화면 전체를 Box로 감싸서 "바깥 클릭으로 닫기" 오버레이를 깔 수 있게 함
     Box(
@@ -323,10 +330,10 @@ private fun RealTimeContent(
                     },
                     modifier = Modifier
                         .height(50.dp)
-                        .wrapContentWidth(),            // ✅ 오른쪽 끝에 딱 붙게 (width 고정 제거)
-                    menuWidth = 350.dp,
+                        .wrapContentWidth(),
+                    menuWidth = rowW,          // ✅ Row 전체 폭(=왼쪽 시작선~오른쪽 끝)
                     menuHeight = 204.dp,
-                    alignMenuRight = true               // ✅ 메뉴(팝업)도 오른쪽 정렬
+                    alignMenuRight = true      // ✅ 오른쪽 버튼 기준으로 오른쪽 끝 맞춤
                 )
             }
 
@@ -345,6 +352,7 @@ private fun RealTimeContent(
                     text = "배열",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
+                    fontFamily = Pretendard,
                     color = c.sub
                 )
                 Spacer(Modifier.weight(1f))
@@ -499,7 +507,7 @@ fun SimpleDropdown(
                                 contentPadding = PaddingValues(horizontal = 24.dp), // ✅ 양옆 24 (핵심)
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(if (selected) c.selectedBg else Color.Transparent)
+                                    .background(if (selected) Color(0xFF664224) else Color.Transparent)
                             )
 
                         }
@@ -657,7 +665,7 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(112.dp)
+                    .height(120.dp)
             ) {
                 Image(
                     painter = painterResource(id = item.thumbRes),
@@ -679,7 +687,7 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .background(infoBg)
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .padding(horizontal = 12.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Row(
@@ -778,7 +786,8 @@ fun LiveBadge(modifier: Modifier = Modifier) {
             text = "LIVE",
             color = Color.White,
             fontSize = 11.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            fontFamily = Pretendard
         )
     }
 }
@@ -794,7 +803,7 @@ fun CamPill(
     // ✅ 다크모드: 피그마 기준 CAM 배경색
     val camBg = when {
         isDark -> Color(0xFF8A949E)   // 🔥 피그마 기준 색상
-        else -> Color(0xFF4B5563)     // 기존 라이트 색 유지
+        else -> Color(0xFF4A525A)     // 기존 라이트 색 유지
     }.let { base ->
         if (isRisk) base.copy(alpha = 0.85f) else base
     }
@@ -802,17 +811,19 @@ fun CamPill(
     // 텍스트는 기존 정책 유지
     val camText = if (isDark) Color.White else Color.White
 
+
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(camBg)
-            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .padding(horizontal = 12.dp, vertical = 7.dp)
     ) {
         Text(
             text = text,
-            color = camText,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium
+            color = Color(0xFF000000),
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            fontFamily = Pretendard
         )
     }
 }
@@ -823,8 +834,9 @@ fun PlaceText(text: String, color: Color) {
     Text(
         text = text,
         color = color,
-        fontSize = 16.sp,
-        fontWeight = FontWeight.SemiBold
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Medium,
+        fontFamily = Pretendard
     )
 }
 
@@ -863,13 +875,14 @@ fun TagPill(text: String, isRisk: Boolean = false) {
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(bg)
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = 10.dp, vertical = 4.dp)
     ) {
         Text(
             text = text,
             color = fg,
             fontSize = 15.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            fontFamily = Pretendard
         )
     }
 }
@@ -896,8 +909,8 @@ fun TagPillCompact(
 
     // ✅ 사고 위험성 태그 배경 (피그마 기준)
     val bgColor = when {
-        isDark -> Color(0xFF131416)          // 🔥 요청한 색
-        else -> Color(0xFFE5E7EB)            // 라이트모드 기존 톤(필요시 조정)
+        isDark -> Color(0xFF131416)
+        else -> Color(0xFFF4F5F6)
     }
 
     val textColor = if (isDark) {
@@ -910,13 +923,14 @@ fun TagPillCompact(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(bgColor)
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(
             text = text,
             color = textColor,
-            fontSize = 12.sp,
+            fontSize = 17.sp,
             fontWeight = FontWeight.Medium,
+            fontFamily = Pretendard,
             maxLines = 1
         )
     }

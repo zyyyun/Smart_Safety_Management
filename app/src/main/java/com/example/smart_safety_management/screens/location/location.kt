@@ -38,6 +38,9 @@ import androidx.compose.ui.window.Dialog
 import com.example.smart_safety_management.R
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import androidx.compose.ui.zIndex
+import com.example.smart_safety_management.ui.theme.Pretendard
+import com.example.smart_safety_management.ui.theme.ClipartKorea
+
 
 /* -------------------- data -------------------- */
 
@@ -147,8 +150,8 @@ fun LocationScreen(
         byArea.filter { it.id in visibleIds }
     }
 
-    val basePinW = 34.dp
-    val basePinH = 46.dp
+    val basePinW = 42.dp
+    val basePinH = 58.dp
     val selectedScale = 1.3f
     val dimAlpha = 0.45f
 
@@ -249,10 +252,14 @@ fun LocationScreen(
                 .padding(16.dp)
                 .zIndex(10f)
         ) {
-            Image(
-                painter = painterResource(R.drawable.logo_location),
-                contentDescription = null,
-                modifier = Modifier.height(28.dp)
+            Text(
+                text = "위치정보",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = ClipartKorea,
+                color = LocalSafeColors.current.text,
+                modifier = Modifier.padding(start = 10.dp)
+
             )
 
             Spacer(Modifier.height(10.dp))
@@ -284,7 +291,8 @@ fun LocationScreen(
                     Box(
                         modifier = Modifier
                             .width(chipWidth)
-                            .height(28.dp)
+                            .widthIn(min = 56.dp)
+                            .height(34.dp)
                             .clip(RoundedCornerShape(999.dp))
                             .background(chipBg)
                             .border(1.dp, chipBorder, RoundedCornerShape(999.dp))
@@ -298,6 +306,7 @@ fun LocationScreen(
                             text = area,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
+                            fontFamily = Pretendard,
                             color = chipTextColor,
                             maxLines = 1
                         )
@@ -429,8 +438,9 @@ private fun SheetSummary(
                 Text(
                     text = "선택한 작업자 현황",
                     color = textPrimary,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = Pretendard,
                     maxLines = 1
                 )
             }
@@ -438,8 +448,9 @@ private fun SheetSummary(
             Text(
                 text = "작업자 현황",
                 color = textPrimary,
-                fontSize = 16.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
+                fontFamily = Pretendard,
                 maxLines = 1
             )
 
@@ -455,8 +466,9 @@ private fun SheetSummary(
                 Text(
                     text = "총 작업자 ${count}명",
                     color = Color(0xFFFF7A00),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = Pretendard,
                     maxLines = 1
                 )
             }
@@ -563,8 +575,9 @@ private fun RowScope.HeaderCell(text: String, w: Float, color: Color) {
     Text(
         text = text,
         color = color,
-        fontSize = 12.sp,
+        fontSize = 16.sp,
         fontWeight = FontWeight.SemiBold,
+        fontFamily = Pretendard,
         modifier = Modifier.weight(w),
         textAlign = TextAlign.Center,
         maxLines = 1
@@ -576,8 +589,9 @@ private fun RowScope.BodyCell(text: String, w: Float, color: Color) {
     Text(
         text = text,
         color = color,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.Medium,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.SemiBold,
+        fontFamily = Pretendard,
         modifier = Modifier.weight(w),
         textAlign = TextAlign.Center,
         maxLines = 1
@@ -623,6 +637,7 @@ private fun CamDialog(
                     Text(
                         text = title,
                         fontWeight = FontWeight.Bold,
+                        fontFamily = Pretendard,
                         fontSize = 17.sp,
                         color = text,
                         modifier = Modifier
@@ -677,7 +692,8 @@ private fun CamDialog(
                         text = "눌러서 말하기",
                         color = actionColor, // ✅ 다크: 검정 / 라이트: 흰색
                         fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = Pretendard
                     )
                 }
             }

@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
+import com.example.smart_safety_management.ui.theme.Pretendard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,9 +45,6 @@ fun InternalDetailScreen(
     val text = c.text
     val sub = c.sub
 
-    // ✅ 전경/현장 카드 폭
-    val cardW = 350.dp
-
     Scaffold(
         containerColor = bg,
         topBar = {
@@ -57,7 +55,8 @@ fun InternalDetailScreen(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontSize = 25.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = Pretendard,
                         color = text
                     )
                 },
@@ -96,107 +95,124 @@ fun InternalDetailScreen(
                 .padding(inner)
                 .fillMaxSize()
                 .background(bg)
-                .padding(horizontal = 24.dp) // ✅ 좌우 24
+                .padding(horizontal = 24.dp) // ✅ 좌우 24 (이 기준으로 전경/현장 카드도 꽉 채움)
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(Modifier.height(12.dp))
 
             Text(
                 text = "이벤트 내용",
-                fontSize = 14.sp,
+                fontSize = 18.sp,
                 color = sub,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                fontFamily = Pretendard,
             )
+
             Spacer(Modifier.height(16.dp)) // ✅ 이벤트 내용 ↔ 위치 카드 16
 
-            // ✅ 위치 카드 (피그마 327*52에 1.048 적용)
+            // ✅ 위치 카드 (위/아래 간격 그대로, 좌우 24 기준에 맞게 fillMaxWidth)
             Row(
                 modifier = Modifier
-                    .fillMaxWidth() .width(360.dp)     // 327 × 1.048
-                    .height(54.5.dp)     // 52 × 1.048
+                    .fillMaxWidth()
+                    .height(54.5.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .border(1.dp, border, RoundedCornerShape(10.dp))
                     .background(surface)
                     .padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("위치", fontSize = 14.sp, color = sub)
+                Text(
+                    text = "위치",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = Pretendard,
+                    color = sub
+                )
+
                 Spacer(Modifier.weight(1f))
-                Text(item.location, fontSize = 15.sp, color = text)
+
+                Text(
+                    text = item.location,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = Pretendard,
+                    color = text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
             Spacer(Modifier.height(24.dp))
 
-            // ✅ 전경 (텍스트 + 카드: cardW 폭 덩어리 중앙 배치)
+            // ✅ 전경/현장/현장캡쳐 타이틀 컬러
             val sectionTitleColor = Color(0xFF676F76) // ✅ 피그마 기준
 
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Column(modifier = Modifier.width(cardW)) {
-                    Text(
-                        "전경",
-                        fontSize = 14.sp,
-                        color = sectionTitleColor, // ✅ 변경
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    PreviewCard(imageRes = item.overviewThumb, border = border)
-                }
-            }
+            // ✅ 전경 (좌우 24 안에서 꽉 채우기)
+            Text(
+                text = "전경",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = Pretendard,
+                color = sectionTitleColor
+            )
+            Spacer(Modifier.height(16.dp))
+            PreviewCard(
+                imageRes = item.overviewThumb,
+                border = border,
+                modifier = Modifier.fillMaxWidth() // ✅ 왼쪽24~오른쪽24 사이 꽉
+            )
 
             Spacer(Modifier.height(24.dp))
 
-// ✅ 현장
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Column(modifier = Modifier.width(cardW)) {
-                    Text(
-                        "현장",
-                        fontSize = 14.sp,
-                        color = sectionTitleColor, // ✅ 변경
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    PreviewCard(imageRes = item.siteThumb, border = border)
-                }
-            }
+            // ✅ 현장 (좌우 24 안에서 꽉 채우기)
+            Text(
+                text = "현장",
+                fontSize = 18.sp,
+                color = sectionTitleColor,
+                fontWeight = FontWeight.Medium,
+                fontFamily = Pretendard,
+            )
+            Spacer(Modifier.height(16.dp))
+            PreviewCard(
+                imageRes = item.siteThumb,
+                border = border,
+                modifier = Modifier.fillMaxWidth() // ✅ 왼쪽24~오른쪽24 사이 꽉
+            )
 
             Spacer(Modifier.height(24.dp))
 
-// ✅ 현장캡쳐: 텍스트 + 썸네일 LazyRow를 "같은 cardW 폭" 안에 넣어 시작선 맞춤
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Column(modifier = Modifier.width(cardW)) {
-                    Text(
-                        "현장캡쳐",
-                        fontSize = 14.sp,
-                        color = sectionTitleColor, // ✅ 변경
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(Modifier.height(16.dp))
+            // ✅ 현장캡쳐 (기존처럼 LazyRow/120 유지)
+            Text(
+                text = "현장캡쳐",
+                fontSize = 18.sp,
+                color = sectionTitleColor,
+                fontWeight = FontWeight.Medium,
+                fontFamily = Pretendard,
+            )
+            Spacer(Modifier.height(16.dp))
 
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth()
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                items(item.captureThumbs) { res ->
+                    Box(
+                        modifier = Modifier
+                            .requiredSize(120.dp) // ✅ 기존 그대로
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(1.dp, border, RoundedCornerShape(14.dp))
+                            .background(surface)
+                            .clickable { }
                     ) {
-                        items(item.captureThumbs) { res ->
-                            Box(
-                                modifier = Modifier
-                                    .requiredSize(120.dp) // ✅ 무조건 120×120
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .border(1.dp, border, RoundedCornerShape(14.dp))
-                                    .background(surface)
-                                    .clickable { }
-                            ) {
-                                Image(
-                                    painter = painterResource(id = res),
-                                    contentDescription = null,
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
-                        }
+                        Image(
+                            painter = painterResource(id = res),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 }
             }
-
 
             Spacer(Modifier.height(20.dp))
         }
@@ -214,8 +230,7 @@ private fun PreviewCard(
 
     Box(
         modifier = modifier
-            .width(350.dp)
-            .height(210.dp)
+            .height(210.dp) // ✅ 기존 높이 그대로
             .clip(RoundedCornerShape(14.dp))
             .border(1.dp, border, RoundedCornerShape(14.dp))
             .background(bg)
@@ -223,7 +238,7 @@ private fun PreviewCard(
         Image(
             painter = painterResource(id = imageRes),
             contentDescription = null,
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Crop, // ✅ 기존처럼 꽉 채우기(일부 크롭)
             modifier = Modifier.fillMaxSize()
         )
     }

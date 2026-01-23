@@ -31,6 +31,7 @@ import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
 import com.example.smart_safety_management.screens.realtime.TagPillCompact
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
+import com.example.smart_safety_management.ui.theme.Pretendard
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -88,7 +89,7 @@ fun MapDialog(
     var selectedCamId by remember { mutableStateOf(initialCamId) }
     val selected = cams.firstOrNull { it.camId == selectedCamId } ?: cams[0]
 
-    val infoBg = c.surface
+    val infoBg = Color(0xFF1E2124)
     val infoLabel = c.sub
 
     // ✅ 요청 반영: 다크일 때 값(오른쪽) 흰색, 버튼 텍스트/아이콘 검정
@@ -151,7 +152,8 @@ fun MapDialog(
 
             Card(
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = c.surface),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF1E2124)),
                 border = BorderStroke(1.dp, c.border),
                 modifier = Modifier.size(width = dialogW, height = dialogH)
             ) {
@@ -187,7 +189,7 @@ fun MapDialog(
 
                                 Icon(
                                     painter = painterResource(
-                                        id = if (isSelectedMarker) R.drawable.cctv_b else R.drawable.cctv
+                                        id = if (isSelectedMarker) R.drawable.cctv_b_dark else R.drawable.cctv_dark
                                     ),
                                     contentDescription = null,
                                     tint = Color.Unspecified,
@@ -265,15 +267,16 @@ fun MapDialog(
                                         Text(
                                             text = "카메라 바로가기",
                                             color = actionColor, // ✅ 다크: 검정
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontFamily = Pretendard,
+                                            fontSize = 18.sp
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Icon(
                                             painter = painterResource(id = R.drawable.camera),
                                             contentDescription = null,
                                             tint = actionColor,  // ✅ 다크: 검정
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
                                 }
@@ -313,7 +316,22 @@ private fun InfoRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(left, color = leftColor, fontSize = 14.sp)
-        Text(right, color = rightColor, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(
+            text = left,
+            color = leftColor,
+            fontSize = 16.sp,                 // ✅ 16
+            fontWeight = FontWeight.Medium,
+            fontFamily = Pretendard,          // ✅ Pretendard Medium
+            letterSpacing = (-0.2).sp
+        )
+
+        Text(
+            text = right,
+            color = rightColor,
+            fontSize = 16.sp,                 // ✅ 16
+            fontWeight = FontWeight.Medium,
+            fontFamily = Pretendard,          // ✅ Pretendard Medium
+            letterSpacing = (-0.1).sp
+        )
     }
 }
