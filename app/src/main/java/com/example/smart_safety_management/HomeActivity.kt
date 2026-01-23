@@ -164,13 +164,6 @@ class HomeActivity : AppCompatActivity() {
         return uncheckedDays.minByOrNull { abs(it - today) }
     }
 
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        if (ev?.action == MotionEvent.ACTION_DOWN) {
-            dailyAdapter.dismissTooltip()
-        }
-        return super.dispatchTouchEvent(ev)
-    }
-
     private fun updateDailyCheckList(day: Int?) {
         val list = dailyCheckMap[day] ?: emptyList()
         dailyAdapter.updateList(list)
