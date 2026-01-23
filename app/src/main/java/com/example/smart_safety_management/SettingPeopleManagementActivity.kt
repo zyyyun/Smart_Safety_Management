@@ -4,11 +4,13 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Spinner
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -33,7 +35,7 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
             finish()
         }
 
-        // 임시 데이터 생성 (MutableList로 변경)
+        // 임시 데이터 생성
         allPeople = mutableListOf(
             PeopleItem(1, "지코", "010-2345-6789", "관리자"),
             PeopleItem(2, "박보검", "010-3456-7890", "근로자"),
@@ -45,29 +47,43 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
 
         // 어댑터 설정 (삭제 콜백 전달)
         adapter = PeopleAdapter(allPeople) { deletedItem ->
-            allPeople.remove(deletedItem) // 원본 데이터에서 삭제
-            applyFilterAndSearch() // 리스트 갱신
+            allPeople.remove(deletedItem)
+            applyFilterAndSearch()
         }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
-        // 커스텀 폰트가 적용된 스피너 어댑터 설정
-        val spinnerAdapter = ArrayAdapter.createFromResource(
+        // 커스텀 드롭다운 어댑터 설정
+        val filterItems = resources.getStringArray(R.array.people_filter_array)
+        val spinnerAdapter = object : ArrayAdapter<String>(
             this,
-            R.array.people_filter_array,
-            R.layout.spinner_item
-        )
-        // 스피너 드롭다운 디자인 설정
-        spinnerAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown)
+            R.layout.spinner_item,
+            filterItems
+        ) {
+            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = layoutInflater.inflate(R.layout.item_spinner_dropdown, parent, false)
+                val tv = if (view is TextView) view else view.findViewById(android.R.id.text1)
+                tv.text = getItem(position)
+
+                // 위치에 따라 라운드가 다른 배경 적용
+                val backgroundRes = when (position) {
+                    0 -> R.drawable.bg_spinner_item_top
+                    count - 1 -> R.drawable.bg_spinner_item_bottom
+                    else -> R.drawable.bg_spinner_item_middle
+                }
+                view.setBackgroundResource(backgroundRes)
+
+                return view
+            }
+        }
         filterSpinner.adapter = spinnerAdapter
 
-        // 필터 스피너 설정
+        // 필터 스피너 리스너 설정
         filterSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 currentFilter = parent?.getItemAtPosition(position).toString()
                 applyFilterAndSearch()
             }
-
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 

@@ -1,10 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <TextView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/text1"
     android:layout_width="match_parent"
     android:layout_height="48dp"
     android:gravity="center_vertical"
-    android:paddingStart="14dp"
-    android:background="@drawable/bg_spinner_item_selector"
-    android:fontFamily="@font/pretendard_medium"
-    android:textColor="@color/gray800_gray200"
-    android:textSize="16sp"/>
+    android:paddingStart="16dp"
+    android:background="@drawable/bg_spinner_item_divider"
+    android:textColor="@color/gray900_gray50"
+    android:textSize="16sp"
+    android:fontFamily="@font/pretendard_medium" />
