@@ -60,7 +60,7 @@ fun AIEventNavigation() {
             // ✅ 기존 Compose BottomNavigation을 제거하고 XML 바텀바를 삽입합니다.
             // currentRoute가 "detect"일 때만 바텀바가 보이도록 설정 유지
             if (currentRoute == "detect") {
-                MainHomeBottomBar()
+                AIEventBottomBar()
             }
         }
     ) { paddingValues ->
@@ -98,7 +98,7 @@ fun AIEventNavigation() {
 }
 
 @Composable
-fun MainHomeBottomBar() {
+fun AIEventBottomBar() {
     AndroidView(
         factory = { context ->
             // 1. main_home.xml 레이아웃 인플레이트
