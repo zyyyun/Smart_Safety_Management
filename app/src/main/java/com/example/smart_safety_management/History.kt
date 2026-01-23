@@ -112,7 +112,6 @@ fun HistoryScreen() {
                         )
                     }
                 },
-                // bottomBar 제거 (HistoryActivity에서 이미 제공함)
                 backgroundColor = topBarBackgroundColor
             ) { paddingValues ->
                 Surface(
@@ -334,14 +333,16 @@ fun FilterBottomSheetContent() {
         Text(text = "정렬기준", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = CategoryColor, modifier = Modifier.padding(horizontal = 24.dp))
         Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Box(modifier = Modifier.size(width = 160.dp, height = 40.dp).border(1.dp, borderColor, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+            Box(modifier = Modifier.height(40.dp).weight(1f).border(1.dp, borderColor, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(text = "2026-05-07", fontFamily = Pretendard, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = textColor)
                     Icon(painter = painterResource(id = R.drawable.calendar2), contentDescription = null, tint = toptextColor)
                 }
             }
+            Spacer(modifier = Modifier.width(15.dp))
             Icon(painter = painterResource(id = R.drawable.underbar), contentDescription = null, tint = if (isLight) Color.Unspecified else TextGray)
-            Box(modifier = Modifier.size(width = 160.dp, height = 40.dp).border(1.dp, borderColor, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+            Spacer(modifier = Modifier.width(15.dp))
+            Box(modifier = Modifier.height(40.dp).weight(1f).border(1.dp, borderColor, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(text = "2026-05-16", fontFamily = Pretendard, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = textColor)
                     Icon(painter = painterResource(id = R.drawable.calendar2), contentDescription = null, tint = toptextColor)
@@ -371,12 +372,15 @@ fun FilterBottomSheetContent() {
             }
         }
         Spacer(modifier = Modifier.height(28.dp)); Divider(color = borderColor, thickness = 1.dp); Spacer(modifier = Modifier.height(28.dp))
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
+        
+        // ✅ 구역, 조치자 드롭박스 영역 수정
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(text = "구역", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = CategoryColor)
                 Spacer(modifier = Modifier.height(16.dp))
                 Box(modifier = Modifier
-                    .size(width = 160.dp, height = 45.dp)
+                    .fillMaxWidth()
+                    .height(45.dp)
                     .onSizeChanged { areaBoxWidth = it.width }
                     .background(color = bgColor, shape = RoundedCornerShape(8.dp))
                     .border(1.dp, borderColor, RoundedCornerShape(8.dp))
@@ -404,11 +408,12 @@ fun FilterBottomSheetContent() {
                     }
                 }
             }
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(text = "조치자", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = CategoryColor)
                 Spacer(modifier = Modifier.height(16.dp))
                 Box(modifier = Modifier
-                    .size(width = 160.dp, height = 45.dp)
+                    .fillMaxWidth()
+                    .height(45.dp)
                     .onSizeChanged { actionByBoxWidth = it.width }
                     .background(bgColor, shape = RoundedCornerShape(8.dp))
                     .border(1.dp, borderColor, RoundedCornerShape(8.dp))
@@ -570,4 +575,13 @@ fun HistorySecondaryAppBar(selectedTab: String, onTabSelected: (String) -> Unit)
 @Composable
 fun HistoryScreenPreview() {
     HistoryScreen()
+}
+
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Filter BottomSheet - Light")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Filter BottomSheet - Dark")
+@Composable
+fun FilterBottomSheetPreview() {
+    Smart_Safety_ManagementTheme {
+        FilterBottomSheetContent()
+    }
 }

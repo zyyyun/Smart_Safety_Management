@@ -139,7 +139,7 @@ fun ActionDetailWorkerScreen(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Close",
-                                    tint = textColor
+                                    tint = Color(0xFF6D7882)
                                 )
                             }
                         }
@@ -359,6 +359,7 @@ fun ActionDetailWorkerScreen(
                                         .height(52.dp)
                                         ,
                                     shape = RoundedCornerShape(8.dp),
+                                    elevation = ButtonDefaults.elevation(0.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         backgroundColor = detailBtnColor
                                     )
@@ -391,7 +392,7 @@ fun ActionDetailWorkerScreen(
                                 value = if (actionType.isEmpty()) "조치 유형 선택" else actionType,
                                 onValueChange = { },
                                 readOnly = true,
-                                modifier = Modifier.fillMaxWidth().height(60.dp),
+                                modifier = Modifier.fillMaxWidth().height(59.dp),
                                 textStyle = TextStyle(
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Medium,
@@ -479,7 +480,7 @@ fun ActionDetailWorkerScreen(
                             onValueChange = { title = it },
                             modifier = Modifier.fillMaxWidth()
                                 .padding(horizontal = 8.dp)
-                                .height(60.dp),
+                                .height(59.dp),
                             shape = RoundedCornerShape(8.dp),
                             textStyle = TextStyle(fontSize = 18.sp, fontFamily = Pretendard, color = inputTextColor),
                             colors = TextFieldDefaults.outlinedTextFieldColors(

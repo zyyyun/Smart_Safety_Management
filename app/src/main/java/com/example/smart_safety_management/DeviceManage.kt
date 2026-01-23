@@ -258,7 +258,14 @@ fun BatteryItem(data: DeviceBatteryData, onAlarmClick: () -> Unit) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(text = data.role, color = subTextColor, fontSize = 14.sp, fontWeight = FontWeight.Medium, fontFamily = Pretendard)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(2.dp))
+                        Icon(
+                            painter = painterResource(id = R.drawable.dot_icon),
+                            contentDescription = "점",
+                            tint = Color(0xFFD9D9D9),
+                            modifier = Modifier.size(2.dp)
+                        )
+                        Spacer(modifier = Modifier.width(2.dp))
                         Icon(
                             painter = painterResource(id = if (data.isGpsConnected) R.drawable.gps2 else R.drawable.gps), 
                             contentDescription = null, 

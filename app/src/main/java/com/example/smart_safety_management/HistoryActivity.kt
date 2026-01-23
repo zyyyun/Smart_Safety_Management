@@ -2,7 +2,8 @@ package com.example.smart_safety_management
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.padding
@@ -10,13 +11,11 @@ import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.example.smart_safety_management.screens.location.LocationActivity
 import com.example.smart_safety_management.screens.realtime.RealTimeActivity
 import com.example.smart_safety_management.ui.theme.*
+import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class HistoryActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,53 +30,10 @@ class HistoryActivity : ComponentActivity() {
 
 @Composable
 fun HistoryNavigationWrapper() {
-    val context = LocalContext.current
-
     Scaffold(
         bottomBar = {
-            BottomNavigation(
-                backgroundColor = if (MaterialTheme.colors.isLight) TextGray5 else TextGray20,
-                elevation = 10.dp
-            ) {
-                val items = listOf(
-                    Triple("안전점검", R.drawable.home, "nav_home"),
-                    Triple("AI감지", R.drawable.ai, "nav_ai"),
-                    Triple("실시간상황", R.drawable.live, "nav_live"),
-                    Triple("이력", R.drawable.history, "nav_history"),
-                    Triple("위치정보", R.drawable.location, "nav_location")
-                )
-
-                items.forEach { (title, iconRes, route) ->
-                    BottomNavigationItem(
-                        icon = { Icon(painter = painterResource(id = iconRes), contentDescription = title) },
-                        label = { Text(text = title, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) },
-                        selected = route == "nav_history", // 현재 이력 화면이므로 nav_history 선택
-                        onClick = {
-                            when (route) {
-                                "nav_home" -> {
-                                    val intent = Intent(context, HomeActivity::class.java)
-                                    context.startActivity(intent)
-                                }
-                                "nav_ai" -> {
-                                    val intent = Intent(context, AIEventActivity::class.java)
-                                    context.startActivity(intent)
-                                }
-                                "nav_live" -> {
-                                    val intent = Intent(context, RealTimeActivity::class.java)
-                                    context.startActivity(intent)
-                                }
-                                "nav_history" -> { /* 현재 화면 */ }
-                                "nav_location" -> {
-                                    val intent = Intent(context, LocationActivity::class.java)
-                                    context.startActivity(intent)
-                                }
-                            }
-                        },
-                        selectedContentColor = MainOrange,
-                        unselectedContentColor = if (MaterialTheme.colors.isLight) GrayBorder else TextDark
-                    )
-                }
-            }
+            // XML 바텀바 표시
+            HistoryBottomBar()
         }
     ) { paddingValues ->
         // paddingValues를 적용하여 HistoryScreen이 하단바에 가려지지 않게 합니다.
@@ -85,4 +41,48 @@ fun HistoryNavigationWrapper() {
             HistoryScreen()
         }
     }
+}
+
+@Composable
+fun HistoryBottomBar() {
+    AndroidView(
+        factory = { context ->
+            // 1. main_home.xml 레이아웃 인플레이트
+            val fullView = LayoutInflater.from(context).inflate(R.layout.main_home, null) as ViewGroup
+
+            // 2. 바텀바 찾기
+            val bottomNav = fullView.findViewById<BottomNavigationView>(R.id.bottom_nav)
+
+            // 3. 기존 부모 뷰에서 분리 (필수)
+            (bottomNav.parent as? ViewGroup)?.removeView(bottomNav)
+
+            // 4. 초기 상태 설정 (현재 페이지가 이력 페이지임을 표시)
+            bottomNav.selectedItemId = R.id.nav_history
+
+            // 5. 클릭 이벤트 설정 (기존 Activity 이동 로직 유지)
+            bottomNav.setOnItemSelectedListener { item ->
+                when (item.itemId) {
+                    R.id.nav_home -> {
+                        context.startActivity(Intent(context, HomeActivity::class.java))
+                        true
+                    }
+                    R.id.nav_ai -> {
+                        context.startActivity(Intent(context, AIEventActivity::class.java))
+                        true
+                    }
+                    R.id.nav_live -> {
+                        context.startActivity(Intent(context, RealTimeActivity::class.java))
+                        true
+                    }
+                    R.id.nav_history -> true // 현재 페이지
+                    R.id.nav_location -> {
+                        context.startActivity(Intent(context, LocationActivity::class.java))
+                        true
+                    }
+                    else -> false
+                }
+            }
+            bottomNav
+        }
+    )
 }
