@@ -104,7 +104,14 @@
             android:textColor="@color/gray700_gray400"
             android:fontFamily="@font/pretendard_semibold"
             android:backgroundTint="@color/gray50_gray900"
-            android:stateListAnimator="@null"/>
+            android:stateListAnimator="@null"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp"
+            android:paddingLeft="24dp"
+            android:paddingRight="24dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minHeight="0dp"/>
 
         <!-- 저장 -->
         <Button
@@ -118,7 +125,14 @@
             android:textColor="@color/white_black"
             android:fontFamily="@font/pretendard_semibold"
             android:backgroundTint="@color/orange500"
-            android:stateListAnimator="@null"/>
+            android:stateListAnimator="@null"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp"
+            android:paddingLeft="24dp"
+            android:paddingRight="24dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minHeight="0dp"/>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
