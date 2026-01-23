@@ -312,6 +312,12 @@ fun FilterBottomSheetContent() {
             .background(MaterialTheme.colors.onPrimary)
             .verticalScroll(rememberScrollState())
     ) {
+        Spacer(modifier = Modifier.height(12.dp))
+        Box(modifier = Modifier.height(4.dp).width(60.dp)
+            .background(borderColor,shape = RoundedCornerShape(100.dp))
+            .align(Alignment.CenterHorizontally)
+        )
+        Spacer(modifier = Modifier.fillMaxHeight())
         Box(
             modifier = Modifier
                 .fillMaxWidth()
