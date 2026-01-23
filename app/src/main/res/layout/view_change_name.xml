@@ -111,7 +111,8 @@
             android:paddingRight="24dp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            android:minHeight="0dp"/>
+            android:minHeight="0dp"
+            app:cornerRadius="8dp"/>
 
         <!-- 저장 -->
         <Button
@@ -132,7 +133,8 @@
             android:paddingRight="24dp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            android:minHeight="0dp"/>
+            android:minHeight="0dp"
+            app:cornerRadius="8dp"/>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
