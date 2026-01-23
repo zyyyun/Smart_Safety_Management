@@ -59,10 +59,12 @@
             android:layout_height="wrap_content"
             android:layout_gravity="end|center_vertical"
             android:layout_marginEnd="14dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:paddingLeft="9dp"
+            android:paddingRight="9dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp"
             android:elevation="2dp">
 
             <ImageView
@@ -80,7 +82,7 @@
                 android:text="미점검"
                 android:letterSpacing="0"
                 android:textColor="#F97316"
-                android:textSize="11sp" />
+                android:textSize="12sp" />
         </LinearLayout>
     </FrameLayout>
 </com.google.android.material.card.MaterialCardView>
