@@ -89,13 +89,11 @@
                         android:layout_height="293dp"
                         android:layout_marginTop="14dp">
 
-                        <!-- 구분선 추가 -->
                         <androidx.recyclerview.widget.RecyclerView
                             android:id="@+id/rv_daily_check"
                             android:layout_width="match_parent"
                             android:layout_height="293dp"
-                            android:layout_marginTop="14dp"
-                            android:overScrollMode="never" />
+                            android:overScrollMode="never"/>
 
                         <!-- 하단 그림자 뷰 추가 -->
                         <View
@@ -105,6 +103,7 @@
                             android:background="@drawable/bg_list_fade_edge"/>
                     </FrameLayout>
 
+                    <!-- 구분선 -->
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
@@ -132,8 +131,7 @@
                             android:id="@+id/rv_worker_event"
                             android:layout_width="match_parent"
                             android:layout_height="293dp"
-                            android:layout_marginTop="24dp"
-                            android:overScrollMode="never" />
+                            android:overScrollMode="never"/>
 
                         <!-- 하단 그림자 뷰 추가 -->
                         <View
