@@ -228,6 +228,8 @@ class HomeActivity : AppCompatActivity() {
                 width = 0
                 columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                 rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+
+                setMargins(0, 0, 0, (resources.displayMetrics.density * 8).toInt())
             }
         }
 
