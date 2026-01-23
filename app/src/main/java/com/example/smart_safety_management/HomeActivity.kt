@@ -209,9 +209,9 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    private fun hasUncheckedItem(day: Int): Boolean {
+    private fun hasDailyCheckItem(day: Int): Boolean {
         val list = dailyCheckMap[day] ?: return false
-        return list.any { it.status == "미점검" }
+        return list.isNotEmpty()
     }
 
     private fun fillCalendarReal() {
@@ -286,20 +286,18 @@ class HomeActivity : AppCompatActivity() {
         val alarmDot = if (isCurrentMonth) {
             ImageView(this).apply {
                 setImageResource(R.drawable.ellipse_alram)
-                visibility = if (hasUncheckedItem(day)) View.VISIBLE else View.INVISIBLE
+                visibility = if (hasDailyCheckItem(day) && day != selectedDay) View.VISIBLE else View.INVISIBLE
                 val size = (resources.displayMetrics.density * 6).toInt()
-                layoutParams = LinearLayout.LayoutParams(size, size).apply { topMargin = (resources.displayMetrics.density * 4).toInt() }
+                layoutParams = FrameLayout.LayoutParams(size, size).apply { 
+                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                }
             }
-        } else {
-            View(this).apply {
-                val size = (resources.displayMetrics.density * 6).toInt()
-                layoutParams = LinearLayout.LayoutParams(size, size).apply { topMargin = (resources.displayMetrics.density * 4).toInt() }
-            }
-        }
+        } else null
 
         dayFrame.addView(tv)
+        if (alarmDot != null) dayFrame.addView(alarmDot)
+        
         dayContainer.addView(dayFrame)
-        dayContainer.addView(alarmDot)
         grid.addView(dayContainer)
     }
 
