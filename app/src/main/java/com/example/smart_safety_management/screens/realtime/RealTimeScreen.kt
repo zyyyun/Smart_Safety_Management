@@ -44,6 +44,8 @@ import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.ui.theme.ClipartKorea
 import androidx.compose.ui.platform.LocalConfiguration
 import com.example.smart_safety_management.ui.theme.Pretendard
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+
 
 
 /* -------------------- Popup Position Provider -------------------- */
@@ -443,10 +445,7 @@ fun SimpleDropdown(
                 .clip(RoundedCornerShape(10.dp))
                 .background(dropdownBg)
                 .border(1.dp, borderColor, RoundedCornerShape(10.dp))
-                .clickable {
-                    // ✅ 이미 열려있으면 닫기, 아니면 열기
-                    onExpandedChange(!expanded)
-                }
+                .clickable { onExpandedChange(!expanded) }
                 .padding(start = 14.dp, end = 12.dp),
             contentAlignment = Alignment.CenterStart
         ) {
@@ -476,7 +475,6 @@ fun SimpleDropdown(
                     gap = gapPx,
                     alignRightToAnchor = alignMenuRight
                 ),
-                // ✅ 바깥 클릭 닫기는 "RealTimeScreen 오버레이"가 담당
                 properties = PopupProperties(focusable = false)
             ) {
                 Box(
@@ -493,11 +491,23 @@ fun SimpleDropdown(
                     ) {
                         options.forEach { opt ->
                             val selected = opt == value
+
+                            // ✅ 눌림(pressed) 상태 감지
+                            val interactionSource = remember { MutableInteractionSource() }
+                            val isPressed by interactionSource.collectIsPressedAsState()
+
+                            // ✅ 선택 + 누르는 중 모두 같은 색으로 칠하기
+                            val highlightBg = when {
+                                (selected || isPressed) && !isDark -> Color(0xFFFEF1E7) // 🌞 라이트
+                                (selected || isPressed) && isDark  -> Color(0xFF664224) // 🌙 다크
+                                else -> Color.Transparent
+                            }
+
                             DropdownMenuItem(
                                 text = {
                                     Text(
                                         text = opt,
-                                        fontSize = 18.sp, // ✅ 목록 글자 크기 18
+                                        fontSize = 18.sp,
                                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
                                         color = c.text
                                     )
@@ -506,12 +516,12 @@ fun SimpleDropdown(
                                     onSelect(opt)
                                     onExpandedChange(false)
                                 },
-                                contentPadding = PaddingValues(horizontal = 24.dp), // ✅ 양옆 24 (핵심)
+                                interactionSource = interactionSource, // ✅ 필수
+                                contentPadding = PaddingValues(horizontal = 24.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(if (selected) Color(0xFF664224) else Color.Transparent)
+                                    .background(highlightBg)
                             )
-
                         }
                     }
                 }
@@ -519,6 +529,8 @@ fun SimpleDropdown(
         }
     }
 }
+
+
 
 /* -------------------- Bottom Bar -------------------- */
 
@@ -916,21 +928,20 @@ fun TagPillCompact(text: String, isRisk: Boolean = false) {
     val bg = if (isDark) {
         Color(0xFF2A3038)   // 다크 알약 배경
     } else {
-        Color.Transparent   // ✅ 라이트: 하얀 배경 제거
+        Color(0xFFF4F5F6)   // ✅ 라이트: 요청한 카드 배경색
     }
 
     val border = if (isDark) {
         c.border
     } else {
-        Color.Transparent   // ✅ 라이트: 테두리 제거
+        Color.Transparent
     }
 
     val fg = if (isDark) {
         Color(0xFF9CA3AF)
     } else {
-        Color(0xFF58616A)   // ✅ 피그마 텍스트
+        Color(0xFF58616A)
     }
-
 
     Box(
         modifier = Modifier
@@ -949,6 +960,7 @@ fun TagPillCompact(text: String, isRisk: Boolean = false) {
         )
     }
 }
+
 
 
 
