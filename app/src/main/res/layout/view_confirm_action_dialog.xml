@@ -81,7 +81,15 @@
             android:backgroundTint="@color/gray50_gray900"
             android:stateListAnimator="@null"
             android:letterSpacing="0"
-            android:textAllCaps="false"/>
+            android:textAllCaps="false"
+            app:cornerRadius="8dp"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp"
+            android:paddingLeft="24dp"
+            android:paddingRight="24dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minHeight="0dp"/>
 
         <Button
             android:id="@+id/btn_exit"
@@ -95,7 +103,15 @@
             android:backgroundTint="@color/red500"
             android:stateListAnimator="@null"
             android:letterSpacing="0"
-            android:textAllCaps="false"/>
+            android:textAllCaps="false"
+            app:cornerRadius="8dp"
+            android:paddingTop="14dp"
+            android:paddingBottom="14dp"
+            android:paddingLeft="24dp"
+            android:paddingRight="24dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minHeight="0dp"/>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

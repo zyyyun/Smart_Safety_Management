@@ -79,7 +79,7 @@ class DailyCheckAdapter(
             holder.statusIcon.setColorFilter(ContextCompat.getColor(holder.itemView.context, R.color.orange500_black))
             
             holder.cardView.strokeWidth = (1.142 * holder.itemView.context.resources.displayMetrics.density).toInt()
-            holder.cardView.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.orange400alpha20_orange400)
+            holder.cardView.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.orange400alpha12_orange400alpha36)
 
             // 미점검 버튼 클릭 리스너
             holder.statusLayout.setOnClickListener {
