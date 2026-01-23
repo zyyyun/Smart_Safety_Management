@@ -141,13 +141,6 @@ class HomeWorkerActivity : AppCompatActivity() {
         profileBar?.findViewById<TextView>(R.id.tv_user_name)?.text = UserSession.userName
     }
 
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        if (ev?.action == MotionEvent.ACTION_DOWN) {
-            dailyAdapter.dismissTooltip()
-        }
-        return super.dispatchTouchEvent(ev)
-    }
-
     private fun updateDailyCheckList(day: Int?) {
         val list = dailyCheckMap[day] ?: emptyList()
         dailyAdapter.updateList(list)

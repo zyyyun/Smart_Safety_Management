@@ -164,13 +164,6 @@ class HomeActivity : AppCompatActivity() {
         return uncheckedDays.minByOrNull { abs(it - today) }
     }
 
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        if (ev?.action == MotionEvent.ACTION_DOWN) {
-            dailyAdapter.dismissTooltip()
-        }
-        return super.dispatchTouchEvent(ev)
-    }
-
     private fun updateDailyCheckList(day: Int?) {
         val list = dailyCheckMap[day] ?: emptyList()
         dailyAdapter.updateList(list)
@@ -235,6 +228,8 @@ class HomeActivity : AppCompatActivity() {
                 width = 0
                 columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
                 rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+
+                setMargins(0, 0, 0, (resources.displayMetrics.density * 8).toInt())
             }
         }
 

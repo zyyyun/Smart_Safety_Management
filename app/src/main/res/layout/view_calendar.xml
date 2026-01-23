@@ -62,10 +62,10 @@
                     android:textSize="14sp" />
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginStart="4dp"
-                    android:scaleType="centerInside"
+                    android:layout_width="6dp"
+                    android:layout_height="8dp"
+                    android:layout_marginStart="6dp"
+                    android:scaleType="fitCenter"
                     android:src="@drawable/right_arrow"
                     app:tint="#6D7882" />
             </LinearLayout>

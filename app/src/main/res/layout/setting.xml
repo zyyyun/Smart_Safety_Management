@@ -76,7 +76,7 @@
                 <LinearLayout
                     android:id="@+id/item_my_info"
                     android:layout_width="match_parent"
-                    android:layout_height="32dp"
+                    android:layout_height="40dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:paddingStart="24dp"
@@ -119,7 +119,7 @@
                 <LinearLayout
                     android:id="@+id/item_change_password"
                     android:layout_width="match_parent"
-                    android:layout_height="32dp"
+                    android:layout_height="40dp"
                     android:layout_marginTop="28dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
@@ -160,7 +160,7 @@
                 <LinearLayout
                     android:id="@+id/item_enter_invite_code"
                     android:layout_width="match_parent"
-                    android:layout_height="32dp"
+                    android:layout_height="40dp"
                     android:layout_marginTop="28dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
@@ -231,7 +231,7 @@
             <LinearLayout
                 android:id="@+id/item_create_workplace"
                 android:layout_width="match_parent"
-                android:layout_height="32dp"
+                android:layout_height="40dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingStart="24dp"
@@ -271,7 +271,7 @@
             <LinearLayout
                 android:id="@+id/item_workplace_location_setting"
                 android:layout_width="match_parent"
-                android:layout_height="32dp"
+                android:layout_height="40dp"
                 android:layout_marginTop="28dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
@@ -342,7 +342,7 @@
             <LinearLayout
                 android:id="@+id/item_invite"
                 android:layout_width="match_parent"
-                android:layout_height="32dp"
+                android:layout_height="40dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingStart="24dp"
@@ -382,7 +382,7 @@
             <LinearLayout
                 android:id="@+id/item_people_management"
                 android:layout_width="match_parent"
-                android:layout_height="32dp"
+                android:layout_height="40dp"
                 android:layout_marginTop="28dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
@@ -453,7 +453,7 @@
             <LinearLayout
                 android:id="@+id/item_cctv_management"
                 android:layout_width="match_parent"
-                android:layout_height="32dp"
+                android:layout_height="40dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingStart="24dp"
@@ -493,7 +493,7 @@
             <LinearLayout
                 android:id="@+id/item_machine_management"
                 android:layout_width="match_parent"
-                android:layout_height="32dp"
+                android:layout_height="40dp"
                 android:layout_marginTop="28dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"

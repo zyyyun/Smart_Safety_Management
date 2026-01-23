@@ -59,6 +59,7 @@
         android:layout_height="wrap_content"
         android:text="모두 읽음"
         android:letterSpacing="0"
+        android:fontFamily="@font/pretendard_semibold"
         android:textColor="#F97316"
         android:textSize="14sp"
         app:layout_constraintEnd_toEndOf="parent"
