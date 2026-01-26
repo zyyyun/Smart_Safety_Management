@@ -26,6 +26,12 @@ import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.alpha
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -158,7 +164,7 @@ fun InternalDetailScreen(
             )
             Spacer(Modifier.height(16.dp))
             PreviewCard(
-                imageRes = item.overviewThumb,
+                imageRes = R.drawable.aaa,
                 border = border,
                 modifier = Modifier
                     .padding(horizontal = side)
@@ -177,7 +183,7 @@ fun InternalDetailScreen(
             )
             Spacer(Modifier.height(16.dp))
             PreviewCard(
-                imageRes = item.siteThumb,
+                imageRes = R.drawable.bbb,
                 border = border,
                 modifier = Modifier
                     .padding(horizontal = side)
@@ -230,7 +236,8 @@ fun InternalDetailScreen(
 private fun PreviewCard(
     imageRes: Int,
     border: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isLive: Boolean = true // ✅ 추가(원하면 외부에서 제어)
 ) {
     val c = LocalSafeColors.current
     val bg = if (c.isDark) c.surface else Color.White
@@ -248,5 +255,62 @@ private fun PreviewCard(
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
+
+        // ✅ LIVE 뱃지 (dot 깜빡임)
+        if (isLive) {
+            LiveBadge(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            )
+        }
     }
 }
+
+@Composable
+fun LiveBadge(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "liveDot")
+    val dotAlpha = transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dotAlpha"
+    )
+
+    Box(
+        modifier = modifier
+            .size(width = 51.dp, height = 22.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color(0xFFE54F48)),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Spacer(Modifier.width(8.dp))
+
+            Image(
+                painter = painterResource(id = R.drawable.dot),
+                contentDescription = null,
+                modifier = Modifier.alpha(dotAlpha.value)
+            )
+
+            Spacer(Modifier.width(4.dp))
+
+            Text(
+                text = "LIVE",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = Pretendard,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+

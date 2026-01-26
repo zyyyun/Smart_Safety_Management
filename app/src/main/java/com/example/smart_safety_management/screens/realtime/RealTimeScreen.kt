@@ -547,13 +547,14 @@ fun SimpleDropdown(
                                     .background(highlightBg, itemShape)
                             )
 
-                            if (index != options.lastIndex) {
+                            if (!isDark && index != options.lastIndex) {
                                 Divider(
-                                    color = menuDividerColor, // ✅ 다크모드 #8A949E
+                                    color = menuDividerColor,
                                     thickness = 1.dp,
                                     modifier = Modifier.padding(horizontal = 12.dp)
                                 )
                             }
+
                         }
                     }
                 }
@@ -685,7 +686,7 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
     val isDark = c.isDark
     val isRisk = item.hasRisk()
 
-    val cardBg = if (isDark) c.surface else Color.White   // ✅ 카드 전체는 항상 흰색
+    val cardBg = if (isDark) Color(0xFF1E2124) else Color.White
 
     val infoBg = if (isDark) {
         if (isRisk) Color(0xFF1F252C) else Color.White
@@ -916,14 +917,18 @@ fun CamPill(
 
 @Composable
 fun PlaceText(text: String, color: Color) {
+    val c = LocalSafeColors.current
+    val placeColor = if (c.isDark) Color(0xFFCDD1D5) else color
+
     Text(
         text = text,
-        color = color,
+        color = placeColor,
         fontSize = 18.sp,
         fontWeight = FontWeight.Medium,
         fontFamily = Pretendard
     )
 }
+
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
