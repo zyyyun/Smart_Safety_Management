@@ -51,7 +51,8 @@
             android:backgroundTint="@color/gray50"
             app:cardCornerRadius="56dp"
             app:cardElevation="0dp"
-            app:strokeWidth="0dp">
+            app:strokeWidth="0.7dp"
+            app:strokeColor="@color/gray100">
 
             <ImageView
                 android:layout_width="match_parent"
