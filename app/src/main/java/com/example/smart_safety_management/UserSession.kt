@@ -9,6 +9,9 @@ object UserSession {
         }
 
     var userName: String = "안정우"
+    
+    // 프로필 이미지 경로 저장 (추가)
+    var profileImageUri: String? = null
 
     // 관리자용 초대코드 상태
     var isInviteDoneManager: Boolean = false

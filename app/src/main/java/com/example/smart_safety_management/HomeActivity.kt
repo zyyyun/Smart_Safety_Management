@@ -17,6 +17,7 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.content.Intent
 import android.graphics.Paint
+import android.net.Uri
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
@@ -69,7 +70,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun initUI() {
-        updateProfileName()
+        updateProfile()
         checkInviteCodeDialog()
 
         val topBar = findViewById<View>(R.id.top_bar)
@@ -147,12 +148,39 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        updateProfileName()
+        updateProfile()
     }
 
-    private fun updateProfileName() {
+    private fun updateProfile() {
         val profileBar = findViewById<View>(R.id.profile_bar)
-        profileBar.findViewById<TextView>(R.id.tv_user_name).text = UserSession.userName
+        if (profileBar != null) {
+            // 이름 업데이트
+            profileBar.findViewById<TextView>(R.id.tv_user_name)?.text = UserSession.userName
+
+            // 역할
+            profileBar.findViewById<TextView>(R.id.tv_user_authority)?.text =
+                if (UserSession.userRole == UserRole.MANAGER) "관리자님" else "근로자님"
+            
+            // 프로필 사진 동기화
+            val ivProfileBar = profileBar.findViewById<ImageView>(R.id.iv_profile_bar)
+            if (ivProfileBar != null) {
+                UserSession.profileImageUri?.let { uriString ->
+                    ivProfileBar.setImageURI(Uri.parse(uriString))
+                    ivProfileBar.scaleType = ImageView.ScaleType.CENTER_CROP
+                    ivProfileBar.setPadding(0, 0, 0, 0)
+                } ?: run {
+                    // 설정된 사진이 없으면 기본값 유지
+                    ivProfileBar.setImageResource(R.drawable.profile)
+                    ivProfileBar.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                    ivProfileBar.setPadding(
+                        (resources.displayMetrics.density * 5).toInt(),
+                        (resources.displayMetrics.density * 8).toInt(),
+                        (resources.displayMetrics.density * 5).toInt(),
+                        0
+                    )
+                }
+            }
+        }
     }
 
     private fun findClosestUncheckedDay(): Int? {
