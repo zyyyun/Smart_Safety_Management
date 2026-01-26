@@ -116,7 +116,7 @@ fun MonthlyListScreen() {
     var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
     var startDate by remember { mutableStateOf(currentYearMonth.atDay(1)) }
     var endDate by remember { mutableStateOf(currentYearMonth.atEndOfMonth()) }
-    var lastUserInteraction by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var lastUserInteraction by remember { mutableStateOf(0L) }
     val listState = rememberLazyListState()
     val isScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
 
@@ -264,7 +264,7 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
     val iconTint = if (MaterialTheme.colors.isLight) Color.Unspecified else GrayBorder
 
     if (showCustomPicker) {
-        val initialDate = if (pickingStartDate) LocalDate.parse(startDateStr, formatter) else LocalDate.parse(endDateStr, formatter)
+        val initialDate = if (pickingStartDate) (if(startDateStr.isEmpty()) LocalDate.now() else LocalDate.parse(startDateStr, formatter)) else (if(endDateStr.isEmpty()) LocalDate.now() else LocalDate.parse(endDateStr, formatter))
         CustomDatePickerDialog(
             initialDate = initialDate,
             onDismiss = { showCustomPicker = false },
@@ -288,7 +288,6 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
 fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDateSelected: (LocalDate) -> Unit) {
     var selectedDate by remember { mutableStateOf(initialDate) }
     var viewMonth by remember { mutableStateOf(YearMonth.from(initialDate)) }
-    
     val datesWithReports = remember { mockReports.map { it.date }.toSet() }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -310,24 +309,24 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 val firstDayOfMonth = viewMonth.atDay(1)
-                val firstDayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
+                val dayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
+                val daysInMonth = viewMonth.lengthOfMonth()
                 
-                val calendarRows = mutableListOf<List<LocalDate>>()
-                var currentDay = firstDayOfMonth.minusDays(firstDayOfWeek.toLong())
+                // 5주(35일)로 안 끝날 때만 6주(42일) 표시하도록 계산
+                val totalDaysToShow = if (dayOfWeek + daysInMonth > 35) 42 else 35
                 
-                repeat(6) {
-                    val row = mutableListOf<LocalDate>()
-                    repeat(7) {
-                        row.add(currentDay)
-                        currentDay = currentDay.plusDays(1)
-                    }
-                    calendarRows.add(row)
+                val calendarDays = mutableListOf<LocalDate>()
+                var currentDay = firstDayOfMonth.minusDays(dayOfWeek.toLong())
+                
+                repeat(totalDaysToShow) {
+                    calendarDays.add(currentDay)
+                    currentDay = currentDay.plusDays(1)
                 }
 
                 Column {
-                    calendarRows.forEach { row ->
+                    calendarDays.chunked(7).forEach { week ->
                         Row(modifier = Modifier.fillMaxWidth()) {
-                            row.forEach { date ->
+                            week.forEach { date ->
                                 val isCurrentMonth = date.month == viewMonth.month
                                 val isSelected = date == selectedDate
                                 val hasReport = datesWithReports.contains(date)
@@ -347,19 +346,13 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
                                             color = when {
                                                 isSelected -> Color.White
                                                 isCurrentMonth -> if (MaterialTheme.colors.isLight) Color.Black else Color.White
-                                                else -> Color.Gray.copy(alpha = 0.5f)
+                                                else -> Color.Gray.copy(alpha = 0.4f)
                                             },
                                             fontSize = 14.sp,
                                             fontFamily = Pretendard
                                         )
-                                        
                                         if (hasReport && !isSelected) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(4.dp)
-                                                    .clip(CircleShape)
-                                                    .background(MaterialTheme.colors.primary)
-                                            )
+                                            Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(MaterialTheme.colors.primary))
                                         }
                                     }
                                 }
