@@ -1,9 +1,12 @@
 package com.example.smart_safety_management
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.ContactsContract
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
@@ -13,7 +16,10 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.checkbox.MaterialCheckBox
@@ -24,6 +30,8 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
     private lateinit var adapter: InviteContactAdapter
     private var contactList = mutableListOf<InviteContactItem>()
     private var filteredList = mutableListOf<InviteContactItem>()
+    
+    private val CONTACTS_PERMISSION_CODE = 101
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,10 +45,6 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
         val btnSend = findViewById<Button>(R.id.btn_send)
         val recyclerView = findViewById<RecyclerView>(R.id.contactRecycler)
 
-        // 샘플 데이터 추가
-        setupMockData()
-        filteredList.addAll(contactList)
-
         // 리사이클러뷰 설정
         adapter = InviteContactAdapter(filteredList) { selectedCount ->
             btnSend.text = "초대문자 발송 ($selectedCount)"
@@ -52,6 +56,9 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
         // 초기 상태: 검색바 숨김
         searchEdit.visibility = View.GONE
         btnSend.text = "초대문자 발송 (0)"
+
+        // 연락처 권한 확인 및 로드
+        checkAndRequestPermission()
 
         // 뒤로가기 버튼
         backButton.setOnClickListener {
@@ -106,25 +113,50 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupMockData() {
-        contactList.add(InviteContactItem("아이유", "010-1234-5678"))
-        contactList.add(InviteContactItem("김수현", "010-2345-6789"))
-        contactList.add(InviteContactItem("유재석", "010-3456-7890"))
-        contactList.add(InviteContactItem("전지현", "010-4567-8901"))
-        contactList.add(InviteContactItem("이민호", "010-5678-9012"))
-        contactList.add(InviteContactItem("소지섭", "010-6789-0123"))
-        contactList.add(InviteContactItem("박신혜", "010-7890-1234"))
-        contactList.add(InviteContactItem("이종석", "010-8901-2345"))
-        contactList.add(InviteContactItem("정해인", "010-9012-3456"))
-        contactList.add(InviteContactItem("한지민", "010-0123-4567"))
-        contactList.add(InviteContactItem("김태희", "010-1234-5678"))
-        contactList.add(InviteContactItem("이병헌", "010-1234-8901"))
-        contactList.add(InviteContactItem("박보검", "010-8765-4321"))
-        contactList.add(InviteContactItem("김연아", "010-2345-9012"))
-        contactList.add(InviteContactItem("송중기", "010-3456-0123"))
-        contactList.add(InviteContactItem("김태리", "010-4567-1234"))
-        contactList.add(InviteContactItem("조인성", "010-5678-2345"))
-        contactList.add(InviteContactItem("신세경", "010-6789-3456"))
+    private fun checkAndRequestPermission() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_CONTACTS), CONTACTS_PERMISSION_CODE)
+        } else {
+            loadActualContacts()
+        }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == CONTACTS_PERMISSION_CODE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            loadActualContacts()
+        } else {
+            Toast.makeText(this, "연락처 권한이 필요합니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun loadActualContacts() {
+        contactList.clear()
+        val resolver = contentResolver
+        val cursor = resolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            null, null, null, 
+            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
+        )
+
+        cursor?.use {
+            val nameIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+            val numberIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
+
+            while (it.moveToNext()) {
+                val name = it.getString(nameIndex) ?: "이름 없음"
+                val number = it.getString(numberIndex) ?: ""
+                
+                // 중복 번호 제거 로직 추가 가능
+                if (contactList.none { item -> item.phoneNumber == number }) {
+                    contactList.add(InviteContactItem(name, number))
+                }
+            }
+        }
+        
+        filteredList.clear()
+        filteredList.addAll(contactList)
+        adapter.notifyDataSetChanged()
     }
 
     private fun filter(text: String) {
