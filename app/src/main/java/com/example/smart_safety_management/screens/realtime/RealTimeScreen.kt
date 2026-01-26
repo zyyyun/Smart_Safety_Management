@@ -45,6 +45,14 @@ import com.example.smart_safety_management.ui.theme.ClipartKorea
 import androidx.compose.ui.platform.LocalConfiguration
 import com.example.smart_safety_management.ui.theme.Pretendard
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.text.style.TextOverflow
 
 
 
@@ -360,14 +368,18 @@ private fun RealTimeContent(
                     color = c.sub
                 )
                 Spacer(Modifier.weight(1f))
-                IconButton(onClick = { isGrid = !isGrid }) {
+                IconButton(
+                    onClick = { isGrid = !isGrid },
+                    modifier = Modifier.size(48.dp) // ✅ 리플 기준 영역(정사각형)
+                ) {
                     Icon(
                         painter = painterResource(id = if (isGrid) R.drawable.frame else R.drawable.vector),
                         contentDescription = null,
                         tint = c.sub,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(28.dp) // ✅ 아이콘 크기(원하면 26~30)
                     )
                 }
+
             }
 
             // 리스트/그리드 영역
@@ -477,30 +489,38 @@ fun SimpleDropdown(
                 ),
                 properties = PopupProperties(focusable = false)
             ) {
+                val menuShape = RoundedCornerShape(10.dp)
+
                 Box(
                     modifier = Modifier
                         .width(finalMenuWidth)
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(menuShape)
                         .background(dropdownBg)
-                        .border(1.dp, borderColor, RoundedCornerShape(10.dp))
+                        .border(1.dp, borderColor, menuShape)
                 ) {
-                    Column(
+                    LazyColumn(
                         modifier = Modifier
-                            .then(if (menuHeight != null) Modifier.height(menuHeight) else Modifier)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        options.forEach { opt ->
+                            .wrapContentHeight()                 // ✅ 내용만큼
+                            .heightIn(max = menuHeight ?: Dp.Unspecified) // ✅ 많을 때만 제한
+                            .clip(menuShape)                     // ✅ 라운드 유지
+                    )
+                    {
+                        itemsIndexed(options) { index, opt ->
                             val selected = opt == value
 
-                            // ✅ 눌림(pressed) 상태 감지
-                            val interactionSource = remember { MutableInteractionSource() }
+                            val interactionSource = remember(opt) { MutableInteractionSource() }
                             val isPressed by interactionSource.collectIsPressedAsState()
 
-                            // ✅ 선택 + 누르는 중 모두 같은 색으로 칠하기
                             val highlightBg = when {
-                                (selected || isPressed) && !isDark -> Color(0xFFFEF1E7) // 🌞 라이트
-                                (selected || isPressed) && isDark  -> Color(0xFF664224) // 🌙 다크
+                                (selected || isPressed) && !isDark -> Color(0xFFFEF1E7)
+                                (selected || isPressed) && isDark  -> Color(0xFF664224)
                                 else -> Color.Transparent
+                            }
+
+                            // ✅ 마지막 항목이면 아래 모서리도 같이 칠해지도록 shape 적용
+                            val itemShape = when (index) {
+                                options.lastIndex -> RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp)
+                                else -> RoundedCornerShape(0.dp)
                             }
 
                             DropdownMenuItem(
@@ -509,19 +529,29 @@ fun SimpleDropdown(
                                         text = opt,
                                         fontSize = 18.sp,
                                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = c.text
+                                        color = c.text,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 },
                                 onClick = {
                                     onSelect(opt)
                                     onExpandedChange(false)
                                 },
-                                interactionSource = interactionSource, // ✅ 필수
+                                interactionSource = interactionSource,
                                 contentPadding = PaddingValues(horizontal = 24.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(highlightBg)
+                                    .background(highlightBg, itemShape) // ✅ 라운드 배경 적용
                             )
+
+                            if (index != options.lastIndex) {
+                                Divider(
+                                    color = Color(0xFFF4F5F6),
+                                    thickness = 1.dp,
+                                    modifier = Modifier.padding(horizontal = 12.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -792,21 +822,53 @@ fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
 
 @Composable
 fun LiveBadge(modifier: Modifier = Modifier) {
+    // ✅ 2초 주기 깜빡임(점만)
+    val transition = rememberInfiniteTransition(label = "liveDot")
+    val dotAlpha = transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(
+            // 2초마다 한 번 깜빡: 1초 동안 fade-out, 1초 동안 fade-in
+            animation = tween(durationMillis = 1000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dotAlpha"
+    )
+
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(Color(0xFFE85B5B))
-            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .size(width = 51.dp, height = 22.dp) // ✅ 51x22
+            .clip(RoundedCornerShape(999.dp))    // ✅ 타원
+            .background(Color(0xFFE54F48)),      // ✅ #E54F48
+        contentAlignment = Alignment.CenterStart
     ) {
-        Text(
-            text = "LIVE",
-            color = Color.White,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            fontFamily = Pretendard
-        )
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Spacer(Modifier.width(8.dp)) // ✅ 왼쪽 8px
+
+            // ✅ dot.svg (리소스 이름이 dot이면 R.drawable.dot)
+            Image(
+                painter = painterResource(id = R.drawable.dot),
+                contentDescription = null,
+                modifier = Modifier.alpha(dotAlpha.value) // ✅ 깜빡임
+            )
+
+            Spacer(Modifier.width(4.dp)) // ✅ dot에서 4px
+
+            Text(
+                text = "LIVE",
+                color = Color.White,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,  // ✅ Pretendard Medium
+                fontFamily = Pretendard,
+                maxLines = 1
+            )
+        }
     }
 }
+
 
 @Composable
 fun CamPill(
@@ -836,7 +898,7 @@ fun CamPill(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(camBg)
-            .padding(horizontal = 12.dp, vertical = 7.dp)
+            .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
         Text(
             text = text,

@@ -37,13 +37,15 @@ fun InternalDetailScreen(
 ) {
     val c = LocalSafeColors.current
 
-    // ✅ 다크/라이트에 따라 상세 화면 톤 분기
     val bg = if (c.isDark) c.bg else Color.White
     val surface = if (c.isDark) c.surface else Color.White
 
     val border = c.border
     val text = c.text
     val sub = c.sub
+
+    val side = 24.dp
+    val sectionTitleColor = Color(0xFF676F76) // 피그마 기준
 
     Scaffold(
         containerColor = bg,
@@ -82,6 +84,7 @@ fun InternalDetailScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = bg,
+                    scrolledContainerColor = bg, // ✅ 스크롤 시 생기는 “줄” 제거 핵심
                     titleContentColor = text,
                     navigationIconContentColor = text,
                     actionIconContentColor = sub
@@ -90,12 +93,12 @@ fun InternalDetailScreen(
         },
         modifier = modifier
     ) { inner ->
+        // ✅ 전체 Column에 좌우 24를 주지 말고, 필요한 요소만 side padding 주기
         Column(
             modifier = Modifier
                 .padding(inner)
                 .fillMaxSize()
                 .background(bg)
-                .padding(horizontal = 24.dp) // ✅ 좌우 24 (이 기준으로 전경/현장 카드도 꽉 채움)
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(Modifier.height(12.dp))
@@ -106,13 +109,14 @@ fun InternalDetailScreen(
                 color = sub,
                 fontWeight = FontWeight.Medium,
                 fontFamily = Pretendard,
+                modifier = Modifier.padding(horizontal = side)
             )
 
-            Spacer(Modifier.height(16.dp)) // ✅ 이벤트 내용 ↔ 위치 카드 16
+            Spacer(Modifier.height(16.dp))
 
-            // ✅ 위치 카드 (위/아래 간격 그대로, 좌우 24 기준에 맞게 fillMaxWidth)
             Row(
                 modifier = Modifier
+                    .padding(horizontal = side)
                     .fillMaxWidth()
                     .height(54.5.dp)
                     .clip(RoundedCornerShape(10.dp))
@@ -144,61 +148,64 @@ fun InternalDetailScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // ✅ 전경/현장/현장캡쳐 타이틀 컬러
-            val sectionTitleColor = Color(0xFF676F76) // ✅ 피그마 기준
-
-            // ✅ 전경 (좌우 24 안에서 꽉 채우기)
             Text(
                 text = "전경",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
                 fontFamily = Pretendard,
-                color = sectionTitleColor
+                color = sectionTitleColor,
+                modifier = Modifier.padding(horizontal = side)
             )
             Spacer(Modifier.height(16.dp))
             PreviewCard(
                 imageRes = item.overviewThumb,
                 border = border,
-                modifier = Modifier.fillMaxWidth() // ✅ 왼쪽24~오른쪽24 사이 꽉
+                modifier = Modifier
+                    .padding(horizontal = side)
+                    .fillMaxWidth()
             )
 
             Spacer(Modifier.height(24.dp))
 
-            // ✅ 현장 (좌우 24 안에서 꽉 채우기)
             Text(
                 text = "현장",
                 fontSize = 18.sp,
                 color = sectionTitleColor,
                 fontWeight = FontWeight.Medium,
                 fontFamily = Pretendard,
+                modifier = Modifier.padding(horizontal = side)
             )
             Spacer(Modifier.height(16.dp))
             PreviewCard(
                 imageRes = item.siteThumb,
                 border = border,
-                modifier = Modifier.fillMaxWidth() // ✅ 왼쪽24~오른쪽24 사이 꽉
+                modifier = Modifier
+                    .padding(horizontal = side)
+                    .fillMaxWidth()
             )
 
             Spacer(Modifier.height(24.dp))
 
-            // ✅ 현장캡쳐 (기존처럼 LazyRow/120 유지)
             Text(
                 text = "현장캡쳐",
                 fontSize = 18.sp,
                 color = sectionTitleColor,
                 fontWeight = FontWeight.Medium,
                 fontFamily = Pretendard,
+                modifier = Modifier.padding(horizontal = side)
             )
             Spacer(Modifier.height(16.dp))
 
+            // ✅ 오른쪽 끝이 “벽까지” 가도록: end padding = 0.dp
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(start = side, end = 0.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(item.captureThumbs) { res ->
                     Box(
                         modifier = Modifier
-                            .requiredSize(120.dp) // ✅ 기존 그대로
+                            .size(140.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .border(1.dp, border, RoundedCornerShape(14.dp))
                             .background(surface)
@@ -230,7 +237,7 @@ private fun PreviewCard(
 
     Box(
         modifier = modifier
-            .height(210.dp) // ✅ 기존 높이 그대로
+            .height(210.dp)
             .clip(RoundedCornerShape(14.dp))
             .border(1.dp, border, RoundedCornerShape(14.dp))
             .background(bg)
@@ -238,7 +245,7 @@ private fun PreviewCard(
         Image(
             painter = painterResource(id = imageRes),
             contentDescription = null,
-            contentScale = ContentScale.Crop, // ✅ 기존처럼 꽉 채우기(일부 크롭)
+            contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
     }
