@@ -92,6 +92,7 @@ fun HistoryScreen() {
                 modifier = Modifier
                     .fillMaxSize()
                     .background(topBarBackgroundColor)
+                    .background(Color.Transparent)
             ) {
                 // 1. 상단바 영역
                 Column {
@@ -140,7 +141,7 @@ fun HistoryScreen() {
                             HistoryItemFrame(data)
                         }
                         // 리스트 끝 여백
-                        Spacer(modifier = Modifier.height(24.dp))
+                        //Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             }
@@ -311,6 +312,12 @@ fun FilterBottomSheetContent() {
             .background(MaterialTheme.colors.onPrimary)
             .verticalScroll(rememberScrollState())
     ) {
+        Spacer(modifier = Modifier.height(12.dp))
+        Box(modifier = Modifier.height(4.dp).width(60.dp)
+            .background(borderColor,shape = RoundedCornerShape(100.dp))
+            .align(Alignment.CenterHorizontally)
+        )
+        Spacer(modifier = Modifier.fillMaxHeight())
         Box(
             modifier = Modifier
                 .fillMaxWidth()

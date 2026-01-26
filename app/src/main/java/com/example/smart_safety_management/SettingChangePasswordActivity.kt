@@ -13,12 +13,15 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 
 class SettingChangePasswordActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_change_password)
 
+        val tilNewPassword = findViewById<TextInputLayout>(R.id.til_write_new_password)
+        val tilReNewPassword = findViewById<TextInputLayout>(R.id.til_write_re_new_password)
         val etNewPassword = findViewById<TextInputEditText>(R.id.et_new_password)
         val etReNewPassword = findViewById<TextInputEditText>(R.id.et_re_new_password)
         val tvNotice = findViewById<TextView>(R.id.tv_notice)
@@ -45,17 +48,18 @@ class SettingChangePasswordActivity : AppCompatActivity() {
 
                 if (reNewPassword.isEmpty()) {
                     tvNotice.visibility = View.INVISIBLE
-                    etReNewPassword.setBackgroundResource(R.drawable.bg_edittext)
+                    tilReNewPassword.setBoxStrokeColorStateList(ContextCompat.getColorStateList(this@SettingChangePasswordActivity, R.color.til_stroke)!!)
                 } else {
                     tvNotice.visibility = View.VISIBLE
                     if (newPassword == reNewPassword) {
                         tvNotice.text = "비밀번호가 일치합니다."
                         tvNotice.setTextColor(ContextCompat.getColor(this@SettingChangePasswordActivity, R.color.teal500))
-                        etReNewPassword.setBackgroundResource(R.drawable.bg_edittext)
+                        tilReNewPassword.setBoxStrokeColorStateList(ContextCompat.getColorStateList(this@SettingChangePasswordActivity, R.color.til_stroke)!!)
                     } else {
                         tvNotice.text = "비밀번호가 일치하지 않습니다."
                         tvNotice.setTextColor(ContextCompat.getColor(this@SettingChangePasswordActivity, R.color.red500))
-                        etReNewPassword.setBackgroundResource(R.drawable.bg_edittext_error)
+                        // 에러 시 테두리 색상 변경 (배경을 직접 바꾸는 대신 TextInputLayout의 속성 활용)
+                        tilReNewPassword.setBoxStrokeColorStateList(ContextCompat.getColorStateList(this@SettingChangePasswordActivity, R.color.red500)!!)
                     }
                 }
             }
@@ -97,5 +101,12 @@ class SettingChangePasswordActivity : AppCompatActivity() {
         }
 
         alertDialog.show()
+        alertDialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+
+            val params = attributes
+            params.width = (resources.displayMetrics.widthPixels * 0.85).toInt()
+            attributes = params
+        }
     }
 }

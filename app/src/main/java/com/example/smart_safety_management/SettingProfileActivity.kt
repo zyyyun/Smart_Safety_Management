@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
@@ -104,5 +105,10 @@ class SettingProfileActivity : AppCompatActivity() {
         }
 
         alertDialog.show()
+
+        // 양옆 마진 24dp 적용
+        val marginPx = (24 * resources.displayMetrics.density).toInt()
+        val width = resources.displayMetrics.widthPixels - (marginPx * 2)
+        alertDialog.window?.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 }
