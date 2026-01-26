@@ -109,13 +109,11 @@ fun LocationScreen(
     }
 
     val pillBorder = c.border
-    val iconTint = c.text
-
+    val tableTextColor = Color(0xFF33363D)
+    val iconTint = tableTextColor
     var selectedWorkerId by remember { mutableStateOf<String?>(null) }
-
     val areas = listOf("전체", "A구역", "B구역", "C구역", "D구역", "E구역")
     var selectedArea by remember { mutableStateOf("전체") }
-
     var showCamDialog by remember { mutableStateOf(false) }
     var camTargetRow by remember { mutableStateOf<WorkerRow?>(null) }
 
@@ -264,19 +262,17 @@ fun LocationScreen(
                 fontFamily = ClipartKorea,
                 color = Color.White,
                 modifier = Modifier.padding(start = 10.dp)
-
             )
 
             Spacer(Modifier.height(10.dp))
 
-            // ✅ 다크모드: 칩 배경은 항상 검정 / 선택은 "텍스트만 흰색"
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(areas) { area ->
                     val isSelected = selectedArea == area
                     val chipWidth = if (area == "전체") 48.dp else 59.dp
 
                     val chipBg = when {
-                        dark -> Color.Black // ✅ 다크는 항상 검정
+                        dark -> Color.Black
                         else -> if (isSelected) Color(0xFFFF7A00) else Color.White
                     }
 
@@ -292,7 +288,6 @@ fun LocationScreen(
                         isSelected -> Color.White
                         else -> Color(0xFF6B7280)
                     }
-
 
                     Box(
                         modifier = Modifier
@@ -351,7 +346,7 @@ fun LocationScreen(
                 )
 
                 TableHeader(
-                    textSecondary = textSecondary,
+                    textSecondary = textPrimary,
                     divider = dividerStrong,
                     dark = dark
                 )
@@ -371,7 +366,7 @@ fun LocationScreen(
                                 showCamDialog = true
                             },
                             textPrimary = textPrimary,
-                            iconTint = iconTint,
+                            iconTint = iconTint, // ✅ #33363D
                             divider = dividerLight
                         )
                     }
@@ -570,14 +565,14 @@ private fun TableRowItem(
             modifier = Modifier.weight(0.12f),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                painter = painterResource(row.camIcon),
+            Image(
+                painter = painterResource(id = R.drawable.camimg),
                 contentDescription = null,
-                tint = iconTint,
                 modifier = Modifier
                     .size(18.dp)
                     .clickable { onCamClick(row) }
             )
+
         }
     }
 
@@ -655,7 +650,8 @@ private fun CamDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(27.dp),
+                        .height(27.dp)
+                        .padding(start = 1.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
