@@ -4,15 +4,21 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.ui.focus.requestFocus
+import androidx.compose.ui.semantics.setText
+import androidx.compose.ui.semantics.text
+import com.google.android.material.textfield.TextInputEditText
 
 class SettingProfileActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,18 +33,54 @@ class SettingProfileActivity : AppCompatActivity() {
             finish()
         }
 
-        // 이름 수정 버튼 클릭 시 팝업 띄우기
+        // 1. 이름 수정 버튼 (다이얼로그 방식)
         findViewById<ImageView>(R.id.btn_edit_name).setOnClickListener {
             showChangeNameDialog()
         }
+
+        // 2. 휴대폰 번호 수정 로직 (인라인 방식)
+        setupPhoneEditLogic()
     }
 
     private fun loadUserData() {
         findViewById<TextView>(R.id.tv_user_name).text = UserSession.userName
-        
-        // 현재 역할(권한) 표시
-        val authorityTv = findViewById<TextView>(R.id.tv_user_name_authority)
-        authorityTv.text = if (UserSession.userRole == UserRole.MANAGER) "관리자" else "근로자"
+        findViewById<TextView>(R.id.tv_user_phone).text
+        findViewById<TextView>(R.id.tv_user_email).text
+    }
+
+    private fun setupPhoneEditLogic() {
+        val tvPhoneValue = findViewById<TextView>(R.id.tv_user_phone)
+        val btnEditPhone = tvPhoneValue.parent as LinearLayout // tv_user_phone의 부모 (표시 상태 레이아웃)
+        val layoutPhoneEdit = findViewById<LinearLayout>(R.id.layout_phone_edit)
+        val etPhoneEdit = findViewById<TextInputEditText>(R.id.et_phone_edit)
+        val btnConfirm = findViewById<ImageView>(R.id.btn_phone_confirm)
+        val btnCancel = findViewById<ImageView>(R.id.btn_phone_cancel)
+
+        // '>' 버튼 클릭 시 (정확히는 그 텍스트뷰 영역 포함 레이아웃 클릭 시)
+        btnEditPhone.setOnClickListener {
+            btnEditPhone.visibility = View.GONE
+            layoutPhoneEdit.visibility = View.VISIBLE
+            etPhoneEdit.setText(tvPhoneValue.text)
+            etPhoneEdit.requestFocus()
+        }
+
+        // 'X' 취소 버튼 클릭 시
+        btnCancel.setOnClickListener {
+            layoutPhoneEdit.visibility = View.GONE
+            btnEditPhone.visibility = View.VISIBLE
+        }
+
+        // 'V' 확인 버튼 클릭 시
+        btnConfirm.setOnClickListener {
+            val newPhone = etPhoneEdit.text.toString()
+            if (newPhone.isNotEmpty()) {
+                // TODO: 여기에 백엔드 API 연결 (전화번호 업데이트)
+                tvPhoneValue.text = newPhone
+
+                layoutPhoneEdit.visibility = View.GONE
+                btnEditPhone.visibility = View.VISIBLE
+            }
+        }
     }
 
     private fun showChangeNameDialog() {
