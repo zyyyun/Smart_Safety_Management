@@ -447,6 +447,10 @@ fun SimpleDropdown(
     val gapPx = with(density) { 6.dp.roundToPx() }
     val finalMenuWidth = menuWidth ?: with(density) { anchorWidthPx.toDp() }
 
+    // ✅ 다크모드 전용 색
+    val menuTextColor = if (isDark) Color(0xFFCDD1D5) else c.text
+    val menuDividerColor = if (isDark) Color(0xFF8A949E) else Color(0xFFF4F5F6)
+
     Box(modifier = modifier) {
         // 버튼(앵커)
         Box(
@@ -500,11 +504,10 @@ fun SimpleDropdown(
                 ) {
                     LazyColumn(
                         modifier = Modifier
-                            .wrapContentHeight()                 // ✅ 내용만큼
-                            .heightIn(max = menuHeight ?: Dp.Unspecified) // ✅ 많을 때만 제한
-                            .clip(menuShape)                     // ✅ 라운드 유지
-                    )
-                    {
+                            .wrapContentHeight()
+                            .heightIn(max = menuHeight ?: Dp.Unspecified)
+                            .clip(menuShape)
+                    ) {
                         itemsIndexed(options) { index, opt ->
                             val selected = opt == value
 
@@ -517,7 +520,6 @@ fun SimpleDropdown(
                                 else -> Color.Transparent
                             }
 
-                            // ✅ 마지막 항목이면 아래 모서리도 같이 칠해지도록 shape 적용
                             val itemShape = when (index) {
                                 options.lastIndex -> RoundedCornerShape(bottomStart = 10.dp, bottomEnd = 10.dp)
                                 else -> RoundedCornerShape(0.dp)
@@ -529,7 +531,7 @@ fun SimpleDropdown(
                                         text = opt,
                                         fontSize = 18.sp,
                                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                        color = c.text,
+                                        color = menuTextColor, // ✅ 다크모드 #CDD1D5
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -542,12 +544,12 @@ fun SimpleDropdown(
                                 contentPadding = PaddingValues(horizontal = 24.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(highlightBg, itemShape) // ✅ 라운드 배경 적용
+                                    .background(highlightBg, itemShape)
                             )
 
                             if (index != options.lastIndex) {
                                 Divider(
-                                    color = Color(0xFFF4F5F6),
+                                    color = menuDividerColor, // ✅ 다크모드 #8A949E
                                     thickness = 1.dp,
                                     modifier = Modifier.padding(horizontal = 12.dp)
                                 )
@@ -559,6 +561,7 @@ fun SimpleDropdown(
         }
     }
 }
+
 
 
 
@@ -938,8 +941,9 @@ fun TagPill(text: String, isRisk: Boolean = false) {
     val c = LocalSafeColors.current
     val isDark = c.isDark
 
+    // ✅ 다크모드 위험사고 칩 배경을 #131416 로 변경
     val bg = when {
-        isDark && isRisk -> Color(0xFF2A3038)
+        isDark && isRisk -> Color(0xFF131416)   // 🔥 변경됨
         isDark && !isRisk -> c.chip
         !isDark && isRisk -> Color(0xFFF3F4F6)
         else -> Color.White
@@ -952,6 +956,7 @@ fun TagPill(text: String, isRisk: Boolean = false) {
     }
 
     val borderColor = if (!isDark) Color(0xFFE5E7EB) else c.border
+    // (※ borderColor는 지금 Box에 안 쓰고 있어서 그대로 둠)
 
     Box(
         modifier = Modifier
@@ -968,6 +973,7 @@ fun TagPill(text: String, isRisk: Boolean = false) {
         )
     }
 }
+
 
 @Composable
 fun TagsRowSingleLine(tags: List<String>, isRisk: Boolean = false) {
