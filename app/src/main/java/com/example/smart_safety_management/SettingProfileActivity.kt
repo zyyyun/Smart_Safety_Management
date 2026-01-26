@@ -40,6 +40,9 @@ class SettingProfileActivity : AppCompatActivity() {
 
         // 2. 휴대폰 번호 수정 로직 (인라인 방식)
         setupPhoneEditLogic()
+
+        // 3. 이메일 수정 로직 (인라인 방식)
+        setupEmailEditLogic()
     }
 
     private fun loadUserData() {
@@ -50,7 +53,7 @@ class SettingProfileActivity : AppCompatActivity() {
 
     private fun setupPhoneEditLogic() {
         val tvPhoneValue = findViewById<TextView>(R.id.tv_user_phone)
-        val btnEditPhone = tvPhoneValue.parent as LinearLayout // tv_user_phone의 부모 (표시 상태 레이아웃)
+        val btnEditPhone = tvPhoneValue.parent as LinearLayout // tv_user_phone의 부모
         val layoutPhoneEdit = findViewById<LinearLayout>(R.id.layout_phone_edit)
         val etPhoneEdit = findViewById<TextInputEditText>(R.id.et_phone_edit)
         val btnConfirm = findViewById<ImageView>(R.id.btn_phone_confirm)
@@ -79,6 +82,42 @@ class SettingProfileActivity : AppCompatActivity() {
 
                 layoutPhoneEdit.visibility = View.GONE
                 btnEditPhone.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    // setupEmailEditLogic 함수 추가 및 호출
+    private fun setupEmailEditLogic() {
+        val layoutEmailView = findViewById<LinearLayout>(R.id.layout_email_view)
+        val layoutEmailEdit = findViewById<LinearLayout>(R.id.layout_email_edit)
+        val tvEmailValue = findViewById<TextView>(R.id.tv_user_email)
+        val etEmailEdit = findViewById<TextInputEditText>(R.id.et_email_edit)
+        val btnEditEmail = findViewById<ImageView>(R.id.btn_edit_email)
+        val btnConfirm = findViewById<ImageView>(R.id.btn_email_confirm)
+        val btnCancel = findViewById<ImageView>(R.id.btn_email_cancel)
+
+        // '>' 버튼 클릭 시
+        layoutEmailView.setOnClickListener {
+            layoutEmailView.visibility = View.GONE
+            layoutEmailEdit.visibility = View.VISIBLE
+            etEmailEdit.setText(tvEmailValue.text)
+            etEmailEdit.requestFocus()
+        }
+
+        // 'X' 버튼 클릭 시
+        btnCancel.setOnClickListener {
+            layoutEmailEdit.visibility = View.GONE
+            layoutEmailView.visibility = View.VISIBLE
+        }
+
+        // 'V' 확인 버튼 클릭 시
+        btnConfirm.setOnClickListener {
+            val newEmail = etEmailEdit.text.toString()
+            if (newEmail.isNotEmpty()) {
+                // TODO: 백엔드 API 호출 (이메일 업데이트)
+                tvEmailValue.text = newEmail
+                layoutEmailEdit.visibility = View.GONE
+                layoutEmailView.visibility = View.VISIBLE
             }
         }
     }
