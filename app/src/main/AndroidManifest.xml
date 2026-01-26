@@ -23,7 +23,9 @@
         android:label="중대재해예방 플랫폼"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
         android:theme="@style/Theme.Smart_Safety_Management">
+
 
         <provider
             android:name="androidx.core.content.FileProvider"

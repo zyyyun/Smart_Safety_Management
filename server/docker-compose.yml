@@ -3,6 +3,7 @@ version: '3.8'
 services:
   # 1. PostgreSQL 데이터베이스 설정
   db:
+    platform: linux/amd64  # 추가
     image: postgres:15
     container_name: smart_safety_db
     restart: always
@@ -17,6 +18,7 @@ services:
 
   # 2. pgAdmin 4 설정 (웹 기반 DB 관리 도구)
   pgadmin:
+    platform: linux/amd64 
     image: dpage/pgadmin4
     container_name: smart_safety_pgadmin
     restart: always
@@ -24,6 +26,6 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@admin.com # pgAdmin 로그인 이메일
       PGADMIN_DEFAULT_PASSWORD: admin        # pgAdmin 로그인 비밀번호
     ports:
-      - "8080:80"                            # 브라우저에서 8080으로 접속
+      - "8081:80"                            # 브라우저에서 8081으로 접속
     depends_on:
       - db                                   # DB가 먼저 실행된 후 실행
