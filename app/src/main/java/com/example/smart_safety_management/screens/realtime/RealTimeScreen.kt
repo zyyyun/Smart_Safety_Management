@@ -686,13 +686,8 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
     val isDark = c.isDark
     val isRisk = item.hasRisk()
 
+    // ✅ 다크모드 카드 배경
     val cardBg = if (isDark) Color(0xFF1E2124) else Color.White
-
-    val infoBg = if (isDark) {
-        if (isRisk) Color(0xFF1F252C) else Color.White
-    } else {
-        if (isRisk) Color(0xFFF4F5F6) else Color.White    // ✅ 위험가능성만 회색
-    }
 
     val infoText = if (isRisk) {
         if (isDark) Color(0xFF9AA1AA) else Color(0xFF6B7280)
@@ -710,6 +705,7 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
         border = BorderStroke(1.dp, c.border)
     ) {
         Column {
+            // ✅ 상단 썸네일
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -721,6 +717,7 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
+
                 if (item.isLive) {
                     LiveBadge(
                         modifier = Modifier
@@ -730,10 +727,11 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
                 }
             }
 
+            // ✅ 하단 정보 영역도 카드 배경색으로 통일
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .background(cardBg) // 🔥 핵심
                     .padding(horizontal = 12.dp, vertical = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -746,11 +744,11 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
                 }
 
                 TagsRow(item.tags, isRisk = isRisk)
-
             }
         }
     }
 }
+
 
 @Composable
 fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
@@ -758,16 +756,8 @@ fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
     val isDark = c.isDark
     val isRisk = item.hasRisk()
 
-    val cardBg = if (isDark) c.surface else Color.White
-
-    val infoBg = if (isDark) {
-        if (isRisk) Color(0xFF1F252C) else Color.White
-    } else {
-        if (isRisk) Color(0xFFF4F5F6) else Color.White
-    }
-
-
-
+    // ✅ 다크모드 카드 배경색 고정
+    val cardBg = if (isDark) Color(0xFF1E2124) else Color.White
 
     val infoText = if (isRisk) {
         if (isDark) Color(0xFF9AA1AA) else Color(0xFF6B7280)
@@ -797,14 +787,19 @@ fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
                     modifier = Modifier.fillMaxSize()
                 )
                 if (item.isLive) {
-                    LiveBadge(modifier = Modifier.align(Alignment.TopEnd).padding(8.dp))
+                    LiveBadge(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                    )
                 }
             }
 
+            // ✅ 정보 영역도 카드색으로 통일 (그리드에서도 동일하게)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .background(cardBg) // 🔥 핵심
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -821,6 +816,7 @@ fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
         }
     }
 }
+
 
 /* -------------------- Badge / Pills -------------------- */
 
