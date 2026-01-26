@@ -504,7 +504,7 @@ private fun BottomInfoCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = bottomReserve)
+                .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = bottomReserve)
         ) {
             if (!isRegistered) {
                 Text(
@@ -515,7 +515,7 @@ private fun BottomInfoCard(
                     color = strongText,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    lineHeight = 24.sp
+                    lineHeight = 28.sp
                 )
 
                 Spacer(Modifier.height(24.dp))
