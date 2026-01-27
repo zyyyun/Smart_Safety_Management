@@ -23,6 +23,8 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -89,11 +91,41 @@ class SettingProfileActivity : AppCompatActivity() {
     }
 
     private fun applyProfileImage(uri: Uri) {
+        // 앨범에서 선택한 경우(content://) 권한 유지를 위해 내부 저장소로 복사
+        val savedUri = if (uri.scheme == "content") {
+            copyUriToInternalStorage(uri)
+        } else {
+            uri
+        }
+
+        if (savedUri == null) {
+            Toast.makeText(this, "이미지를 설정할 수 없습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val ivProfile = findViewById<ImageView>(R.id.iv_profile)
-        ivProfile.setImageURI(uri)
+        ivProfile.setImageURI(savedUri)
         ivProfile.scaleType = ImageView.ScaleType.CENTER_CROP
         ivProfile.setPadding(0, 0, 0, 0)
-        UserSession.profileImageUri = uri.toString()
+        UserSession.profileImageUri = savedUri.toString()
+    }
+
+    private fun copyUriToInternalStorage(uri: Uri): Uri? {
+        return try {
+            val inputStream: InputStream? = contentResolver.openInputStream(uri)
+            val fileName = "profile_${System.currentTimeMillis()}.jpg"
+            val file = File(filesDir, fileName)
+            val outputStream = FileOutputStream(file)
+            
+            inputStream?.copyTo(outputStream)
+            inputStream?.close()
+            outputStream.close()
+            
+            Uri.fromFile(file)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
     private fun showImagePickerOptions() {
