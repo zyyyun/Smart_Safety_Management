@@ -19,6 +19,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -145,9 +148,31 @@ class SettingProfileActivity : AppCompatActivity() {
         }
 
         btnConfirm?.setOnClickListener {
-            tvPhoneValue.text = etPhoneEdit.text.toString()
-            layoutPhoneEdit.visibility = View.GONE
-            layoutPhoneView?.visibility = View.VISIBLE
+            val newPhone = etPhoneEdit.text.toString()
+            val userId = UserSession.userId
+
+            if (userId == null) {
+                Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val request = UpdateProfileRequest(userId = userId, phoneNum = newPhone)
+            RetrofitClient.instance.updateProfile(request).enqueue(object : Callback<UpdateProfileResponse> {
+                override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
+                    if (response.isSuccessful) {
+                        UserSession.userPhone = newPhone
+                        tvPhoneValue.text = newPhone
+                        layoutPhoneEdit.visibility = View.GONE
+                        layoutPhoneView?.visibility = View.VISIBLE
+                        Toast.makeText(this@SettingProfileActivity, "전화번호가 수정되었습니다.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this@SettingProfileActivity, "수정 실패", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<UpdateProfileResponse>, t: Throwable) {
+                    Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
         }
     }
 
@@ -172,9 +197,31 @@ class SettingProfileActivity : AppCompatActivity() {
         }
 
         btnConfirm?.setOnClickListener {
-            tvEmailValue.text = etEmailEdit.text.toString()
-            layoutEmailEdit.visibility = View.GONE
-            layoutEmailView?.visibility = View.VISIBLE
+            val newEmail = etEmailEdit.text.toString()
+            val userId = UserSession.userId
+
+            if (userId == null) {
+                Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val request = UpdateProfileRequest(userId = userId, email = newEmail)
+            RetrofitClient.instance.updateProfile(request).enqueue(object : Callback<UpdateProfileResponse> {
+                override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
+                    if (response.isSuccessful) {
+                        UserSession.userEmail = newEmail
+                        tvEmailValue.text = newEmail
+                        layoutEmailEdit.visibility = View.GONE
+                        layoutEmailView?.visibility = View.VISIBLE
+                        Toast.makeText(this@SettingProfileActivity, "이메일이 수정되었습니다.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this@SettingProfileActivity, "수정 실패", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<UpdateProfileResponse>, t: Throwable) {
+                    Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
         }
     }
 
