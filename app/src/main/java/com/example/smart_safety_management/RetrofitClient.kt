@@ -4,8 +4,8 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
-    // 안드로이드 에뮬레이터에서 로컬호스트(PC)에 접속하기 위한 주소 (10.0.2.2)
-    private const val BASE_URL = "http://10.0.2.2:3000/"
+    // ngrok 공용 주소로 변경하여 어디서든 접속 가능하도록 설정
+    private const val BASE_URL = "https://uniterated-pardonless-laurena.ngrok-free.dev/"
 
     val instance: SignUpService by lazy {
         Retrofit.Builder()
