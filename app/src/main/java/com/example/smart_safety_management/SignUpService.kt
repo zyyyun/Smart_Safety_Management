@@ -38,6 +38,15 @@ data class UpdateProfileResponse(
     val message: String
 )
 
+data class ChangePasswordRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("new_password") val newPassword: String
+)
+
+data class ChangePasswordResponse(
+    val message: String
+)
+
 interface SignUpService {
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>
@@ -47,4 +56,7 @@ interface SignUpService {
 
     @POST("/update_profile")
     fun updateProfile(@Body request: UpdateProfileRequest): Call<UpdateProfileResponse>
+
+    @POST("/change_password")
+    fun changePassword(@Body request: ChangePasswordRequest): Call<ChangePasswordResponse>
 }
