@@ -343,13 +343,16 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
     var viewMonth by remember { mutableStateOf(YearMonth.from(initialDate)) }
     val datesWithReports = remember { mockReports.map { it.date }.toSet() }
 
+    val dayOfWeekColor = Color(0xFF6D7882)
+    val isLight = MaterialTheme.colors.isLight
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
             shape = RoundedCornerShape(8.dp), 
-            color = if (MaterialTheme.colors.isLight) Color.White else GrayBackground, 
+            color = if (isLight) Color.White else GrayBackground, 
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
@@ -359,8 +362,7 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                    verticalAlignment = Alignment.CenterVertically) {
                     val navIconColor = Color(0xFFF97316)
                     IconButton(
                         onClick = { viewMonth = viewMonth.minusMonths(1) },
@@ -389,7 +391,7 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
                 Spacer(modifier = Modifier.height(9.dp))
                 Row(modifier = Modifier.fillMaxWidth()) {
                     val days = listOf("일", "월", "화", "수", "목", "금", "토")
-                    days.forEach { day -> Text(text = day, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 14.sp, fontFamily = Pretendard, color = Color.Gray) }
+                    days.forEach { day -> Text(text = day, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 14.sp, fontFamily = Pretendard, color = dayOfWeekColor) }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 
@@ -432,8 +434,8 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
                                             text = date.dayOfMonth.toString(),
                                             color = when {
                                                 isSelected -> Color.White
-                                                isCurrentMonth -> if (MaterialTheme.colors.isLight) Color.Black else Color.White
-                                                else -> Color.Gray.copy(alpha = 0.4f)
+                                                isCurrentMonth -> if (isLight) Color(0xFF58616A) else Color(0xFF8A949E)
+                                                else -> if (isLight) Color(0xFFCDD1D5) else Color(0xFF33363D)
                                             },
                                             fontSize = 16.sp,
                                             fontFamily = Pretendard
@@ -455,10 +457,10 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onDismiss, modifier = Modifier
                         .weight(1f)
-                        .height(48.dp), colors = ButtonDefaults.buttonColors(backgroundColor = if (MaterialTheme.colors.isLight) Color(0xFFF4F5F6) else Color(0xFF333333)), elevation = ButtonDefaults.elevation(0.dp), shape = RoundedCornerShape(8.dp)) { Text("취소", color = Color.Gray, fontFamily = Pretendard) }
+                        .height(48.dp), colors = ButtonDefaults.buttonColors(backgroundColor = if (isLight) Color(0xFFF4F5F6) else Color(0xFF131416)), elevation = ButtonDefaults.elevation(0.dp), shape = RoundedCornerShape(8.dp)) { Text("취소", color = if (isLight) Color(0xFF58616A) else Color(0xFF8A949E), fontFamily = Pretendard, fontWeight = FontWeight.SemiBold, fontSize = 18.sp) }
                     Button(onClick = { onDateSelected(selectedDate) }, modifier = Modifier
                         .weight(1f)
-                        .height(48.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary), elevation = ButtonDefaults.elevation(0.dp), shape = RoundedCornerShape(8.dp)) { Text("선택", color = Color.White, fontFamily = Pretendard) }
+                        .height(48.dp), colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF97316)), elevation = ButtonDefaults.elevation(0.dp), shape = RoundedCornerShape(8.dp)) { Text("선택", color = if (isLight) Color.White else Color.Black, fontFamily = Pretendard, fontWeight = FontWeight.SemiBold, fontSize = 18.sp) }
                 }
             }
         }
@@ -472,7 +474,11 @@ private object OrangeRippleTheme : RippleTheme {
     override fun defaultColor() = Color(0xFFFB923C)
 
     @Composable
-    override fun rippleAlpha(): RippleAlpha = RippleAlpha(0.12f, 0.12f, 0.12f, 0.12f)
+    override fun rippleAlpha(): RippleAlpha {
+        val isLight = MaterialTheme.colors.isLight
+        val alpha = if (isLight) 0.12f else 0.36f
+        return RippleAlpha(alpha, alpha, alpha, alpha)
+    }
 }
 
 @Composable
@@ -480,6 +486,9 @@ fun YearDropdown(year: Int, modifier: Modifier = Modifier, onYearSelected: (Int)
     var expanded by remember { mutableStateOf(false) }
     var width by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
+    val isLight = MaterialTheme.colors.isLight
+    val itemTextColor = if (isLight) Color(0xFF33363D) else Color(0xFFCDD1D5)
+    
     Box(modifier = modifier.onGloballyPositioned { width = it.size.width }) {
         SelectorBox(
             text = "${year}년",
@@ -502,7 +511,7 @@ fun YearDropdown(year: Int, modifier: Modifier = Modifier, onYearSelected: (Int)
                             modifier = Modifier.fillMaxWidth(),
                             textAlign = TextAlign.Center,
                             fontSize = 18.sp,
-                            color = MaterialTheme.colors.onSurface,
+                            color = itemTextColor,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -517,6 +526,9 @@ fun MonthDropdown(month: Int, modifier: Modifier = Modifier, onMonthSelected: (I
     var expanded by remember { mutableStateOf(false) }
     var width by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
+    val isLight = MaterialTheme.colors.isLight
+    val itemTextColor = if (isLight) Color(0xFF33363D) else Color(0xFFCDD1D5)
+    
     Box(modifier = modifier.onGloballyPositioned { width = it.size.width }) {
         SelectorBox(
             text = "${month}월",
@@ -539,7 +551,7 @@ fun MonthDropdown(month: Int, modifier: Modifier = Modifier, onMonthSelected: (I
                             modifier = Modifier.fillMaxWidth(),
                             textAlign = TextAlign.Center,
                             fontSize = 18.sp,
-                            color = MaterialTheme.colors.onSurface,
+                            color = itemTextColor,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -551,6 +563,9 @@ fun MonthDropdown(month: Int, modifier: Modifier = Modifier, onMonthSelected: (I
 
 @Composable
 fun SelectorBox(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val isLight = MaterialTheme.colors.isLight
+    val textColor = if (isLight) Color(0xFF131416) else Color(0xFFF4F5F6)
+    
     Box(
         modifier = modifier
             .height(51.dp)
@@ -567,8 +582,8 @@ fun SelectorBox(text: String, modifier: Modifier = Modifier, onClick: () -> Unit
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(text = text, fontWeight = FontWeight.Bold, fontSize = 24.sp, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
-            Icon(Icons.Default.ArrowDropDown, null, tint = MaterialTheme.colors.onSurface, modifier = Modifier.size(24.dp))
+            Text(text = text, fontWeight = FontWeight.Bold, fontSize = 24.sp, fontFamily = Pretendard, color = textColor)
+            Icon(Icons.Default.ArrowDropDown, null, tint = textColor, modifier = Modifier.size(24.dp))
         }
     }
 }
