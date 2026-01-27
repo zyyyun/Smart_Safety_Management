@@ -23,6 +23,9 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.ripple.LocalRippleTheme
+import androidx.compose.material.ripple.RippleAlpha
+import androidx.compose.material.ripple.RippleTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -380,12 +383,41 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
     }
 }
 
+// 인원관리 스타일의 주황색 리플 테마 정의
+@Immutable
+private object OrangeRippleTheme : RippleTheme {
+    @Composable
+    override fun defaultColor() = Color(0xFFFB923C)
+
+    @Composable
+    override fun rippleAlpha(): RippleAlpha = RippleAlpha(0.12f, 0.12f, 0.12f, 0.12f)
+}
+
 @Composable
 fun YearDropdown(year: Int, onYearSelected: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         SelectorBox(text = "${year}년") { expanded = true }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) { (2020..2030).forEach { y -> DropdownMenuItem(onClick = { onYearSelected(y); expanded = false }) { Text("${y}년", fontFamily = Pretendard) } } }
+        DropdownMenu(
+            expanded = expanded, 
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.width(130.dp)
+        ) {
+            CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
+                (2020..2030).forEach { y ->
+                    DropdownMenuItem(onClick = { onYearSelected(y); expanded = false }) {
+                        Text(
+                            text = "${y}년",
+                            fontFamily = Pretendard,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colors.onSurface
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -394,7 +426,26 @@ fun MonthDropdown(month: Int, onMonthSelected: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
         SelectorBox(text = "${month}월") { expanded = true }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) { (1..12).forEach { m -> DropdownMenuItem(onClick = { onMonthSelected(m); expanded = false }) { Text("${m}월", fontFamily = Pretendard) } } }
+        DropdownMenu(
+            expanded = expanded, 
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.width(100.dp)
+        ) {
+            CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
+                (1..12).forEach { m ->
+                    DropdownMenuItem(onClick = { onMonthSelected(m); expanded = false }) {
+                        Text(
+                            text = "${m}월",
+                            fontFamily = Pretendard,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                            fontSize = 16.sp,
+                            color = MaterialTheme.colors.onSurface
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -402,7 +453,7 @@ fun MonthDropdown(month: Int, onMonthSelected: (Int) -> Unit) {
 fun SelectorBox(text: String, onClick: () -> Unit) {
     Box(modifier = Modifier.border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.12f), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = text, fontWeight = FontWeight.Bold, fontSize = 16.sp, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
+            Text(text = text, fontWeight = FontWeight.Bold, fontSize = 18.sp, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
             Icon(Icons.Default.ArrowDropDown, null, tint = MaterialTheme.colors.onSurface)
         }
     }
