@@ -74,6 +74,9 @@ class SettingProfileActivity : AppCompatActivity() {
         val authorityTv = findViewById<TextView>(R.id.tv_user_name_authority)
         authorityTv.text = if (UserSession.userRole == UserRole.MANAGER) "관리자" else "근로자"
 
+        findViewById<TextView>(R.id.tv_user_phone).text = UserSession.userPhone ?: ""
+        findViewById<TextView>(R.id.tv_user_email).text = UserSession.userEmail ?: ""
+
         UserSession.profileImageUri?.let {
             val ivProfile = findViewById<ImageView>(R.id.iv_profile)
             ivProfile.setImageURI(Uri.parse(it))

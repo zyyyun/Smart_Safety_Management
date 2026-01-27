@@ -23,7 +23,9 @@ data class LoginResponse(
 data class UserData(
     @SerializedName("user_id") val userId: String,
     val name: String,
-    @SerializedName("user_role") val userRole: String
+    @SerializedName("user_role") val userRole: String,
+    @SerializedName("phone_num") val phoneNum: String?,
+    val email: String?
 )
 
 interface SignUpService {

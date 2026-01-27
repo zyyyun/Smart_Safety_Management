@@ -59,6 +59,8 @@ class LogInActivity : AppCompatActivity() {
                         if (body?.user != null) {
                             // 1. 세션 정보 업데이트 (이름)
                             UserSession.userName = body.user.name
+                            UserSession.userPhone = body.user.phoneNum
+                            UserSession.userEmail = body.user.email
 
                             // 2. 역할에 따른 화면 이동 및 세션 역할 설정
                             val intent = if (body.user.userRole == "manager") {
