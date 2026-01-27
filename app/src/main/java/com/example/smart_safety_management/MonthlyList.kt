@@ -489,7 +489,7 @@ fun YearDropdown(year: Int, modifier: Modifier = Modifier, onYearSelected: (Int)
         DropdownMenu(
             expanded = expanded, 
             onDismissRequest = { expanded = false },
-            modifier = Modifier.width(with(density) { width.toDp() }),
+            modifier = Modifier.width(with(density) { width.toDp() }).height(153.dp),
             offset = DpOffset(x = 0.dp, y = 0.dp),
             properties = PopupProperties(clippingEnabled = false)
         ) {
@@ -526,7 +526,7 @@ fun MonthDropdown(month: Int, modifier: Modifier = Modifier, onMonthSelected: (I
         DropdownMenu(
             expanded = expanded, 
             onDismissRequest = { expanded = false },
-            modifier = Modifier.width(with(density) { width.toDp() }),
+            modifier = Modifier.width(with(density) { width.toDp() }).height(153.dp),
             offset = DpOffset(x = 0.dp, y = 0.dp),
             properties = PopupProperties(clippingEnabled = false)
         ) {
