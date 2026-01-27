@@ -3,6 +3,7 @@ package com.example.smart_safety_management
 import DailyCheckItem
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.NestedScrollView
@@ -21,6 +22,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
+import com.google.android.material.card.MaterialCardView
 
 private val dailyCheckMap = mapOf(
     7 to listOf(
@@ -150,21 +152,43 @@ class HomeWorkerActivity : AppCompatActivity() {
             
             // 프로필 사진 동기화
             val ivProfileBar = profileBar.findViewById<ImageView>(R.id.iv_profile_bar)
+            val cardProfile = ivProfileBar?.parent as? MaterialCardView
+
             if (ivProfileBar != null) {
+                val params = ivProfileBar.layoutParams as ViewGroup.MarginLayoutParams
                 UserSession.profileImageUri?.let { uriString ->
+                    // 사진이 있을 때: 부모 CardView 제약까지 풀어서 원에 꽉 차도록 설정
                     ivProfileBar.setImageURI(Uri.parse(uriString))
+                    
+                    cardProfile?.apply {
+                        setContentPadding(0, 0, 0, 0)
+                        preventCornerOverlap = false // 모서리 겹침 방지 여백 제거
+                        useCompatPadding = false     // 호환성 패딩 제거
+                    }
+                    
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_CROP
                     ivProfileBar.setPadding(0, 0, 0, 0)
+                    params.setMargins(0, 0, 0, 0)
+                    ivProfileBar.layoutParams = params
                 } ?: run {
-                    // 설정된 사진이 없으면 기본값 유지
+                    // 기본 이미지일 때: XML 디자인(마진 5, 10, 5)을 그대로 유지
                     ivProfileBar.setImageResource(R.drawable.profile)
+                    
+                    cardProfile?.apply {
+                        preventCornerOverlap = true // 기본값 복구
+                    }
+                    
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                    ivProfileBar.setPadding(
-                        (resources.displayMetrics.density * 5).toInt(),
-                        (resources.displayMetrics.density * 8).toInt(),
-                        (resources.displayMetrics.density * 5).toInt(),
+                    ivProfileBar.setPadding(0, 0, 0, 0)
+                    
+                    val density = resources.displayMetrics.density
+                    params.setMargins(
+                        (5 * density).toInt(),
+                        (10 * density).toInt(),
+                        (5 * density).toInt(),
                         0
                     )
+                    ivProfileBar.layoutParams = params
                 }
             }
         }

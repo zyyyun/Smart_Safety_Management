@@ -52,6 +52,7 @@
             app:cardCornerRadius="56dp"
             app:cardElevation="0dp"
             app:strokeWidth="0.7dp"
+            app:cardUseCompatPadding="false"
             app:strokeColor="@color/gray100">
 
             <ImageView

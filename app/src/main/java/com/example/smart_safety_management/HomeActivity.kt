@@ -31,6 +31,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import com.example.smart_safety_management.screens.location.LocationActivity
 import com.example.smart_safety_management.screens.realtime.RealTimeActivity
+import com.google.android.material.card.MaterialCardView
 import kotlin.math.abs
 
 private val dailyCheckMap = mapOf(
@@ -154,30 +155,50 @@ class HomeActivity : AppCompatActivity() {
     private fun updateProfile() {
         val profileBar = findViewById<View>(R.id.profile_bar)
         if (profileBar != null) {
-            // 이름 업데이트
             profileBar.findViewById<TextView>(R.id.tv_user_name)?.text = UserSession.userName
-
-            // 역할
             profileBar.findViewById<TextView>(R.id.tv_user_authority)?.text =
                 if (UserSession.userRole == UserRole.MANAGER) "관리자님" else "근로자님"
             
-            // 프로필 사진 동기화
             val ivProfileBar = profileBar.findViewById<ImageView>(R.id.iv_profile_bar)
+            val cardProfile = ivProfileBar?.parent as? MaterialCardView
+            
             if (ivProfileBar != null) {
+                val params = ivProfileBar.layoutParams as ViewGroup.MarginLayoutParams
                 UserSession.profileImageUri?.let { uriString ->
+                    // 1. 사용자 사진 로드 및 꽉 채우기 설정
                     ivProfileBar.setImageURI(Uri.parse(uriString))
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_CROP
                     ivProfileBar.setPadding(0, 0, 0, 0)
+                    
+                    // 2. 부모 카드뷰의 모든 제약 제거 (가장 중요)
+                    cardProfile?.apply {
+                        setContentPadding(0, 0, 0, 0)
+                        preventCornerOverlap = false // 모서리 보호 패딩 제거
+                        useCompatPadding = false     // 호환성 패딩 제거
+                    }
+                    
+                    // 3. ImageView 마진 제거
+                    params.setMargins(0, 0, 0, 0)
+                    ivProfileBar.layoutParams = params
                 } ?: run {
-                    // 설정된 사진이 없으면 기본값 유지
+                    // 기본 이미지일 때: 사용자님이 설정하신 마진(5, 10, 5)을 정확히 유지
                     ivProfileBar.setImageResource(R.drawable.profile)
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                    ivProfileBar.setPadding(
-                        (resources.displayMetrics.density * 5).toInt(),
-                        (resources.displayMetrics.density * 8).toInt(),
-                        (resources.displayMetrics.density * 5).toInt(),
+                    ivProfileBar.setPadding(0, 0, 0, 0)
+                    
+                    // 카드뷰 기본값 복구 (패딩 등)
+                    cardProfile?.apply {
+                        preventCornerOverlap = true 
+                    }
+
+                    val density = resources.displayMetrics.density
+                    params.setMargins(
+                        (5 * density).toInt(),
+                        (10 * density).toInt(),
+                        (5 * density).toInt(),
                         0
                     )
+                    ivProfileBar.layoutParams = params
                 }
             }
         }
