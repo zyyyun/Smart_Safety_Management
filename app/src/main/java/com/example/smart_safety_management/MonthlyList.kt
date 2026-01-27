@@ -497,6 +497,7 @@ fun YearDropdown(year: Int, modifier: Modifier = Modifier, onYearSelected: (Int)
     Box(modifier = modifier.onGloballyPositioned { width = it.size.width }) {
         SelectorBox(
             text = "${year}년",
+            isExpanded = expanded,
             modifier = Modifier.fillMaxWidth(),
             onClick = { expanded = true }
         )
@@ -511,7 +512,7 @@ fun YearDropdown(year: Int, modifier: Modifier = Modifier, onYearSelected: (Int)
                     .width(with(density) { width.toDp() })
                     .height(153.dp)
                     .shadow(
-                        elevation = 4.dp,
+                        elevation = 1.dp,
                         shape = RoundedCornerShape(8.dp),
                         ambientColor = shadowColor,
                         spotColor = shadowColor
@@ -559,6 +560,7 @@ fun MonthDropdown(month: Int, modifier: Modifier = Modifier, onMonthSelected: (I
     Box(modifier = modifier.onGloballyPositioned { width = it.size.width }) {
         SelectorBox(
             text = "${month}월",
+            isExpanded = expanded,
             modifier = Modifier.fillMaxWidth(),
             onClick = { expanded = true }
         )
@@ -573,7 +575,7 @@ fun MonthDropdown(month: Int, modifier: Modifier = Modifier, onMonthSelected: (I
                     .width(with(density) { width.toDp() })
                     .height(153.dp)
                     .shadow(
-                        elevation = 4.dp,
+                        elevation = 1.dp,
                         shape = RoundedCornerShape(8.dp),
                         ambientColor = shadowColor,
                         spotColor = shadowColor
@@ -607,18 +609,31 @@ fun MonthDropdown(month: Int, modifier: Modifier = Modifier, onMonthSelected: (I
 }
 
 @Composable
-fun SelectorBox(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun SelectorBox(text: String, isExpanded: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val isLight = MaterialTheme.colors.isLight
     val textColor = if (isLight) Color(0xFF131416) else Color(0xFFF4F5F6)
+    val shadowColor = Color.Black.copy(alpha = if (isLight) 0.08f else 0.20f)
     
     Box(
         modifier = modifier
             .height(51.dp)
-            .border(
-                1.dp,
-                MaterialTheme.colors.onSurface.copy(alpha = 0.12f),
-                RoundedCornerShape(8.dp)
+            .then(
+                if (isExpanded) {
+                    Modifier
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(8.dp),
+                            ambientColor = shadowColor,
+                            spotColor = shadowColor
+                        )
+                        .border(
+                            1.dp,
+                            MaterialTheme.colors.onSurface.copy(alpha = 0.12f),
+                            RoundedCornerShape(8.dp)
+                        )
+                } else Modifier
             )
+            .background(MaterialTheme.colors.surface, RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 4.dp),
         contentAlignment = Alignment.Center
