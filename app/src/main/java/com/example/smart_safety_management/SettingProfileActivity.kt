@@ -254,9 +254,28 @@ class SettingProfileActivity : AppCompatActivity() {
         btnSave.setOnClickListener {
             val newName = etName.text.toString().trim()
             if (newName.isNotEmpty()) {
-                UserSession.userName = newName
-                findViewById<TextView>(R.id.tv_user_name).text = newName
-                alertDialog.dismiss()
+                val userId = UserSession.userId
+                if (userId == null) {
+                    Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                val request = UpdateProfileRequest(userId = userId, name = newName)
+                RetrofitClient.instance.updateProfile(request).enqueue(object : Callback<UpdateProfileResponse> {
+                    override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
+                        if (response.isSuccessful) {
+                            UserSession.userName = newName
+                            findViewById<TextView>(R.id.tv_user_name).text = newName
+                            Toast.makeText(this@SettingProfileActivity, "이름이 변경되었습니다.", Toast.LENGTH_SHORT).show()
+                            alertDialog.dismiss()
+                        } else {
+                            Toast.makeText(this@SettingProfileActivity, "이름 변경 실패", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    override fun onFailure(call: Call<UpdateProfileResponse>, t: Throwable) {
+                        Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    }
+                })
             }
         }
         alertDialog.show()

@@ -31,7 +31,8 @@ data class UserData(
 data class UpdateProfileRequest(
     @SerializedName("user_id") val userId: String,
     @SerializedName("phone_num") val phoneNum: String? = null,
-    val email: String? = null
+    val email: String? = null,
+    val name: String? = null
 )
 
 data class UpdateProfileResponse(
