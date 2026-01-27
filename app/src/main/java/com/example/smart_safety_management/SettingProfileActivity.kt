@@ -23,8 +23,6 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -91,40 +89,27 @@ class SettingProfileActivity : AppCompatActivity() {
     }
 
     private fun applyProfileImage(uri: Uri) {
-        // 앨범에서 선택한 경우(content://) 권한 유지를 위해 내부 저장소로 복사
-        val savedUri = if (uri.scheme == "content") {
-            copyUriToInternalStorage(uri)
-        } else {
-            uri
-        }
-
-        if (savedUri == null) {
-            Toast.makeText(this, "이미지를 설정할 수 없습니다.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         val ivProfile = findViewById<ImageView>(R.id.iv_profile)
-        ivProfile.setImageURI(savedUri)
+        ivProfile.setImageURI(uri)
         ivProfile.scaleType = ImageView.ScaleType.CENTER_CROP
         ivProfile.setPadding(0, 0, 0, 0)
-        UserSession.profileImageUri = savedUri.toString()
-    }
+        UserSession.profileImageUri = uri.toString()
 
-    private fun copyUriToInternalStorage(uri: Uri): Uri? {
-        return try {
-            val inputStream: InputStream? = contentResolver.openInputStream(uri)
-            val fileName = "profile_${System.currentTimeMillis()}.jpg"
-            val file = File(filesDir, fileName)
-            val outputStream = FileOutputStream(file)
-            
-            inputStream?.copyTo(outputStream)
-            inputStream?.close()
-            outputStream.close()
-            
-            Uri.fromFile(file)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
+        val userId = UserSession.userId
+        if (userId != null) {
+            val request = UpdateProfileRequest(userId = userId, profileImageUri = uri.toString())
+            RetrofitClient.instance.updateProfile(request).enqueue(object : Callback<UpdateProfileResponse> {
+                override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@SettingProfileActivity, "프로필 사진이 변경되었습니다.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(this@SettingProfileActivity, "프로필 사진 변경 실패", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<UpdateProfileResponse>, t: Throwable) {
+                    Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
         }
     }
 

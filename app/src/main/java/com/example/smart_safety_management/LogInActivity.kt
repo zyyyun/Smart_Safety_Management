@@ -62,6 +62,7 @@ class LogInActivity : AppCompatActivity() {
                             UserSession.userName = body.user.name
                             UserSession.userPhone = body.user.phoneNum
                             UserSession.userEmail = body.user.email
+                            UserSession.profileImageUri = body.user.profileImageUri
 
                             // 2. 역할에 따른 화면 이동 및 세션 역할 설정
                             val intent = if (body.user.userRole == "manager") {

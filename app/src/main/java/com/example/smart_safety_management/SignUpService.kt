@@ -37,14 +37,16 @@ data class UserData(
     val name: String,
     @SerializedName("user_role") val userRole: String,
     @SerializedName("phone_num") val phoneNum: String?,
-    val email: String?
+    val email: String?,
+    @SerializedName("profile_image_url") val profileImageUri: String?
 )
 
 data class UpdateProfileRequest(
     @SerializedName("user_id") val userId: String,
     @SerializedName("phone_num") val phoneNum: String? = null,
     val email: String? = null,
-    val name: String? = null
+    val name: String? = null,
+    @SerializedName("profile_image_url") val profileImageUri: String? = null
 )
 
 data class UpdateProfileResponse(

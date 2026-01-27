@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('./db');
 
 router.post('/update_profile', async (req, res) => {
-    const { user_id, phone_num, email, name } = req.body;
+    const { user_id, phone_num, email, name, profile_image_url } = req.body;
 
     try {
         let query = 'UPDATE users SET ';
@@ -23,6 +23,10 @@ router.post('/update_profile', async (req, res) => {
         if (name !== undefined) {
             updates.push(`name = $${index++}`);
             values.push(name);
+        }
+        if (profile_image_url !== undefined) {
+            updates.push(`profile_image_url = $${index++}`);
+            values.push(profile_image_url);
         }
 
         if (updates.length === 0) {
