@@ -14,6 +14,8 @@ const createWorkplaceRouter = require('./create_workplace');
 const deleteWorkplaceRouter = require('./delete_workplace');
 const checkRegisteredContactsRouter = require('./check_registered_contacts');
 const getUsersRouter = require('./get_users');
+const removeFromGroupRouter = require('./remove_from_group');
+const getCCTVListRouter = require('./get_cctv_list');
 
 // '/signup' 경로에 대한 요청을 signupRouter로 전달
 app.use('/', signupRouter);
@@ -24,6 +26,8 @@ app.use('/', createWorkplaceRouter);
 app.use('/', deleteWorkplaceRouter);
 app.use('/', checkRegisteredContactsRouter);
 app.use('/', getUsersRouter);
+app.use('/', removeFromGroupRouter);
+app.use('/', getCCTVListRouter);
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`서버가 http://0.0.0.0:${PORT} 에서 실행 중입니다.`);

@@ -5,6 +5,7 @@ import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Query
 
 data class SignUpRequest(
     @SerializedName("user_id") val userId: String,
@@ -89,6 +90,26 @@ data class GetUsersResponse(
     val users: List<UserData>
 )
 
+data class RemoveFromGroupRequest(
+    @SerializedName("user_id") val userId: String
+)
+
+data class RemoveFromGroupResponse(
+    val message: String
+)
+
+data class CCTVItemResponse(
+    @SerializedName("camera_id") val id: Int,
+    @SerializedName("device_name") val name: String,
+    @SerializedName("install_area") val location: String,
+    @SerializedName("image_res_name") val imageResName: String?,
+    val events: List<String>
+)
+
+data class GetCCTVListResponse(
+    @SerializedName("cctv_list") val cctvList: List<CCTVItemResponse>
+)
+
 interface SignUpService {
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>
@@ -112,5 +133,11 @@ interface SignUpService {
     fun checkRegisteredContacts(@Body request: CheckRegisteredContactsRequest): Call<CheckRegisteredContactsResponse>
 
     @GET("/get_users")
-    fun getUsers(): Call<GetUsersResponse>
+    fun getUsers(@Query("user_id") userId: String): Call<GetUsersResponse>
+
+    @POST("/remove_from_group")
+    fun removeFromGroup(@Body request: RemoveFromGroupRequest): Call<RemoveFromGroupResponse>
+
+    @GET("/get_cctv_list")
+    fun getCCTVList(): Call<GetCCTVListResponse>
 }

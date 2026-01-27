@@ -47,8 +47,24 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
 
         // 어댑터 설정 (삭제 콜백 전달)
         adapter = PeopleAdapter(allPeople) { deletedItem ->
-            allPeople.remove(deletedItem)
-            applyFilterAndSearch()
+            val request = RemoveFromGroupRequest(userId = deletedItem.userId)
+            RetrofitClient.instance.removeFromGroup(request).enqueue(object: Callback<RemoveFromGroupResponse> {
+                override fun onResponse(
+                    call: Call<RemoveFromGroupResponse>,
+                    response: Response<RemoveFromGroupResponse>
+                ) {
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@SettingPeopleManagementActivity, "${deletedItem.name} 님을 그룹에서 제외했습니다.", Toast.LENGTH_SHORT).show()
+                        allPeople.remove(deletedItem)
+                        applyFilterAndSearch()
+                    } else {
+                        Toast.makeText(this@SettingPeopleManagementActivity, "제거에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<RemoveFromGroupResponse>, t: Throwable) {
+                    Toast.makeText(this@SettingPeopleManagementActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
         }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
@@ -115,19 +131,28 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
     }
 
     private fun loadUsers() {
-        RetrofitClient.instance.getUsers().enqueue(object : Callback<GetUsersResponse> {
+        val userId = UserSession.userId
+        if (userId == null) {
+            Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        RetrofitClient.instance.getUsers(userId).enqueue(object : Callback<GetUsersResponse> {
             override fun onResponse(call: Call<GetUsersResponse>, response: Response<GetUsersResponse>) {
                 if (response.isSuccessful) {
                     val users = response.body()?.users ?: emptyList()
                     allPeople.clear()
                     users.forEach { user ->
+                        // 본인은 리스트에서 제외
+                        if (user.userId == userId) return@forEach
+
                         // DB의 role(manager/worker)을 한글로 변환
                         val roleName = if (user.userRole == "manager") "관리자" else "근로자"
                         // 전화번호 포맷팅
                         val formattedPhone = formatPhoneNumber(user.phoneNum ?: "")
                         
                         // PeopleItem 생성 (id는 userId의 해시코드 사용)
-                        allPeople.add(PeopleItem(user.userId.hashCode(), user.name, formattedPhone, roleName))
+                        allPeople.add(PeopleItem(user.userId, user.name, formattedPhone, roleName))
                     }
                     applyFilterAndSearch()
                 } else {
