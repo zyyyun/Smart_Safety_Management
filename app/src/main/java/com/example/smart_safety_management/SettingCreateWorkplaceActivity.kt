@@ -17,6 +17,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class SettingCreateWorkplaceActivity : AppCompatActivity() {
 
@@ -69,9 +72,29 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
                 // TODO: 편집 기능 구현
             },
             onDeleteClick = { position ->
-                workplaceAdapter.removeItem(position)
-                saveWorkplaceList() // 삭제 후 저장
-                updateUIState() // 삭제 후 UI 상태 업데이트
+                val itemToDelete = workplaceList[position]
+                val userId = UserSession.userId
+
+                if (userId != null) {
+                    val request = DeleteWorkplaceRequest(itemToDelete.name, userId)
+                    RetrofitClient.instance.deleteWorkplace(request).enqueue(object : Callback<DeleteWorkplaceResponse> {
+                        override fun onResponse(call: Call<DeleteWorkplaceResponse>, response: Response<DeleteWorkplaceResponse>) {
+                            if (response.isSuccessful) {
+                                workplaceAdapter.removeItem(position)
+                                saveWorkplaceList() // 삭제 후 저장
+                                updateUIState() // 삭제 후 UI 상태 업데이트
+                                Toast.makeText(this@SettingCreateWorkplaceActivity, "현장이 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(this@SettingCreateWorkplaceActivity, "삭제 실패: ${response.message()}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        override fun onFailure(call: Call<DeleteWorkplaceResponse>, t: Throwable) {
+                            Toast.makeText(this@SettingCreateWorkplaceActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    })
+                } else {
+                    Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                }
             }
         )
 
@@ -106,14 +129,34 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
             }
 
             val name = etWorkplaceName.text.toString().trim()
+            val userId = UserSession.userId
+
             if (name.isNotEmpty()) {
-                val newItem = WorkplaceItem(name)
-                workplaceAdapter.addItem(newItem)
-                saveWorkplaceList() // 추가 후 저장
-                
-                etWorkplaceName.text.clear()
-                rvWorkplace.scrollToPosition(workplaceList.size - 1)
-                updateUIState() // 추가 후 UI 상태 업데이트
+                if (userId == null) {
+                    Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                val request = CreateWorkplaceRequest(name, userId)
+                RetrofitClient.instance.createWorkplace(request).enqueue(object : Callback<CreateWorkplaceResponse> {
+                    override fun onResponse(call: Call<CreateWorkplaceResponse>, response: Response<CreateWorkplaceResponse>) {
+                        if (response.isSuccessful) {
+                            val newItem = WorkplaceItem(name)
+                            workplaceAdapter.addItem(newItem)
+                            saveWorkplaceList() // 추가 후 로컬 저장
+                            
+                            etWorkplaceName.text.clear()
+                            rvWorkplace.scrollToPosition(workplaceList.size - 1)
+                            updateUIState() // 추가 후 UI 상태 업데이트
+                            Toast.makeText(this@SettingCreateWorkplaceActivity, "현장이 생성되었습니다.", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(this@SettingCreateWorkplaceActivity, "현장 생성 실패", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    override fun onFailure(call: Call<CreateWorkplaceResponse>, t: Throwable) {
+                        Toast.makeText(this@SettingCreateWorkplaceActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    }
+                })
             } /*else {
                 Toast.makeText(this, "현장명을 입력해주세요.", Toast.LENGTH_SHORT).show()
             }*/

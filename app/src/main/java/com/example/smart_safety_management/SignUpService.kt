@@ -48,6 +48,24 @@ data class ChangePasswordResponse(
     val message: String
 )
 
+data class CreateWorkplaceRequest(
+    @SerializedName("place_name") val placeName: String,
+    @SerializedName("admin_id") val adminId: String
+)
+
+data class CreateWorkplaceResponse(
+    val message: String
+)
+
+data class DeleteWorkplaceRequest(
+    @SerializedName("place_name") val placeName: String,
+    @SerializedName("admin_id") val adminId: String
+)
+
+data class DeleteWorkplaceResponse(
+    val message: String
+)
+
 interface SignUpService {
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>
@@ -60,4 +78,10 @@ interface SignUpService {
 
     @POST("/change_password")
     fun changePassword(@Body request: ChangePasswordRequest): Call<ChangePasswordResponse>
+
+    @POST("/create_workplace")
+    fun createWorkplace(@Body request: CreateWorkplaceRequest): Call<CreateWorkplaceResponse>
+
+    @POST("/delete_workplace")
+    fun deleteWorkplace(@Body request: DeleteWorkplaceRequest): Call<DeleteWorkplaceResponse>
 }
