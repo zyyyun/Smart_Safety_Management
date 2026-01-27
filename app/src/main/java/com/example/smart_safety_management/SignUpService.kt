@@ -28,10 +28,23 @@ data class UserData(
     val email: String?
 )
 
+data class UpdateProfileRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("phone_num") val phoneNum: String? = null,
+    val email: String? = null
+)
+
+data class UpdateProfileResponse(
+    val message: String
+)
+
 interface SignUpService {
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>
 
     @POST("/login")
     fun login(@Body request: LoginRequest): Call<LoginResponse>
+
+    @POST("/update_profile")
+    fun updateProfile(@Body request: UpdateProfileRequest): Call<UpdateProfileResponse>
 }

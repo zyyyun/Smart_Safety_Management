@@ -58,6 +58,7 @@ class LogInActivity : AppCompatActivity() {
                         val body = response.body()
                         if (body?.user != null) {
                             // 1. 세션 정보 업데이트 (이름)
+                            UserSession.userId = body.user.userId
                             UserSession.userName = body.user.name
                             UserSession.userPhone = body.user.phoneNum
                             UserSession.userEmail = body.user.email

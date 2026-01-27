@@ -3,6 +3,7 @@ package com.example.smart_safety_management
 object UserSession {
     var userRole: UserRole = UserRole.MANAGER
 
+    var userId: String? = null
     var userName: String = "안정우"
     var userPhone: String? = null
     var userEmail: String? = null
