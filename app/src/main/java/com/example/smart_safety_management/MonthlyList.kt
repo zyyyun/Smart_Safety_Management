@@ -27,6 +27,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
@@ -488,6 +489,10 @@ fun YearDropdown(year: Int, modifier: Modifier = Modifier, onYearSelected: (Int)
     val density = LocalDensity.current
     val isLight = MaterialTheme.colors.isLight
     val itemTextColor = if (isLight) Color(0xFF33363D) else Color(0xFFCDD1D5)
+    val dropdownBorderColor = if (isLight) Color(0xFFCDD1D5) else Color(0xFF33363D)
+    val dividerColor = if (isLight) Color(0xFFF4F5F6) else Color(0xFF131416)
+    val dropdownBgColor = if (isLight) Color.White else GrayBackground
+    val shadowColor = Color.Black.copy(alpha = if (isLight) 0.08f else 0.20f)
     
     Box(modifier = modifier.onGloballyPositioned { width = it.size.width }) {
         SelectorBox(
@@ -495,25 +500,43 @@ fun YearDropdown(year: Int, modifier: Modifier = Modifier, onYearSelected: (Int)
             modifier = Modifier.fillMaxWidth(),
             onClick = { expanded = true }
         )
-        DropdownMenu(
-            expanded = expanded, 
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.width(with(density) { width.toDp() }).height(153.dp),
-            offset = DpOffset(x = 0.dp, y = 0.dp),
-            properties = PopupProperties(clippingEnabled = false)
+        MaterialTheme(
+            colors = MaterialTheme.colors.copy(surface = dropdownBgColor),
+            shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(8.dp))
         ) {
-            CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
-                (2020..2030).forEach { y ->
-                    DropdownMenuItem(onClick = { onYearSelected(y); expanded = false }) {
-                        Text(
-                            text = "${y}년",
-                            fontFamily = Pretendard,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center,
-                            fontSize = 18.sp,
-                            color = itemTextColor,
-                            fontWeight = FontWeight.Medium
-                        )
+            DropdownMenu(
+                expanded = expanded, 
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .width(with(density) { width.toDp() })
+                    .height(153.dp)
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = RoundedCornerShape(8.dp),
+                        ambientColor = shadowColor,
+                        spotColor = shadowColor
+                    )
+                    .border(1.dp, dropdownBorderColor, RoundedCornerShape(8.dp)),
+                offset = DpOffset(x = 0.dp, y = 0.dp),
+                properties = PopupProperties(clippingEnabled = false)
+            ) {
+                CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
+                    val years = (2020..2030).toList()
+                    years.forEachIndexed { index, y ->
+                        DropdownMenuItem(onClick = { onYearSelected(y); expanded = false }) {
+                            Text(
+                                text = "${y}년",
+                                fontFamily = Pretendard,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                                fontSize = 18.sp,
+                                color = itemTextColor,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        if (index < years.size - 1) {
+                            Divider(color = dividerColor, thickness = 1.dp)
+                        }
                     }
                 }
             }
@@ -528,6 +551,10 @@ fun MonthDropdown(month: Int, modifier: Modifier = Modifier, onMonthSelected: (I
     val density = LocalDensity.current
     val isLight = MaterialTheme.colors.isLight
     val itemTextColor = if (isLight) Color(0xFF33363D) else Color(0xFFCDD1D5)
+    val dropdownBorderColor = if (isLight) Color(0xFFCDD1D5) else Color(0xFF33363D)
+    val dividerColor = if (isLight) Color(0xFFF4F5F6) else Color(0xFF131416)
+    val dropdownBgColor = if (isLight) Color.White else GrayBackground
+    val shadowColor = Color.Black.copy(alpha = if (isLight) 0.08f else 0.20f)
     
     Box(modifier = modifier.onGloballyPositioned { width = it.size.width }) {
         SelectorBox(
@@ -535,25 +562,43 @@ fun MonthDropdown(month: Int, modifier: Modifier = Modifier, onMonthSelected: (I
             modifier = Modifier.fillMaxWidth(),
             onClick = { expanded = true }
         )
-        DropdownMenu(
-            expanded = expanded, 
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.width(with(density) { width.toDp() }).height(153.dp),
-            offset = DpOffset(x = 0.dp, y = 0.dp),
-            properties = PopupProperties(clippingEnabled = false)
+        MaterialTheme(
+            colors = MaterialTheme.colors.copy(surface = dropdownBgColor),
+            shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(8.dp))
         ) {
-            CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
-                (1..12).forEach { m ->
-                    DropdownMenuItem(onClick = { onMonthSelected(m); expanded = false }) {
-                        Text(
-                            text = "${m}월",
-                            fontFamily = Pretendard,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center,
-                            fontSize = 18.sp,
-                            color = itemTextColor,
-                            fontWeight = FontWeight.Medium
-                        )
+            DropdownMenu(
+                expanded = expanded, 
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .width(with(density) { width.toDp() })
+                    .height(153.dp)
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = RoundedCornerShape(8.dp),
+                        ambientColor = shadowColor,
+                        spotColor = shadowColor
+                    )
+                    .border(1.dp, dropdownBorderColor, RoundedCornerShape(8.dp)),
+                offset = DpOffset(x = 0.dp, y = 0.dp),
+                properties = PopupProperties(clippingEnabled = false)
+            ) {
+                CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
+                    val months = (1..12).toList()
+                    months.forEachIndexed { index, m ->
+                        DropdownMenuItem(onClick = { onMonthSelected(m); expanded = false }) {
+                            Text(
+                                text = "${m}월",
+                                fontFamily = Pretendard,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                                fontSize = 18.sp,
+                                color = itemTextColor,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        if (index < months.size - 1) {
+                            Divider(color = dividerColor, thickness = 1.dp)
+                        }
                     }
                 }
             }
