@@ -642,10 +642,23 @@ fun SelectorBox(text: String, isExpanded: Boolean, modifier: Modifier = Modifier
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.Center
         ) {
-            Text(text = text, fontWeight = FontWeight.Bold, fontSize = 24.sp, fontFamily = Pretendard, color = textColor)
-            Icon(Icons.Default.ArrowDropDown, null, tint = textColor, modifier = Modifier.size(24.dp))
+            Text(
+                text = text, 
+                fontWeight = FontWeight.Bold, 
+                fontSize = 24.sp, 
+                fontFamily = Pretendard, 
+                color = textColor,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown, 
+                contentDescription = null, 
+                tint = textColor, 
+                modifier = Modifier.requiredSize(24.dp)
+            )
         }
     }
 }
