@@ -13,32 +13,6 @@ import retrofit2.Callback
 import retrofit2.Response
 
 
-data class SignUpRequest(
-    @SerializedName("user_id") // 서버의 user_id 컬럼과 매핑
-    val loginId: String,
-
-    @SerializedName("password")
-    val password: String,
-
-    @SerializedName("name")
-    val name: String,
-
-    @SerializedName("email")        // email 필드 추가
-    val email: String? = null,
-
-    @SerializedName("user_role") // role 대신 서버 필드명에 맞춤
-    val userRole: String,
-
-    @SerializedName("phone_num")
-    val phoneNum: String? = null, // null 허용 및 기본값 설정
-
-    @SerializedName("group_id")
-    val groupId: String? = null // null 허용 및 기본값 설정
-
-
-
-)
-
 class SignUp3Activity : AppCompatActivity() {
 
     companion object {
@@ -70,7 +44,7 @@ class SignUp3Activity : AppCompatActivity() {
         }
 
         val signUpData = SignUpRequest(
-            loginId = id,
+            userId = id,
             password = pw,
             userRole = UserSession.userRole.name.lowercase(), // "manager" or "worker"
             name = UserSession.userName,

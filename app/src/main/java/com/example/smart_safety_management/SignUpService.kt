@@ -10,8 +10,8 @@ data class SignUpRequest(
     @SerializedName("user_id") val userId: String,
     val password: String,
     val name: String,
-    @SerializedName("phone_num") val phoneNum: String,
-    val email: String,
+    @SerializedName("phone_num") val phoneNum: String?,
+    val email: String?,
     @SerializedName("user_role") val userRole: String,
     @SerializedName("group_id") val groupId: String?
 )
