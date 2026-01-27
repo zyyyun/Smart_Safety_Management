@@ -291,15 +291,24 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
     val datesWithReports = remember { mockReports.map { it.date }.toSet() }
 
     Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(16.dp), color = if (MaterialTheme.colors.isLight) Color.White else GrayBackground, modifier = Modifier.width(330.dp)) {
+        Surface(shape = RoundedCornerShape(8.dp), color = if (MaterialTheme.colors.isLight) Color.White else GrayBackground, modifier = Modifier.width(330.dp)) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { viewMonth = viewMonth.minusMonths(1) }) { Icon(painterResource(id = R.drawable.left), null, tint = Color.Gray, modifier = Modifier.size(16.dp)) }
+                    val navIconColor = Color(0xFFF97316)
+                    IconButton(
+                        onClick = { viewMonth = viewMonth.minusMonths(1) })
+                    {
+                        Icon(painterResource(id = R.drawable.left), null, tint = navIconColor, modifier = Modifier.size(32.dp))
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         YearDropdown(viewMonth.year) { viewMonth = viewMonth.withYear(it) }
                         Spacer(modifier = Modifier.width(8.dp)); MonthDropdown(viewMonth.monthValue) { viewMonth = viewMonth.withMonth(it) }
                     }
-                    IconButton(onClick = { viewMonth = viewMonth.plusMonths(1) }) { Icon(painterResource(id = R.drawable.right), null, tint = Color.Gray, modifier = Modifier.size(16.dp)) }
+                    IconButton(
+                        onClick = { viewMonth = viewMonth.plusMonths(1) })
+                    {
+                        Icon(painterResource(id = R.drawable.right), null, tint = navIconColor, modifier = Modifier.size(32.dp))
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(modifier = Modifier.fillMaxWidth()) {
