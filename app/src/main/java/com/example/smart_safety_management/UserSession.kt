@@ -4,6 +4,8 @@ object UserSession {
     var userRole: UserRole = UserRole.MANAGER
 
     var userName: String = "안정우"
+    var userPhone: String? = null
+    var userEmail: String? = null
     var profileImageUri: String? = null
 
     // 관리자용 초대코드 상태
