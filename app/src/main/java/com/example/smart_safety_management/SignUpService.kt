@@ -66,6 +66,14 @@ data class DeleteWorkplaceResponse(
     val message: String
 )
 
+data class CheckRegisteredContactsRequest(
+    @SerializedName("phone_numbers") val phoneNumbers: List<String>
+)
+
+data class CheckRegisteredContactsResponse(
+    @SerializedName("registered_phone_numbers") val registeredPhoneNumbers: List<String>
+)
+
 interface SignUpService {
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>
@@ -84,4 +92,7 @@ interface SignUpService {
 
     @POST("/delete_workplace")
     fun deleteWorkplace(@Body request: DeleteWorkplaceRequest): Call<DeleteWorkplaceResponse>
+
+    @POST("/check_registered_contacts")
+    fun checkRegisteredContacts(@Body request: CheckRegisteredContactsRequest): Call<CheckRegisteredContactsResponse>
 }

@@ -23,6 +23,9 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.checkbox.MaterialCheckBox
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class SettingInvitePhonenumberActivity : AppCompatActivity() {
 
@@ -131,7 +134,7 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
     }
 
     private fun loadActualContacts() {
-        contactList.clear()
+        val tempContactList = mutableListOf<InviteContactItem>()
         val resolver = contentResolver
         val cursor = resolver.query(
             ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
@@ -148,14 +151,49 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
                 val number = it.getString(numberIndex) ?: ""
                 
                 // 중복 번호 제거 로직 추가 가능
-                if (contactList.none { item -> item.phoneNumber == number }) {
-                    contactList.add(InviteContactItem(name, number))
+                if (tempContactList.none { item -> item.phoneNumber == number }) {
+                    tempContactList.add(InviteContactItem(name, number))
                 }
             }
         }
         
+        // 서버에 등록된 유저인지 확인 후 필터링
+        checkRegisteredUsers(tempContactList)
+    }
+
+    private fun checkRegisteredUsers(tempList: MutableList<InviteContactItem>) {
+        val allPhoneNumbers = tempList.map { it.phoneNumber }
+
+        if (allPhoneNumbers.isEmpty()) {
+            updateList(tempList)
+            return
+        }
+
+        val request = CheckRegisteredContactsRequest(allPhoneNumbers)
+        RetrofitClient.instance.checkRegisteredContacts(request).enqueue(object : Callback<CheckRegisteredContactsResponse> {
+            override fun onResponse(call: Call<CheckRegisteredContactsResponse>, response: Response<CheckRegisteredContactsResponse>) {
+                if (response.isSuccessful) {
+                    val registeredNumbers = response.body()?.registeredPhoneNumbers ?: emptyList()
+                    // 등록된 번호(registeredNumbers)에 포함되지 않은 연락처만 필터링
+                    val filteredContacts = tempList.filter { !registeredNumbers.contains(it.phoneNumber) }
+                    updateList(filteredContacts)
+                } else {
+                    Toast.makeText(this@SettingInvitePhonenumberActivity, "유저 확인 실패", Toast.LENGTH_SHORT).show()
+                    updateList(tempList) // 실패 시 전체 표시
+                }
+            }
+            override fun onFailure(call: Call<CheckRegisteredContactsResponse>, t: Throwable) {
+                Toast.makeText(this@SettingInvitePhonenumberActivity, "네트워크 오류", Toast.LENGTH_SHORT).show()
+                updateList(tempList) // 오류 시 전체 표시
+            }
+        })
+    }
+
+    private fun updateList(list: List<InviteContactItem>) {
+        contactList.clear()
+        contactList.addAll(list)
         filteredList.clear()
-        filteredList.addAll(contactList)
+        filteredList.addAll(list)
         adapter.notifyDataSetChanged()
     }
 
