@@ -1,6 +1,5 @@
 package com.example.smart_safety_management
 
-import DailyCheckItem
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -31,27 +30,69 @@ import androidx.core.widget.doAfterTextChanged
 import com.example.smart_safety_management.screens.location.LocationActivity
 import com.example.smart_safety_management.screens.realtime.RealTimeActivity
 import kotlin.math.abs
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.ActivityResultLauncher
 
-private val dailyCheckMap = mapOf(
-    7 to listOf(
-        DailyCheckItem("B구역 1열", "정리미흡으로 안전사고 발생 우려", "미점검"),
-        DailyCheckItem("C구역 3열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
+private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>(
+    7 to mutableListOf(
+        DailyCheckItem(
+            title = "B구역 1열",
+            desc = "정리미흡으로 안전사고 발생 우려",
+            status = "미점검"
+        ),
+        DailyCheckItem(
+            title = "C구역 3열",
+            desc = "정리미흡으로 안전사고 발생 우려",
+            status = "점검완료"
+        )
     ),
-    12 to listOf(
-        DailyCheckItem("A구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
+    12 to mutableListOf(
+        DailyCheckItem(
+            title = "A구역 1열",
+            desc = "정리미흡으로 안전사고 발생 우려",
+            status = "점검완료"
+        )
     ),
-    22 to listOf(
-        DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
-        DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
-        DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
-        DailyCheckItem("D구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
-        DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
+    22 to mutableListOf(
+        DailyCheckItem(
+            title = "A구역 4열",
+            desc = "정리미흡으로 안전사고 발생 우려",
+            status = "미점검"
+        ),
+        DailyCheckItem(
+            title = "A구역 4열",
+            desc = "정리미흡으로 안전사고 발생 우려",
+            status = "미점검"
+        ),
+        DailyCheckItem(
+            title = "D구역 2열",
+            desc = "정리미흡으로 안전사고 발생 우려",
+            status = "점검완료"
+        ),
+        DailyCheckItem(
+            title = "D구역 1열",
+            desc = "정리미흡으로 안전사고 발생 우려",
+            status = "점검완료"
+        ),
+        DailyCheckItem(
+            title = "D구역 2열",
+            desc = "정리미흡으로 안전사고 발생 우려",
+            status = "점검완료"
+        )
     ),
-    25 to listOf(
-        DailyCheckItem("C구역 2열", "정리미흡으로 안전사고 발생 우려", "미점검")
+    25 to mutableListOf(
+        DailyCheckItem(
+            title = "C구역 2열",
+            desc = "정리미흡으로 안전사고 발생 우려",
+            status = "미점검"
+        )
     ),
-    26 to listOf(
-        DailyCheckItem("A구역 4열", "정리미흡으로 인적사고 발생 우려", "미점검")
+    26 to mutableListOf(
+        DailyCheckItem(
+            title = "A구역 4열",
+            desc = "정리미흡으로 인적사고 발생 우려",
+            status = "미점검"
+        )
     )
 )
 
@@ -67,6 +108,66 @@ class HomeActivity : AppCompatActivity() {
 
         initUI()
     }
+
+    private val addDailyLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            val data = result.data ?: return@registerForActivityResult
+
+            val dateStr = data.getStringExtra("date") ?: return@registerForActivityResult
+            val location = data.getStringExtra("location") ?: ""
+            val riskFactor = data.getStringExtra("riskFactor") ?: ""
+            val safetyMeasure = data.getStringExtra("safetyMeasure") ?: "" // 지금은 저장 안 쓰면 일단 놔둬도 됨
+
+            // "YYYY-MM-DD" 형태라고 가정
+            val day = dateStr.split("-").getOrNull(2)?.toIntOrNull() ?: return@registerForActivityResult
+
+            // ✅ DailyCheckItem (id,title,desc,status) 버전에 맞춤
+            val newItem = DailyCheckItem(
+                title = location,        // 위치를 title로
+                desc = riskFactor,       // 위험요인을 desc로
+                status = "미점검"        // 상태
+            )
+
+            // ✅ 해당 날짜 리스트에 추가
+            val list = dailyCheckMap.getOrPut(day) { mutableListOf() }
+            list.add(0, newItem)
+
+            selectedDay = day
+
+            // ✅ 달력 점 + 리스트 갱신
+            fillCalendarReal()
+            updateDailyCheckList(selectedDay)
+
+            Toast.makeText(this, "작성 완료!", Toast.LENGTH_SHORT).show()
+        }
+
+
+    // ✅ 삭제 결과 받는 Launcher (addDailyLauncher 바로 아래에 추가)
+    private val detailLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            val data = result.data ?: return@registerForActivityResult
+
+            val action = data.getStringExtra("action") ?: return@registerForActivityResult
+            if (action != "delete") return@registerForActivityResult
+
+            val day = data.getIntExtra("day", -1)
+            val itemId = data.getStringExtra("itemId") ?: ""
+            if (day == -1 || itemId.isBlank()) return@registerForActivityResult
+
+            val list = dailyCheckMap[day] ?: return@registerForActivityResult
+
+            // ✅ id로 삭제
+            list.removeAll { it.id == itemId }
+
+            // ✅ UI 갱신
+            selectedDay = day
+            fillCalendarReal()
+            updateDailyCheckList(selectedDay)
+
+            Toast.makeText(this, "삭제 완료!", Toast.LENGTH_SHORT).show()
+        }
 
     private fun initUI() {
         updateProfileName()
@@ -92,13 +193,26 @@ class HomeActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.btn_add).setOnClickListener {
-            startActivity(Intent(this, DailyListActivity::class.java))
+            addDailyLauncher.launch(Intent(this, DailyListActivity::class.java))
         }
 
         val rv = findViewById<RecyclerView>(R.id.rv_daily_check)
         rv.layoutManager = LinearLayoutManager(this)
-        dailyAdapter = DailyCheckAdapter(emptyList())
+        dailyAdapter = DailyCheckAdapter(emptyList()) { day, item ->
+            val intent = Intent(this, DailyDetailActivity::class.java).apply {
+                // 삭제에 필요한 값
+                putExtra("day", day)
+                putExtra("itemId", item.id)
+
+                // (선택) 상세에 보여줄 데이터도 같이 넘기고 싶으면
+                putExtra("title", item.title)
+                putExtra("desc", item.desc)
+                putExtra("status", item.status)
+            }
+            detailLauncher.launch(intent)   // ✅ 핵심: startActivity 말고 launcher로!
+        }
         rv.adapter = dailyAdapter
+
 
         selectedDay = findClosestUncheckedDay()
         dailyAdapter.initTooltip()
@@ -166,7 +280,8 @@ class HomeActivity : AppCompatActivity() {
 
     private fun updateDailyCheckList(day: Int?) {
         val list = dailyCheckMap[day] ?: emptyList()
-        dailyAdapter.updateList(list)
+        dailyAdapter.updateList(day, list)
+
 
         val totalCount = list.size
         val uncheckedCount = list.count { it.status == "미점검" }
@@ -336,3 +451,4 @@ class HomeActivity : AppCompatActivity() {
         dialog.window?.attributes = params
     }
 }
+

@@ -23,6 +23,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.ui.theme.*
+import android.app.Activity
+import android.content.Intent
+import androidx.compose.ui.platform.LocalContext
+import com.example.smart_safety_management.DailyCheckItem
 
 @Composable
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
@@ -34,6 +38,9 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
     var riskFactor by remember { mutableStateOf("정리 미흡으로 인한 안전사고 발생 우려") }
     var safetyMeasure by remember { mutableStateOf("자재 정리 및 주변 시설물 점검") }
 
+    val activity = LocalContext.current as? Activity
+    val day = activity?.intent?.getIntExtra("day", -1) ?: -1
+    val itemId = activity?.intent?.getStringExtra("itemId") ?: ""
     Smart_Safety_ManagementTheme {
         val labelColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
         val borderColor = if (MaterialTheme.colors.isLight) Lightgray else GrayBackground
@@ -255,7 +262,16 @@ fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
                         .fillMaxWidth()
                         .height(30.dp)
                         .align(Alignment.CenterHorizontally)
-                        .clickable { /* 삭제하기 로직 */ },
+                        .clickable {
+                            val resultIntent = Intent().apply {
+                                putExtra("action", "delete")
+                                putExtra("day", day)          // Int
+                                putExtra("itemId", itemId)
+                            }
+
+                            activity?.setResult(Activity.RESULT_OK, resultIntent)
+                            activity?.finish()
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

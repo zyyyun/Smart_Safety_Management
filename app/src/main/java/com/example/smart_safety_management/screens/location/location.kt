@@ -1,5 +1,6 @@
 package com.example.smart_safety_management.screens.location
 
+import android.graphics.drawable.Drawable
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -27,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -35,12 +37,26 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.example.smart_safety_management.R
-import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import androidx.compose.ui.zIndex
-import com.example.smart_safety_management.ui.theme.Pretendard
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.smart_safety_management.R
 import com.example.smart_safety_management.ui.theme.ClipartKorea
-
+import com.example.smart_safety_management.ui.theme.LocalSafeColors
+import com.example.smart_safety_management.ui.theme.Pretendard
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.drawable.BitmapDrawable
+import android.content.Context
 
 /* -------------------- data -------------------- */
 
@@ -58,8 +74,8 @@ data class WorkerRow(
 data class WorkerPin(
     val id: String,
     val area: String,
-    val x: Float,
-    val y: Float,
+    val lat: Double,
+    val lng: Double,
     val status: WorkerStatus
 )
 
@@ -82,6 +98,91 @@ private fun iconFor(status: WorkerStatus, isDark: Boolean): Int {
     }
 }
 
+private fun ContextCompatDrawable(context: android.content.Context, @DrawableRes resId: Int): Drawable? {
+    return ContextCompat.getDrawable(context, resId)
+}
+
+/* -------------------- map helpers -------------------- */
+
+@Composable
+private fun rememberOsmdroidMapView(
+    center: GeoPoint,
+    zoom: Double = 18.0
+): MapView {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    val mapView = remember {
+        // 타일 다운로드 정책상 UA 설정 권장
+        Configuration.getInstance().userAgentValue = context.packageName
+
+        MapView(context).apply {
+            setTileSource(TileSourceFactory.MAPNIK)
+            setMultiTouchControls(true)
+            controller.setZoom(zoom)
+            controller.setCenter(center)
+        }
+    }
+
+    // MapView lifecycle 연결 (메모리/타일 스레드 안정화)
+    DisposableEffect(lifecycleOwner, mapView) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            mapView.onPause()
+        }
+    }
+
+    return mapView
+}
+
+private fun MapView.replaceWorkerMarkers(
+    pins: List<WorkerPin>,
+    selectedId: String?,
+    context: Context,
+    isDark: Boolean,
+    onClick: (workerId: String) -> Unit
+) {
+    overlays.removeAll { it is Marker }
+
+    val dimAlpha = 110  // 👈 더 연하게: 70~130 추천
+    val fullAlpha = 255
+
+    pins.forEach { p ->
+        val hasSelection = selectedId != null
+        val isSelected = selectedId == p.id
+
+        val alpha = when {
+            !hasSelection -> fullAlpha
+            isSelected -> fullAlpha
+            else -> dimAlpha
+        }
+
+        val icon = drawableWithAlpha(context, iconFor(p.status, isDark), alpha)
+
+        val m = Marker(this).apply {
+            position = GeoPoint(p.lat, p.lng)
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            this.icon = icon
+            setOnMarkerClickListener { _, _ ->
+                onClick(p.id)
+                true
+            }
+        }
+        overlays.add(m)
+    }
+
+    invalidate()
+}
+
+
 /* -------------------- screen -------------------- */
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,27 +191,22 @@ fun LocationScreen(
     modifier: Modifier = Modifier,
     bottomBarHeight: Dp = 68.dp,
     isDark: Boolean,
-    _onTabSelect: (Int) -> Unit = {} // 미사용 경고 제거
+    _onTabSelect: (Int) -> Unit = {}
 ) {
     val c = LocalSafeColors.current
-    val dark = isDark // ✅ 외부에서 넘겨준 다크 여부를 기준으로 통일
+    val dark = isDark
 
-    // ✅ 다크일 때 시트 "완전 검정"
     val sheetBg = if (dark) Color(0xFF000000) else c.surface
 
     val textPrimary = c.text
-    val textSecondary = c.sub
     val dividerStrong = c.divider
     val dividerLight = c.divider.copy(alpha = 0.7f)
-    val pillBg = if (dark) {
-        Color(0xFF131416)
-    } else {
-        c.surface
-    }
-
+    val pillBg = if (dark) Color(0xFF131416) else c.surface
     val pillBorder = c.border
+
     val tableTextColor = Color(0xFF33363D)
     val iconTint = tableTextColor
+
     var selectedWorkerId by remember { mutableStateOf<String?>(null) }
     val areas = listOf("전체", "A구역", "B구역", "C구역", "D구역", "E구역")
     var selectedArea by remember { mutableStateOf("전체") }
@@ -126,12 +222,14 @@ fun LocationScreen(
         )
     }
 
+    // ✅ (중요) 핀을 x/y가 아니라 lat/lng로!
+    // 아래 좌표는 예시야. 너 현장 좌표로 교체하면 됨.
     val pins = remember {
         listOf(
-            WorkerPin("w1", "A구역", 0.18f, 0.28f, WorkerStatus.NORMAL),
-            WorkerPin("w2", "B구역", 0.72f, 0.24f, WorkerStatus.FEVER),
-            WorkerPin("w3", "C구역", 0.50f, 0.46f, WorkerStatus.NORMAL),
-            WorkerPin("w4", "D구역", 0.82f, 0.44f, WorkerStatus.FALL),
+            WorkerPin("w1", "A구역", 37.45650, 126.70510, WorkerStatus.NORMAL),
+            WorkerPin("w2", "B구역", 37.45680, 126.70610, WorkerStatus.FEVER),
+            WorkerPin("w3", "C구역", 37.45610, 126.70570, WorkerStatus.NORMAL),
+            WorkerPin("w4", "D구역", 37.45580, 126.70640, WorkerStatus.FALL),
         )
     }
 
@@ -153,10 +251,10 @@ fun LocationScreen(
         byArea.filter { it.id in visibleIds }
     }
 
-    val basePinW = 42.dp
-    val basePinH = 58.dp
-    val selectedScale = 1.3f
-    val dimAlpha = 0.45f
+    // ✅ 선택되면 마커도 그 사람만 보이게(“흐리게” 효과 대신 간단/확실하게)
+    val displayPins = remember(filteredPins, selectedWorkerId) {
+        if (selectedWorkerId == null) filteredPins else filteredPins.filter { it.id == selectedWorkerId }
+    }
 
     val sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
 
@@ -185,23 +283,54 @@ fun LocationScreen(
     LaunchedEffect(selectedArea, selectedWorkerId) {
         val targetPx = revealHeight.toPxSafe()
             .coerceIn(minSheetHeight.toPxSafe(), maxSheetHeight.toPxSafe())
-
         if (sheetHeightPx < targetPx) sheetHeightPx = targetPx
     }
 
     /* -------------------- UI -------------------- */
 
+    val context = LocalContext.current
+
+    // 지도 중심(현장 중심 좌표로 바꿔도 됨)
+    val center = remember { GeoPoint(37.456, 126.705) }
+    val mapView = rememberOsmdroidMapView(center = center, zoom = 18.0)
+
+    val pinById = remember(pins) {
+        pins.associateBy { it.id }
+    }
+
+// 작업자 선택 시 해당 위치로 지도 이동
+    LaunchedEffect(selectedWorkerId) {
+        selectedWorkerId?.let { id ->
+            pinById[id]?.let { p ->
+                mapView.controller.animateTo(GeoPoint(p.lat, p.lng))
+                // 필요하면 줌 고정
+                // mapView.controller.setZoom(18.0)
+            }
+        }
+    }
+    // ✅ pins/선택/필터가 바뀔 때마다 지도 마커 갱신
+    LaunchedEffect(displayPins, dark) {
+        mapView.replaceWorkerMarkers(
+            pins = filteredPins,
+            selectedId = selectedWorkerId,
+            context = context,
+            isDark = dark,
+            onClick = { clickedId ->
+                selectedWorkerId = if (selectedWorkerId == clickedId) null else clickedId
+            }
+        )
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
 
-        Image(
-            painter = painterResource(R.drawable.map_b),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
+        AndroidView(
             modifier = Modifier
                 .fillMaxSize()
-                .pointerInput(selectedWorkerId) { detectTapGestures { selectedWorkerId = null } }
+                .pointerInput(selectedWorkerId) { detectTapGestures { selectedWorkerId = null } },
+            factory = { mapView }
         )
 
+        // 상단 어두운 그라데이션
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -217,38 +346,7 @@ fun LocationScreen(
                 )
         )
 
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            filteredPins.forEach { p ->
-                val isSelected = selectedWorkerId == p.id
-                val hasSelection = selectedWorkerId != null
-
-                val alpha = when {
-                    !hasSelection -> 1f
-                    isSelected -> 1f
-                    else -> dimAlpha
-                }
-
-                val scale = if (isSelected) selectedScale else 1f
-
-                val offsetX = maxWidth * p.x - basePinW / 2
-                val offsetY = maxHeight * p.y - basePinH
-
-                Image(
-                    painter = painterResource(iconFor(p.status, dark)),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .offset(offsetX, offsetY)
-                        .size(basePinW, basePinH)
-                        .graphicsLayer(scaleX = scale, scaleY = scale, alpha = alpha)
-                        .pointerInput(p.id, selectedWorkerId) {
-                            detectTapGestures {
-                                selectedWorkerId = if (isSelected) null else p.id
-                            }
-                        }
-                )
-            }
-        }
-
+        // 상단 타이틀 + 구역 칩
         Column(
             modifier = Modifier
                 .statusBarsPadding()
@@ -316,6 +414,7 @@ fun LocationScreen(
             }
         }
 
+        // 바텀시트
         Surface(
             color = sheetBg,
             shape = sheetShape,
@@ -341,7 +440,7 @@ fun LocationScreen(
                     hasSelection = selectedWorkerId != null,
                     onBackToAll = { selectedWorkerId = null },
                     textPrimary = textPrimary,
-                    pillBg = pillBg,
+                    pillBg = if (dark) Color(0xFF131416) else c.surface,
                     pillBorder = pillBorder
                 )
 
@@ -366,7 +465,7 @@ fun LocationScreen(
                                 showCamDialog = true
                             },
                             textPrimary = textPrimary,
-                            iconTint = iconTint, // ✅ #33363D
+                            iconTint = iconTint,
                             divider = dividerLight
                         )
                     }
@@ -429,9 +528,9 @@ private fun SheetSummary(
                 modifier = Modifier.clickable { onBackToAll() }
             ) {
                 Icon(
-                    painter = painterResource(id = R.drawable.arrow_back_dark), // ✅ 변경
+                    painter = painterResource(id = R.drawable.arrow_back_dark),
                     contentDescription = "뒤로가기",
-                    tint = Color.Unspecified, // ✅ 원본 아이콘 색 그대로 사용
+                    tint = Color.Unspecified,
                     modifier = Modifier.size(14.dp)
                 )
 
@@ -448,7 +547,7 @@ private fun SheetSummary(
             }
         } else {
             Row(
-                modifier = Modifier.offset(x = 12.dp), // 👈 여기 숫자만 조절 (6~14dp 추천)
+                modifier = Modifier.offset(x = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
@@ -479,11 +578,9 @@ private fun SheetSummary(
                     )
                 }
             }
-
         }
     }
 }
-
 
 @Composable
 private fun TableHeader(
@@ -491,7 +588,6 @@ private fun TableHeader(
     divider: Color,
     dark: Boolean
 ) {
-    // ✅ 요청: #FB923C · 36%
     val headerBg = if (dark) {
         Color(0xFFFB923C).copy(alpha = 0.36f)
     } else {
@@ -553,7 +649,7 @@ private fun TableRowItem(
             .fillMaxWidth()
             .graphicsLayer(alpha = rowAlpha)
             .clickable { onRowClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp), // ✅ 10dp -> 8dp
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         BodyCell(row.role, 0.18f, bodyTextColor)
@@ -572,12 +668,10 @@ private fun TableRowItem(
                     .size(18.dp)
                     .clickable { onCamClick(row) }
             )
-
         }
     }
 
     Divider(color = divider, thickness = 1.dp)
-
 }
 
 @Composable
@@ -585,7 +679,7 @@ private fun RowScope.HeaderCell(text: String, w: Float, color: Color) {
     Box(
         modifier = Modifier
             .weight(w)
-            .heightIn(min = 24.dp), // ✅ 헤더 텍스트 높이 안정화 (원하면 28.dp)
+            .heightIn(min = 24.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
@@ -599,7 +693,6 @@ private fun RowScope.HeaderCell(text: String, w: Float, color: Color) {
         )
     }
 }
-
 
 @Composable
 private fun RowScope.BodyCell(text: String, w: Float, color: Color) {
@@ -624,13 +717,9 @@ private fun CamDialog(
 ) {
     val c = LocalSafeColors.current
 
-    // ✅ 카드(다이얼로그) 배경: 피그마 #1E2124 (다크모드일 때)
     val bg = if (isDark) Color(0xFF1E2124) else Color.White
-
     val text = c.text
     val closeTint = c.sub
-
-    // ✅ 다크모드일 때 버튼 텍스트/아이콘을 검정으로
     val actionColor = if (isDark) Color.Black else Color.White
 
     Dialog(onDismissRequest = onDismiss) {
@@ -721,3 +810,28 @@ private fun CamDialog(
     }
 }
 
+private fun drawableWithAlpha(
+    context: Context,
+    @DrawableRes resId: Int,
+    alpha: Int
+): BitmapDrawable? {
+    val d = ContextCompat.getDrawable(context, resId) ?: return null
+
+    val w = if (d.intrinsicWidth > 0) d.intrinsicWidth else 96
+    val h = if (d.intrinsicHeight > 0) d.intrinsicHeight else 96
+
+    val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        this.alpha = alpha // 0~255
+    }
+
+    // drawable을 비트맵에 그리되 paint 알파 적용
+    d.setBounds(0, 0, w, h)
+    canvas.saveLayerAlpha(0f, 0f, w.toFloat(), h.toFloat(), alpha)
+    d.draw(canvas)
+    canvas.restore()
+
+    return BitmapDrawable(context.resources, bmp)
+}

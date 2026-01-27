@@ -36,7 +36,10 @@ import java.util.Calendar
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 @Composable
-fun DailyListScreen(onComplete: () -> Unit = {}) {
+fun DailyListScreen(
+    onComplete: (date: String, location: String, riskFactor: String, safetyMeasure: String) -> Unit
+)
+ {
     val activity = LocalContext.current as? ComponentActivity
     val calendar = Calendar.getInstance()
     val year = calendar.get(Calendar.YEAR)
@@ -290,9 +293,16 @@ fun DailyListScreen(onComplete: () -> Unit = {}) {
                 Spacer(modifier = Modifier.weight(1f))
                 Spacer(modifier = Modifier.height(48.dp))
                 Button(
-                    onClick = { if (isFormComplete)
-                                onComplete()
-                              },
+                    onClick = {
+                        if (isFormComplete) {
+                            onComplete(
+                                date,
+                                location,
+                                riskFactor,
+                                safetyMeasure
+                            )
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     enabled = isFormComplete,

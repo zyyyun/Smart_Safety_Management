@@ -1,8 +1,5 @@
 package com.example.smart_safety_management
 
-import DailyCheckItem
-import android.content.Intent
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,14 +11,16 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 
 class DailyCheckAdapter(
-    private var items: List<DailyCheckItem>
+    private var items: List<DailyCheckItem>,
+    private val onOpenDetail: (day: Int, item: DailyCheckItem) -> Unit // ✅ 추가: HomeActivity가 처리
 ) : RecyclerView.Adapter<DailyCheckAdapter.VH>() {
 
     private var tooltipPopup: TooltipPopup? = null
     private var tooltipPosition: Int = RecyclerView.NO_POSITION
-    
-    // 툴팁이 클릭되어 영구적으로 닫혔는지 여부
     private var isTooltipDismissedPermanently = false
+
+    // ✅ 현재 리스트가 “몇일(day)”의 리스트인지 저장
+    private var currentDay: Int = -1
 
     class VH(v: View) : RecyclerView.ViewHolder(v) {
         val title: TextView = v.findViewById(R.id.tv_title)
@@ -52,49 +51,57 @@ class DailyCheckAdapter(
         }
 
         if (item.status == "점검완료") {
-            holder.cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.context,R.color.gray50_gray900))
-            holder.title.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray500_gray650))
-            holder.desc.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray500_gray650))
+            holder.cardView.setCardBackgroundColor(
+                ContextCompat.getColor(holder.itemView.context, R.color.gray50_gray900)
+            )
+            holder.title.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.gray500_gray650))
+            holder.desc.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.gray500_gray650))
 
             holder.statusLayout.isClickable = false
             holder.statusLayout.isFocusable = false
             holder.statusLayout.setBackgroundResource(R.drawable.bg_status_checked)
-            
-            holder.statusText.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.teal500))
+
+            holder.statusText.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.teal500))
             holder.statusIcon.setImageResource(R.drawable.checked)
-            holder.statusIcon.setColorFilter(ContextCompat.getColor(holder.itemView.context,R.color.teal500))
-            
+            holder.statusIcon.setColorFilter(ContextCompat.getColor(holder.itemView.context, R.color.teal500))
+
             holder.cardView.strokeWidth = 0
         } else {
-            holder.cardView.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.context, R.color.orange400alpha12_orange400alpha36))
+            holder.cardView.setCardBackgroundColor(
+                ContextCompat.getColor(holder.itemView.context, R.color.orange400alpha12_orange400alpha36)
+            )
             holder.title.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.black_white))
-            holder.desc.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.gray800_gray200))
+            holder.desc.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.gray800_gray200))
 
             holder.statusLayout.isClickable = true
             holder.statusLayout.isFocusable = true
             holder.statusLayout.setBackgroundResource(R.drawable.bg_status_unchecked)
-            
-            holder.statusText.setTextColor(ContextCompat.getColor(holder.itemView.context,R.color.orange500_black))
-            holder.statusIcon.setImageResource(R.drawable.orange_bell)
-            holder.statusIcon.setColorFilter(ContextCompat.getColor(holder.itemView.context, R.color.orange500_black))
-            
-            holder.cardView.strokeWidth = (1.142 * holder.itemView.context.resources.displayMetrics.density).toInt()
-            holder.cardView.strokeColor = ContextCompat.getColor(holder.itemView.context, R.color.orange400alpha12_orange400alpha36)
 
-            // 미점검 버튼 클릭 리스너
+            holder.statusText.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.orange500_black))
+            holder.statusIcon.setImageResource(R.drawable.orange_bell)
+            holder.statusIcon.setColorFilter(
+                ContextCompat.getColor(holder.itemView.context, R.color.orange500_black)
+            )
+
+            holder.cardView.strokeWidth =
+                (1.142 * holder.itemView.context.resources.displayMetrics.density).toInt()
+            holder.cardView.strokeColor =
+                ContextCompat.getColor(holder.itemView.context, R.color.orange400alpha12_orange400alpha36)
+
+            // ✅ 미점검 버튼 클릭
             holder.statusLayout.setOnClickListener {
-                // 여기서만 영구적으로 닫음
                 isTooltipDismissedPermanently = true
                 tooltipPopup?.dismiss()
                 tooltipPopup = null
 
-                val context = holder.itemView.context
-                val intent = Intent(context, DailyDetailActivity::class.java)
-                context.startActivity(intent)
+                // ✅ Adapter가 화면 이동하지 말고, HomeActivity에게 “열어줘” 요청
+                if (currentDay != -1) {
+                    onOpenDetail(currentDay, item)
+                }
             }
         }
 
-        // 툴팁 노출 로직 (클릭 전까지는 계속 유지)
+        // 툴팁 노출
         if (!isTooltipDismissedPermanently && position == tooltipPosition && item.status == "미점검") {
             holder.itemView.post {
                 if (tooltipPopup == null) {
@@ -111,10 +118,12 @@ class DailyCheckAdapter(
         return items.indexOfFirst { it.status == "미점검" }
     }
 
-    fun updateList(newItems: List<DailyCheckItem>) {
+    // ✅ day도 같이 받도록 변경
+    fun updateList(day: Int?, newItems: List<DailyCheckItem>) {
         tooltipPopup?.dismiss()
         tooltipPopup = null
 
+        currentDay = day ?: -1
         items = newItems
         tooltipPosition = findFirstUncheckedPosition()
 
@@ -125,7 +134,6 @@ class DailyCheckAdapter(
         tooltipPopup?.updatePosition()
     }
 
-    // 외부 터치 등으로 닫히지 않도록 이 메소드는 미점검 클릭시에만 내부적으로 사용하거나 제거 검토
     fun dismissTooltip() {
         tooltipPopup?.dismiss()
         tooltipPopup = null
@@ -133,7 +141,6 @@ class DailyCheckAdapter(
 
     override fun onViewRecycled(holder: VH) {
         super.onViewRecycled(holder)
-        // 스크롤 시 아이템이 재사용되어도 팝업을 죽이지 않음 (객체 유지)
     }
 
     fun initTooltip() {

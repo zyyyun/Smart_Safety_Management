@@ -9,6 +9,7 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        maven("https://naver.jfrog.io/artifactory/maven/")
     }
 }
 dependencyResolutionManagement {

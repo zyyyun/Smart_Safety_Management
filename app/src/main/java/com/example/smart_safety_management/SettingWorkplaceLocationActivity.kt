@@ -1,6 +1,8 @@
 package com.example.smart_safety_management
 
+import android.location.Geocoder
 import android.os.Bundle
+import android.preference.PreferenceManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
@@ -8,21 +10,16 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -37,30 +34,33 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Devices
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
-import kotlin.math.roundToInt
-import android.preference.PreferenceManager
-import androidx.compose.ui.viewinterop.AndroidView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapAdapter
+import org.osmdroid.events.ScrollEvent
+import org.osmdroid.events.ZoomEvent
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
-
+import java.util.Locale
 
 class SettingWorkplaceLocationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
-            // ✅ 반드시 이걸로 감싸야 LocalSafeColors가 다크/라이트로 바뀜
             Smart_Safety_ManagementTheme {
                 SettingWorkplaceLocationScreen(
                     onBack = { finish() },
@@ -71,65 +71,108 @@ class SettingWorkplaceLocationActivity : ComponentActivity() {
     }
 }
 
+private suspend fun geocodeToPoint(
+    context: android.content.Context,
+    query: String
+): GeoPoint? = withContext(Dispatchers.IO) {
+    runCatching {
+        val geocoder = Geocoder(context, Locale.KOREA)
+        val list = geocoder.getFromLocationName(query, 1)
+        if (list.isNullOrEmpty()) null
+        else GeoPoint(list[0].latitude, list[0].longitude)
+    }.getOrNull()
+}
+
+
+/** ✅ 역지오코딩 (좌표 -> 주소) */
+private suspend fun reverseGeocodeKorea(
+    context: android.content.Context,
+    lat: Double,
+    lon: Double
+): Triple<String, String, String> = withContext(Dispatchers.IO) {
+    runCatching {
+        val geocoder = Geocoder(context, Locale.KOREA)
+        val list = geocoder.getFromLocation(lat, lon, 1)
+        if (list.isNullOrEmpty()) return@withContext Triple("", "", "")
+
+        val a = list[0]
+        val fullAddr = a.getAddressLine(0) ?: ""
+        val postal = a.postalCode ?: ""
+
+        // 도로명/번지 느낌으로 최대한 구성
+        val roadAddr = listOfNotNull(a.thoroughfare, a.subThoroughfare).joinToString(" ").trim()
+            .ifBlank {
+                // 대체값: featureName 등
+                listOfNotNull(a.thoroughfare, a.featureName).joinToString(" ").trim()
+            }
+
+        Triple(fullAddr, postal, roadAddr)
+    }.getOrElse {
+        Triple("", "", "")
+    }
+}
+
 @Composable
 fun SettingWorkplaceLocationScreen(
     onBack: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    val c = LocalSafeColors.current // 🌙 다크/라이트 팔레트
-    LaunchedEffect(c.isDark) {
-        android.util.Log.d("THEME_CHECK", "isDark=${c.isDark}")
-    }
-
+    val c = LocalSafeColors.current
     val isPreview = LocalInspectionMode.current
     val focusManager = LocalFocusManager.current
     val density = LocalDensity.current
+    val scope = rememberCoroutineScope()
 
     var query by remember { mutableStateOf("") }
     var dropdownExpanded by remember { mutableStateOf(false) }
     var isRegistered by remember { mutableStateOf(false) }
 
-    // ✅ (OSMDroid로 바꾸면 이 값은 사실상 필요 없지만, 일단 남겨둠)
-    var mapOffset by remember { mutableStateOf(Offset.Zero) }
-
     // ✅ 하단 시트 높이(측정값)
     var sheetHeightDp by remember { mutableStateOf(252.dp) }
 
-    val address = "인천광역시 남동구 예술로 197 (인천아시아드 주경기장)"
-    val zipcode = "21983"
-    val road = "송도동 162-1"
+    // ✅ 아래 주소(지도 중심 좌표에 따라 바뀌게!)
+    var address by remember { mutableStateOf("인천광역시 남동구 예술로 197 (인천아시아드 주경기장)") }
+    var zipcode by remember { mutableStateOf("21983") }
+    var road by remember { mutableStateOf("송도동 162-1") }
 
     val orange = Color(0xFFFF7A00)
 
-    // ✅ 상태바 높이
+    // ✅ 상태바/탑바 높이 (서로 다른 값 쓰면 어긋나서 통일!)
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val topBarH = 40.dp
-    val searchTop = statusTop + topBarH + 46.dp
+    val topBarH = 60.dp
+    val searchTop = statusTop + topBarH + 16.dp
+
+    // ✅ MapView를 remember로 유지 + 디바운스 Job
+    val mapViewHolder = remember { mutableStateOf<MapView?>(null) }
+    var geocodeJob by remember { mutableStateOf<Job?>(null) }
+
+    // ✅ 지도 중심좌표 -> 주소 업데이트 함수
+    fun requestAddressUpdate(context: android.content.Context, mapView: MapView) {
+        geocodeJob?.cancel()
+        geocodeJob = scope.launch {
+            delay(300) // ✅ 끌다 멈췄을 때만(디바운스)
+            val center = mapView.mapCenter as? GeoPoint ?: return@launch
+            val (addr, post, roadAddr) = reverseGeocodeKorea(context, center.latitude, center.longitude)
+            if (addr.isNotBlank()) {
+                address = addr
+                zipcode = post
+                road = roadAddr
+            }
+        }
+    }
 
     Scaffold(
-        containerColor = c.bg, // 🌙 전체 배경
+        containerColor = c.bg,
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
 
-            // ✅ 지도 배경 (Preview는 기존처럼 박스, 실제 실행은 OSMDroid 지도)
+            // ✅ 지도 배경 (Preview는 더미, 실제는 OSMDroid)
             if (isPreview) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(if (c.isDark) Color(0xFF0B0F14) else Color(0xFFE5E7EB))
-                        .pointerInput(Unit) {
-                            detectDragGestures(
-                                onDragStart = {
-                                    dropdownExpanded = false
-                                    focusManager.clearFocus()
-                                },
-                                onDrag = { change, dragAmount ->
-                                    change.consume()
-                                    mapOffset += dragAmount
-                                }
-                            )
-                        }
                         .pointerInput(Unit) {
                             detectTapGestures(onTap = {
                                 dropdownExpanded = false
@@ -148,7 +191,6 @@ fun SettingWorkplaceLocationScreen(
                             })
                         },
                     factory = { context ->
-                        // ✅ OSMDroid 기본 설정
                         Configuration.getInstance().load(
                             context,
                             PreferenceManager.getDefaultSharedPreferences(context)
@@ -159,15 +201,41 @@ fun SettingWorkplaceLocationScreen(
                             setTileSource(TileSourceFactory.MAPNIK)
                             setMultiTouchControls(true)
 
-                            // ✅ 초기 위치(원하면 바꿔도 됨)
                             controller.setZoom(18.0)
                             controller.setCenter(GeoPoint(37.4563, 126.7052))
+
+                            mapViewHolder.value = this
+
+                            addMapListener(object : MapAdapter() {
+                                override fun onScroll(event: ScrollEvent?): Boolean {
+                                    requestAddressUpdate(context, this@apply)
+                                    return true
+                                }
+
+                                override fun onZoom(event: ZoomEvent?): Boolean {
+                                    requestAddressUpdate(context, this@apply)
+                                    return true
+                                }
+                            })
+
+                            requestAddressUpdate(context, this)
                         }
+                    },
+                    update = { mapView ->
+                        mapViewHolder.value = mapView
                     }
                 )
+
+                DisposableEffect(Unit) {
+                    onDispose {
+                        geocodeJob?.cancel()
+                        mapViewHolder.value?.onDetach()
+                        mapViewHolder.value = null
+                    }
+                }
             }
 
-            // ✅ 검색창 + 드롭다운
+            // ✅ 검색창 + 드롭다운 (⭐ 여기 수정!)
             SearchBarOverlay(
                 query = query,
                 onQueryChange = { newText ->
@@ -176,6 +244,24 @@ fun SettingWorkplaceLocationScreen(
                 },
                 expanded = dropdownExpanded,
                 onExpandedChange = { dropdownExpanded = it },
+
+                // ✅ 추가: 드롭다운에서 선택하면 지도 이동
+                onSelectItem = { selected ->
+                    query = selected
+                    dropdownExpanded = false
+                    focusManager.clearFocus()
+
+                    val mv = mapViewHolder.value ?: return@SearchBarOverlay
+                    scope.launch {
+                        val p = geocodeToPoint(mv.context, selected) // ✅ 주소 -> 좌표
+                        if (p != null) {
+                            mv.controller.setZoom(18.0)
+                            mv.controller.animateTo(p) // ✅ 그 위치로 이동
+                            requestAddressUpdate(mv.context, mv) // ✅ 아래 주소도 즉시 갱신
+                        }
+                    }
+                },
+
                 isPreview = isPreview,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -192,6 +278,7 @@ fun SettingWorkplaceLocationScreen(
                         .background(orange)
                 )
             } else {
+                val pinSize = 110.dp
                 Image(
                     painter = painterResource(
                         id = if (c.isDark) R.drawable.worker_orange_dark else R.drawable.worker_orange
@@ -199,15 +286,18 @@ fun SettingWorkplaceLocationScreen(
                     contentDescription = "pin",
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .offset(x = 0.dp, y = (-130).dp)
-                        .size(110.dp)
+                        .offset(y = -(pinSize * 0.5f))
+                        .size(pinSize)
                 )
             }
 
             // ✅ floating 버튼 (등록 전만 노출)
             if (!isRegistered) {
                 MapFloatButton(
-                    onClick = { /* TODO */ },
+                    onClick = {
+                        val mv = mapViewHolder.value ?: return@MapFloatButton
+                        requestAddressUpdate(mv.context, mv)
+                    },
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(end = 24.dp, bottom = sheetHeightDp + 24.dp)
@@ -236,8 +326,8 @@ fun SettingWorkplaceLocationScreen(
             // ✅ TopBar
             TopBarFixed(
                 onBack = onBack,
-                isPreview = isPreview,
                 statusTop = statusTop,
+                topBarH = topBarH,
                 modifier = Modifier.align(Alignment.TopStart)
             )
         }
@@ -251,18 +341,16 @@ private fun MapFloatButton(
     modifier: Modifier = Modifier
 ) {
     val c = LocalSafeColors.current
-    val darkBg = Color(0xFF1D2D47) // 피그마 기준 다크 배경색
+    val darkBg = Color(0xFF1D2D47)
 
     Box(
         modifier = modifier
             .size(56.dp)
-            .clip(CircleShape)           // ✅ 원형 유지
+            .clip(CircleShape)
             .clickable(onClick = onClick)
-            // ✅ 다크모드일 때만 단색 배경
             .background(if (c.isDark) darkBg else Color.Transparent),
         contentAlignment = Alignment.Center
     ) {
-        // 🌞 라이트모드: 기존 흰 배경 이미지 사용
         if (!c.isDark) {
             Image(
                 painter = painterResource(id = R.drawable.background),
@@ -272,7 +360,6 @@ private fun MapFloatButton(
             )
         }
 
-        // 아이콘은 공통
         Image(
             painter = painterResource(id = R.drawable.loc),
             contentDescription = "loc",
@@ -282,23 +369,16 @@ private fun MapFloatButton(
     }
 }
 
-
 @Composable
 private fun TopBarFixed(
     onBack: () -> Unit,
-    isPreview: Boolean,
     statusTop: Dp,
+    topBarH: Dp,
     modifier: Modifier = Modifier
 ) {
     val c = LocalSafeColors.current
-    val topBarH = 60.dp
 
-    // ✅ 여기 추가
-    val topBarBg = if (c.isDark) {
-        c.topBar          // 다크모드는 기존 유지
-    } else {
-        Color.White       // 🔥 라이트모드는 완전 흰색
-    }
+    val topBarBg = if (c.isDark) c.topBar else Color.White
 
     Box(
         modifier = modifier
@@ -346,13 +426,13 @@ private fun TopBarFixed(
     }
 }
 
-
 @Composable
 private fun SearchBarOverlay(
     query: String,
     onQueryChange: (String) -> Unit,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
+    onSelectItem: (String) -> Unit,
     isPreview: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -374,12 +454,11 @@ private fun SearchBarOverlay(
                     fieldWidthDp = with(density) { coords.size.width.toDp() }
                 }
                 .clip(RoundedCornerShape(12.dp))
-                .background(c.surface)                 // 🌙
+                .background(c.surface)
                 .border(1.dp, c.border, RoundedCornerShape(12.dp))
                 .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // ✅ 다크/라이트 공용 아이콘
             Icon(
                 painter = painterResource(id = R.drawable.search),
                 contentDescription = "search",
@@ -409,7 +488,6 @@ private fun SearchBarOverlay(
                         color = c.text,
                         fontFamily = Pretendard,
                         fontWeight = FontWeight.Medium
-
                     ),
                     decorationBox = { inner ->
                         if (query.isEmpty()) {
@@ -434,7 +512,7 @@ private fun SearchBarOverlay(
             modifier = Modifier
                 .width(if (fieldWidthDp > 0.dp) fieldWidthDp else Dp.Unspecified)
                 .clip(RoundedCornerShape(12.dp))
-                .background(c.surface)                // 🌙
+                .background(c.surface)
                 .border(1.dp, c.border, RoundedCornerShape(12.dp))
         ) {
             items.forEach { item ->
@@ -457,9 +535,10 @@ private fun SearchBarOverlay(
                         )
                     },
                     onClick = {
-                        onQueryChange(item)
-                        onExpandedChange(false)
-                    },
+                        onSelectItem(item)      // ✅ 선택 처리(지도 이동)
+                        onExpandedChange(false) // 드롭다운 닫기
+                    }
+                    ,
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
                 )
             }
@@ -486,21 +565,18 @@ private fun BottomInfoCard(
     val infoGray = Color(0xFFCDD1D5)
     val badgeBg = if (c.isDark) Color(0xFF0E3B2B) else Color(0xFFCDF7EC)
 
-    // ✅ 버튼 원래 크기 + 하단 24dp 고정용
     val buttonH = 54.dp
     val bottomGap = 24.dp
-    val bottomReserve = buttonH + bottomGap + 36.dp // 버튼+간격+여유
+    val bottomReserve = buttonH + bottomGap + 36.dp
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            // ✅ 일단 원래 높이로 복구 (여기서부터 다시 조절)
             .height(if (isRegistered) 340.dp else 300.dp)
             .clip(RoundedCornerShape(topStart = sheetRadius, topEnd = sheetRadius))
             .background(sheetBg)
     ) {
 
-        // ✅ 정보 영역(버튼이랑 안 겹치게 bottomReserve 확보)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -637,7 +713,6 @@ private fun BottomInfoCard(
             }
         }
 
-        // ✅ 버튼 영역(시트 내부에서만 고정) - 원래 크기 유지
         if (!isRegistered) {
             Button(
                 onClick = onConfirm,
@@ -707,9 +782,6 @@ private fun BottomInfoCard(
     }
 }
 
-
-
-
 @Preview(
     name = "Setting Workplace Location (Light)",
     showBackground = true,
@@ -718,10 +790,7 @@ private fun BottomInfoCard(
 @Composable
 fun SettingWorkplaceLocationPreview() {
     Smart_Safety_ManagementTheme(darkTheme = false) {
-        SettingWorkplaceLocationScreen(
-            onBack = {},
-            onConfirm = {}
-        )
+        SettingWorkplaceLocationScreen(onBack = {}, onConfirm = {})
     }
 }
 
@@ -733,11 +802,6 @@ fun SettingWorkplaceLocationPreview() {
 @Composable
 fun SettingWorkplaceLocationDarkPreview() {
     Smart_Safety_ManagementTheme(darkTheme = true) {
-        SettingWorkplaceLocationScreen(
-            onBack = {},
-            onConfirm = {}
-        )
+        SettingWorkplaceLocationScreen(onBack = {}, onConfirm = {})
     }
 }
-
-

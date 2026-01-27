@@ -1,6 +1,5 @@
 package com.example.smart_safety_management
 
-import DailyCheckItem
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
@@ -19,29 +18,33 @@ import android.widget.EditText
 import android.widget.ImageButton
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
+import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 
-private val dailyCheckMap = mapOf(
-    7 to listOf(
-        DailyCheckItem("B구역 1열", "정리미흡으로 안전사고 발생 우려", "미점검"),
-        DailyCheckItem("C구역 3열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
+private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>(
+    7 to mutableListOf(
+        DailyCheckItem(title="B구역 1열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
+        DailyCheckItem(title="C구역 3열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
     ),
-    12 to listOf(
-        DailyCheckItem("A구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
+    12 to mutableListOf(
+        DailyCheckItem(title="A구역 1열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
     ),
-    23 to listOf(
-        DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
-        DailyCheckItem("A구역 4열", "정리미흡으로 안전사고 발생 우려", "미점검"),
-        DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
-        DailyCheckItem("D구역 1열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
-        DailyCheckItem("D구역 2열", "정리미흡으로 안전사고 발생 우려", "점검완료"),
+    23 to mutableListOf(
+        DailyCheckItem(title="A구역 4열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
+        DailyCheckItem(title="A구역 4열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
+        DailyCheckItem(title="D구역 2열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
+        DailyCheckItem(title="D구역 1열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
+        DailyCheckItem(title="D구역 2열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
     ),
-    25 to listOf(
-        DailyCheckItem("C구역 2열", "정리미흡으로 안전사고 발생 우려", "미점검")
+    25 to mutableListOf(
+        DailyCheckItem(title="C구역 2열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
     ),
-    26 to listOf(
-        DailyCheckItem("A구역 4열", "정리미흡으로 인적사고 발생 우려", "미점검")
+    26 to mutableListOf(
+        DailyCheckItem(title="A구역 4열", desc="정리미흡으로 인적사고 발생 우려", status="미점검"),
     )
 )
+
+
 
 class HomeWorkerActivity : AppCompatActivity() {
 
@@ -86,8 +89,18 @@ class HomeWorkerActivity : AppCompatActivity() {
         // 일일안전점검 리스트 초기화
         val rvDaily = findViewById<RecyclerView>(R.id.rv_daily_check)
         rvDaily.layoutManager = LinearLayoutManager(this)
-        dailyAdapter = DailyCheckAdapter(emptyList())
+        dailyAdapter = DailyCheckAdapter(
+            items = emptyList(),
+            onOpenDetail = { day, item ->
+                val intent = Intent(this, DailyDetailActivity::class.java).apply {
+                    putExtra("day", day)
+                    putExtra("itemId", item.id)
+                }
+                detailLauncher.launch(intent)   // ✅ 삭제 결과 받는 launcher로 열기
+            }
+        )
         rvDaily.adapter = dailyAdapter
+
 
         // 조치요청 리스트 초기화
         val rvEvent = findViewById<RecyclerView>(R.id.rv_worker_event)
@@ -143,7 +156,8 @@ class HomeWorkerActivity : AppCompatActivity() {
 
     private fun updateDailyCheckList(day: Int?) {
         val list = dailyCheckMap[day] ?: emptyList()
-        dailyAdapter.updateList(list)
+        dailyAdapter.updateList(day, list)
+
 
         val totalCount = list.size
         val uncheckedCount = list.count { it.status == "미점검" }
@@ -234,5 +248,24 @@ class HomeWorkerActivity : AppCompatActivity() {
             startActivity(intent)
         }
     }
+    private val detailLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            val data = result.data ?: return@registerForActivityResult
 
+            val action = data.getStringExtra("action") ?: return@registerForActivityResult
+            if (action != "delete") return@registerForActivityResult
+
+            val day = data.getIntExtra("day", -1)
+            val itemId = data.getStringExtra("itemId").orEmpty()
+            if (day == -1 || itemId.isBlank()) return@registerForActivityResult
+
+            val list = dailyCheckMap[day] ?: return@registerForActivityResult
+            list.removeAll { it.id == itemId }
+
+            selectedDay = day
+            updateDailyCheckList(selectedDay)
+
+            Toast.makeText(this@HomeWorkerActivity, "삭제 완료!", Toast.LENGTH_SHORT).show()
+        }
 }

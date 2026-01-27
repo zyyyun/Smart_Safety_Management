@@ -74,6 +74,12 @@ dependencies {
     implementation(libs.firebase.crashlytics.buildtools)
     implementation(libs.gson)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
+    implementation("androidx.media3:media3-exoplayer:1.4.1")
+    implementation("androidx.media3:media3-ui:1.4.1")
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.maps.android:maps-compose:4.4.1")
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+    implementation("androidx.activity:activity-ktx:1.9.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

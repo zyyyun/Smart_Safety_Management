@@ -1,46 +1,78 @@
 package com.example.smart_safety_management
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class DailyListActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
-            // 현재 화면 상태 관리
             var currentScreen by remember { mutableStateOf("write") }
+            val context = LocalContext.current
+            val activity = context as? Activity
+
+            // ✅ HomeActivity가 기대하는 키들: date, location, riskFactor, safetyMeasure
+            // TODO: 너 작성 화면에서 값 가져오게 바꿔야 함
+            // 지금은 테스트용 기본값(임시)
+            fun sendResultAndFinish(
+                dateStr: String,
+                location: String,
+                riskFactor: String,
+                safetyMeasure: String
+            ) {
+                val result = Intent().apply {
+                    putExtra("date", dateStr)                 // "YYYY-MM-DD"
+                    putExtra("location", location)
+                    putExtra("riskFactor", riskFactor)
+                    putExtra("safetyMeasure", safetyMeasure)
+                }
+                activity?.setResult(RESULT_OK, result)
+                activity?.finish()
+            }
 
             Smart_Safety_ManagementTheme {
-                // 1. 역할 확인 (UserSession 사용)
                 if (UserSession.userRole == UserRole.MANAGER) {
-                    // 관리자일 경우 기존 로직 유지
                     when (currentScreen) {
-                        "write" -> DailyListScreen(onComplete = { currentScreen = "detail" })
+                        "write" -> DailyListScreen(
+                            onComplete = { dateStr, location, riskFactor, safetyMeasure ->
+                                sendResultAndFinish(
+                                    dateStr = dateStr,
+                                    location = location,
+                                    riskFactor = riskFactor,
+                                    safetyMeasure = safetyMeasure
+                                )
+                            }
+                        )
+
                         "detail" -> DailyDetailScreen(onBackClick = { currentScreen = "write" })
                     }
                 } else {
-                    // 2. 근로자일 경우 근로자용 화면 표시
                     when (currentScreen) {
-                        "write" -> {
-                            DailyListWorkerScreen(
-                                onComplete = {
-                                    // 작성 완료 후 상세 화면으로 이동하거나 종료
-                                    currentScreen = "detail"
-                                }
-                            )
-                        }
-                        "detail" -> {
-                            // 근로자용 상세 화면 호출
-                            DailyDetailWorkerScreen(
-                                onBackClick = { currentScreen = "write" },
-                                onReportClick = { /* 이미 작성 중이므로 필요한 로직 추가 */ }
-                            )
-                        }
+                        "write" -> DailyListWorkerScreen(
+                            onComplete = { dateStr, location, riskFactor, safetyMeasure ->
+                                sendResultAndFinish(
+                                    dateStr = dateStr,
+                                    location = location,
+                                    riskFactor = riskFactor,
+                                    safetyMeasure = safetyMeasure
+                                )
+                            }
+                        )
+
+                        "detail" -> DailyDetailWorkerScreen(
+                            onBackClick = { currentScreen = "write" },
+                            onReportClick = { }
+                        )
                     }
                 }
             }

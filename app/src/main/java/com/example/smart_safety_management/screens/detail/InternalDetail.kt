@@ -11,9 +11,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -31,7 +32,18 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.ui.draw.alpha
+
+/**
+ * ✅ 지금은 CCTV/시그널링이 없으니:
+ * - 전경/현장은 "이미지 + LIVE 배지 + 연결대기"로 보여줌
+ * - 나중에 CCTV/WebRTC 도입 시:
+ *   1) LiveCardItem에 streamId(전경/현장) 필드를 추가하고 값 주기
+ *   2) 아래 TODO(시그널링 붙일 위치)만 구현하면 자동으로 WebRTC 화면으로 전환되게 설계
+ *
+ * ⚠️ LiveCardItem에 아래 필드를 "나중용"으로 추가해두면 제일 깔끔함:
+ *   val overviewStreamId: String? = null
+ *   val siteStreamId: String? = null
+ */
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +64,11 @@ fun InternalDetailScreen(
 
     val side = 24.dp
     val sectionTitleColor = Color(0xFF676F76) // 피그마 기준
+
+    // ✅ 나중에 LiveCardItem에 필드 추가하면 이 2줄만 살아남음
+    // 지금 당장은 null로 두면 "연결대기" UI로 보임
+    val overviewStreamId: String? = (item as? HasCctvStreamIds)?.overviewStreamId
+    val siteStreamId: String? = (item as? HasCctvStreamIds)?.siteStreamId
 
     Scaffold(
         containerColor = bg,
@@ -90,7 +107,7 @@ fun InternalDetailScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = bg,
-                    scrolledContainerColor = bg, // ✅ 스크롤 시 생기는 “줄” 제거 핵심
+                    scrolledContainerColor = bg,
                     titleContentColor = text,
                     navigationIconContentColor = text,
                     actionIconContentColor = sub
@@ -99,7 +116,6 @@ fun InternalDetailScreen(
         },
         modifier = modifier
     ) { inner ->
-        // ✅ 전체 Column에 좌우 24를 주지 말고, 필요한 요소만 side padding 주기
         Column(
             modifier = Modifier
                 .padding(inner)
@@ -154,6 +170,9 @@ fun InternalDetailScreen(
 
             Spacer(Modifier.height(24.dp))
 
+            // -------------------------
+            // ✅ 전경
+            // -------------------------
             Text(
                 text = "전경",
                 fontSize = 18.sp,
@@ -163,16 +182,23 @@ fun InternalDetailScreen(
                 modifier = Modifier.padding(horizontal = side)
             )
             Spacer(Modifier.height(16.dp))
-            PreviewCard(
+
+            SmartPreviewCard(
                 imageRes = R.drawable.aaa,
                 border = border,
                 modifier = Modifier
                     .padding(horizontal = side)
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
+                isLive = true,
+                streamId = overviewStreamId,
+                label = "전경"
             )
 
             Spacer(Modifier.height(24.dp))
 
+            // -------------------------
+            // ✅ 현장
+            // -------------------------
             Text(
                 text = "현장",
                 fontSize = 18.sp,
@@ -182,16 +208,23 @@ fun InternalDetailScreen(
                 modifier = Modifier.padding(horizontal = side)
             )
             Spacer(Modifier.height(16.dp))
-            PreviewCard(
+
+            SmartPreviewCard(
                 imageRes = R.drawable.bbb,
                 border = border,
                 modifier = Modifier
                     .padding(horizontal = side)
-                    .fillMaxWidth()
+                    .fillMaxWidth(),
+                isLive = true,
+                streamId = siteStreamId,
+                label = "현장"
             )
 
             Spacer(Modifier.height(24.dp))
 
+            // -------------------------
+            // ✅ 현장캡쳐(이미지)
+            // -------------------------
             Text(
                 text = "현장캡쳐",
                 fontSize = 18.sp,
@@ -202,7 +235,6 @@ fun InternalDetailScreen(
             )
             Spacer(Modifier.height(16.dp))
 
-            // ✅ 오른쪽 끝이 “벽까지” 가도록: end padding = 0.dp
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(start = side, end = 0.dp),
@@ -232,12 +264,23 @@ fun InternalDetailScreen(
     }
 }
 
+/**
+ * ✅ 이미지 카드 + LIVE + (연결대기 / 연결준비됨 / WebRTC 표시) "자동 스위치"
+ *
+ * 지금은 CCTV가 없으니:
+ * - streamId == null -> 이미지 + "연결대기"
+ *
+ * 나중에 CCTV/WebRTC 도입 시:
+ * - streamId != null -> 여기 TODO 지점에서 WebRTC 화면을 실제로 띄우게 구현
+ */
 @Composable
-private fun PreviewCard(
+private fun SmartPreviewCard(
     imageRes: Int,
     border: Color,
     modifier: Modifier = Modifier,
-    isLive: Boolean = true // ✅ 추가(원하면 외부에서 제어)
+    isLive: Boolean = true,
+    streamId: String?,
+    label: String
 ) {
     val c = LocalSafeColors.current
     val bg = if (c.isDark) c.surface else Color.White
@@ -249,6 +292,7 @@ private fun PreviewCard(
             .border(1.dp, border, RoundedCornerShape(14.dp))
             .background(bg)
     ) {
+        // ✅ 기본은 이미지
         Image(
             painter = painterResource(id = imageRes),
             contentDescription = null,
@@ -256,7 +300,39 @@ private fun PreviewCard(
             modifier = Modifier.fillMaxSize()
         )
 
-        // ✅ LIVE 뱃지 (dot 깜빡임)
+        if (streamId.isNullOrBlank()) {
+            // ✅ CCTV 아직 없음: 연결대기 UI
+            ConnectionPill(
+                text = "연결대기",
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(10.dp)
+            )
+        } else {
+            // ✅ CCTV/WebRTC 정보는 있음: "연결 준비됨" UI (지금은 placeholder)
+            ConnectionPill(
+                text = "$label 연결 준비됨",
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(10.dp)
+            )
+
+            // ==========================================================
+            // ✅✅✅ TODO (나중에 여기다가 "시그널링 + WebRTC 렌더러" 붙이면 됨)
+            //
+            // 1) signaling 연결 (WebSocket/REST/Firebase 등)
+            // 2) offer/answer/ice 교환
+            // 3) remote VideoTrack 받기
+            // 4) 아래처럼 WebRtcPreviewLayer(...)로 덮어씌우기
+            //
+            // 예시 구조:
+            // var remoteTrack by remember { mutableStateOf<VideoTrack?>(null) }
+            // DisposableEffect(streamId) { ...connect... onDispose{...} }
+            // WebRtcPreviewLayer(remoteTrack = remoteTrack)
+            // ==========================================================
+        }
+
+        // ✅ LIVE 배지
         if (isLive) {
             LiveBadge(
                 modifier = Modifier
@@ -267,6 +343,31 @@ private fun PreviewCard(
     }
 }
 
+/** 하단 상태 pill */
+@Composable
+private fun ConnectionPill(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.Black.copy(alpha = 0.35f))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            fontSize = 12.sp,
+            fontFamily = Pretendard,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+/**
+ * ✅ LIVE 뱃지(기존 그대로)
+ */
 @Composable
 fun LiveBadge(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "liveDot")
@@ -313,4 +414,12 @@ fun LiveBadge(modifier: Modifier = Modifier) {
     }
 }
 
-
+/**
+ * ✅ (선택) LiveCardItem에 streamId를 붙여두면 캐스팅 없이 바로 쓰면 됨.
+ * 지금 당장 수정하기 싫으면 이 인터페이스는 그냥 놔두고,
+ * LiveCardItem에 필드 추가하는 순간 이 인터페이스는 필요 없어져.
+ */
+interface HasCctvStreamIds {
+    val overviewStreamId: String?
+    val siteStreamId: String?
+}
