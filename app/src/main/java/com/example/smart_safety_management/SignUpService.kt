@@ -3,7 +3,18 @@ package com.example.smart_safety_management
 import com.google.gson.annotations.SerializedName
 import retrofit2.Call
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
+
+data class SignUpRequest(
+    @SerializedName("user_id") val userId: String,
+    val password: String,
+    val name: String,
+    @SerializedName("phone_num") val phoneNum: String,
+    val email: String,
+    @SerializedName("user_role") val userRole: String,
+    @SerializedName("group_id") val groupId: String?
+)
 
 data class SignUpResponse(
     val message: String,
@@ -74,6 +85,10 @@ data class CheckRegisteredContactsResponse(
     @SerializedName("registered_phone_numbers") val registeredPhoneNumbers: List<String>
 )
 
+data class GetUsersResponse(
+    val users: List<UserData>
+)
+
 interface SignUpService {
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>
@@ -95,4 +110,7 @@ interface SignUpService {
 
     @POST("/check_registered_contacts")
     fun checkRegisteredContacts(@Body request: CheckRegisteredContactsRequest): Call<CheckRegisteredContactsResponse>
+
+    @GET("/get_users")
+    fun getUsers(): Call<GetUsersResponse>
 }

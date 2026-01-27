@@ -148,11 +148,13 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
 
             while (it.moveToNext()) {
                 val name = it.getString(nameIndex) ?: "이름 없음"
-                val number = it.getString(numberIndex) ?: ""
+                val rawNumber = it.getString(numberIndex) ?: ""
+                val normalizedNumber = rawNumber.replace(Regex("[^0-9]"), "")
                 
                 // 중복 번호 제거 로직 추가 가능
-                if (tempContactList.none { item -> item.phoneNumber == number }) {
-                    tempContactList.add(InviteContactItem(name, number))
+                if (normalizedNumber.isNotEmpty() && tempContactList.none { item -> item.phoneNumber.replace(Regex("[^0-9]"), "") == normalizedNumber }) {
+                    val formattedNumber = formatPhoneNumber(normalizedNumber)
+                    tempContactList.add(InviteContactItem(name, formattedNumber))
                 }
             }
         }
@@ -162,7 +164,7 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
     }
 
     private fun checkRegisteredUsers(tempList: MutableList<InviteContactItem>) {
-        val allPhoneNumbers = tempList.map { it.phoneNumber }
+        val allPhoneNumbers = tempList.map { it.phoneNumber.replace(Regex("[^0-9]"), "") }
 
         if (allPhoneNumbers.isEmpty()) {
             updateList(tempList)
@@ -175,7 +177,7 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     val registeredNumbers = response.body()?.registeredPhoneNumbers ?: emptyList()
                     // 등록된 번호(registeredNumbers)에 포함되지 않은 연락처만 필터링
-                    val filteredContacts = tempList.filter { !registeredNumbers.contains(it.phoneNumber) }
+                    val filteredContacts = tempList.filter { !registeredNumbers.contains(it.phoneNumber.replace(Regex("[^0-9]"), "")) }
                     updateList(filteredContacts)
                 } else {
                     Toast.makeText(this@SettingInvitePhonenumberActivity, "유저 확인 실패", Toast.LENGTH_SHORT).show()
@@ -207,5 +209,21 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
             }
         }
         adapter.updateData(filtered)
+    }
+
+    // 전화번호 포맷팅 함수 (01012345678 -> 010-1234-5678)
+    private fun formatPhoneNumber(phone: String): String {
+        val number = phone.replace(Regex("[^0-9]"), "")
+        return if (number.length == 11) {
+            "${number.substring(0, 3)}-${number.substring(3, 7)}-${number.substring(7)}"
+        } else if (number.length == 10) {
+            if (number.startsWith("02")) {
+                "${number.substring(0, 2)}-${number.substring(2, 6)}-${number.substring(6)}"
+            } else {
+                "${number.substring(0, 3)}-${number.substring(3, 6)}-${number.substring(6)}"
+            }
+        } else {
+            number
+        }
     }
 }

@@ -77,7 +77,7 @@ class SettingProfileActivity : AppCompatActivity() {
         val authorityTv = findViewById<TextView>(R.id.tv_user_name_authority)
         authorityTv.text = if (UserSession.userRole == UserRole.MANAGER) "관리자" else "근로자"
 
-        findViewById<TextView>(R.id.tv_user_phone).text = UserSession.userPhone ?: ""
+        findViewById<TextView>(R.id.tv_user_phone).text = formatPhoneNumber(UserSession.userPhone)
         findViewById<TextView>(R.id.tv_user_email).text = UserSession.userEmail ?: ""
 
         UserSession.profileImageUri?.let {
@@ -148,7 +148,9 @@ class SettingProfileActivity : AppCompatActivity() {
         }
 
         btnConfirm?.setOnClickListener {
-            val newPhone = etPhoneEdit.text.toString()
+            val rawInput = etPhoneEdit.text.toString()
+            // DB 저장용: 숫자만 추출 (하이픈 제거)
+            val newPhone = rawInput.replace(Regex("[^0-9]"), "")
             val userId = UserSession.userId
 
             if (userId == null) {
@@ -161,7 +163,7 @@ class SettingProfileActivity : AppCompatActivity() {
                 override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
                     if (response.isSuccessful) {
                         UserSession.userPhone = newPhone
-                        tvPhoneValue.text = newPhone
+                        tvPhoneValue.text = formatPhoneNumber(newPhone)
                         layoutPhoneEdit.visibility = View.GONE
                         layoutPhoneView?.visibility = View.VISIBLE
                         Toast.makeText(this@SettingProfileActivity, "전화번호가 수정되었습니다.", Toast.LENGTH_SHORT).show()
@@ -283,5 +285,22 @@ class SettingProfileActivity : AppCompatActivity() {
         val marginPx = (24 * resources.displayMetrics.density).toInt()
         val width = resources.displayMetrics.widthPixels - (marginPx * 2)
         alertDialog.window?.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
+    }
+
+    // 전화번호 포맷팅 함수 (01012345678 -> 010-1234-5678)
+    private fun formatPhoneNumber(phone: String?): String {
+        if (phone.isNullOrEmpty()) return ""
+        val number = phone.replace(Regex("[^0-9]"), "")
+        return if (number.length == 11) {
+            "${number.substring(0, 3)}-${number.substring(3, 7)}-${number.substring(7)}"
+        } else if (number.length == 10) {
+            if (number.startsWith("02")) {
+                "${number.substring(0, 2)}-${number.substring(2, 6)}-${number.substring(6)}"
+            } else {
+                "${number.substring(0, 3)}-${number.substring(3, 6)}-${number.substring(6)}"
+            }
+        } else {
+            number
+        }
     }
 }

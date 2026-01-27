@@ -32,8 +32,8 @@ data class SignUpRequest(
     @SerializedName("phone_num")
     val phoneNum: String? = null, // null 허용 및 기본값 설정
 
-    @SerializedName("invite_code")
-    val inviteCode: String? = null // null 허용 및 기본값 설정
+    @SerializedName("group_id")
+    val groupId: String? = null // null 허용 및 기본값 설정
 
 
 
@@ -76,7 +76,7 @@ class SignUp3Activity : AppCompatActivity() {
             name = UserSession.userName,
             email = null,
             phoneNum = null,
-            inviteCode = null
+            groupId = null
         )
 
         // Retrofit을 이용한 회원가입 요청
