@@ -311,16 +311,18 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
     LaunchedEffect(yearMonth) { val firstDay = yearMonth.atDay(1); val lastDay = yearMonth.atEndOfMonth(); startDateStr = firstDay.format(formatter); endDateStr = lastDay.format(formatter); onDateChange(firstDay, lastDay) }
     val iconTint = if (MaterialTheme.colors.isLight) Color.Unspecified else GrayBorder
 
-    Row(Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(value = startDateStr, onValueChange = {}, modifier = Modifier
-            .weight(1f)
-            .height(50.dp), readOnly = true, textStyle = TextStyle(fontFamily = Pretendard, fontSize = 14.sp), trailingIcon = { IconButton(onClick = { pickingStartDate = true; showCustomPicker = true }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = iconTint) } }, colors = TextFieldDefaults.outlinedTextFieldColors(focusedBorderColor = MaterialTheme.colors.primary, unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), textColor = MaterialTheme.colors.onSurface))
-        Icon(painter = painterResource(id = R.drawable.underbar), null, tint = MaterialTheme.colors.onSurface)
-        OutlinedTextField(value = endDateStr, onValueChange = {}, modifier = Modifier
-            .weight(1f)
-            .height(50.dp), readOnly = true, textStyle = TextStyle(fontFamily = Pretendard, fontSize = 14.sp), trailingIcon = { IconButton(onClick = { pickingStartDate = false; showCustomPicker = true }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = iconTint) } }, colors = TextFieldDefaults.outlinedTextFieldColors(focusedBorderColor = MaterialTheme.colors.primary, unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), textColor = MaterialTheme.colors.onSurface))
+    CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
+        Row(Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(value = startDateStr, onValueChange = {}, modifier = Modifier
+                .weight(1f)
+                .height(50.dp), readOnly = true, textStyle = TextStyle(fontFamily = Pretendard, fontSize = 14.sp), trailingIcon = { IconButton(onClick = { pickingStartDate = true; showCustomPicker = true }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = iconTint) } }, colors = TextFieldDefaults.outlinedTextFieldColors(focusedBorderColor = MaterialTheme.colors.primary, unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), textColor = MaterialTheme.colors.onSurface))
+            Icon(painter = painterResource(id = R.drawable.underbar), null, tint = MaterialTheme.colors.onSurface)
+            OutlinedTextField(value = endDateStr, onValueChange = {}, modifier = Modifier
+                .weight(1f)
+                .height(50.dp), readOnly = true, textStyle = TextStyle(fontFamily = Pretendard, fontSize = 14.sp), trailingIcon = { IconButton(onClick = { pickingStartDate = false; showCustomPicker = true }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = iconTint) } }, colors = TextFieldDefaults.outlinedTextFieldColors(focusedBorderColor = MaterialTheme.colors.primary, unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), textColor = MaterialTheme.colors.onSurface))
+        }
     }
 
     if (showCustomPicker) {
@@ -461,7 +463,7 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
                         .height(48.dp), colors = ButtonDefaults.buttonColors(backgroundColor = if (isLight) Color(0xFFF4F5F6) else Color(0xFF131416)), elevation = ButtonDefaults.elevation(0.dp), shape = RoundedCornerShape(8.dp)) { Text("취소", color = if (isLight) Color(0xFF58616A) else Color(0xFF8A949E), fontFamily = Pretendard, fontWeight = FontWeight.SemiBold, fontSize = 18.sp) }
                     Button(onClick = { onDateSelected(selectedDate) }, modifier = Modifier
                         .weight(1f)
-                        .height(48.dp), colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF97316)), elevation = ButtonDefaults.elevation(0.dp), shape = RoundedCornerShape(8.dp)) { Text("선택", color = if (isLight) Color.White else Color.Black, fontFamily = Pretendard, fontWeight = FontWeight.SemiBold, fontSize = 18.sp) }
+                        .height(48.dp), colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF97316)), elevation = ButtonDefaults.elevation(0.dp), shape = RoundedCornerShape(8.dp)) { Text("선택", color = if (isLight) Color(0xFFFFFFFF) else Color.Black, fontFamily = Pretendard, fontWeight = FontWeight.SemiBold, fontSize = 18.sp) }
                 }
             }
         }
