@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -77,6 +78,11 @@ class SettingProfileActivity : AppCompatActivity() {
             performLogout()
         }
 
+        // 회원 탈퇴 버튼 클릭 시
+        findViewById<View>(R.id.btn_withdraw).setOnClickListener {
+            showWithdrawConfirmDialog()
+        }
+
         setupPhoneEditLogic()
         setupEmailEditLogic()
     }
@@ -114,6 +120,77 @@ class SettingProfileActivity : AppCompatActivity() {
         finish()
         
         Toast.makeText(this, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showWithdrawConfirmDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.view_confirm_action_dialog, null)
+        val builder = AlertDialog.Builder(this).setView(dialogView).setCancelable(true)
+        val alertDialog = builder.create()
+        alertDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialogView.findViewById<TextView>(R.id.tv_title_message).text = "회원 탈퇴"
+        dialogView.findViewById<TextView>(R.id.tv_message).text = "정말로 탈퇴하시겠습니까?\n계정 정보가 모두 삭제됩니다."
+        
+        val btnCancel = dialogView.findViewById<Button>(R.id.btn_cancel)
+        val btnWithdraw = dialogView.findViewById<Button>(R.id.btn_exit)
+
+        btnCancel.text = "취소"
+        btnWithdraw.text = "탈퇴"
+
+        btnCancel.setOnClickListener { alertDialog.dismiss() }
+        btnWithdraw.setOnClickListener {
+            alertDialog.dismiss()
+            performWithdraw()
+        }
+
+        alertDialog.show()
+
+        // 다이얼로그 너비 설정
+        val marginPx = (24 * resources.displayMetrics.density).toInt()
+        val width = resources.displayMetrics.widthPixels - (marginPx * 2)
+        alertDialog.window?.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
+    }
+
+    private fun performWithdraw() {
+        val userId = UserSession.userId
+        if (userId == null) {
+            Toast.makeText(this, "로그인 정보가 없습니다. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        Log.d("Withdraw", "Attempting to delete account for user: $userId")
+        val request = DeleteAccountRequest(userId = userId)
+
+        RetrofitClient.instance.deleteAccount(request).enqueue(object : Callback<DeleteAccountResponse> {
+            override fun onResponse(call: Call<DeleteAccountResponse>, response: Response<DeleteAccountResponse>) {
+                if (response.isSuccessful) {
+                    Log.d("Withdraw", "Account deletion successful")
+                    Toast.makeText(this@SettingProfileActivity, "회원 탈퇴가 완료되었습니다.", Toast.LENGTH_SHORT).show()
+                    
+                    // 세션 및 로컬 데이터 초기화
+                    UserSession.userId = null
+                    UserSession.userName = ""
+                    UserSession.userPhone = null
+                    UserSession.userEmail = null
+                    UserSession.profileImageUri = null
+                    getSharedPreferences("workplace_prefs", MODE_PRIVATE).edit().clear().apply()
+
+                    val intent = Intent(this@SettingProfileActivity, LogInActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    finish()
+                } else {
+                    val errorMsg = response.errorBody()?.string() ?: "탈퇴 처리 중 오류가 발생했습니다."
+                    Log.e("Withdraw", "Account deletion failed: $errorMsg")
+                    Toast.makeText(this@SettingProfileActivity, errorMsg, Toast.LENGTH_LONG).show()
+                }
+            }
+
+            override fun onFailure(call: Call<DeleteAccountResponse>, t: Throwable) {
+                Log.e("Withdraw", "Network error during account deletion", t)
+                Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     private fun applyProfileImage(uri: Uri) {

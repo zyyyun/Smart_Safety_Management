@@ -185,6 +185,14 @@ data class GetWorkplaceResponse(
     val workplaces: List<WorkplaceResponseItem>
 )
 
+data class DeleteAccountRequest(
+    @SerializedName("user_id") val userId: String
+)
+
+data class DeleteAccountResponse(
+    val message: String
+)
+
 interface SignUpService {
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>
@@ -238,4 +246,7 @@ interface SignUpService {
 
     @GET("/get_workplace")
     fun getWorkplace(@Query("user_id") userId: String): Call<GetWorkplaceResponse>
+
+    @POST("/delete_account")
+    fun deleteAccount(@Body request: DeleteAccountRequest): Call<DeleteAccountResponse>
 }

@@ -5,7 +5,7 @@ const PORT = 3000;
 // JSON 요청 본문을 파싱하기 위한 미들웨어
 app.use(express.json());
 
-// signup.js에서 정의한 라우터를 가져옴
+// 각 기능별 라우터를 가져옴
 const signupRouter = require('./signup');
 const loginRouter = require('./login');
 const updateProfileRouter = require('./update_profile');
@@ -22,8 +22,9 @@ const getDeviceStatusRouter = require('./get_device_status');
 const getWorkerDeviceStatusRouter = require('./get_worker_device_status');
 const getDetectionEventsRouter = require('./get_detection_events');
 const getWorkplaceRouter = require('./get_workplace');
+const deleteAccountRouter = require('./delete_account');
 
-// '/signup' 경로에 대한 요청을 signupRouter로 전달
+// 라우터 등록
 app.use('/', signupRouter);
 app.use('/', loginRouter);
 app.use('/', updateProfileRouter);
@@ -40,6 +41,7 @@ app.use('/', getDeviceStatusRouter);
 app.use('/', getWorkerDeviceStatusRouter);
 app.use('/', getDetectionEventsRouter);
 app.use('/', getWorkplaceRouter);
+app.use('/', deleteAccountRouter);
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
 app.use('/uploads', express.static('public/uploads'));
