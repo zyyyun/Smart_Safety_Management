@@ -44,6 +44,13 @@ class SignUp3Activity : AppCompatActivity() {
             return
         }
 
+        // 아이디 영문/숫자 체크
+        val idRegex = Regex("^[a-zA-Z0-9]*$")
+        if (!id.matches(idRegex)) {
+            Toast.makeText(this, "아이디는 영문과 숫자만 입력 가능합니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         if (pw != rePw) {
             Toast.makeText(this, "비밀번호가 일치하지 않습니다.", Toast.LENGTH_SHORT).show()
             return
