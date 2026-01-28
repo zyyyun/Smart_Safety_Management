@@ -2,12 +2,14 @@ package com.example.smart_safety_management
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -44,6 +46,11 @@ class SettingInviteActivity : AppCompatActivity() {
                     workerList.addAll(it)
                 }
                 updateTabState(isManagerTab)
+                
+                // 선택된 연락처가 있을 경우 첫 번째 연락처로 메시지 앱 실행
+                if (it.isNotEmpty()) {
+                    sendInviteSms(it[0].phoneNumber)
+                }
             }
         }
     }
@@ -86,7 +93,8 @@ class SettingInviteActivity : AppCompatActivity() {
 
         // 리사이클러뷰 설정
         adapter = InvitedUserAdapter(mutableListOf()) { item ->
-            // 다시초대 클릭 시 동작
+            // 다시초대 클릭 시 메시지 앱 실행
+            sendInviteSms(item.phoneNumber)
         }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
@@ -179,6 +187,24 @@ class SettingInviteActivity : AppCompatActivity() {
                 bannerLayout.visibility = View.VISIBLE
             }
             adapter.updateData(currentList)
+        }
+    }
+
+    private fun sendInviteSms(phoneNumber: String) {
+        val inviteCode = "1234"
+        val message = "[안나 안전관리] 안전관리 시스템에 초대되었습니다.\n" +
+                "초대코드: $inviteCode\n" +
+                "앱을 설치하고 코드를 입력하여 가입을 완료해주세요."
+
+        val intent = Intent(Intent.ACTION_SENDTO).apply {
+            data = Uri.parse("smsto:${phoneNumber.replace("-", "")}")
+            putExtra("sms_body", message)
+        }
+
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "메시지 앱을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
         }
     }
 }
