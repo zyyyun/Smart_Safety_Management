@@ -177,6 +177,14 @@ data class GetDetectionEventsResponse(
     val events: List<DetectionEventDTO>
 )
 
+data class WorkplaceResponseItem(
+    @SerializedName("name") val name: String
+)
+
+data class GetWorkplaceResponse(
+    val workplaces: List<WorkplaceResponseItem>
+)
+
 interface SignUpService {
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>
@@ -227,4 +235,7 @@ interface SignUpService {
 
     @GET("/get_detection_events")
     fun getDetectionEvents(@Query("user_id") userId: String): Call<GetDetectionEventsResponse>
+
+    @GET("/get_workplace")
+    fun getWorkplace(@Query("user_id") userId: String): Call<GetWorkplaceResponse>
 }

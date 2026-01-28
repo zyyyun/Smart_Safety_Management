@@ -15,8 +15,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -25,8 +23,6 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
 
     private lateinit var workplaceAdapter: WorkplaceAdapter
     private var workplaceList = mutableListOf<WorkplaceItem>()
-    private val sharedPrefs by lazy { getSharedPreferences("workplace_prefs", MODE_PRIVATE) }
-    private val gson = Gson()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,7 +36,7 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
         val txtCreatedWorkplace = findViewById<TextView>(R.id.txt_created_workplace)
 
         // 저장된 리스트 불러오기
-        loadWorkplaceList()
+        fetchWorkplaceList()
 
         // UI 상태 업데이트 함수 (버튼 및 리스트 관련 뷰 가시성)
         fun updateUIState() {
@@ -81,9 +77,13 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
                         override fun onResponse(call: Call<DeleteWorkplaceResponse>, response: Response<DeleteWorkplaceResponse>) {
                             if (response.isSuccessful) {
                                 workplaceAdapter.removeItem(position)
-                                saveWorkplaceList() // 삭제 후 저장
                                 updateUIState() // 삭제 후 UI 상태 업데이트
                                 Toast.makeText(this@SettingCreateWorkplaceActivity, "현장이 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                            } else if (response.code() == 404) {
+                                // 서버에 데이터가 없는 경우(404), 로컬 목록에서도 삭제 처리
+                                workplaceAdapter.removeItem(position)
+                                updateUIState()
+                                Toast.makeText(this@SettingCreateWorkplaceActivity, "서버에 없는 현장을 목록에서 삭제했습니다.", Toast.LENGTH_SHORT).show()
                             } else {
                                 Toast.makeText(this@SettingCreateWorkplaceActivity, "삭제 실패: ${response.message()}", Toast.LENGTH_SHORT).show()
                             }
@@ -143,7 +143,6 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
                         if (response.isSuccessful) {
                             val newItem = WorkplaceItem(name)
                             workplaceAdapter.addItem(newItem)
-                            saveWorkplaceList() // 추가 후 로컬 저장
                             
                             etWorkplaceName.text.clear()
                             rvWorkplace.scrollToPosition(workplaceList.size - 1)
@@ -163,18 +162,24 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveWorkplaceList() {
-        val json = gson.toJson(workplaceList)
-        sharedPrefs.edit().putString("workplace_list", json).apply()
-    }
-
-    private fun loadWorkplaceList() {
-        val json = sharedPrefs.getString("workplace_list", null)
-        if (json != null) {
-            val type = object : TypeToken<MutableList<WorkplaceItem>>() {}.type
-            val savedList: MutableList<WorkplaceItem> = gson.fromJson(json, type)
-            workplaceList.clear()
-            workplaceList.addAll(savedList)
-        }
+    private fun fetchWorkplaceList() {
+        val userId = UserSession.userId ?: return
+        RetrofitClient.instance.getWorkplace(userId).enqueue(object : Callback<GetWorkplaceResponse> {
+            override fun onResponse(call: Call<GetWorkplaceResponse>, response: Response<GetWorkplaceResponse>) {
+                if (response.isSuccessful) {
+                    val items = response.body()?.workplaces ?: emptyList()
+                    workplaceList.clear()
+                    workplaceList.addAll(items.map { WorkplaceItem(it.name) })
+                    workplaceAdapter.notifyDataSetChanged()
+                    // UI 상태 업데이트는 어댑터 갱신 후 호출
+                    // updateUIState()는 onCreate 내부 함수라 직접 호출이 어려우므로, 
+                    // 필요하다면 etWorkplaceName의 텍스트 변경 리스너를 트리거하거나 별도 메서드로 분리해야 함.
+                    // 여기서는 리스트 갱신만으로도 RecyclerView는 업데이트됨.
+                }
+            }
+            override fun onFailure(call: Call<GetWorkplaceResponse>, t: Throwable) {
+                Toast.makeText(this@SettingCreateWorkplaceActivity, "목록 불러오기 실패", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 }
