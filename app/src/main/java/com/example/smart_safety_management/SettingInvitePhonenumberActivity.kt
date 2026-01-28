@@ -164,6 +164,7 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
     }
 
     private fun checkRegisteredUsers(tempList: MutableList<InviteContactItem>) {
+        val alreadyInvited = intent.getStringArrayListExtra("already_invited") ?: arrayListOf()
         val allPhoneNumbers = tempList.map { it.phoneNumber.replace(Regex("[^0-9]"), "") }
 
         if (allPhoneNumbers.isEmpty()) {
@@ -176,17 +177,24 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
             override fun onResponse(call: Call<CheckRegisteredContactsResponse>, response: Response<CheckRegisteredContactsResponse>) {
                 if (response.isSuccessful) {
                     val registeredNumbers = response.body()?.registeredPhoneNumbers ?: emptyList()
-                    // 등록된 번호(registeredNumbers)에 포함되지 않은 연락처만 필터링
-                    val filteredContacts = tempList.filter { !registeredNumbers.contains(it.phoneNumber.replace(Regex("[^0-9]"), "")) }
+                    // 1. 서버에 등록된 유저 제외 AND 2. 이미 초대 리스트에 있는 유저 제외
+                    val filteredContacts = tempList.filter { contact ->
+                        val pureNumber = contact.phoneNumber.replace(Regex("[^0-9]"), "")
+                        !registeredNumbers.contains(pureNumber) && !alreadyInvited.contains(pureNumber)
+                    }
                     updateList(filteredContacts)
                 } else {
                     Toast.makeText(this@SettingInvitePhonenumberActivity, "유저 확인 실패", Toast.LENGTH_SHORT).show()
-                    updateList(tempList) // 실패 시 전체 표시
+                    // 실패 시에도 이미 초대된 번호는 제외하고 표시
+                    val filtered = tempList.filter { !alreadyInvited.contains(it.phoneNumber.replace(Regex("[^0-9]"), "")) }
+                    updateList(filtered)
                 }
             }
             override fun onFailure(call: Call<CheckRegisteredContactsResponse>, t: Throwable) {
                 Toast.makeText(this@SettingInvitePhonenumberActivity, "네트워크 오류", Toast.LENGTH_SHORT).show()
-                updateList(tempList) // 오류 시 전체 표시
+                // 오류 시에도 이미 초대된 번호는 제외하고 표시
+                val filtered = tempList.filter { !alreadyInvited.contains(it.phoneNumber.replace(Regex("[^0-9]"), "")) }
+                updateList(filtered)
             }
         })
     }

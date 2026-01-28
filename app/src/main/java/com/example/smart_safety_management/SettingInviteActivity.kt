@@ -99,6 +99,12 @@ class SettingInviteActivity : AppCompatActivity() {
         // 연락처로 초대문자 발송 버튼 클릭 시
         btnInvite.setOnClickListener {
             val intent = Intent(this, SettingInvitePhonenumberActivity::class.java)
+            
+            // 현재 탭에 이미 추가된 번호들을 추출해서 전달 (중복 방지용)
+            val currentList = if (isManagerTab) managerList else workerList
+            val alreadyInvitedNumbers = currentList.map { it.phoneNumber.replace(Regex("[^0-9]"), "") }
+            intent.putStringArrayListExtra("already_invited", ArrayList(alreadyInvitedNumbers))
+            
             getInviteResult.launch(intent)
         }
         
