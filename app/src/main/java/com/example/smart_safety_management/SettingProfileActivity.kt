@@ -104,6 +104,9 @@ class SettingProfileActivity : AppCompatActivity() {
         UserSession.userEmail = null
         UserSession.profileImageUri = null
         
+        // 현장 목록 로컬 데이터 초기화 (다른 사용자의 데이터가 남지 않도록 함)
+        getSharedPreferences("workplace_prefs", MODE_PRIVATE).edit().clear().apply()
+        
         // 2. 로그인 화면으로 이동 및 기존 스택 제거
         val intent = Intent(this, LogInActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

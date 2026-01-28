@@ -8,6 +8,15 @@ const pool = new Pool({
     database: 'safety_management', // 생성한 데이터베이스 이름으로 변경하세요.
     password: 'password123',      // 데이터베이스 비밀번호로 변경하세요.
     port: 5432,                     // PostgreSQL 기본 포트
+    max: 20,                        // 최대 연결 수 제한 (기본값 10, 필요에 따라 조절)
+    idleTimeoutMillis: 30000,       // 연결이 유휴 상태일 때 종료되는 시간 (30초)
+    connectionTimeoutMillis: 2000,  // 연결 시도 타임아웃 (2초)
+});
+
+// 연결 에러 로그 출력 (서버가 죽지 않도록 방지)
+pool.on('error', (err, client) => {
+    console.error('Unexpected error on idle client', err);
+    process.exit(-1);
 });
 
 // 생성된 pool 객체를 다른 파일(signup.js 등)에서 사용할 수 있도록 내보냅니다.

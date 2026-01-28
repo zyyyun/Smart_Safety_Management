@@ -28,6 +28,9 @@ import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.ui.theme.ClipartKorea
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.ui.theme.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -61,18 +64,38 @@ data class BottomNavItem(
 fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
     var selectedFilter by remember { mutableStateOf("전체") }
 
-    val allPendingEvents = listOf(
-        EventData(accidentType = "위험", location = "C구역 2열", content = "화재사고가 감지되었습니다.","지금"),
-        EventData(accidentType = "경고", location = "C구역 2열", content = "쓰러짐이 감지되었습니다.","1분 전"),
-        EventData(accidentType = "주의", location = "C구역 2열", content = "이동경로 미정돈이 감지되었습니다.","3분 전")
-    )
-    val allCompletedEvents = listOf(
-        EventData(accidentType = "주의", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.","1분 전"),
-        EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.","1분 전")
-    )
-    val allFalseDetectionEvents = listOf(
-        EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.","1분 전")
-    )
+    // ✅ 서버 데이터 상태 관리
+    var rawEvents by remember { mutableStateOf<List<DetectionEventDTO>>(emptyList()) }
+
+    // ✅ 서버에서 데이터 불러오기
+    LaunchedEffect(Unit) {
+        val userId = UserSession.userId
+        if (userId != null) {
+            RetrofitClient.instance.getDetectionEvents(userId).enqueue(object : Callback<GetDetectionEventsResponse> {
+                override fun onResponse(call: Call<GetDetectionEventsResponse>, response: Response<GetDetectionEventsResponse>) {
+                    if (response.isSuccessful) {
+                        rawEvents = response.body()?.events ?: emptyList()
+                    }
+                }
+                override fun onFailure(call: Call<GetDetectionEventsResponse>, t: Throwable) {
+                    // 에러 처리
+                }
+            })
+        }
+    }
+
+    // ✅ DTO -> EventData 변환 및 분류
+    val allPendingEvents = rawEvents
+        .filter { it.status == "PENDING" }
+        .map { it.toEventData() }
+
+    val allCompletedEvents = rawEvents
+        .filter { it.status == "COMPLETED" }
+        .map { it.toEventData() }
+
+    val allFalseDetectionEvents = rawEvents
+        .filter { it.status == "FALSE_DETECTION" }
+        .map { it.toEventData() }
 
     val allEvents = allPendingEvents + allCompletedEvents + allFalseDetectionEvents
     val counts = mapOf(
@@ -345,6 +368,49 @@ fun MySecondaryTopAppBar(selectedFilter: String, counts: Map<String, Int>, backg
             FilterButton("경고", counts["경고"] ?: 0, selectedFilter == "경고") { onFilterChange("경고") }
             FilterButton("주의", counts["주의"] ?: 0, selectedFilter == "주의") { onFilterChange("주의") }
         }
+    }
+}
+
+// ✅ 헬퍼 함수: DTO -> EventData 변환
+fun DetectionEventDTO.toEventData(): EventData {
+    return EventData(
+        accidentType = mapRiskLevel(this.riskLevel),
+        location = this.installArea ?: "알 수 없음",
+        content = "${this.eventName ?: "알 수 없는 이벤트"}가 감지되었습니다.",
+        occurrenceTime = calculateTimeAgo(this.detectedAt),
+        deviceName = this.deviceName ?: "",
+        accuracy = "${this.accuracy ?: 0}%"
+    )
+}
+
+// ✅ 헬퍼 함수: 위험도 매핑
+fun mapRiskLevel(level: String?): String {
+    return when (level) {
+        "High", "위험" -> "위험"
+        "Medium", "경고" -> "경고"
+        "Low", "주의" -> "주의"
+        else -> "주의"
+    }
+}
+
+// ✅ 헬퍼 함수: 시간 계산
+fun calculateTimeAgo(dateString: String): String {
+    try {
+        val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val date = format.parse(dateString) ?: return ""
+        val diff = Date().time - date.time
+        val minutes = diff / (1000 * 60)
+        val hours = minutes / 60
+        val days = hours / 24
+
+        return when {
+            minutes < 1 -> "방금 전"
+            minutes < 60 -> "${minutes}분 전"
+            hours < 24 -> "${hours}시간 전"
+            else -> "${days}일 전"
+        }
+    } catch (e: Exception) {
+        return dateString
     }
 }
 

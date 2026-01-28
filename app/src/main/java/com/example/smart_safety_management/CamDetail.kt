@@ -100,22 +100,29 @@ fun CamDetailScreen(
         var isGeocodingError by remember { mutableStateOf(false) }
 
         // 주소를 좌표로 변환 (Geocoding)
-        LaunchedEffect(camInfo?.installationAddress) {
-            camInfo?.installationAddress?.let { address ->
-                withContext(Dispatchers.IO) {
-                    try {
-                        val geocoder = Geocoder(context, Locale.KOREA)
-                        val addresses = geocoder.getFromLocationName(address, 1)
-                        if (!addresses.isNullOrEmpty()) {
-                            mapCenter = GeoPoint(addresses[0].latitude, addresses[0].longitude)
-                            isGeocodingError = false
-                        } else {
+        LaunchedEffect(camInfo) {
+            val info = camInfo
+            if (info != null) {
+                if (!info.installationAddress.isNullOrBlank()) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val geocoder = Geocoder(context, Locale.KOREA)
+                            @Suppress("DEPRECATION")
+                            val addresses = geocoder.getFromLocationName(info.installationAddress, 1)
+                            if (!addresses.isNullOrEmpty()) {
+                                mapCenter = GeoPoint(addresses[0].latitude, addresses[0].longitude)
+                                isGeocodingError = false
+                            } else {
+                                isGeocodingError = true
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
                             isGeocodingError = true
                         }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        isGeocodingError = true
                     }
+                } else {
+                    // 주소 정보가 없는 경우 에러 처리하여 '위치를 찾을 수 없습니다' 표시
+                    isGeocodingError = true
                 }
             }
         }

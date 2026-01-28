@@ -14,7 +14,15 @@ router.post('/delete_workplace', async (req, res) => {
         if (result.rowCount > 0) {
             res.status(200).json({ message: "현장 삭제 성공" });
         } else {
-            res.status(404).json({ message: "현장을 찾을 수 없거나 권한이 없습니다." });
+            // 삭제 실패 시 원인 파악: 현장 이름은 존재하지만 admin_id가 다른지 확인
+            const check = await pool.query('SELECT admin_id FROM workplace WHERE place_name = $1', [place_name]);
+            
+            if (check.rows.length > 0) {
+                // 현장은 존재하지만 요청한 admin_id와 다를 경우 (권한 없음)
+                return res.status(403).json({ message: "삭제 권한이 없습니다. (다른 사용자가 생성한 현장입니다)" });
+            }
+            
+            res.status(404).json({ message: "현장을 찾을 수 없습니다." });
         }
     } catch (err) {
         console.error(err);

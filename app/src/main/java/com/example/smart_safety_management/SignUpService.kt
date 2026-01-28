@@ -162,6 +162,21 @@ data class GetWorkerDeviceStatusResponse(
     @SerializedName("devices") val devices: List<WorkerDeviceDTO>
 )
 
+data class DetectionEventDTO(
+    @SerializedName("event_id") val eventId: Int,
+    @SerializedName("risk_level") val riskLevel: String?,
+    @SerializedName("install_area") val installArea: String?,
+    @SerializedName("event_name") val eventName: String?,
+    @SerializedName("detected_at") val detectedAt: String,
+    @SerializedName("device_name") val deviceName: String?,
+    val accuracy: Double?,
+    val status: String
+)
+
+data class GetDetectionEventsResponse(
+    val events: List<DetectionEventDTO>
+)
+
 interface SignUpService {
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>
@@ -209,4 +224,7 @@ interface SignUpService {
 
     @GET("/get_worker_device_status")
     fun getWorkerDeviceStatus(@Query("user_id") userId: String): Call<GetWorkerDeviceStatusResponse>
+
+    @GET("/get_detection_events")
+    fun getDetectionEvents(@Query("user_id") userId: String): Call<GetDetectionEventsResponse>
 }
