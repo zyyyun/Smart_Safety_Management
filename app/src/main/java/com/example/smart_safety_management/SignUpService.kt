@@ -133,7 +133,9 @@ data class CCTVDetailResponse(
     @SerializedName("direction") val direction: String?,
     @SerializedName("shooting_interval") val shootingInterval: Int?,
     @SerializedName("operating_hours") val operatingHours: String?,
-    val events: List<String>
+    val events: List<String>,
+    @SerializedName("live_url") val liveUrl: String?,
+    @SerializedName("installation_address") val installationAddress: String?
 )
 
 data class DeviceStatusDTO(

@@ -1,6 +1,8 @@
 package com.example.smart_safety_management
 
 import android.content.res.Configuration
+import android.location.Geocoder
+import android.preference.PreferenceManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -28,9 +31,19 @@ import com.example.smart_safety_management.ui.theme.Pretendard
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.ui.theme.TextGray5
 import com.example.smart_safety_management.ui.theme.*
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.osmdroid.config.Configuration as OsmConfiguration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.Locale
 
 enum class EventType(val label: String) {
     HELMET_NOT_WEARING("안전모 미착용"),
@@ -68,6 +81,7 @@ fun CamDetailScreen(
     onBackClick: () -> Unit = {}
 ) {
     Smart_Safety_ManagementTheme {
+        val context = LocalContext.current
         val isLight = MaterialTheme.colors.isLight
         val categoryColor = if (isLight) TextGray60 else TextGray
         val mainColor = if (isLight) TextGray20 else TextGray5
@@ -80,6 +94,31 @@ fun CamDetailScreen(
         var selectedCycle by remember { mutableStateOf("5분") }
         val selectedEvents = remember { mutableStateListOf<String>() }
         val selectedHours = remember { mutableStateListOf<String>() }
+        
+        // 지도 좌표 상태
+        var mapCenter by remember { mutableStateOf<GeoPoint?>(null) }
+        var isGeocodingError by remember { mutableStateOf(false) }
+
+        // 주소를 좌표로 변환 (Geocoding)
+        LaunchedEffect(camInfo?.installationAddress) {
+            camInfo?.installationAddress?.let { address ->
+                withContext(Dispatchers.IO) {
+                    try {
+                        val geocoder = Geocoder(context, Locale.KOREA)
+                        val addresses = geocoder.getFromLocationName(address, 1)
+                        if (!addresses.isNullOrEmpty()) {
+                            mapCenter = GeoPoint(addresses[0].latitude, addresses[0].longitude)
+                            isGeocodingError = false
+                        } else {
+                            isGeocodingError = true
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        isGeocodingError = true
+                    }
+                }
+            }
+        }
 
         // 서버에서 데이터 불러오기
         LaunchedEffect(cameraId) {
@@ -308,23 +347,52 @@ fun CamDetailScreen(
                     color = textColor,
                 )
 
+                // ✅ OSMDroid 지도로 교체
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(200.dp) // 지도 높이 지정
                         .clip(RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.camdetail_map),
-                        contentDescription = "Installation Map",
-                        modifier = Modifier.fillMaxWidth(),
-                        contentScale = ContentScale.FillWidth
-                    )
-                    Image(
-                        painter = painterResource(id = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark),
-                        contentDescription = "Worker Icon",
-                        modifier = Modifier.scale(1.67f)
-                    )
+                    if (mapCenter != null) {
+                        AndroidView(
+                            factory = { ctx ->
+                                OsmConfiguration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))
+                                MapView(ctx).apply {
+                                    setTileSource(TileSourceFactory.MAPNIK)
+                                    setMultiTouchControls(true)
+                                    controller.setZoom(17.0)
+                                }
+                            },
+                            update = { mapView ->
+                                mapView.controller.setCenter(mapCenter)
+                                mapView.overlays.clear()
+                                val marker = Marker(mapView)
+                                marker.position = mapCenter
+                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                val iconRes = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark
+                                marker.icon = ContextCompat.getDrawable(context, iconRes)
+                                mapView.overlays.add(marker)
+                                mapView.invalidate()
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        // 로딩 중이거나 주소를 찾을 수 없을 때 표시할 대체 UI (기존 이미지 유지 또는 로딩 표시)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(if (isLight) Color.LightGray else Color.DarkGray),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isGeocodingError) {
+                                Text("위치를 찾을 수 없습니다.", color = Color.White)
+                            } else {
+                                Text("위치 정보를 불러오는 중...", color = Color.White)
+                            }
+                        }
+                    }
                 }
             }
         }
