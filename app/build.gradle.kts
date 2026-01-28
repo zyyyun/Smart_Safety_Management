@@ -88,5 +88,4 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     // URL 처리 의존성
     implementation("com.github.bumptech.glide:glide:4.16.0")
-    implementation("com.github.bumptech.glide:compose:1.0.0-beta01")
 }

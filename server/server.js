@@ -21,7 +21,6 @@ const getCCTVDetailRouter = require('./get_cctv_detail');
 const getDeviceStatusRouter = require('./get_device_status');
 const getWorkerDeviceStatusRouter = require('./get_worker_device_status');
 const getDetectionEventsRouter = require('./get_detection_events');
-const getDetectionEventDetailRouter = require('./get_detection_event_detail');
 const getWorkplaceRouter = require('./get_workplace');
 const deleteAccountRouter = require('./delete_account');
 
@@ -41,7 +40,6 @@ app.use('/', getCCTVDetailRouter);
 app.use('/', getDeviceStatusRouter);
 app.use('/', getWorkerDeviceStatusRouter);
 app.use('/', getDetectionEventsRouter);
-app.use('/', getDetectionEventDetailRouter);
 app.use('/', getWorkplaceRouter);
 app.use('/', deleteAccountRouter);
 

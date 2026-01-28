@@ -44,7 +44,6 @@ enum class EventStatus {
 }
 
 data class EventData(
-    val id: Int,
     val accidentType: String,
     val location: String,
     val content: String,
@@ -87,18 +86,18 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
 
     // ✅ DTO -> EventData 변환 및 분류
     val allPendingEvents = rawEvents
-        .filter { it.status.equals("PENDING", ignoreCase = true) || it.status.equals("REQUESTED", ignoreCase = true) }
+        .filter { it.status == "PENDING" }
         .map { it.toEventData() }
 
     val allCompletedEvents = rawEvents
-        .filter { it.status.equals("COMPLETED", ignoreCase = true) || it.status.equals("FALSE_POSITIVE", ignoreCase = true) }
+        .filter { it.status == "COMPLETED" }
         .map { it.toEventData() }
 
     val allFalseDetectionEvents = rawEvents
-        .filter { it.status.equals("FALSE_POSITIVE", ignoreCase = true) }
+        .filter { it.status == "FALSE_DETECTION" }
         .map { it.toEventData() }
 
-    val allEvents = rawEvents.map { it.toEventData() }
+    val allEvents = allPendingEvents + allCompletedEvents + allFalseDetectionEvents
     val counts = mapOf(
         "전체" to allEvents.size,
         "위험" to allEvents.count { it.accidentType == "위험" },
@@ -375,7 +374,6 @@ fun MySecondaryTopAppBar(selectedFilter: String, counts: Map<String, Int>, backg
 // ✅ 헬퍼 함수: DTO -> EventData 변환
 fun DetectionEventDTO.toEventData(): EventData {
     return EventData(
-        id = this.eventId,
         accidentType = mapRiskLevel(this.riskLevel),
         location = this.installArea ?: "알 수 없음",
         content = "${this.eventName ?: "알 수 없는 이벤트"}가 감지되었습니다.",
@@ -387,10 +385,10 @@ fun DetectionEventDTO.toEventData(): EventData {
 
 // ✅ 헬퍼 함수: 위험도 매핑
 fun mapRiskLevel(level: String?): String {
-    return when (level?.lowercase()) {
-        "high", "위험", "danger" -> "위험"
-        "medium", "경고", "warning" -> "경고"
-        "low", "주의", "caution" -> "주의"
+    return when (level) {
+        "High", "위험" -> "위험"
+        "Medium", "경고" -> "경고"
+        "Low", "주의" -> "주의"
         else -> "주의"
     }
 }

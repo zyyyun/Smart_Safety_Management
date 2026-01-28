@@ -177,20 +177,6 @@ data class GetDetectionEventsResponse(
     val events: List<DetectionEventDTO>
 )
 
-data class DetectionEventDetailResponse(
-    @SerializedName("event_id") val eventId: Int,
-    @SerializedName("risk_level") val riskLevel: String?,
-    @SerializedName("install_area") val installArea: String?,
-    @SerializedName("event_name") val eventName: String?,
-    @SerializedName("detected_at") val detectedAt: String,
-    @SerializedName("device_name") val deviceName: String?,
-    val accuracy: Double?,
-    val status: String,
-    @SerializedName("installation_address") val installationAddress: String?,
-    @SerializedName("live_url") val liveUrl: String?,
-    @SerializedName("capture_image_url") val captureImageUrl: String?
-)
-
 data class WorkplaceResponseItem(
     @SerializedName("name") val name: String
 )
@@ -257,9 +243,6 @@ interface SignUpService {
 
     @GET("/get_detection_events")
     fun getDetectionEvents(@Query("user_id") userId: String): Call<GetDetectionEventsResponse>
-
-    @GET("/get_detection_event_detail")
-    fun getDetectionEventDetail(@Query("event_id") eventId: Int): Call<DetectionEventDetailResponse>
 
     @GET("/get_workplace")
     fun getWorkplace(@Query("user_id") userId: String): Call<GetWorkplaceResponse>

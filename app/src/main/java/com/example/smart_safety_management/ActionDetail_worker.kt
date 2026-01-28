@@ -1,8 +1,6 @@
 package com.example.smart_safety_management
 
 import android.content.res.Configuration
-import android.location.Geocoder
-import android.preference.PreferenceManager
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
@@ -31,7 +29,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -91,56 +88,6 @@ fun ActionDetailWorkerScreen(
         skipHalfExpanded = true
     )
     val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
-
-    // ✅ 서버 데이터 상태
-    var eventDetail by remember { mutableStateOf<DetectionEventDetailResponse?>(null) }
-    
-    // 지도 좌표 상태
-    var mapCenter by remember { mutableStateOf<GeoPoint?>(null) }
-    var isGeocodingError by remember { mutableStateOf(false) }
-
-    // 서버에서 데이터 불러오기
-    LaunchedEffect(eventId) {
-        RetrofitClient.instance.getDetectionEventDetail(eventId).enqueue(object : Callback<DetectionEventDetailResponse> {
-            override fun onResponse(call: Call<DetectionEventDetailResponse>, response: Response<DetectionEventDetailResponse>) {
-                if (response.isSuccessful) {
-                    eventDetail = response.body()
-                    // 초기값 설정 (필요 시)
-                    title = "${eventDetail?.eventName ?: "이벤트"} 조치 필요"
-                    content = "${eventDetail?.installArea ?: ""}에서 ${eventDetail?.eventName ?: ""} 발생"
-                }
-            }
-            override fun onFailure(call: Call<DetectionEventDetailResponse>, t: Throwable) {
-                // 에러 처리
-            }
-        })
-    }
-
-    // 주소를 좌표로 변환 (Geocoding)
-    LaunchedEffect(eventDetail) {
-        val address = eventDetail?.installationAddress
-        if (!address.isNullOrBlank()) {
-            withContext(Dispatchers.IO) {
-                try {
-                    val geocoder = Geocoder(context, Locale.KOREA)
-                    @Suppress("DEPRECATION")
-                    val addresses = geocoder.getFromLocationName(address, 1)
-                    if (!addresses.isNullOrEmpty()) {
-                        mapCenter = GeoPoint(addresses[0].latitude, addresses[0].longitude)
-                        isGeocodingError = false
-                    } else {
-                        isGeocodingError = true
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    isGeocodingError = true
-                }
-            }
-        } else if (eventDetail != null) {
-            isGeocodingError = true
-        }
-    }
 
     Smart_Safety_ManagementTheme {
         val theme = MaterialTheme.colors.onPrimary
@@ -155,12 +102,7 @@ fun ActionDetailWorkerScreen(
         val detailBtnColor = if (isLight) Lightgray else GrayBackground
 
         // 1. 이벤트 아이콘 설정 (위험, 경고, 주의에 따라 변경)
-        val eventIconRes = when (eventDetail?.riskLevel?.lowercase()) {
-            "high", "위험", "danger" -> R.drawable.danger_icon
-            "medium", "경고", "warning" -> R.drawable.warning_icon
-            "low", "주의", "caution" -> R.drawable.caution_icon
-            else -> R.drawable.warning_icon
-        }
+        val eventIconRes = R.drawable.warning_icon 
 
         // 2. 아이콘 종류에 따른 "감지 이벤트" 밸류 텍스트 색상 설정
         val eventValueColor = when (eventIconRes) {
@@ -214,59 +156,33 @@ fun ActionDetailWorkerScreen(
                         }
 
                         LabelText("이벤트 캡처")
-                        GlideImage(
-                            model = eventDetail?.captureImageUrl,
+                        Image(
+                            painter = painterResource(id = R.drawable.workeraction),
                             contentDescription = "이벤트 캡처",
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(8.dp)),
+                                .wrapContentHeight(),
                             contentScale = ContentScale.FillWidth
-                        ) { it.error(R.drawable.workeraction).placeholder(R.drawable.workeraction) }
-
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
                         LabelText("발생 위치")
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(8.dp)),
+                                .wrapContentHeight(),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (mapCenter != null) {
-                                AndroidView(
-                                    factory = { ctx ->
-                                        OsmConfiguration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))
-                                        MapView(ctx).apply {
-                                            setTileSource(TileSourceFactory.MAPNIK)
-                                            setMultiTouchControls(true)
-                                            controller.setZoom(17.0)
-                                        }
-                                    },
-                                    update = { mapView ->
-                                        mapView.controller.setCenter(mapCenter)
-                                        mapView.overlays.clear()
-                                        val marker = Marker(mapView)
-                                        marker.position = mapCenter
-                                        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                        val iconRes = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark
-                                        marker.icon = ContextCompat.getDrawable(context, iconRes)
-                                        mapView.overlays.add(marker)
-                                        mapView.invalidate()
-                                    },
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier.fillMaxSize().background(if (isLight) Color.LightGray else Color.DarkGray),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = if (isGeocodingError) "위치를 찾을 수 없습니다." else "위치 정보를 불러오는 중...",
-                                        color = Color.White
-                                    )
-                                }
-                            }
+                            Image(
+                                painter = painterResource(id = R.drawable.workermap),
+                                contentDescription = "발생 위치",
+                                modifier = Modifier.fillMaxWidth(),
+                                contentScale = ContentScale.FillWidth
+                            )
+                            Image(
+                                painter = painterResource(id = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark),
+                                contentDescription = "마커",
+                                modifier = Modifier.scale(1.67f)
+                            )
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         LabelText("실시간 화면")
@@ -275,14 +191,14 @@ fun ActionDetailWorkerScreen(
                                 .fillMaxWidth()
                         ) {
                             // 2. 배경 이미지 (기억하라고 하신 코드)
-                            GlideImage(
-                                model = eventDetail?.liveUrl,
+                            Image(
+                                painter = painterResource(id = R.drawable.event),
                                 contentDescription = "실시간 화면",
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(8.dp)),
                                 contentScale = ContentScale.FillWidth
-                            ) { it.error(R.drawable.event).placeholder(R.drawable.event) }
+                            )
 
                             // 3. 상단 LIVE 인디케이터 배치
                             LiveIndicator(
@@ -388,14 +304,14 @@ fun ActionDetailWorkerScreen(
                                     )
                                     Column(horizontalAlignment = Alignment.Start) {
                                         Text(
-                                            text = eventDetail?.installArea ?: "위치 정보 없음",
+                                            text = "C구역 2열",
                                             color = textColor,
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 16.sp,
                                             fontFamily = Pretendard
                                         )
                                         Text(
-                                            text = "${eventDetail?.eventName ?: "이벤트"}가 감지되었습니다.",
+                                            text = "쓰러짐이 감지되었습니다.",
                                             color = CategoryColor,
                                             fontSize = 14.sp,
                                             fontFamily = Pretendard,
@@ -414,10 +330,10 @@ fun ActionDetailWorkerScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 val detailItems = listOf(
-                                    "감지 이벤트" to (eventDetail?.eventName ?: "-"),
-                                    "발생 시간" to (eventDetail?.detectedAt ?: "-"),
-                                    "장치명" to (eventDetail?.deviceName ?: "-"),
-                                    "발생위치" to (eventDetail?.installArea ?: "-")
+                                    "감지 이벤트" to "쓰러짐",
+                                    "발생 시간" to "2025-05-07 16:05:20",
+                                    "장치명" to "CAM03",
+                                    "발생위치" to "D구역 1열"
                                 )
 
                                 detailItems.forEach { (label, value) ->
@@ -826,7 +742,7 @@ fun ActionCompletedDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode", heightDp = 1000)
 @Composable
 fun ActionDetailWorkerScreenPreview() {
-    ActionDetailWorkerScreen(eventId = 1)
+    ActionDetailWorkerScreen()
 }
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light Mode - Dialog", heightDp = 1000)

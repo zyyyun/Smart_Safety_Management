@@ -74,19 +74,9 @@ fun AIEventNavigation() {
                 composable("detect") {
                     AIEventDetectScreen(
                         onEventClick = { event ->
-                            navController.navigate("detail/${event.id}")
+                            context.startActivity(Intent(context, ActionDetailActivity::class.java))
                         }
                     )
-                }
-                composable("detail/{eventId}") { backStackEntry ->
-                    val eventId = backStackEntry.arguments?.getString("eventId")?.toIntOrNull()
-                    if (eventId != null) {
-                        AIEventDetailScreen(
-                            eventId = eventId,
-                            onBackClick = { navController.popBackStack() },
-                            onRequestAction = { /* TODO: 조치 요청 API 호출 */ }
-                        )
-                    }
                 }
             }
         }

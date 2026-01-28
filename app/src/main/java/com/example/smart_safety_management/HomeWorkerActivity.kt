@@ -23,9 +23,6 @@ import android.widget.ImageView
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.card.MaterialCardView
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
 private val dailyCheckMap = mapOf(
     7 to listOf(
@@ -99,7 +96,7 @@ class HomeWorkerActivity : AppCompatActivity() {
         // 조치요청 리스트 초기화
         val rvEvent = findViewById<RecyclerView>(R.id.rv_worker_event)
         rvEvent.layoutManager = LinearLayoutManager(this)
-        eventAdapter = WorkerEventAdapter(emptyList())
+        eventAdapter = WorkerEventAdapter(getSampleEvents())
         rvEvent.adapter = eventAdapter
 
         selectedDay = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
@@ -115,40 +112,18 @@ class HomeWorkerActivity : AppCompatActivity() {
         )
 
         updateDailyCheckList(selectedDay)
-        fetchWorkerEvents()
     }
 
-    private fun fetchWorkerEvents() {
-        val userId = UserSession.userId ?: return
-        RetrofitClient.instance.getDetectionEvents(userId).enqueue(object : Callback<GetDetectionEventsResponse> {
-            override fun onResponse(call: Call<GetDetectionEventsResponse>, response: Response<GetDetectionEventsResponse>) {
-                if (response.isSuccessful) {
-                    val rawEvents = response.body()?.events ?: emptyList()
-
-                    val pendingEvents = rawEvents.filter {
-                        it.status.equals("PENDING", ignoreCase = true) ||
-                                it.status.equals("REQUESTED", ignoreCase = true)
-                    }.map { dto ->
-                        val eventData = EventData(
-                            id = dto.eventId,
-                            accidentType = mapRiskLevel(dto.riskLevel),
-                            location = dto.installArea ?: "알 수 없음",
-                            content = "${dto.eventName ?: "알 수 없는 이벤트"}가 감지되었습니다.",
-                            occurrenceTime = calculateTimeAgo(dto.detectedAt),
-                            deviceName = dto.deviceName ?: "",
-                            accuracy = "${dto.accuracy ?: 0}%"
-                        )
-                        Pair(eventData, EventStatus.PENDING)
-                    }
-
-                    val rvEvent = findViewById<RecyclerView>(R.id.rv_worker_event)
-                    eventAdapter = WorkerEventAdapter(pendingEvents)
-                    rvEvent.adapter = eventAdapter
-                }
-            }
-            override fun onFailure(call: Call<GetDetectionEventsResponse>, t: Throwable) {
-            }
-        })
+    private fun getSampleEvents(): List<Pair<EventData, EventStatus>> {
+        return listOf(
+            EventData(accidentType = "위험", location = "C구역 2열", content = "화재사고가 감지되었습니다.", "지금") to EventStatus.PENDING,
+            EventData(accidentType = "경고", location = "C구역 2열", content = "쓰러짐이 감지되었습니다.", "1분 전") to EventStatus.PENDING,
+            EventData(accidentType = "주의", location = "C구역 2열", content = "이동경로 미정돈이 감지되었습니다.", "3분 전") to EventStatus.PENDING,
+            // 조치완료 및 오탐처리 추가
+            EventData(accidentType = "주의", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.", "1분 전") to EventStatus.COMPLETED,
+            EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.", "1분 전") to EventStatus.COMPLETED
+            //EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.", "1분 전") to EventStatus.FALSE_DETECTION
+        )
     }
 
     private fun updateWorkerDay() {
@@ -163,7 +138,6 @@ class HomeWorkerActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateProfile()
-        fetchWorkerEvents()
     }
 
     private fun updateProfile() {
