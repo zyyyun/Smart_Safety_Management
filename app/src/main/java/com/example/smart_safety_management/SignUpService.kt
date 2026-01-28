@@ -120,6 +120,46 @@ data class UploadImageResponse(
     @SerializedName("imageUrl") val imageUrl: String
 )
 
+data class CCTVDetailResponse(
+    @SerializedName("camera_id") val id: Int,
+    @SerializedName("device_name") val deviceName: String,
+    @SerializedName("device_code") val deviceCode: String?,
+    @SerializedName("host_code") val hostCode: String?,
+    @SerializedName("host_id") val hostId: String?,
+    @SerializedName("host_password") val hostPassword: String?,
+    @SerializedName("last_comm_date") val lastCommDate: String?,
+    @SerializedName("status") val status: String?,
+    @SerializedName("install_area") val installArea: String?,
+    @SerializedName("direction") val direction: String?,
+    @SerializedName("shooting_interval") val shootingInterval: Int?,
+    @SerializedName("operating_hours") val operatingHours: String?,
+    val events: List<String>
+)
+
+data class DeviceStatusDTO(
+    val name: String,
+    val role: String,
+    @SerializedName("isGpsConnected") val isGpsConnected: Boolean,
+    val battery: Int,
+    @SerializedName("watchBattery") val watchBattery: Int
+)
+
+data class GetDeviceStatusResponse(
+    @SerializedName("device_status") val deviceStatus: List<DeviceStatusDTO>
+)
+
+data class WorkerDeviceDTO(
+    @SerializedName("device_type") val deviceType: String,
+    @SerializedName("battery_level") val batteryLevel: Int,
+    @SerializedName("unworn_count") val unwornCount: Int?,
+    @SerializedName("body_temp") val bodyTemp: Float?,
+    @SerializedName("heart_rate") val heartRate: Int?
+)
+
+data class GetWorkerDeviceStatusResponse(
+    @SerializedName("devices") val devices: List<WorkerDeviceDTO>
+)
+
 interface SignUpService {
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>
@@ -151,10 +191,20 @@ interface SignUpService {
     @GET("/get_cctv_list")
     fun getCCTVList(
         @Query("area") area: String?,
-        @Query("event_names") eventNames: List<String>?
+        @Query("event_names") eventNames: List<String>?,
+        @Query("user_id") userId: String
     ): Call<GetCCTVListResponse>
 
     @Multipart
     @POST("/upload")
     fun uploadImage(@Part image: MultipartBody.Part): Call<UploadImageResponse>
+
+    @GET("/get_cctv_detail")
+    fun getCCTVDetail(@Query("camera_id") cameraId: String): Call<CCTVDetailResponse>
+
+    @GET("/get_device_status")
+    fun getDeviceStatus(@Query("user_id") userId: String): Call<GetDeviceStatusResponse>
+
+    @GET("/get_worker_device_status")
+    fun getWorkerDeviceStatus(@Query("user_id") userId: String): Call<GetWorkerDeviceStatusResponse>
 }

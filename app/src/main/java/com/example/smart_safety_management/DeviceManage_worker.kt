@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,6 +19,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.ui.theme.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 sealed class DeviceData {
     // 공통 속성
@@ -47,11 +50,34 @@ fun DeviceManageWorkerScreen(
 ) {
     Smart_Safety_ManagementTheme {
         val isLight = MaterialTheme.colors.isLight
-        val devices = remember {
-            listOf(
-                DeviceData.SmartHelmet(batteryLevel = 50, detectionCount = 10),
-                DeviceData.SmartWatch(batteryLevel = 85, temperature = 36.5f, heartRate = 72)
-            )
+        
+        // ✅ 서버 데이터 상태 관리
+        var devices by remember { mutableStateOf<List<DeviceData>>(emptyList()) }
+
+        // ✅ 서버에서 데이터 불러오기
+        LaunchedEffect(Unit) {
+            val userId = UserSession.userId
+            if (userId != null) {
+                RetrofitClient.instance.getWorkerDeviceStatus(userId).enqueue(object : Callback<GetWorkerDeviceStatusResponse> {
+                    override fun onResponse(call: Call<GetWorkerDeviceStatusResponse>, response: Response<GetWorkerDeviceStatusResponse>) {
+                        if (response.isSuccessful) {
+                            val items = response.body()?.devices ?: emptyList()
+                            devices = items.mapNotNull { item ->
+                                when {
+                                    item.deviceType.contains("helmet", ignoreCase = true) -> 
+                                        DeviceData.SmartHelmet(batteryLevel = item.batteryLevel, detectionCount = item.unwornCount ?: 0)
+                                    item.deviceType.contains("watch", ignoreCase = true) -> 
+                                        DeviceData.SmartWatch(batteryLevel = item.batteryLevel, temperature = item.bodyTemp ?: 0f, heartRate = item.heartRate ?: 0)
+                                    else -> null
+                                }
+                            }
+                        }
+                    }
+                    override fun onFailure(call: Call<GetWorkerDeviceStatusResponse>, t: Throwable) {
+                        // 에러 처리
+                    }
+                })
+            }
         }
         
         Scaffold(

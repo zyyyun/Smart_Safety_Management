@@ -28,29 +28,9 @@ import com.example.smart_safety_management.ui.theme.Pretendard
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.ui.theme.TextGray5
 import com.example.smart_safety_management.ui.theme.*
-
-data class Caminfo(
-    val name : String,
-    val code : String,
-    val hostname : String,
-    val hostid : String,
-    val hostpw : String,
-    val state : Boolean,
-    val lastconnect : String,
-    val install : String,
-)
-
-// 카메라 상세 더미 데이터
-val mockCamInfo = Caminfo(
-    name = "CAM01",
-    code = "TCVR2947G729DH49",
-    hostname = "빌라 에코",
-    hostid = "빌라 에코",
-    hostpw = "********",
-    state = true,
-    lastconnect = "2025-03-18 10:35:59",
-    install = "C구역 1열"
-)
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 enum class EventType(val label: String) {
     HELMET_NOT_WEARING("안전모 미착용"),
@@ -84,6 +64,7 @@ enum class HourType(val hour: Int) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CamDetailScreen(
+    cameraId: String,
     onBackClick: () -> Unit = {}
 ) {
     Smart_Safety_ManagementTheme {
@@ -94,10 +75,51 @@ fun CamDetailScreen(
         val textColor = if (isLight) TextDark else GrayBorder
 
         // 상태 관리
+        var camInfo by remember { mutableStateOf<CCTVDetailResponse?>(null) }
         var selectedDirection by remember { mutableStateOf("12시") }
         var selectedCycle by remember { mutableStateOf("5분") }
         val selectedEvents = remember { mutableStateListOf<String>() }
         val selectedHours = remember { mutableStateListOf<String>() }
+
+        // 서버에서 데이터 불러오기
+        LaunchedEffect(cameraId) {
+            RetrofitClient.instance.getCCTVDetail(cameraId).enqueue(object : Callback<CCTVDetailResponse> {
+                override fun onResponse(call: Call<CCTVDetailResponse>, response: Response<CCTVDetailResponse>) {
+                    if (response.isSuccessful) {
+                        val data = response.body()
+                        if (data != null) {
+                            camInfo = data
+                            
+                            // UI 상태 업데이트
+                            selectedDirection = data.direction ?: "12시"
+                            selectedCycle = if (data.shootingInterval != null) "${data.shootingInterval}분" else "5분"
+                            
+                            selectedEvents.clear()
+                            selectedEvents.addAll(data.events)
+
+                            // 가동 시간 파싱 (000000... 문자열 -> 시간 리스트)
+                            selectedHours.clear()
+                            data.operatingHours?.let { hoursStr ->
+                                if (hoursStr.length == 24) {
+                                    hoursStr.forEachIndexed { index, char ->
+                                        if (char == '1') {
+                                            selectedHours.add(HourType.values().getOrNull(index)?.label ?: "")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<CCTVDetailResponse>, t: Throwable) {
+                    // 에러 처리
+                }
+            })
+        }
+
+        if (camInfo == null) {
+            // 로딩 중 표시 (필요 시 구현)
+        }
 
         Scaffold(
             backgroundColor = MaterialTheme.colors.onPrimary,
@@ -143,19 +165,20 @@ fun CamDetailScreen(
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
 
-                CamInfoItem("이름", mockCamInfo.name, categoryColor, mainColor)
-                CamInfoItem("장치코드", mockCamInfo.code, categoryColor, mainColor)
-                CamInfoItem("호스트 이름", mockCamInfo.hostname, categoryColor, mainColor)
-                CamInfoItem("호스트 ID", mockCamInfo.hostid, categoryColor, mainColor)
-                CamInfoItem("호스트 PW", mockCamInfo.hostpw, categoryColor, mainColor)
-                CamInfoItem("최근 연결", mockCamInfo.lastconnect, categoryColor, mainColor)
+                CamInfoItem("이름", camInfo?.deviceName ?: "-", categoryColor, mainColor)
+                CamInfoItem("장치코드", camInfo?.deviceCode ?: "-", categoryColor, mainColor)
+                CamInfoItem("호스트 이름", camInfo?.hostCode ?: "-", categoryColor, mainColor)
+                CamInfoItem("호스트 ID", camInfo?.hostId ?: "-", categoryColor, mainColor)
+                CamInfoItem("호스트 PW", camInfo?.hostPassword?.map { '*' }?.joinToString("") ?: "-", categoryColor, mainColor)
+                CamInfoItem("최근 연결", camInfo?.lastCommDate?.replace("T", " ")?.substringBefore(".") ?: "-", categoryColor, mainColor)
                 
                 // ✅ 상태값에 따른 텍스트 및 색상 적용, 편집 아이콘 제거 및 여백 삭제
+                val isStatusNormal = camInfo?.status == "정상" || camInfo?.status == "Active" // DB 값에 따라 조정 필요
                 CamInfoItem(
                     label = "상태",
-                    value = if (mockCamInfo.state) "정상" else "미수신",
+                    value = camInfo?.status ?: "미수신",
                     labelColor = categoryColor,
-                    valueColor = if (mockCamInfo.state) StatusGreenDark else StatusRed,
+                    valueColor = if (isStatusNormal) StatusGreenDark else StatusRed,
                     showEditIcon = false
                 )
 
@@ -186,7 +209,7 @@ fun CamDetailScreen(
                     color = categoryColor
                 )
 
-                CamInfoItem("설치구역", mockCamInfo.install, categoryColor, mainColor)
+                CamInfoItem("설치구역", camInfo?.installArea ?: "-", categoryColor, mainColor)
 
 
                 FilmingInfo("촬영 방향", categoryColor) {
@@ -223,10 +246,7 @@ fun CamDetailScreen(
                             EventSelectButton(
                                 text = eventLabel,
                                 isSelected = isSelected,
-                                onClick = {
-                                    if (isSelected) selectedEvents.remove(eventLabel)
-                                    else selectedEvents.add(eventLabel)
-                                }
+                                onClick = null
                             )
                         }
                     }
@@ -248,10 +268,7 @@ fun CamDetailScreen(
                             EventSelectButton(
                                 text = hourLabel,
                                 isSelected = isSelected,
-                                onClick = {
-                                    if (isSelected) selectedHours.remove(hourLabel)
-                                    else selectedHours.add(hourLabel)
-                                }
+                                onClick = null
                             )
                         }
                     }
@@ -468,7 +485,7 @@ fun FilmingInfo(
 fun EventSelectButton(
     text: String,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null
 ) {
     val isLight = MaterialTheme.colors.isLight
     val notBgColor = if (isLight) TextGray5 else TextGray20
@@ -480,7 +497,7 @@ fun EventSelectButton(
                 color = if (isSelected) MainOrange else notBgColor,
                 shape = RoundedCornerShape(20.dp)
             )
-            .clickable { onClick() }
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
             .padding(horizontal = 10.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -497,5 +514,5 @@ fun EventSelectButton(
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode")
 @Composable
 fun CamDetailScreenPreview() {
-    CamDetailScreen()
+    CamDetailScreen(cameraId = "1")
 }

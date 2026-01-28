@@ -17,6 +17,9 @@ const getUsersRouter = require('./get_users');
 const removeFromGroupRouter = require('./remove_from_group');
 const getCCTVListRouter = require('./get_cctv_list');
 const uploadImageRouter = require('./upload_image');
+const getCCTVDetailRouter = require('./get_cctv_detail');
+const getDeviceStatusRouter = require('./get_device_status');
+const getWorkerDeviceStatusRouter = require('./get_worker_device_status');
 
 // '/signup' 경로에 대한 요청을 signupRouter로 전달
 app.use('/', signupRouter);
@@ -30,6 +33,9 @@ app.use('/', getUsersRouter);
 app.use('/', removeFromGroupRouter);
 app.use('/', getCCTVListRouter);
 app.use('/', uploadImageRouter);
+app.use('/', getCCTVDetailRouter);
+app.use('/', getDeviceStatusRouter);
+app.use('/', getWorkerDeviceStatusRouter);
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
 app.use('/uploads', express.static('public/uploads'));

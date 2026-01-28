@@ -3,9 +3,26 @@ const router = express.Router();
 const pool = require('./db');
 
 router.get('/get_cctv_list', async (req, res) => {
-    const { area, event_names } = req.query;
+    const { area, event_names, user_id } = req.query;
+
+    if (!user_id) {
+        return res.status(400).json({ message: "user_id가 필요합니다." });
+    }
 
     try {
+        // 1. 요청한 유저의 group_id 조회
+        const userResult = await pool.query('SELECT group_id FROM users WHERE user_id = $1', [user_id]);
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
+        }
+
+        const groupId = userResult.rows[0].group_id;
+
+        if (!groupId) {
+             return res.status(200).json({ cctv_list: [] });
+        }
+
         // cameras 테이블과 camera_events, event_types를 조인하여 정보 조회
         // event_types 테이블의 event_name 컬럼을 가져온다고 가정
         let query = `
@@ -18,11 +35,11 @@ router.get('/get_cctv_list', async (req, res) => {
             FROM cameras c
             LEFT JOIN camera_events ce ON c.camera_id = ce.camera_id
             LEFT JOIN event_types et ON ce.event_type_id = et.id
-            WHERE 1=1
+            WHERE c.group_id = $1
         `;
 
-        const params = [];
-        let paramIndex = 1;
+        const params = [groupId];
+        let paramIndex = 2;
 
         // 1. 구역 필터링 (install_area)
         if (area && area !== '전체 구역') {

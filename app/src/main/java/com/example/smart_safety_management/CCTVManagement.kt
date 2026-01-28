@@ -90,33 +90,36 @@ fun CCTVManagementScreen(
         LaunchedEffect(selectedArea, selectedEvents.toList()) {
             val areaParam = if (selectedArea == "전체 구역") null else selectedArea
             val eventsParam = if (selectedEvents.contains("전체")) null else selectedEvents.toList()
+            val userId = UserSession.userId
 
-            RetrofitClient.instance.getCCTVList(areaParam, eventsParam).enqueue(object : Callback<GetCCTVListResponse> {
-                override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
-                    if (response.isSuccessful) {
-                        val items = response.body()?.cctvList ?: emptyList()
-                        cctvList = items.map { item ->
-                            // DB의 이미지 리소스 이름(String)을 안드로이드 리소스 ID(Int)로 변환
-                            val imageResId = if (!item.imageResName.isNullOrEmpty()) {
-                                context.resources.getIdentifier(item.imageResName, "drawable", context.packageName)
-                            } else {
-                                0 // 기본 이미지 또는 에러 처리
+            if (userId != null) {
+                RetrofitClient.instance.getCCTVList(areaParam, eventsParam, userId).enqueue(object : Callback<GetCCTVListResponse> {
+                    override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
+                        if (response.isSuccessful) {
+                            val items = response.body()?.cctvList ?: emptyList()
+                            cctvList = items.map { item ->
+                                // DB의 이미지 리소스 이름(String)을 안드로이드 리소스 ID(Int)로 변환
+                                val imageResId = if (!item.imageResName.isNullOrEmpty()) {
+                                    context.resources.getIdentifier(item.imageResName, "drawable", context.packageName)
+                                } else {
+                                    0 // 기본 이미지 또는 에러 처리
+                                }
+                                
+                                CCTVCameraData(
+                                    id = item.id.toString(),
+                                    name = item.name,
+                                    location = item.location,
+                                    events = item.events,
+                                    image = if (imageResId != 0) imageResId else R.drawable.cctvcam // 기본값 설정
+                                )
                             }
-                            
-                            CCTVCameraData(
-                                id = item.id.toString(),
-                                name = item.name,
-                                location = item.location,
-                                events = item.events,
-                                image = if (imageResId != 0) imageResId else R.drawable.cctvcam // 기본값 설정
-                            )
                         }
                     }
-                }
-                override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {
-                    // 에러 처리 (로그 등)
-                }
-            })
+                    override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {
+                        // 에러 처리 (로그 등)
+                    }
+                })
+            }
         }
 
         Scaffold(
