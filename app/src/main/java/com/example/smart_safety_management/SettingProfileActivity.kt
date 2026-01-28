@@ -1,6 +1,7 @@
 package com.example.smart_safety_management
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -10,7 +11,6 @@ import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.EditorInfo
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -72,6 +72,11 @@ class SettingProfileActivity : AppCompatActivity() {
             showImagePickerOptions()
         }
 
+        // 로그아웃 버튼 클릭 시 즉시 로그아웃 수행
+        findViewById<TextView>(R.id.tv_logout).setOnClickListener {
+            performLogout()
+        }
+
         setupPhoneEditLogic()
         setupEmailEditLogic()
     }
@@ -89,6 +94,23 @@ class SettingProfileActivity : AppCompatActivity() {
             Glide.with(this).load(it).centerCrop().into(ivProfile)
             ivProfile.setPadding(0, 0, 0, 0)
         }
+    }
+
+    private fun performLogout() {
+        // 1. 세션 정보 초기화
+        UserSession.userId = null
+        UserSession.userName = ""
+        UserSession.userPhone = null
+        UserSession.userEmail = null
+        UserSession.profileImageUri = null
+        
+        // 2. 로그인 화면으로 이동 및 기존 스택 제거
+        val intent = Intent(this, LogInActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
+        
+        Toast.makeText(this, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
     }
 
     private fun applyProfileImage(uri: Uri) {
