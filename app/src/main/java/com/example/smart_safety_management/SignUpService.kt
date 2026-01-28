@@ -1,10 +1,13 @@
 package com.example.smart_safety_management
 
 import com.google.gson.annotations.SerializedName
+import okhttp3.MultipartBody
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Query
 
 data class SignUpRequest(
@@ -112,6 +115,11 @@ data class GetCCTVListResponse(
     @SerializedName("cctv_list") val cctvList: List<CCTVItemResponse>
 )
 
+data class UploadImageResponse(
+    val message: String,
+    @SerializedName("imageUrl") val imageUrl: String
+)
+
 interface SignUpService {
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>
@@ -142,4 +150,8 @@ interface SignUpService {
 
     @GET("/get_cctv_list")
     fun getCCTVList(): Call<GetCCTVListResponse>
+
+    @Multipart
+    @POST("/upload")
+    fun uploadImage(@Part image: MultipartBody.Part): Call<UploadImageResponse>
 }

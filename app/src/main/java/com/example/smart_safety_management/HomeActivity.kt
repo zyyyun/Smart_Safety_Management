@@ -29,6 +29,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
+import com.bumptech.glide.Glide
 import com.example.smart_safety_management.screens.location.LocationActivity
 import com.example.smart_safety_management.screens.realtime.RealTimeActivity
 import com.google.android.material.card.MaterialCardView
@@ -155,10 +156,14 @@ class HomeActivity : AppCompatActivity() {
     private fun updateProfile() {
         val profileBar = findViewById<View>(R.id.profile_bar)
         if (profileBar != null) {
+            // 이름 업데이트
             profileBar.findViewById<TextView>(R.id.tv_user_name)?.text = UserSession.userName
+
+            // 역할
             profileBar.findViewById<TextView>(R.id.tv_user_authority)?.text =
                 if (UserSession.userRole == UserRole.MANAGER) "관리자님" else "근로자님"
             
+            // 프로필 사진 동기화
             val ivProfileBar = profileBar.findViewById<ImageView>(R.id.iv_profile_bar)
             val cardProfile = ivProfileBar?.parent as? MaterialCardView
             
@@ -166,8 +171,11 @@ class HomeActivity : AppCompatActivity() {
                 val params = ivProfileBar.layoutParams as ViewGroup.MarginLayoutParams
                 UserSession.profileImageUri?.let { uriString ->
                     // 1. 사용자 사진 로드 및 꽉 채우기 설정
-                    ivProfileBar.setImageURI(Uri.parse(uriString))
-                    ivProfileBar.scaleType = ImageView.ScaleType.CENTER_CROP
+                    Glide.with(this)
+                        .load(uriString)
+                        .centerCrop()
+                        .error(R.drawable.profile) // 로드 실패 시 기본 이미지 표시
+                        .into(ivProfileBar)
                     ivProfileBar.setPadding(0, 0, 0, 0)
                     
                     // 2. 부모 카드뷰의 모든 제약 제거 (가장 중요)
@@ -182,6 +190,7 @@ class HomeActivity : AppCompatActivity() {
                     ivProfileBar.layoutParams = params
                 } ?: run {
                     // 기본 이미지일 때: 사용자님이 설정하신 마진(5, 10, 5)을 정확히 유지
+                    // 설정된 사진이 없으면 기본값 유지
                     ivProfileBar.setImageResource(R.drawable.profile)
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_INSIDE
                     ivProfileBar.setPadding(0, 0, 0, 0)
@@ -196,6 +205,12 @@ class HomeActivity : AppCompatActivity() {
                         (5 * density).toInt(),
                         (10 * density).toInt(),
                         (5 * density).toInt(),
+                        0
+                    )
+                    ivProfileBar.setPadding(
+                        (resources.displayMetrics.density * 5).toInt(),
+                        (resources.displayMetrics.density * 8).toInt(),
+                        (resources.displayMetrics.density * 5).toInt(),
                         0
                     )
                     ivProfileBar.layoutParams = params

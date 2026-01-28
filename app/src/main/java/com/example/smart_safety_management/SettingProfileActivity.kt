@@ -19,6 +19,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
+import com.bumptech.glide.Glide
+import okhttp3.MediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -82,35 +86,78 @@ class SettingProfileActivity : AppCompatActivity() {
 
         UserSession.profileImageUri?.let {
             val ivProfile = findViewById<ImageView>(R.id.iv_profile)
-            ivProfile.setImageURI(Uri.parse(it))
-            ivProfile.scaleType = ImageView.ScaleType.CENTER_CROP
+            Glide.with(this).load(it).centerCrop().into(ivProfile)
             ivProfile.setPadding(0, 0, 0, 0)
         }
     }
 
     private fun applyProfileImage(uri: Uri) {
         val ivProfile = findViewById<ImageView>(R.id.iv_profile)
-        ivProfile.setImageURI(uri)
-        ivProfile.scaleType = ImageView.ScaleType.CENTER_CROP
+        // 로컬 이미지를 먼저 보여줌 (사용자 경험 향상)
+        Glide.with(this).load(uri).centerCrop().into(ivProfile)
         ivProfile.setPadding(0, 0, 0, 0)
-        UserSession.profileImageUri = uri.toString()
 
-        val userId = UserSession.userId
-        if (userId != null) {
-            val request = UpdateProfileRequest(userId = userId, profileImageUri = uri.toString())
-            RetrofitClient.instance.updateProfile(request).enqueue(object : Callback<UpdateProfileResponse> {
-                override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
-                    if (response.isSuccessful) {
-                        Toast.makeText(this@SettingProfileActivity, "프로필 사진이 변경되었습니다.", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(this@SettingProfileActivity, "프로필 사진 변경 실패", Toast.LENGTH_SHORT).show()
-                    }
-                }
-                override fun onFailure(call: Call<UpdateProfileResponse>, t: Throwable) {
-                    Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
-                }
-            })
+        // 1. Uri를 File로 변환
+        val file = uriToFile(uri)
+        if (file == null) {
+            Toast.makeText(this, "이미지 파일을 불러올 수 없습니다.", Toast.LENGTH_SHORT).show()
+            return
         }
+
+        // 2. 서버로 이미지 업로드 요청
+        val requestFile = RequestBody.create(MediaType.parse("image/*"), file)
+        val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
+
+        RetrofitClient.instance.uploadImage(body).enqueue(object : Callback<UploadImageResponse> {
+            override fun onResponse(call: Call<UploadImageResponse>, response: Response<UploadImageResponse>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val imageUrl = response.body()!!.imageUrl
+                    
+                    // 3. 업로드 성공 시 반환된 URL로 프로필 업데이트
+                    updateProfileWithUrl(imageUrl)
+                } else {
+                    Toast.makeText(this@SettingProfileActivity, "이미지 업로드 실패", Toast.LENGTH_SHORT).show()
+                }
+            }
+            override fun onFailure(call: Call<UploadImageResponse>, t: Throwable) {
+                Toast.makeText(this@SettingProfileActivity, "업로드 네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    // Uri를 임시 파일로 변환하는 헬퍼 함수
+    private fun uriToFile(uri: Uri): File? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+            val tempFile = File.createTempFile("upload", ".jpg", cacheDir)
+            val outputStream = java.io.FileOutputStream(tempFile)
+            inputStream.copyTo(outputStream)
+            inputStream.close()
+            outputStream.close()
+            tempFile
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun updateProfileWithUrl(imageUrl: String) {
+        val userId = UserSession.userId ?: return
+        
+        val request = UpdateProfileRequest(userId = userId, profileImageUri = imageUrl)
+        RetrofitClient.instance.updateProfile(request).enqueue(object : Callback<UpdateProfileResponse> {
+            override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
+                if (response.isSuccessful) {
+                    UserSession.profileImageUri = imageUrl // 세션에도 URL 저장
+                    Toast.makeText(this@SettingProfileActivity, "프로필 사진이 서버에 저장되었습니다.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@SettingProfileActivity, "프로필 정보 업데이트 실패", Toast.LENGTH_SHORT).show()
+                }
+            }
+            override fun onFailure(call: Call<UpdateProfileResponse>, t: Throwable) {
+                Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     private fun showImagePickerOptions() {

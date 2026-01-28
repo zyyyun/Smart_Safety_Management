@@ -22,3 +22,4 @@ server/node_modules/
 server/npm-debug.log*
 server/.env
 server/postgres_data/
+server/public/uploads/*
