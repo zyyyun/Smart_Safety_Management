@@ -37,9 +37,15 @@ class SignUp3Activity : AppCompatActivity() {
     private fun moveToSignUp4() {
         val id = findViewById<EditText>(R.id.et_id).text.toString()
         val pw = findViewById<EditText>(R.id.et_password).text.toString()
+        val rePw = findViewById<EditText>(R.id.et_re_password).text.toString()
 
-        if (id.isBlank() || pw.isBlank()) {
-            Toast.makeText(this, "아이디와 비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
+        if (id.isBlank() || pw.isBlank() || rePw.isBlank()) {
+            Toast.makeText(this, "아이디와 비밀번호를 모두 입력해주세요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (pw != rePw) {
+            Toast.makeText(this, "비밀번호가 일치하지 않습니다.", Toast.LENGTH_SHORT).show()
             return
         }
 
