@@ -149,7 +149,10 @@ interface SignUpService {
     fun removeFromGroup(@Body request: RemoveFromGroupRequest): Call<RemoveFromGroupResponse>
 
     @GET("/get_cctv_list")
-    fun getCCTVList(): Call<GetCCTVListResponse>
+    fun getCCTVList(
+        @Query("area") area: String?,
+        @Query("event_names") eventNames: List<String>?
+    ): Call<GetCCTVListResponse>
 
     @Multipart
     @POST("/upload")

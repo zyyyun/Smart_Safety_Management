@@ -86,9 +86,12 @@ fun CCTVManagementScreen(
         // ✅ 서버에서 불러온 데이터를 저장할 상태
         var cctvList by remember { mutableStateOf<List<CCTVCameraData>>(emptyList()) }
 
-        // ✅ 화면 진입 시 데이터 로드
-        LaunchedEffect(Unit) {
-            RetrofitClient.instance.getCCTVList().enqueue(object : Callback<GetCCTVListResponse> {
+        // ✅ 필터 변경 시 서버에 데이터 요청
+        LaunchedEffect(selectedArea, selectedEvents.toList()) {
+            val areaParam = if (selectedArea == "전체 구역") null else selectedArea
+            val eventsParam = if (selectedEvents.contains("전체")) null else selectedEvents.toList()
+
+            RetrofitClient.instance.getCCTVList(areaParam, eventsParam).enqueue(object : Callback<GetCCTVListResponse> {
                 override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
                     if (response.isSuccessful) {
                         val items = response.body()?.cctvList ?: emptyList()
@@ -114,18 +117,6 @@ fun CCTVManagementScreen(
                     // 에러 처리 (로그 등)
                 }
             })
-        }
-
-        val filteredCCTVList by remember(cctvList, selectedArea, selectedEvents.size) {
-            derivedStateOf {
-                cctvList.filter { camera ->
-                    val matchesArea = if (selectedArea == "전체 구역") true 
-                                     else camera.location.contains(selectedArea.split(" ")[0])
-                    val matchesEvent = if (selectedEvents.contains("전체")) true
-                                      else camera.events.any { it in selectedEvents }
-                    matchesArea && matchesEvent
-                }
-            }
         }
 
         Scaffold(
@@ -160,7 +151,7 @@ fun CCTVManagementScreen(
                 // 편집 액션바
                 if (isEditMode) {
                     CCTVEditActionBar(
-                        filteredCCTVList = filteredCCTVList,
+                        filteredCCTVList = cctvList,
                         selectedCameras = selectedCameras,
                         dividerColor = dividerColor,
                         isLight = isLight,
@@ -177,7 +168,7 @@ fun CCTVManagementScreen(
 
                 // 카메라 리스트
                 CCTVCameraList(
-                    cameras = filteredCCTVList,
+                    cameras = cctvList,
                     isEditMode = isEditMode,
                     selectedCameras = selectedCameras,
                     onCameraClick = onCameraClick,
