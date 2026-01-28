@@ -247,8 +247,8 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
 fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: Shape = RoundedCornerShape(0.dp)) {
     var showDialog by remember { mutableStateOf(false) }; var dialogWasOpened by remember { mutableStateOf(false) }; val creationTime = remember { System.currentTimeMillis() }; var tooltipVisible by remember { mutableStateOf(true) }
     LaunchedEffect(lastUserInteraction) { if (lastUserInteraction > creationTime) tooltipVisible = false }
-    val itemBackgroundColor = if (item.status == InspectionStatus.UNCHECKED && !dialogWasOpened) MaterialTheme.colors.primary.copy(alpha = 0.1f) else Color.Transparent
-    val buttonBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) if (MaterialTheme.colors.isLight) MaterialTheme.colors.primary.copy(alpha = 0.2f) else MaterialTheme.colors.primary else StatusGreen.copy(alpha = 0.2f)
+    val itemBackgroundColor = if (item.status == InspectionStatus.UNCHECKED && !dialogWasOpened) MaterialTheme.colors.primary.copy(alpha = 0.2f) else Color.Transparent
+    val buttonBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) if (MaterialTheme.colors.isLight) MaterialTheme.colors.primary.copy(alpha = 0.2f) else  Color(0xFFFB923C) else StatusGreen.copy(alpha = 0.2f)
     val buttonContentColor = if (item.status == InspectionStatus.UNCHECKED) if (MaterialTheme.colors.isLight) MaterialTheme.colors.primary else Color.Black else StatusGreenDark
     val buttonText = if (item.status == InspectionStatus.UNCHECKED) "미점검" else "점검완료"
     
