@@ -4,12 +4,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
+import android.util.Base64
 import android.util.Log
 import android.view.View
 import android.widget.Button
@@ -27,6 +29,7 @@ import com.google.android.material.textfield.TextInputEditText
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.security.MessageDigest
 import java.util.Locale
 
 class SignUp2Activity : AppCompatActivity() {
@@ -109,11 +112,14 @@ class SignUp2Activity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
+            val appHash = getAppHashKey() ?: ""
+            Log.d("SignUp2Activity", "Sending request with Hash: $appHash")
+
             startSmsRetriever()
 
-            // 서버로 인증번호 전송 요청
+            // 서버로 인증번호 전송 요청 (해시값 포함)
             val service = RetrofitClient.instance
-            service.sendVerificationCode(VerificationRequest(phoneNum)).enqueue(object : Callback<VerificationResponse> {
+            service.sendVerificationCode(VerificationRequest(phoneNum, appHash)).enqueue(object : Callback<VerificationResponse> {
                 override fun onResponse(call: Call<VerificationResponse>, response: Response<VerificationResponse>) {
                     if (response.isSuccessful) {
                         Toast.makeText(this@SignUp2Activity, "인증번호가 전송되었습니다.", Toast.LENGTH_SHORT).show()
@@ -160,6 +166,29 @@ class SignUp2Activity : AppCompatActivity() {
                 return@setOnClickListener
             }
             saveNameAndMoveToNext()
+        }
+    }
+
+    private fun getAppHashKey(): String? {
+        try {
+            val packageName = packageName
+            val signature = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES).signingInfo.apkContentsSigners[0]
+            } else {
+                @Suppress("DEPRECATION")
+                packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES).signatures[0]
+            }
+
+            val md = MessageDigest.getInstance("SHA-256")
+            md.update(packageName.toByteArray())
+            md.update(" ".toByteArray())
+            md.update(signature.toByteArray())
+            
+            val hash = md.digest()
+            return Base64.encodeToString(hash, Base64.NO_PADDING or Base64.NO_WRAP).substring(0, 11)
+        } catch (e: Exception) {
+            Log.e("SignUp2Activity", "Hash Key 생성 실패", e)
+            return null
         }
     }
 

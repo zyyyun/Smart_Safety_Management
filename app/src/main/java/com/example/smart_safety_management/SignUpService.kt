@@ -14,7 +14,8 @@ import retrofit2.http.Path
 import retrofit2.http.Query
 
 data class VerificationRequest(
-    @SerializedName("phone_num") val phoneNum: String
+    @SerializedName("phone_num") val phoneNum: String,
+    @SerializedName("app_hash") val appHash: String // 앱 해시 추가
 )
 
 data class VerificationResponse(
