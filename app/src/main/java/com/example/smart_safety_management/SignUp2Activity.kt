@@ -73,7 +73,9 @@ class SignUp2Activity : AppCompatActivity() {
 
         // 인증번호 받기 버튼 클릭
         btnGetCode.setOnClickListener {
-            val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
+            val phoneNumWithHyphen = etPhoneNumber.text.toString().trim()
+            val phoneNum = phoneNumWithHyphen.replace("-", "")
+            
             if (phoneNum.isEmpty()) {
                 Toast.makeText(this, "전화번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -83,8 +85,11 @@ class SignUp2Activity : AppCompatActivity() {
                 .enqueue(object : Callback<VerificationResponse> {
                     override fun onResponse(call: Call<VerificationResponse>, response: Response<VerificationResponse>) {
                         if (response.isSuccessful) {
+                            // 요청 성공 시 UserSession에 전화번호 저장 (하이픈 제외된 버전으로 저장)
+                            UserSession.userPhone = phoneNum
+                            
                             Toast.makeText(this@SignUp2Activity, "인증번호가 전송되었습니다.", Toast.LENGTH_SHORT).show()
-                            btnGetCode.text = "재전송" // 텍스트 변경
+                            btnGetCode.text = "재전송"
                         } else {
                             Toast.makeText(this@SignUp2Activity, "인증번호 전송 실패", Toast.LENGTH_SHORT).show()
                         }
@@ -146,14 +151,14 @@ class SignUp2Activity : AppCompatActivity() {
 
     private fun saveNameAndMoveToNext() {
         val name = findViewById<TextInputEditText>(R.id.et_name).text.toString().trim()
-        val phoneNum = findViewById<TextInputEditText>(R.id.et_phone_number).text.toString().trim()
+        val phoneNum = findViewById<TextInputEditText>(R.id.et_phone_number).text.toString().trim().replace("-", "")
         
         if (name.isEmpty()) {
             Toast.makeText(this, "이름을 입력해주세요.", Toast.LENGTH_SHORT).show()
             return
         }
         
-        // 데이터 저장
+        // 데이터 저장 (UserSession에 이름과 전화번호 확정 저장)
         UserSession.userName = name
         UserSession.userPhone = phoneNum
 
