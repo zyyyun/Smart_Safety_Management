@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
@@ -91,11 +92,14 @@ class SignUp2Activity : AppCompatActivity() {
                             Toast.makeText(this@SignUp2Activity, "인증번호가 전송되었습니다.", Toast.LENGTH_SHORT).show()
                             btnGetCode.text = "재전송"
                         } else {
-                            Toast.makeText(this@SignUp2Activity, "인증번호 전송 실패", Toast.LENGTH_SHORT).show()
+                            val errorBody = response.errorBody()?.string()
+                            Log.e("SignUp2Activity", "인증번호 전송 실패: ${response.code()}, $errorBody")
+                            Toast.makeText(this@SignUp2Activity, "인증번호 전송 실패 (서버 오류)", Toast.LENGTH_SHORT).show()
                         }
                     }
 
                     override fun onFailure(call: Call<VerificationResponse>, t: Throwable) {
+                        Log.e("SignUp2Activity", "인증번호 전송 네트워크 오류: ${t.message}")
                         Toast.makeText(this@SignUp2Activity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                     }
                 })
@@ -126,6 +130,8 @@ class SignUp2Activity : AppCompatActivity() {
                             btnGetCode.isEnabled = false
                             btnVerify.isEnabled = false
                         } else {
+                            val errorBody = response.errorBody()?.string()
+                            Log.e("SignUp2Activity", "인증 확인 실패: ${response.code()}, $errorBody")
                             isPhoneVerified = false
                             tvNotice.text = "인증번호가 일치하지 않습니다."
                             tvNotice.setTextColor(ContextCompat.getColor(this@SignUp2Activity, android.R.color.holo_red_dark))
@@ -134,6 +140,7 @@ class SignUp2Activity : AppCompatActivity() {
                     }
 
                     override fun onFailure(call: Call<CheckVerificationResponse>, t: Throwable) {
+                        Log.e("SignUp2Activity", "인증 확인 네트워크 오류: ${t.message}")
                         Toast.makeText(this@SignUp2Activity, "인증 확인 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
                     }
                 })
