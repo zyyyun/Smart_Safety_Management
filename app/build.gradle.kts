@@ -88,4 +88,8 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     // URL 처리 의존성
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("com.github.bumptech.glide:compose:1.0.0-beta01")
+    implementation("androidx.media3:media3-exoplayer:1.2.1")
+    implementation("androidx.media3:media3-ui:1.2.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.2.1")
 }

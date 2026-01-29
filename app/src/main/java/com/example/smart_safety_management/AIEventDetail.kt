@@ -1,6 +1,12 @@
 package com.example.smart_safety_management
 
 import android.content.res.Configuration
+import android.location.Geocoder
+import android.preference.PreferenceManager
+import android.graphics.Bitmap
+import android.graphics.SurfaceTexture
+import android.view.TextureView
+import android.view.ViewGroup
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -23,17 +28,55 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.smart_safety_management.ui.theme.*
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.AspectRatioFrameLayout
+import androidx.media3.ui.PlayerView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.osmdroid.config.Configuration as OsmConfiguration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import com.google.gson.annotations.SerializedName
+import java.util.Locale
 
+@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun AIEventDetailScreen(
+    eventId: Int,
     onBackClick: () -> Unit = {},
     onRequestAction: () -> Unit = {}, // 조치 요청 콜백 추가
-    initialActionCompleted: Boolean = false,
 ) {
-    var isActionCompleted by remember { mutableStateOf(initialActionCompleted) }
+    var eventDetail by remember { mutableStateOf<DetectionEventDetailResponse?>(null) }
+    val isActionCompleted = eventDetail?.status?.equals("COMPLETED", ignoreCase = true) == true ||
+            eventDetail?.status?.equals("FALSE_POSITIVE", ignoreCase = true) == true ||
+            eventDetail?.status?.equals("REQUESTED", ignoreCase = true) == true
+
     var showFalseDetectionDialog by remember { mutableStateOf(false) }
     var pos by remember { mutableStateOf(0.5f) }
     var playing by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+
+    // 스냅샷 비트맵 상태
+    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var videoTextureView by remember { mutableStateOf<TextureView?>(null) }
+
+    // 지도 좌표 상태
+    var mapCenter by remember { mutableStateOf<GeoPoint?>(null) }
+    var isGeocodingError by remember { mutableStateOf(false) }
 
     Smart_Safety_ManagementTheme {
 
@@ -44,6 +87,49 @@ fun AIEventDetailScreen(
         val valueColor = locationColor
         val buttonBackground = if (isLight) Lightgray else GrayBackground
         val borderColor = if (isLight) GrayBorder else TextDark
+
+        // 주소를 좌표로 변환 (Geocoding)
+        LaunchedEffect(eventDetail) {
+            val address = eventDetail?.installationAddress
+            if (!address.isNullOrBlank()) {
+                withContext(Dispatchers.IO) {
+                    try {
+                        val geocoder = Geocoder(context, Locale.KOREA)
+                        @Suppress("DEPRECATION")
+                        val addresses = geocoder.getFromLocationName(address, 1)
+                        if (!addresses.isNullOrEmpty()) {
+                            mapCenter = GeoPoint(addresses[0].latitude, addresses[0].longitude)
+                            isGeocodingError = false
+                        } else {
+                            isGeocodingError = true
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        isGeocodingError = true
+                    }
+                }
+            } else if (eventDetail != null) {
+                isGeocodingError = true
+            }
+        }
+
+        // 서버에서 데이터 불러오기
+        LaunchedEffect(eventId) {
+            RetrofitClient.instance.getDetectionEventDetail(eventId).enqueue(object : Callback<DetectionEventDetailResponse> {
+                override fun onResponse(call: Call<DetectionEventDetailResponse>, response: Response<DetectionEventDetailResponse>) {
+                    if (response.isSuccessful) {
+                        eventDetail = response.body()
+                    }
+                }
+                override fun onFailure(call: Call<DetectionEventDetailResponse>, t: Throwable) {
+                    // 에러 처리
+                }
+            })
+        }
+
+        if (eventDetail == null) {
+            // 로딩 중 표시 (필요 시 구현)
+        }
         
         Scaffold(
             topBar = {
@@ -125,7 +211,7 @@ fun AIEventDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        painter = painterResource(id = R.drawable.warning_icon),
+                                        painter = painterResource(id = mapRiskToIcon(eventDetail?.riskLevel)),
                                         contentDescription = "경고",
                                         modifier = Modifier
                                             .padding(end = 8.dp)
@@ -134,14 +220,14 @@ fun AIEventDetailScreen(
                                     )
                                     Column(horizontalAlignment = Alignment.Start) {
                                         Text(
-                                            text = "C구역 2열",
+                                            text = eventDetail?.installArea ?: "위치 정보 없음",
                                             color = locationColor,
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 16.sp,
                                             fontFamily = Pretendard
                                         )
                                         Text(
-                                            text = "쓰러짐이 감지되었습니다.",
+                                            text = "${eventDetail?.eventName ?: "이벤트"}가 감지되었습니다.",
                                             color = CategoryColor,
                                             fontSize = 14.sp,
                                             fontFamily = Pretendard,
@@ -159,11 +245,11 @@ fun AIEventDetailScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 val detailItems = listOf(
-                                    "감지 이벤트" to "쓰러짐",
-                                    "발생 시간" to "2025-05-07 16:05:20",
-                                    "장치명" to "CAM03",
-                                    "발생위치" to "D구역 1열",
-                                    "정확도" to "80%"
+                                    "감지 이벤트" to (eventDetail?.eventName ?: "-"),
+                                    "발생 시간" to (eventDetail?.detectedAt ?: "-"),
+                                    "장치명" to (eventDetail?.deviceName ?: "-"),
+                                    "발생위치" to (eventDetail?.installArea ?: "-"),
+                                    "정확도" to "${eventDetail?.accuracy?.toInt() ?: 0}%"
                                 )
 
                                 detailItems.forEach { (label, value) ->
@@ -279,14 +365,25 @@ fun AIEventDetailScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        Image(
-                            painter = painterResource(id = R.drawable.event),
-                            contentDescription = "이벤트 캡처",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.FillWidth
-                        )
+                        if (capturedBitmap != null) {
+                            Image(
+                                bitmap = capturedBitmap!!.asImageBitmap(),
+                                contentDescription = "이벤트 캡처",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.FillWidth
+                            )
+                        } else {
+                            GlideImage(
+                                model = eventDetail?.captureImageUrl,
+                                contentDescription = "이벤트 캡처",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.FillWidth
+                            ) { it.error(R.drawable.event).placeholder(R.drawable.event) }
+                        }
 
                         Spacer(modifier = Modifier.height(48.dp))
 
@@ -300,14 +397,48 @@ fun AIEventDetailScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        Image(
-                            painter = painterResource(id = R.drawable.map_sample),
-                            contentDescription = "발생 위치 지도",
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.FillWidth
-                        )
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (mapCenter != null) {
+                                AndroidView(
+                                    factory = { ctx ->
+                                        OsmConfiguration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))
+                                        MapView(ctx).apply {
+                                            setTileSource(TileSourceFactory.MAPNIK)
+                                            setMultiTouchControls(true)
+                                            controller.setZoom(17.0)
+                                        }
+                                    },
+                                    update = { mapView ->
+                                        mapView.controller.setCenter(mapCenter)
+                                        mapView.overlays.clear()
+                                        val marker = Marker(mapView)
+                                        marker.position = mapCenter
+                                        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                        val iconRes = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark
+                                        marker.icon = ContextCompat.getDrawable(context, iconRes)
+                                        mapView.overlays.add(marker)
+                                        mapView.invalidate()
+                                    },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier.fillMaxSize().background(if (isLight) Color.LightGray else Color.DarkGray),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (isGeocodingError) "위치를 찾을 수 없습니다." else "위치 정보를 불러오는 중...",
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(48.dp))
 
@@ -326,15 +457,80 @@ fun AIEventDetailScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                         ) {
+                            val liveUrl = eventDetail?.liveUrl
+                            if (!liveUrl.isNullOrBlank()) {
+                                val exoPlayer = remember {
+                                    ExoPlayer.Builder(context).build().apply {
+                                        playWhenReady = true
+                                        addListener(object : Player.Listener {
+                                            override fun onRenderedFirstFrame() {
+                                                // 영상의 첫 프레임이 렌더링되었을 때 캡처 시도
+                                                videoTextureView?.let { view ->
+                                                    val bitmap = view.getBitmap()
+                                                    if (bitmap != null) {
+                                                        capturedBitmap = bitmap
+                                                    }
+                                                }
+                                            }
+                                        })
+                                    }
+                                }
 
-                            Image(
-                                painter = painterResource(id = R.drawable.event),
-                                contentDescription = "실시간 화면",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.FillWidth
-                            )
+                                DisposableEffect(Unit) {
+                                    onDispose { exoPlayer.release() }
+                                }
+
+                                LaunchedEffect(liveUrl) {
+                                    val mediaItem = MediaItem.fromUri(liveUrl)
+                                    exoPlayer.setMediaItem(mediaItem)
+                                    exoPlayer.prepare()
+                                }
+
+                                LaunchedEffect(playing) {
+                                    if (playing) exoPlayer.play() else exoPlayer.pause()
+                                }
+
+                                AndroidView(
+                                    factory = { ctx ->
+                                        TextureView(ctx).apply {
+                                            layoutParams = ViewGroup.LayoutParams(
+                                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                                ViewGroup.LayoutParams.MATCH_PARENT
+                                            )
+                                            surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                                                override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+                                                    exoPlayer.setVideoTextureView(this@apply)
+                                                    videoTextureView = this@apply
+                                                }
+                                                override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
+                                                override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = false
+                                                override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
+                                                    if (capturedBitmap == null) {
+                                                        // onRenderedFirstFrame이 놓쳤을 경우를 대비한 백업 캡처
+                                                        val bitmap = this@apply.getBitmap()
+                                                        if (bitmap != null) {
+                                                            capturedBitmap = bitmap
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(16f / 9f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                )
+                            } else {
+                                GlideImage(
+                                    model = eventDetail?.captureImageUrl,
+                                    contentDescription = "실시간 화면",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp)),
+                                    contentScale = ContentScale.FillWidth
+                                ) { it.error(R.drawable.event).placeholder(R.drawable.event) }
+                            }
 
                             // 3. 상단 LIVE 인디케이터 배치
                             LiveIndicator(
@@ -371,6 +567,15 @@ fun AIEventDetailScreen(
                 }
             )
         }
+    }
+}
+
+private fun mapRiskToIcon(riskLevel: String?): Int {
+    return when (riskLevel?.lowercase()) {
+        "high", "위험", "danger" -> R.drawable.danger_icon
+        "medium", "경고", "warning" -> R.drawable.warning_icon
+        "low", "주의", "caution" -> R.drawable.caution_icon
+        else -> R.drawable.caution_icon
     }
 }
 
@@ -467,5 +672,5 @@ fun FalseDetectionDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode")
 @Composable
 fun AIEventDetailScreenPreview() {
-    AIEventDetailScreen()
+    AIEventDetailScreen(eventId = 1)
 }

@@ -17,6 +17,8 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -33,10 +35,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.gson.annotations.SerializedName
 import com.example.smart_safety_management.ui.theme.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 @Composable
 fun ActionDetailScreen(
+    eventId: Int,
     onBackClick: () -> Unit = {},
     initialExpanded: Boolean = false
 ) {
@@ -44,6 +51,20 @@ fun ActionDetailScreen(
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
     var attachedPhotos by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    var eventDetail by remember { mutableStateOf<DetectionEventDetailResponse?>(null) }
+
+    LaunchedEffect(eventId) {
+        RetrofitClient.instance.getDetectionEventDetail(eventId).enqueue(object : Callback<DetectionEventDetailResponse> {
+            override fun onResponse(call: Call<DetectionEventDetailResponse>, response: Response<DetectionEventDetailResponse>) {
+                if (response.isSuccessful) {
+                    eventDetail = response.body()
+                }
+            }
+            override fun onFailure(call: Call<DetectionEventDetailResponse>, t: Throwable) {
+            }
+        })
+    }
     
     // 스크롤 상태 관리
     val scrollState = rememberScrollState()
@@ -66,7 +87,12 @@ fun ActionDetailScreen(
         val selectAlpha = if (isLight) 0.12f else 0.36f
 
         // 1. 이벤트 아이콘 설정 (위험, 경고, 주의에 따라 변경)
-        val eventIconRes = R.drawable.warning_icon 
+        val eventIconRes = when (eventDetail?.riskLevel?.lowercase()) {
+            "high", "위험", "danger" -> R.drawable.danger_icon
+            "medium", "경고", "warning" -> R.drawable.warning_icon
+            "low", "주의", "caution" -> R.drawable.caution_icon
+            else -> R.drawable.warning_icon
+        }
 
         // 2. 아이콘 종류에 따른 "감지 이벤트" 밸류 텍스트 색상 설정
         // 여기에 원하는 색상(예: Red, Orange 등)을 직접 지정하시면 됩니다.
@@ -157,14 +183,14 @@ fun ActionDetailScreen(
                                 )
                                 Column(horizontalAlignment = Alignment.Start) {
                                     Text(
-                                        text = "C구역 2열",
+                                        text = eventDetail?.installArea ?: "-",
                                         color = textColor,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 16.sp,
                                         fontFamily = Pretendard
                                     )
                                     Text(
-                                        text = "쓰러짐이 감지되었습니다.",
+                                        text = "${eventDetail?.eventName ?: "이벤트"}가 감지되었습니다.",
                                         color = CategoryColor,
                                         fontSize = 14.sp,
                                         fontFamily = Pretendard,
@@ -182,10 +208,10 @@ fun ActionDetailScreen(
                             Spacer(modifier = Modifier.height(8.dp))
 
                             val detailItems = listOf(
-                                "감지 이벤트" to "쓰러짐",
-                                "발생 시간" to "2025-05-07 16:05:20",
-                                "장치명" to "CAM03",
-                                "발생위치" to "D구역 1열"
+                                "감지 이벤트" to (eventDetail?.eventName ?: "-"),
+                                "발생 시간" to (eventDetail?.detectedAt ?: "-"),
+                                "장치명" to (eventDetail?.deviceName ?: "-"),
+                                "발생위치" to (eventDetail?.installArea ?: "-")
                             )
 
                             detailItems.forEach { (label, value) ->
@@ -512,4 +538,18 @@ fun Modifier.verticalScrollbar(
             cornerRadius = CornerRadius(width.toPx() / 2)
         )
     }
+
+data class DetectionEventDetailResponse(
+    @SerializedName("event_id") val eventId: Int,
+    @SerializedName("event_name") val eventName: String?,
+    @SerializedName("install_area") val installArea: String?,
+    @SerializedName("risk_level") val riskLevel: String?,
+    @SerializedName("detected_at") val detectedAt: String?,
+    @SerializedName("device_name") val deviceName: String?,
+    @SerializedName("capture_image_url") val captureImageUrl: String?,
+    @SerializedName("live_url") val liveUrl: String?,
+    @SerializedName("accuracy") val accuracy: Double?,
+    @SerializedName("status") val status: String?,
+    @SerializedName("installation_address") val installationAddress: String?
+)
 }
