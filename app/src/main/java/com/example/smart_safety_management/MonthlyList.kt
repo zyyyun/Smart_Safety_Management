@@ -92,7 +92,7 @@ val TooltipShape = object : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val triangleWidth = with(density) { 12.dp.toPx() }
         val triangleHeight = with(density) { 8.dp.toPx() }
-        val cornerRadius = with(density) { 6.dp.toPx() }
+        val cornerRadius = with(density) { 8.dp.toPx() }
         val path = Path().apply {
             addRoundRect(RoundRect(left = 0f, top = 0f, right = size.width, bottom = size.height - triangleHeight, cornerRadius = CornerRadius(cornerRadius)))
             val tailOffsetX = with(density) { 30.dp.toPx() }

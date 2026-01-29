@@ -3,8 +3,11 @@ package com.example.smart_safety_management
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.content.Context
+import android.graphics.Outline
+import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.view.*
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.FrameLayout
@@ -36,6 +39,41 @@ class TooltipPopup(private val context: Context) {
             val tooltipIcon = tooltipView.findViewById<ImageView>(R.id.tooltip_icon)
             val tooltipText = tooltipView.findViewById<TextView>(R.id.tooltip_text)
             val tooltipArrow = tooltipView.findViewById<View>(R.id.tooltip_arrow)
+            val bgRoundBox = tooltipView.findViewById<View>(R.id.bg_round_box)
+
+            // 그림자가 잘리지 않도록 여백 추가
+            tooltipView.setPadding(dp(10), dp(10), dp(10), dp(20))
+
+            // 박스와 화살표의 그림자 높이를 2dp로 통일 (XML의 translationZ 무시)
+            val unifiedElevation = dp(2).toFloat()
+            bgRoundBox.elevation = unifiedElevation
+            bgRoundBox.translationZ = 0f
+
+            tooltipArrow.elevation = unifiedElevation
+            tooltipArrow.translationZ = 0f
+
+            // 화살표 그림자를 위한 역삼각형 Outline 설정
+            tooltipArrow.outlineProvider = object : ViewOutlineProvider() {
+                override fun getOutline(view: View, outline: Outline) {
+                    val w = view.width.toFloat()
+                    val h = view.height.toFloat()
+                    if (w > 0 && h > 0) {
+                        val path = Path()
+                        path.moveTo(0f, 0f)
+                        path.lineTo(w, 0f)
+                        path.lineTo(w / 2f, h)
+                        path.close()
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            outline.setPath(path)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            outline.setConvexPath(path)
+                        }
+                    }
+                }
+            }
+            tooltipArrow.clipToOutline = false
 
             if (UserSession.userRole == UserRole.MANAGER) {
                 tooltipIcon.visibility = View.VISIBLE
@@ -63,7 +101,7 @@ class TooltipPopup(private val context: Context) {
             ).apply {
                 isTouchable = false
                 isOutsideTouchable = false
-                elevation = dp(12).toFloat()
+                elevation = 0f
                 setBackgroundDrawable(ColorDrawable(android.graphics.Color.TRANSPARENT))
                 isClippingEnabled = false
             }
@@ -98,8 +136,8 @@ class TooltipPopup(private val context: Context) {
         if (!anchorView.isAttachedToWindow) return
 
         val marginPx = dp(marginDp)
+        val padding = dp(10)
 
-        // 윈도우에서의 절대 좌표 계산
         val loc = IntArray(2)
         anchorView.getLocationInWindow(loc)
         val anchorX = loc[0]
@@ -108,30 +146,26 @@ class TooltipPopup(private val context: Context) {
         val anchorH = anchorView.height
 
         val anchorCenterX = anchorX + (anchorW / 2)
-        
+
         val arrowStartMarginDp = if (UserSession.userRole == UserRole.MANAGER) 168 else 249
-        val arrowCenterXInTooltip = dp(arrowStartMarginDp) + dp(6)
+        val arrowCenterXInTooltip = padding + dp(arrowStartMarginDp) + dp(10)
 
         var x = anchorCenterX - arrowCenterXInTooltip
-        var y = anchorY - cachedHeight - marginPx
+        var y = anchorY - cachedHeight - marginPx + dp(20)
 
         val windowRect = Rect()
         anchorView.getWindowVisibleDisplayFrame(windowRect)
 
-        // 화면 밖으로 나가지 않게 보정
         if (x < windowRect.left) x = windowRect.left
         if (x + cachedWidth > windowRect.right) x = windowRect.right - cachedWidth
 
-        // 툴팁이 화면 상단 밖으로 나가면 아래쪽에 표시
         if (y < windowRect.top) {
-            y = anchorY + anchorH + marginPx
+            y = anchorY + anchorH + marginPx - padding
         }
 
-        // 부모 뷰(RecyclerView나 ScrollView)의 가시 영역 체크
         val scrollBounds = Rect()
         anchorView.getGlobalVisibleRect(scrollBounds)
         
-        // anchorView가 실제로 화면에 보이고 있고, 부모 스크롤 가시 영역 안에 있는지 확인
         val isVisibleInParent = anchorView.isShown && 
                                scrollBounds.bottom > (anchorY + (anchorH / 2)) && 
                                scrollBounds.top < (anchorY + (anchorH / 2))
