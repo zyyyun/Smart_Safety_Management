@@ -1,6 +1,7 @@
 package com.example.smart_safety_management
 
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
@@ -305,6 +306,7 @@ fun YearMonthSelector(yearMonth: YearMonth, onMonthChange: (YearMonth) -> Unit) 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate) -> Unit) {
+    val context = LocalContext.current
     var startDateStr by remember { mutableStateOf("") }; var endDateStr by remember { mutableStateOf("") }
     var showCustomPicker by remember { mutableStateOf(false) }; var pickingStartDate by remember { mutableStateOf(true) }
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -331,9 +333,26 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
             initialDate = initialDate,
             onDismiss = { showCustomPicker = false },
             onDateSelected = { selectedDate ->
-                if (pickingStartDate) startDateStr = selectedDate.format(formatter) else endDateStr = selectedDate.format(formatter)
-                onDateChange(LocalDate.parse(startDateStr, formatter), LocalDate.parse(endDateStr, formatter))
-                showCustomPicker = false
+                val currentStart = if (startDateStr.isNotEmpty()) LocalDate.parse(startDateStr, formatter) else null
+                val currentEnd = if (endDateStr.isNotEmpty()) LocalDate.parse(endDateStr, formatter) else null
+
+                if (pickingStartDate) {
+                    if (currentEnd != null && selectedDate.isAfter(currentEnd)) {
+                        Toast.makeText(context, "시작일은 종료일보다 빨라야 합니다.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        startDateStr = selectedDate.format(formatter)
+                        onDateChange(selectedDate, currentEnd ?: selectedDate)
+                        showCustomPicker = false
+                    }
+                } else {
+                    if (currentStart != null && selectedDate.isBefore(currentStart)) {
+                        Toast.makeText(context, "종료일은 시작일보다 늦어야 합니다.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        endDateStr = selectedDate.format(formatter)
+                        onDateChange(currentStart ?: selectedDate, selectedDate)
+                        showCustomPicker = false
+                    }
+                }
             }
         )
     }
@@ -524,7 +543,7 @@ fun YearDropdown(year: Int, modifier: Modifier = Modifier, onYearSelected: (Int)
                 properties = PopupProperties(clippingEnabled = false)
             ) {
                 CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
-                    val years = (2020..2030).toList()
+                    val years = (2026..2100).toList()
                     years.forEachIndexed { index, y ->
                         DropdownMenuItem(onClick = { onYearSelected(y); expanded = false }) {
                             Text(
