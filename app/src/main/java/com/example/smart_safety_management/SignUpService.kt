@@ -13,25 +13,8 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-// ... (기존 데이터 클래스들 동일)
-
-data class VerificationRequest(
-    @SerializedName("phone_num") val phoneNum: String
-)
-
-data class VerificationResponse(
-    val message: String
-)
-
-data class CheckVerificationRequest(
-    @SerializedName("phone_num") val phoneNum: String,
-    val code: String
-)
-
-data class CheckVerificationResponse(
-    val message: String,
-    val success: Boolean
-)
+// Firebase 인증 사용으로 기존 VerificationRequest, VerificationResponse, 
+// CheckVerificationRequest, CheckVerificationResponse 데이터 클래스 삭제됨
 
 data class SignUpRequest(
     @SerializedName("user_id") val userId: String,
@@ -236,11 +219,7 @@ data class UpdateEventStatusRequest(
 )
 
 interface SignUpService {
-    @POST("/send_verification")
-    fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
-
-    @POST("/verify_code")
-    fun verifyCode(@Body request: CheckVerificationRequest): Call<CheckVerificationResponse>
+    // Firebase 인증으로 대체된 메서드 제거됨
 
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>

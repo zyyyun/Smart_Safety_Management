@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "400998604953",
+    "project_id": "smartsafety-34082",
+    "storage_bucket": "smartsafety-34082.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:400998604953:android:715cdde847b5494c219808",
+        "android_client_info": {
+          "package_name": "com.example.smart_safety_management"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAPEBQirrsNnjyODLrpK4MssM30o2Hohlk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
