@@ -208,13 +208,22 @@ class SignUp2Activity : AppCompatActivity() {
         llNotice.visibility = View.VISIBLE
         tvNotice.text = "인증이 완료되었습니다."
         tvNotice.setTextColor(ContextCompat.getColor(this, R.color.teal500))
+        ivNotice.visibility = View.VISIBLE
         ivNotice.setImageResource(R.drawable.ic_success)
 
         findViewById<TextInputEditText>(R.id.et_phone_number).isEnabled = false
         findViewById<TextInputEditText>(R.id.et_verify).isEnabled = false
-        findViewById<Button>(R.id.phone_number_button).isEnabled = false
-        findViewById<Button>(R.id.verify_button).isEnabled = false
-        findViewById<Button>(R.id.verify_button).text = "인증완료"
+
+        val btnGetCode = findViewById<Button>(R.id.phone_number_button)
+        val btnVerify = findViewById<Button>(R.id.verify_button)
+
+        btnGetCode.isEnabled = false
+        btnGetCode.backgroundTintList = ContextCompat.getColorStateList(this, R.color.gray50_gray900)
+        btnGetCode.setTextColor(ContextCompat.getColor(this, R.color.gray400_gray700))
+
+        btnVerify.isEnabled = false
+        btnVerify.backgroundTintList = ContextCompat.getColorStateList(this, R.color.gray50_gray900)
+        btnVerify.setTextColor(ContextCompat.getColor(this, R.color.gray400_gray700))
     }
 
     override fun onStart() {
@@ -237,7 +246,7 @@ class SignUp2Activity : AppCompatActivity() {
     private fun startTimer(tvNotice: TextView, llNotice: LinearLayout, ivNotice: ImageView) {
         countDownTimer?.cancel()
         llNotice.visibility = View.VISIBLE
-        ivNotice.setImageResource(R.drawable.ic_success)
+        ivNotice.visibility = View.GONE
 
         countDownTimer = object : CountDownTimer(verificationTime, 1000) {
             override fun onTick(millisUntilFinished: Long) {
@@ -250,6 +259,7 @@ class SignUp2Activity : AppCompatActivity() {
             override fun onFinish() {
                 tvNotice.text = "인증 시간이 만료되었습니다. 다시 시도해주세요."
                 tvNotice.setTextColor(ContextCompat.getColor(this@SignUp2Activity, android.R.color.holo_red_dark))
+                ivNotice.visibility = View.VISIBLE
                 ivNotice.setImageResource(R.drawable.ic_error)
                 isPhoneVerified = false
             }
