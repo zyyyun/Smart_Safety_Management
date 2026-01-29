@@ -24,6 +24,7 @@ const getDetectionEventsRouter = require('./get_detection_events');
 const getDetectionEventDetailRouter = require('./get_detection_event_detail');
 const getWorkplaceRouter = require('./get_workplace');
 const deleteAccountRouter = require('./delete_account');
+const smsRouter = require('./sms');
 
 // 라우터 등록
 app.use('/', signupRouter);
@@ -44,6 +45,7 @@ app.use('/', getDetectionEventsRouter);
 app.use('/', getDetectionEventDetailRouter);
 app.use('/', getWorkplaceRouter);
 app.use('/', deleteAccountRouter);
+app.use('/', smsRouter);
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
 app.use('/uploads', express.static('public/uploads'));

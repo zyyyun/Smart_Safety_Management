@@ -114,7 +114,7 @@ class SignUp3Activity : AppCompatActivity() {
             userRole = UserSession.userRole.name.lowercase(), // "manager" or "worker"
             name = UserSession.userName,
             email = null,
-            phoneNum = null,
+            phoneNum = UserSession.userPhone, // 인증받은 전화번호 추가
             groupId = null
         )
 
@@ -122,9 +122,6 @@ class SignUp3Activity : AppCompatActivity() {
         RetrofitClient.instance.signUp(signUpData).enqueue(object : Callback<SignUpResponse> {
             override fun onResponse(call: Call<SignUpResponse>, response: Response<SignUpResponse>) {
                 if (response.isSuccessful) {
-                    val message = response.body()?.message ?: "회원가입 성공"
-                    Toast.makeText(this@SignUp3Activity, message, Toast.LENGTH_SHORT).show()
-
                     val intent = Intent(this@SignUp3Activity, SignUp4Activity::class.java)
                     intent.putExtra(EXTRA_USER_ID, id)
                     startActivity(intent)
