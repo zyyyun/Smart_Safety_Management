@@ -80,6 +80,9 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth.ktx)
 
+    // Play Services Auth
+    implementation(libs.play.services.auth.api.phone)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -94,5 +97,5 @@ dependencies {
     implementation("com.github.bumptech.glide:compose:1.0.0-beta01")
     implementation("androidx.media3:media3-exoplayer:1.2.1")
     implementation("androidx.media3:media3-ui:1.2.1")
-    implementation("androidx. media3:media3-exoplayer-hls:1.2.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.2.1")
 }

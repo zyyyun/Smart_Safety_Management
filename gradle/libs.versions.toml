@@ -18,6 +18,7 @@ firebaseCrashlyticsBuildtools = "3.0.6"
 gson = "2.13.2"
 googleServices = "4.4.1"
 firebaseBom = "32.8.1"
+playServicesAuthPhone = "18.1.0"
 
 
 [libraries]
@@ -51,6 +52,9 @@ gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 # Firebase
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" }
+
+# Play Services
+play-services-auth-api-phone = { group = "com.google.android.gms", name = "play-services-auth-api-phone", version.ref = "playServicesAuthPhone" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

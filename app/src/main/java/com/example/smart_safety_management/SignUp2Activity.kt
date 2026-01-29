@@ -1,6 +1,10 @@
 package com.example.smart_safety_management
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.os.Bundle
 import android.os.CountDownTimer
 import android.text.Editable
@@ -16,28 +20,52 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.google.android.gms.auth.api.phone.SmsRetriever
+import com.google.android.gms.common.api.CommonStatusCodes
+import com.google.android.gms.common.api.Status
 import com.google.android.material.textfield.TextInputEditText
-import com.google.firebase.FirebaseException
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.PhoneAuthCredential
-import com.google.firebase.auth.PhoneAuthOptions
-import com.google.firebase.auth.PhoneAuthProvider
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 class SignUp2Activity : AppCompatActivity() {
 
-    private lateinit var auth: FirebaseAuth
-    private var verificationId: String? = null
     private var isPhoneVerified = false
     private var countDownTimer: CountDownTimer? = null
     private val verificationTime = 180000L // 3분
 
+    // SMS Retriever를 위한 BroadcastReceiver
+    private val smsVerificationReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            if (SmsRetriever.SMS_RETRIEVED_ACTION == intent.action) {
+                val extras = intent.extras
+                val smsRetrieverStatus = extras?.get(SmsRetriever.EXTRA_STATUS) as? Status
+
+                when (smsRetrieverStatus?.statusCode) {
+                    CommonStatusCodes.SUCCESS -> {
+                        val message = extras.get(SmsRetriever.EXTRA_SMS_MESSAGE) as? String
+                        message?.let {
+                            Log.d("SignUp2Activity", "SMS 수신 성공: $it")
+                            val pattern = Regex("\\d{6}")
+                            val match = pattern.find(it)
+                            match?.value?.let { code ->
+                                findViewById<TextInputEditText>(R.id.et_verify).setText(code)
+                                Toast.makeText(context, "인증번호가 자동으로 입력되었습니다.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
+                    CommonStatusCodes.TIMEOUT -> {
+                        Log.e("SignUp2Activity", "SMS Retriever 시간 초과")
+                    }
+                }
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.sign_up_2)
-
-        auth = FirebaseAuth.getInstance()
 
         val etName = findViewById<TextInputEditText>(R.id.et_name)
         val etPhoneNumber = findViewById<TextInputEditText>(R.id.et_phone_number)
@@ -49,7 +77,6 @@ class SignUp2Activity : AppCompatActivity() {
         val ivNotice = findViewById<ImageView>(R.id.iv_notice)
         val tvNotice = findViewById<TextView>(R.id.tv_notice)
 
-        // 전화번호 자동 하이픈 로직
         etPhoneNumber.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(13))
         etPhoneNumber.addTextChangedListener(object : TextWatcher {
             private var isFormatting = false
@@ -74,56 +101,57 @@ class SignUp2Activity : AppCompatActivity() {
 
         findViewById<ImageButton>(R.id.imageButton).setOnClickListener { finish() }
 
-        // 인증번호 받기 (Firebase Phone Auth)
         btnGetCode.setOnClickListener {
-            val phoneNumWithHyphen = etPhoneNumber.text.toString().trim()
-            val phoneNum = phoneNumWithHyphen.replace("-", "")
-            
+            val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
+
             if (phoneNum.length < 10) {
                 Toast.makeText(this, "올바른 전화번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // 한국 국가번호 +82 추가 (010 -> +8210)
-            val formattedPhone = "+82${phoneNum.substring(1)}"
+            startSmsRetriever()
 
-            val options = PhoneAuthOptions.newBuilder(auth)
-                .setPhoneNumber(formattedPhone)
-                .setTimeout(60L, TimeUnit.SECONDS)
-                .setActivity(this)
-                .setCallbacks(object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                    override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-                        // 자동 인증 성공 (보통 기기에서 자동으로 코드를 읽을 때 발생)
-                        signInWithPhoneAuthCredential(credential)
-                    }
-
-                    override fun onVerificationFailed(e: FirebaseException) {
-                        Log.e("SignUp2Activity", "인증 실패: ${e.message}")
-                        Toast.makeText(this@SignUp2Activity, "인증 요청 실패: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
-
-                    override fun onCodeSent(id: String, token: PhoneAuthProvider.ForceResendingToken) {
-                        verificationId = id
+            // 서버로 인증번호 전송 요청
+            val service = RetrofitClient.instance
+            service.sendVerificationCode(VerificationRequest(phoneNum)).enqueue(object : Callback<VerificationResponse> {
+                override fun onResponse(call: Call<VerificationResponse>, response: Response<VerificationResponse>) {
+                    if (response.isSuccessful) {
                         Toast.makeText(this@SignUp2Activity, "인증번호가 전송되었습니다.", Toast.LENGTH_SHORT).show()
                         btnGetCode.text = "재전송"
                         startTimer(tvNotice, llNotice, ivNotice)
+                    } else {
+                        Toast.makeText(this@SignUp2Activity, "인증번호 전송 실패", Toast.LENGTH_SHORT).show()
                     }
-                })
-                .build()
-            
-            PhoneAuthProvider.verifyPhoneNumber(options)
+                }
+                override fun onFailure(call: Call<VerificationResponse>, t: Throwable) {
+                    Toast.makeText(this@SignUp2Activity, "서버 연결 실패", Toast.LENGTH_SHORT).show()
+                }
+            })
         }
 
-        // 인증 확인 버튼
         btnVerify.setOnClickListener {
+            val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
             val code = etVerifyCode.text.toString().trim()
-            if (code.isEmpty() || verificationId == null) {
+
+            if (code.isEmpty()) {
                 Toast.makeText(this, "인증번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            val credential = PhoneAuthProvider.getCredential(verificationId!!, code)
-            signInWithPhoneAuthCredential(credential)
+            // 서버로 인증번호 확인 요청
+            val service = RetrofitClient.instance
+            service.checkVerificationCode(CheckVerificationRequest(phoneNum, code)).enqueue(object : Callback<CheckVerificationResponse> {
+                override fun onResponse(call: Call<CheckVerificationResponse>, response: Response<CheckVerificationResponse>) {
+                    if (response.isSuccessful && response.body()?.isVerified == true) {
+                        onVerificationSuccess()
+                    } else {
+                        Toast.makeText(this@SignUp2Activity, "인증번호가 일치하지 않습니다.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<CheckVerificationResponse>, t: Throwable) {
+                    Toast.makeText(this@SignUp2Activity, "서버 연결 실패", Toast.LENGTH_SHORT).show()
+                }
+            })
         }
 
         btnNext.setOnClickListener {
@@ -135,30 +163,46 @@ class SignUp2Activity : AppCompatActivity() {
         }
     }
 
-    private fun signInWithPhoneAuthCredential(credential: PhoneAuthCredential) {
-        auth.signInWithCredential(credential)
-            .addOnCompleteListener(this) { task ->
-                val tvNotice = findViewById<TextView>(R.id.tv_notice)
-                val llNotice = findViewById<LinearLayout>(R.id.ll_notice)
-                val ivNotice = findViewById<ImageView>(R.id.iv_notice)
+    private fun startSmsRetriever() {
+        val client = SmsRetriever.getClient(this)
+        client.startSmsRetriever()
+    }
 
-                if (task.isSuccessful) {
-                    isPhoneVerified = true
-                    countDownTimer?.cancel()
-                    llNotice.visibility = View.VISIBLE
-                    tvNotice.text = "인증이 완료되었습니다."
-                    tvNotice.setTextColor(ContextCompat.getColor(this, R.color.teal500))
-                    ivNotice.setImageResource(R.drawable.ic_success)
-                    
-                    findViewById<TextInputEditText>(R.id.et_phone_number).isEnabled = false
-                    findViewById<TextInputEditText>(R.id.et_verify).isEnabled = false
-                    findViewById<Button>(R.id.phone_number_button).isEnabled = false
-                    findViewById<Button>(R.id.verify_button).isEnabled = false
-                    findViewById<Button>(R.id.verify_button).text = "인증완료"
-                } else {
-                    Toast.makeText(this, "인증번호가 일치하지 않거나 만료되었습니다.", Toast.LENGTH_SHORT).show()
-                }
-            }
+    private fun onVerificationSuccess() {
+        isPhoneVerified = true
+        countDownTimer?.cancel()
+
+        val llNotice = findViewById<LinearLayout>(R.id.ll_notice)
+        val tvNotice = findViewById<TextView>(R.id.tv_notice)
+        val ivNotice = findViewById<ImageView>(R.id.iv_notice)
+
+        llNotice.visibility = View.VISIBLE
+        tvNotice.text = "인증이 완료되었습니다."
+        tvNotice.setTextColor(ContextCompat.getColor(this, R.color.teal500))
+        ivNotice.setImageResource(R.drawable.ic_success)
+
+        findViewById<TextInputEditText>(R.id.et_phone_number).isEnabled = false
+        findViewById<TextInputEditText>(R.id.et_verify).isEnabled = false
+        findViewById<Button>(R.id.phone_number_button).isEnabled = false
+        findViewById<Button>(R.id.verify_button).isEnabled = false
+        findViewById<Button>(R.id.verify_button).text = "인증완료"
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val intentFilter = IntentFilter(SmsRetriever.SMS_RETRIEVED_ACTION)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(smsVerificationReceiver, intentFilter, Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(smsVerificationReceiver, intentFilter)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        try {
+            unregisterReceiver(smsVerificationReceiver)
+        } catch (e: Exception) {}
     }
 
     private fun startTimer(tvNotice: TextView, llNotice: LinearLayout, ivNotice: ImageView) {
@@ -170,8 +214,7 @@ class SignUp2Activity : AppCompatActivity() {
             override fun onTick(millisUntilFinished: Long) {
                 val minutes = (millisUntilFinished / 1000) / 60
                 val seconds = (millisUntilFinished / 1000) % 60
-                val timeString = String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
-                tvNotice.text = "남은 시간 $timeString"
+                tvNotice.text = String.format(Locale.getDefault(), "남은 시간 %02d:%02d", minutes, seconds)
                 tvNotice.setTextColor(ContextCompat.getColor(this@SignUp2Activity, R.color.gray700_gray400))
             }
 
@@ -187,12 +230,12 @@ class SignUp2Activity : AppCompatActivity() {
     private fun saveNameAndMoveToNext() {
         val name = findViewById<TextInputEditText>(R.id.et_name).text.toString().trim()
         val phoneNum = findViewById<TextInputEditText>(R.id.et_phone_number).text.toString().trim().replace("-", "")
-        
+
         if (name.isEmpty()) {
             Toast.makeText(this, "이름을 입력해주세요.", Toast.LENGTH_SHORT).show()
             return
         }
-        
+
         UserSession.userName = name
         UserSession.userPhone = phoneNum
         startActivity(Intent(this, SignUp3Activity::class.java))
