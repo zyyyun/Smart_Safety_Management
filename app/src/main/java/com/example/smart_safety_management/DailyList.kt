@@ -1,7 +1,6 @@
 package com.example.smart_safety_management
 
 import android.app.DatePickerDialog
-import android.content.res.Configuration
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -26,58 +25,78 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.activity
 import com.example.smart_safety_management.ui.theme.*
 import java.util.Calendar
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
+import android.util.Log
+import android.widget.Toast
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import android.content.Intent
+import androidx.compose.material.icons.filled.Close
 
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
+
 @Composable
 fun DailyListScreen(
-    onComplete: (date: String, location: String, riskFactor: String, safetyMeasure: String) -> Unit
-)
- {
+    defaultDate: String,
+
+    // ✅ 추가: 수정모드에서 날짜도 프리필하려면 필요
+    initialDate: String = "",
+
+    initialLocation: String = "",
+    initialRiskFactor: String = "",
+    initialSafetyMeasure: String = "",
+    initialPhotoUris: List<String> = emptyList(),
+    onComplete: (String, String, String, String, List<String>) -> Unit
+) {
     val activity = LocalContext.current as? ComponentActivity
-    val calendar = Calendar.getInstance()
-    val year = calendar.get(Calendar.YEAR)
-    val month = calendar.get(Calendar.MONTH)
-    val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-    var date by remember { mutableStateOf("$year-${month + 1}-$day") }
-    var location by remember { mutableStateOf("") }
-    var riskFactor by remember { mutableStateOf("") }
-    var safetyMeasure by remember { mutableStateOf("") }
-    var attachedPhotos by remember { mutableStateOf<List<String>>(emptyList()) }
-
-    val isFormComplete = date.isNotBlank() &&
-            location.isNotBlank() &&
-            riskFactor.isNotBlank() &&
-            safetyMeasure.isNotBlank() &&
-            attachedPhotos.isNotEmpty()
-
     val context = LocalContext.current
 
-    val datePickerDialog = remember {
-        DatePickerDialog(
-            context,
-            { _, selectedYear, selectedMonth, selectedDayOfMonth ->
-                date = "$selectedYear-${selectedMonth + 1}-$selectedDayOfMonth"
-            },
-            year, month, day
-        )
+    // ✅ 핵심: initialDate가 있으면 그걸로 시작, 없으면 defaultDate
+    val startDate = remember(defaultDate, initialDate) {
+        if (initialDate.isNotBlank()) initialDate else defaultDate
+    }
+    var dateStr by remember(startDate) { mutableStateOf(startDate) }
+
+    var location by remember(initialLocation) { mutableStateOf(initialLocation) }
+    var riskFactor by remember(initialRiskFactor) { mutableStateOf(initialRiskFactor) }
+    var safetyMeasure by remember(initialSafetyMeasure) { mutableStateOf(initialSafetyMeasure) }
+    var attachedPhotos by remember(initialPhotoUris) { mutableStateOf(initialPhotoUris) }
+    val pickImagesLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris: List<Uri> ->
+        if (uris.isEmpty()) {
+            Toast.makeText(context, "선택된 사진이 없어요", Toast.LENGTH_SHORT).show()
+            return@rememberLauncherForActivityResult
+        }
+
+        val newOnes = uris
+            .map { it.toString() }
+            .distinct()
+            .filterNot { it in attachedPhotos }
+
+        attachedPhotos = attachedPhotos + newOnes
     }
 
+    val isFormComplete =
+        dateStr.isNotBlank() &&
+                location.isNotBlank() &&
+                riskFactor.isNotBlank() &&
+                safetyMeasure.isNotBlank() &&
+                attachedPhotos.isNotEmpty()
+
     Smart_Safety_ManagementTheme {
-        // 테마 블록 내부에서 색상 정의 (다크모드 인지 가능)
         val labelColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
         val calendarIconTint = if (MaterialTheme.colors.isLight) Color.Unspecified else GrayBorder
         val fieldBgColor = if (MaterialTheme.colors.isLight) Color.White else TextGray20
         val borderColor = if (MaterialTheme.colors.isLight) GrayBorder else TextDark
         val textColor = if (MaterialTheme.colors.isLight) TextGray else TextGray60
         val fieldTextColor = if (MaterialTheme.colors.isLight) TextGray20 else TextGray5
+
         Scaffold(
             backgroundColor = MaterialTheme.colors.onPrimary,
             topBar = {
@@ -114,22 +133,43 @@ fun DailyListScreen(
                     .padding(horizontal = 16.dp, vertical = 24.dp)
                     .verticalScroll(rememberScrollState())
             ) {
+                // 작성일
                 Text(
-                    text = "작성일", 
+                    "작성일",
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
+
                 OutlinedTextField(
-                    value = date,
-                    onValueChange = { date = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    value = dateStr,
+                    onValueChange = { dateStr = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,color = fieldTextColor),
+                    textStyle = TextStyle(
+                        fontFamily = Pretendard,
+                        fontSize = 18.sp,
+                        color = fieldTextColor
+                    ),
                     trailingIcon = {
-                        IconButton(onClick = { datePickerDialog.show() }) {
+                        IconButton(
+                            onClick = {
+                                val (iy, im, id) = parseYmdOrToday(dateStr)
+                                DatePickerDialog(
+                                    context,
+                                    { _, y, m, d ->
+                                        dateStr = String.format("%04d-%02d-%02d", y, m + 1, d)
+                                    },
+                                    iy,
+                                    im - 1,
+                                    id
+                                ).show()
+                            }
+                        ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.calendar2),
                                 contentDescription = "Select date",
@@ -147,8 +187,9 @@ fun DailyListScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // 위치
                 Text(
-                    text = "위치", 
+                    "위치",
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
@@ -158,9 +199,15 @@ fun DailyListScreen(
                 OutlinedTextField(
                     value = location,
                     onValueChange = { location = it },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal=8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,color = fieldTextColor),
+                    textStyle = TextStyle(
+                        fontFamily = Pretendard,
+                        fontSize = 18.sp,
+                        color = fieldTextColor
+                    ),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         textColor = MaterialTheme.colors.onSurface,
                         unfocusedBorderColor = borderColor,
@@ -171,8 +218,9 @@ fun DailyListScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // 위험요인
                 Text(
-                    text = "위험요인", 
+                    "위험요인",
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
@@ -187,7 +235,11 @@ fun DailyListScreen(
                         .height(120.dp)
                         .padding(horizontal = 8.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,color = fieldTextColor),
+                    textStyle = TextStyle(
+                        fontFamily = Pretendard,
+                        fontSize = 18.sp,
+                        color = fieldTextColor
+                    ),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         textColor = MaterialTheme.colors.onSurface,
                         unfocusedBorderColor = borderColor,
@@ -198,8 +250,9 @@ fun DailyListScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // 안전대책
                 Text(
-                    text = "안전대책", 
+                    "안전대책",
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
@@ -214,7 +267,11 @@ fun DailyListScreen(
                         .height(120.dp)
                         .padding(horizontal = 8.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fieldTextColor),
+                    textStyle = TextStyle(
+                        fontFamily = Pretendard,
+                        fontSize = 18.sp,
+                        color = fieldTextColor
+                    ),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         textColor = MaterialTheme.colors.onSurface,
                         unfocusedBorderColor = borderColor,
@@ -225,8 +282,9 @@ fun DailyListScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+                // 현장사진
                 Text(
-                    text = "현장사진",
+                    "현장사진",
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
@@ -246,8 +304,11 @@ fun DailyListScreen(
                             .size(120.dp)
                             .background(fieldBgColor, shape = RoundedCornerShape(8.dp))
                             .clickable {
-                                attachedPhotos = attachedPhotos + "photoUri_${System.currentTimeMillis()}"
-                            },
+                                pickImagesLauncher.launch("image/*")
+
+                            }
+                        ,
+
                         contentAlignment = Alignment.Center
                     ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -258,9 +319,7 @@ fun DailyListScreen(
                                 cornerRadius = CornerRadius(8.dp.toPx())
                             )
                         }
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
                                 painter = painterResource(id = R.drawable.camera_icon),
                                 contentDescription = "사진첨부",
@@ -276,31 +335,53 @@ fun DailyListScreen(
                         }
                     }
 
-                    attachedPhotos.reversed().forEach { photoUri ->
+                    attachedPhotos.reversed().forEach { uriStr ->
                         Spacer(modifier = Modifier.width(8.dp))
+
                         Box(
                             modifier = Modifier
                                 .size(120.dp)
                                 .background(fieldBgColor, shape = RoundedCornerShape(8.dp))
-                                .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
-                            contentAlignment = Alignment.Center
+                                .border(1.dp, borderColor, RoundedCornerShape(8.dp))
                         ) {
-                            Icon(Icons.Filled.Photo, contentDescription = "Attached Photo: $photoUri", tint = if (MaterialTheme.colors.isLight) Color.Gray else TextGray)
+                            AsyncImage(
+                                model = uriStr,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+
+                            // ✅ 삭제 X 버튼
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(6.dp)
+                                    .size(22.dp)
+                                    .background(fieldBgColor, RoundedCornerShape(999.dp))
+                                    .clickable {
+                                        attachedPhotos = attachedPhotos.filterNot { it == uriStr }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "remove",
+                                    tint = MaterialTheme.colors.onSurface,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
+
+
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
                 Spacer(modifier = Modifier.height(48.dp))
+
                 Button(
                     onClick = {
                         if (isFormComplete) {
-                            onComplete(
-                                date,
-                                location,
-                                riskFactor,
-                                safetyMeasure
-                            )
+                            onComplete(dateStr, location, riskFactor, safetyMeasure, attachedPhotos)
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -319,11 +400,28 @@ fun DailyListScreen(
                         fontFamily = Pretendard,
                         fontSize = 18.sp,
                         modifier = Modifier.padding(vertical = 8.dp),
-                        letterSpacing = (-0.3).sp,
-
+                        letterSpacing = (-0.3).sp
                     )
                 }
             }
         }
+    }
+}
+
+private fun parseYmdOrToday(dateStr: String): Triple<Int, Int, Int> {
+    val parts = dateStr.split("-")
+    val y = parts.getOrNull(0)?.toIntOrNull()
+    val m = parts.getOrNull(1)?.toIntOrNull()
+    val d = parts.getOrNull(2)?.toIntOrNull()
+
+    return if (y != null && m != null && d != null) {
+        Triple(y, m, d)
+    } else {
+        val cal = Calendar.getInstance()
+        Triple(
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH) + 1,
+            cal.get(Calendar.DAY_OF_MONTH)
+        )
     }
 }

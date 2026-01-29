@@ -80,6 +80,7 @@ dependencies {
     implementation("com.google.maps.android:maps-compose:4.4.1")
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("androidx.activity:activity-ktx:1.9.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -88,6 +89,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
 
     // API 요청용 의존성 추가
     implementation("com.squareup.retrofit2:retrofit:2.9.0")

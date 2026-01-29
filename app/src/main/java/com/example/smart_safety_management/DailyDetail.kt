@@ -1,295 +1,320 @@
-package com.example.smart_safety_management
+    package com.example.smart_safety_management
 
-import android.content.res.Configuration
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.example.smart_safety_management.ui.theme.*
-import android.app.Activity
-import android.content.Intent
-import androidx.compose.ui.platform.LocalContext
-import com.example.smart_safety_management.DailyCheckItem
+    import android.app.Activity
+    import android.content.Intent
+    import android.content.res.Configuration
+    import androidx.compose.foundation.BorderStroke
+    import androidx.compose.foundation.Image
+    import androidx.compose.foundation.layout.*
+    import androidx.compose.foundation.rememberScrollState
+    import androidx.compose.foundation.shape.RoundedCornerShape
+    import androidx.compose.foundation.text.BasicTextField
+    import androidx.compose.foundation.verticalScroll
+    import androidx.compose.material.*
+    import androidx.compose.runtime.Composable
+    import androidx.compose.ui.Alignment
+    import androidx.compose.ui.Modifier
+    import androidx.compose.ui.graphics.Color
+    import androidx.compose.ui.layout.ContentScale
+    import androidx.compose.ui.platform.LocalContext
+    import androidx.compose.ui.res.painterResource
+    import androidx.compose.ui.text.TextStyle
+    import androidx.compose.ui.text.font.FontWeight
+    import androidx.compose.ui.tooling.preview.Preview
+    import androidx.compose.ui.unit.dp
+    import androidx.compose.ui.unit.sp
+    import com.example.smart_safety_management.ui.theme.*
+    import android.net.Uri
+    import coil.compose.AsyncImage
 
-@Composable
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
-//@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
-fun DailyDetailScreen(onBackClick: () -> Unit = {}) {
-    // 상세 화면에 표시될 초기값 (예시 데이터)
-    var date by remember { mutableStateOf("2026-05-07") }
-    var location by remember { mutableStateOf("C구역 2열") }
-    var riskFactor by remember { mutableStateOf("정리 미흡으로 인한 안전사고 발생 우려") }
-    var safetyMeasure by remember { mutableStateOf("자재 정리 및 주변 시설물 점검") }
 
-    val activity = LocalContext.current as? Activity
-    val day = activity?.intent?.getIntExtra("day", -1) ?: -1
-    val itemId = activity?.intent?.getStringExtra("itemId") ?: ""
-    Smart_Safety_ManagementTheme {
-        val labelColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
-        val borderColor = if (MaterialTheme.colors.isLight) Lightgray else GrayBackground
-        val mainTextColor = MaterialTheme.colors.onSurface
-        val fontColor = if (MaterialTheme.colors.isLight) TextGray20 else TextGray5
+    @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
+    @Composable
+    fun DailyDetailScreenPreview() {
+        DailyDetailScreen(
+            date = "2026-05-07",
+            location = "C구역 2열",
+            riskFactor = "정리 미흡으로 인한 안전사고 발생 우려",
+            safetyMeasure = "자재 정리 및 주변 시설물 점검",
+            day = 22,
+            itemId = "sample-id",
+            onBackClick = {},
+            onEditClick = {}      // ✅ 추가
+        )
+    }
 
-        Scaffold(
-            backgroundColor = MaterialTheme.colors.onPrimary,
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "일일안전점검",
-                            fontWeight = FontWeight.Bold,
-                            color = mainTextColor,
-                            fontSize = 24.sp,
-                            fontFamily = Pretendard,
-                            modifier = Modifier.offset(x = (-24).dp)
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.backicon),
-                                contentDescription = "Back",
-                                tint = mainTextColor
-                            )
-                        }
-                    },
-                    backgroundColor = MaterialTheme.colors.onPrimary,
-                    elevation = 0.dp,
-                    modifier = Modifier.height(45.dp)
-                )
+
+    @Composable
+    fun DailyDetailScreen(
+        date: String,
+        location: String,
+        riskFactor: String,
+        safetyMeasure: String,
+        day: Int,
+        itemId: String,
+        photoUris: List<String> = emptyList(),
+        onBackClick: () -> Unit = {},
+        onEditClick: () -> Unit,
+        photoResIds: List<Int> = emptyList()
+    ) {
+        val activity = LocalContext.current as? Activity
+        val context = LocalContext.current
+
+        // ✅ 삭제 결과를 Activity로 돌려주기
+        fun sendDeleteResult() {
+            val result = Intent().apply {
+                putExtra("action", "delete")
+                putExtra("day", day)
+                putExtra("itemId", itemId)
             }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp, vertical = 24.dp)
-                    .verticalScroll(rememberScrollState())
-            ) {
-                // 작성일
-                Text(
-                    text = "작성일",
-                    fontSize = 16.sp,
-                    color = labelColor,
-                    fontFamily = Pretendard,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                BasicTextField(
-                    value = date,
-                    onValueChange = { date = it },
-                    readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fontColor),
-                    modifier = Modifier.fillMaxWidth(),
-                    decorationBox = { innerTextField ->
-                        Column {
-                            innerTextField()
-                            Spacer(modifier = Modifier.height(25.dp))
-                            Divider(color = borderColor, thickness = 1.dp)
-                        }
-                    }
-                )
+            activity?.setResult(Activity.RESULT_OK, result)
+            activity?.finish()
+        }
 
-                Spacer(modifier = Modifier.height(24.dp))
+        // ✅ 수정하기: 작성 화면(DailyListActivity)로 이동 + 기존 값 전달
+        fun goEdit() {
+            val intent = Intent(context, DailyListActivity::class.java).apply {
+                // 수정 화면에서 미리 채울 값들
+                putExtra("date", date)
+                putExtra("location", location)
+                putExtra("riskFactor", riskFactor)
+                putExtra("safetyMeasure", safetyMeasure)
 
-                // 위치
-                Text(
-                    text = "위치",
-                    fontSize = 16.sp,
-                    color = labelColor,
-                    fontFamily = Pretendard,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                BasicTextField(
-                    value = location,
-                    onValueChange = { location = it },
-                    readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fontColor),
-                    modifier = Modifier.fillMaxWidth(),
-                    decorationBox = { innerTextField ->
-                        Column {
-                            innerTextField()
-                            Spacer(modifier = Modifier.height(25.dp))
-                            Divider(color = borderColor, thickness = 1.dp)
-                        }
-                    }
-                )
+                putStringArrayListExtra("photoUris", ArrayList(photoUris))
+                // 수정 대상 식별용
+                putExtra("editMode", true)
+                putExtra("day", day)
+                putExtra("itemId", itemId)
+            }
+            context.startActivity(intent)
+        }
 
-                Spacer(modifier = Modifier.height(24.dp))
+        Smart_Safety_ManagementTheme {
+            val labelColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
+            val borderColor = if (MaterialTheme.colors.isLight) Lightgray else GrayBackground
+            val mainTextColor = MaterialTheme.colors.onSurface
+            val fontColor = if (MaterialTheme.colors.isLight) TextGray20 else TextGray5
 
-                // 위험요인
-                Text(
-                    text = "위험요인",
-                    fontSize = 16.sp,
-                    color = labelColor,
-                    fontFamily = Pretendard,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                BasicTextField(
-                    value = riskFactor,
-                    onValueChange = { riskFactor = it },
-                    readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,
-                        color = fontColor),
-                    modifier = Modifier.fillMaxWidth(),
-                    decorationBox = { innerTextField ->
-                        Column {
-                            innerTextField()
-                            Spacer(modifier = Modifier.height(25.dp))
-                            Divider(color = borderColor, thickness = 1.dp)
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // 안전대책
-                Text(
-                    text = "안전대책",
-                    fontSize = 16.sp,
-                    color = labelColor,
-                    fontFamily = Pretendard,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                BasicTextField(
-                    value = safetyMeasure,
-                    onValueChange = { safetyMeasure = it },
-                    readOnly = true,
-                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fontColor),
-                    modifier = Modifier.fillMaxWidth(),
-                    decorationBox = { innerTextField ->
-                        Column {
-                            innerTextField()
-                            Spacer(modifier = Modifier.height(25.dp))
-                            Divider(color = borderColor, thickness = 1.dp)
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(25.dp))
-
-                // 현장사진
-                Text(
-                    text = "현장사진",
-                    fontSize = 16.sp,
-                    color = labelColor,
-                    fontFamily = Pretendard,
-                    modifier = Modifier.padding(vertical = 4.dp)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        modifier = Modifier.size(120.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (MaterialTheme.colors.isLight) Color(0xFFF4F5F6) else TextGray20,
-                        border = BorderStroke(1.dp, borderColor)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.factory),
-                            contentDescription = "현장사진 1",
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Surface(
-                        modifier = Modifier.size(120.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        color = if (MaterialTheme.colors.isLight) Color(0xFFF4F5F6) else TextGray20,
-                        border = BorderStroke(1.dp, borderColor)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.factory2),
-                            contentDescription = "현장사진 2",
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(40.dp))
-
-                // 수정하기 버튼
-                Button(
-                    onClick = { /* 수정하기 로직 */ },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(55.dp)
-                        .align(Alignment.CenterHorizontally),
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = MaterialTheme.colors.primary,
-                        contentColor = MaterialTheme.colors.onPrimary
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = ButtonDefaults.elevation(0.dp, 0.dp)
-                ) {
-                    Text(
-                        text = "수정하기",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = Pretendard,
-                        letterSpacing = (-0.3).sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // 삭제하기 버튼
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(30.dp)
-                        .align(Alignment.CenterHorizontally)
-                        .clickable {
-                            val resultIntent = Intent().apply {
-                                putExtra("action", "delete")
-                                putExtra("day", day)          // Int
-                                putExtra("itemId", itemId)
-                            }
-
-                            activity?.setResult(Activity.RESULT_OK, resultIntent)
-                            activity?.finish()
+            Scaffold(
+                backgroundColor = MaterialTheme.colors.onPrimary,
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = "일일안전점검",
+                                fontWeight = FontWeight.Bold,
+                                color = mainTextColor,
+                                fontFamily = Pretendard,
+                                fontSize = 24.sp,
+                                modifier = Modifier.offset(x = (-24).dp)
+                            )
                         },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "삭제하기",
-                        color = if (MaterialTheme.colors.isLight) TextGray else TextGray60,
-                        fontSize = 14.sp,
-                        fontFamily = Pretendard
+                        navigationIcon = {
+                            IconButton(onClick = onBackClick) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.backicon),
+                                    contentDescription = "Back",
+                                    tint = mainTextColor
+                                )
+                            }
+                        },
+                        backgroundColor = MaterialTheme.colors.onPrimary,
+                        elevation = 0.dp,
+                        modifier = Modifier.height(45.dp)
                     )
                 }
+            ) { paddingValues ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(horizontal = 24.dp, vertical = 20.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    // 작성일
+                    Text(
+                        text = "작성일",
+                        fontSize = 16.sp,
+                        color = labelColor,
+                        fontFamily = Pretendard,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    BasicTextField(
+                        value = date,
+                        onValueChange = { },
+                        readOnly = true,
+                        textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fontColor),
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = { innerTextField ->
+                            Column {
+                                innerTextField()
+                                Spacer(modifier = Modifier.height(25.dp))
+                                Divider(color = borderColor, thickness = 1.dp)
+                            }
+                        }
+                    )
 
-                Spacer(modifier = Modifier.height(40.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 위치
+                    Text(
+                        text = "위치",
+                        fontSize = 16.sp,
+                        color = labelColor,
+                        fontFamily = Pretendard,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    BasicTextField(
+                        value = location,
+                        onValueChange = { },
+                        readOnly = true,
+                        textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fontColor),
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = { innerTextField ->
+                            Column {
+                                innerTextField()
+                                Spacer(modifier = Modifier.height(25.dp))
+                                Divider(color = borderColor, thickness = 1.dp)
+                            }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 위험요인
+                    Text(
+                        text = "위험요인",
+                        fontSize = 16.sp,
+                        color = labelColor,
+                        fontFamily = Pretendard,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    BasicTextField(
+                        value = riskFactor,
+                        onValueChange = { },
+                        readOnly = true,
+                        textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fontColor),
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = { innerTextField ->
+                            Column {
+                                innerTextField()
+                                Spacer(modifier = Modifier.height(25.dp))
+                                Divider(color = borderColor, thickness = 1.dp)
+                            }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 안전대책
+                    Text(
+                        text = "안전대책",
+                        fontSize = 16.sp,
+                        color = labelColor,
+                        fontFamily = Pretendard,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    BasicTextField(
+                        value = safetyMeasure,
+                        onValueChange = { },
+                        readOnly = true,
+                        textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fontColor),
+                        modifier = Modifier.fillMaxWidth(),
+                        decorationBox = { innerTextField ->
+                            Column {
+                                innerTextField()
+                                Spacer(modifier = Modifier.height(25.dp))
+                                Divider(color = borderColor, thickness = 1.dp)
+                            }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(25.dp))
+
+                    // ✅ 현장사진: Uri로 받은 사진이 있을 때만 보여주기
+                    if (photoUris.isNotEmpty()) {
+                        Text(
+                            text = "현장사진",
+                            fontSize = 16.sp,
+                            color = labelColor,
+                            fontFamily = Pretendard,
+                            modifier = Modifier.padding(vertical = 4.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            photoUris.take(2).forEachIndexed { index, uriStr ->
+                                Surface(
+                                    modifier = Modifier.size(120.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (MaterialTheme.colors.isLight) Color(0xFFF4F5F6) else TextGray20,
+                                    border = BorderStroke(1.dp, borderColor)
+                                ) {
+                                    AsyncImage(
+                                        model = Uri.parse(uriStr),
+                                        contentDescription = "현장사진 ${index + 1}",
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                                if (index == 0 && photoUris.size > 1) Spacer(modifier = Modifier.width(12.dp))
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+                    } else {
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
+
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+// ✅ 수정하기 버튼 (원래처럼 주황 버튼)
+                    Button(
+                        onClick = { onEditClick() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(55.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = MaterialTheme.colors.primary,
+                            contentColor = MaterialTheme.colors.onPrimary
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.elevation(0.dp, 0.dp)
+                    ) {
+                        Text(
+                            text = "수정하기",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = Pretendard,
+                            letterSpacing = (-0.3).sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+// ✅ 삭제하기
+                    TextButton(
+                        onClick = { sendDeleteResult() },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "삭제하기",
+                            color = if (MaterialTheme.colors.isLight) TextGray60 else TextGray30,
+                            fontFamily = Pretendard
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                }
+                }
             }
         }
-    }
-}
 
-@Preview(showBackground = true)
-@Composable
-fun DailyDetailScreenPreview() {
-    DailyDetailScreen()
-}
