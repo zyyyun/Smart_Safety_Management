@@ -155,10 +155,9 @@ class SettingProfileActivity : AppCompatActivity() {
         }
 
         Log.d("Withdraw", "Attempting to delete account for user: $userId")
-        val request = DeleteAccountRequest(userId = userId)
 
-        RetrofitClient.instance.deleteAccount(request).enqueue(object : Callback<DeleteAccountResponse> {
-            override fun onResponse(call: Call<DeleteAccountResponse>, response: Response<DeleteAccountResponse>) {
+        RetrofitClient.instance.deleteAccount(userId).enqueue(object : Callback<Void> {
+            override fun onResponse(call: Call<Void>, response: Response<Void>) {
                 if (response.isSuccessful) {
                     Log.d("Withdraw", "Account deletion successful")
                     Toast.makeText(this@SettingProfileActivity, "회원 탈퇴가 완료되었습니다.", Toast.LENGTH_SHORT).show()
@@ -178,7 +177,7 @@ class SettingProfileActivity : AppCompatActivity() {
                 }
             }
 
-            override fun onFailure(call: Call<DeleteAccountResponse>, t: Throwable) {
+            override fun onFailure(call: Call<Void>, t: Throwable) {
                 Log.e("Withdraw", "Network error during account deletion", t)
                 Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
             }

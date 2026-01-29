@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import android.location.Geocoder
 import android.preference.PreferenceManager
 import android.graphics.Bitmap
+import android.widget.Toast
 import android.graphics.SurfaceTexture
 import android.view.TextureView
 import android.view.ViewGroup
@@ -563,7 +564,21 @@ fun AIEventDetailScreen(
             FalseDetectionDialog(
                 onDismiss = { showFalseDetectionDialog = false },
                 onConfirm = { 
-                    showFalseDetectionDialog = false
+                    val request = UpdateEventStatusRequest(eventId, "FALSE_POSITIVE")
+                    RetrofitClient.instance.updateEventStatus(request).enqueue(object : Callback<Void> {
+                        override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                            if (response.isSuccessful) {
+                                Toast.makeText(context, "오탐 처리되었습니다.", Toast.LENGTH_SHORT).show()
+                                showFalseDetectionDialog = false
+                                onBackClick()
+                            } else {
+                                Toast.makeText(context, "처리 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        override fun onFailure(call: Call<Void>, t: Throwable) {
+                            Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                        }
+                    })
                 }
             )
         }

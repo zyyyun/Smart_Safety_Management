@@ -125,10 +125,15 @@ class HomeWorkerActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     val rawEvents = response.body()?.events ?: emptyList()
 
-                    val pendingEvents = rawEvents.filter {
-                        it.status.equals("PENDING", ignoreCase = true) ||
-                                it.status.equals("REQUESTED", ignoreCase = true)
-                    }.map { dto ->
+                    val filteredEvents = rawEvents.filter {
+                        it.status.equals("REQUESTED", ignoreCase = true) ||
+                                it.status.equals("COMPLETED", ignoreCase = true) ||
+                                it.status.equals("FALSE_POSITIVE", ignoreCase = true)
+                    }.sortedBy {
+                        if (it.status.equals("REQUESTED", ignoreCase = true)) 0 else 1
+                    }
+
+                    val displayEvents = filteredEvents.map { dto ->
                         val eventData = EventData(
                             id = dto.eventId,
                             accidentType = mapRiskLevel(dto.riskLevel),
@@ -138,11 +143,17 @@ class HomeWorkerActivity : AppCompatActivity() {
                             deviceName = dto.deviceName ?: "",
                             accuracy = "${dto.accuracy ?: 0}%"
                         )
-                        Pair(eventData, EventStatus.PENDING)
+                        val statusEnum = when {
+                            dto.status.equals("REQUESTED", ignoreCase = true) -> EventStatus.PENDING
+                            dto.status.equals("COMPLETED", ignoreCase = true) -> EventStatus.COMPLETED
+                            dto.status.equals("FALSE_POSITIVE", ignoreCase = true) -> EventStatus.FALSE_DETECTION
+                            else -> EventStatus.COMPLETED
+                        }
+                        Pair(eventData, statusEnum)
                     }
 
                     val rvEvent = findViewById<RecyclerView>(R.id.rv_worker_event)
-                    eventAdapter = WorkerEventAdapter(pendingEvents)
+                    eventAdapter = WorkerEventAdapter(displayEvents)
                     rvEvent.adapter = eventAdapter
                 }
             }

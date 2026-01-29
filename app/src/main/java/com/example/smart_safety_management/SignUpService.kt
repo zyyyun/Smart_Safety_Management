@@ -2,12 +2,15 @@ package com.example.smart_safety_management
 
 import com.google.gson.annotations.SerializedName
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 // ... (기존 데이터 클래스들 동일)
@@ -202,10 +205,10 @@ data class DetectionEventDetailResponse(
     @SerializedName("risk_level") val riskLevel: String?,
     @SerializedName("install_area") val installArea: String?,
     @SerializedName("event_name") val eventName: String?,
-    @SerializedName("detected_at") val detectedAt: String,
+    @SerializedName("detected_at") val detectedAt: String?,
     @SerializedName("device_name") val deviceName: String?,
-    val accuracy: Double?,
-    val status: String,
+    @SerializedName("accuracy") val accuracy: Double?,
+    @SerializedName("status") val status: String?,
     @SerializedName("installation_address") val installationAddress: String?,
     @SerializedName("live_url") val liveUrl: String?,
     @SerializedName("capture_image_url") val captureImageUrl: String?
@@ -225,6 +228,11 @@ data class DeleteAccountRequest(
 
 data class DeleteAccountResponse(
     val message: String
+)
+
+data class UpdateEventStatusRequest(
+    @SerializedName("event_id") val eventId: Int,
+    @SerializedName("status") val status: String
 )
 
 interface SignUpService {
@@ -269,7 +277,7 @@ interface SignUpService {
     ): Call<GetCCTVListResponse>
 
     @Multipart
-    @POST("/upload")
+    @POST("/upload_image")
     fun uploadImage(@Part image: MultipartBody.Part): Call<UploadImageResponse>
 
     @GET("/get_cctv_detail")
@@ -290,6 +298,20 @@ interface SignUpService {
     @GET("/get_workplace")
     fun getWorkplace(@Query("user_id") userId: String): Call<GetWorkplaceResponse>
 
-    @POST("/delete_account")
-    fun deleteAccount(@Body request: DeleteAccountRequest): Call<DeleteAccountResponse>
+    @DELETE("/delete_account/{user_id}")
+    fun deleteAccount(@Path("user_id") userId: String): Call<Void>
+
+    @Multipart
+    @POST("/create_action_request")
+    fun createActionRequest(
+        @Part("event_id") eventId: RequestBody,
+        @Part("requester_id") requesterId: RequestBody,
+        @Part("request_type") requestType: RequestBody,
+        @Part("request_title") requestTitle: RequestBody,
+        @Part("request_details") requestDetails: RequestBody,
+        @Part images: List<MultipartBody.Part>
+    ): Call<Void>
+
+    @POST("/update_event_status")
+    fun updateEventStatus(@Body request: UpdateEventStatusRequest): Call<Void>
 }

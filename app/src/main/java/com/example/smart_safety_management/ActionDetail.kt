@@ -1,6 +1,9 @@
 package com.example.smart_safety_management
 
 import android.content.res.Configuration
+import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -21,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -28,6 +32,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -35,12 +43,22 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.gson.annotations.SerializedName
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.unit.toSize
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
 import com.example.smart_safety_management.ui.theme.*
+import okhttp3.MediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.io.File
+import java.io.FileOutputStream
 
+@OptIn(ExperimentalGlideComposeApi::class)
 @Composable
 fun ActionDetailScreen(
     eventId: Int,
@@ -54,14 +72,30 @@ fun ActionDetailScreen(
 
     var eventDetail by remember { mutableStateOf<DetectionEventDetailResponse?>(null) }
 
+    val context = LocalContext.current
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.size > 5) {
+            Toast.makeText(context, "사진은 최대 5장까지 첨부 가능합니다.", Toast.LENGTH_SHORT).show()
+            attachedPhotos = uris.take(5).map { it.toString() }
+        } else {
+            attachedPhotos = uris.map { it.toString() }
+        }
+    }
+
     LaunchedEffect(eventId) {
         RetrofitClient.instance.getDetectionEventDetail(eventId).enqueue(object : Callback<DetectionEventDetailResponse> {
             override fun onResponse(call: Call<DetectionEventDetailResponse>, response: Response<DetectionEventDetailResponse>) {
                 if (response.isSuccessful) {
                     eventDetail = response.body()
+                    Log.d("ActionDetail", "Event Detail Loaded: $eventDetail")
+                } else {
+                    Log.e("ActionDetail", "Failed to load event detail: ${response.code()}")
                 }
             }
             override fun onFailure(call: Call<DetectionEventDetailResponse>, t: Throwable) {
+                Log.e("ActionDetail", "Network error: ${t.message}")
             }
         })
     }
@@ -258,7 +292,10 @@ fun ActionDetailScreen(
                     Spacer(modifier = Modifier.height(15.dp))
                     
                     // 조치 유형 드롭다운 박스
-                    BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                    var dropdownSize by remember { mutableStateOf(Size.Zero) }
+                    Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).onGloballyPositioned { coordinates ->
+                        dropdownSize = coordinates.size.toSize()
+                    }) {
                         val selectedIconRes = when (actionType) {
                             "조치공유" -> R.drawable.priority1
                             "조치필요" -> R.drawable.priority2
@@ -325,7 +362,7 @@ fun ActionDetailScreen(
                             expanded = expanded,
                             onDismissRequest = { expanded = false },
                             modifier = Modifier
-                                .width(maxWidth)
+                                .width(with(LocalDensity.current) { dropdownSize.width.toDp() })
                                 .background(btnBackColor, shape = RoundedCornerShape(8.dp))
                                 .border(1.dp, dropboxBorder, shape = RoundedCornerShape(8.dp))
                         ) {
@@ -448,7 +485,10 @@ fun ActionDetailScreen(
                                 .size(100.dp)
                                 .background(btnBackColor, shape = RoundedCornerShape(8.dp))
                                 .dashedBorder(1.dp, borderColor, 8.dp)
-                                .clickable { /* 사진 추가 로직 */ },
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    launcher.launch("image/*")
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -470,10 +510,13 @@ fun ActionDetailScreen(
 
                         // 첨부된 사진들 표시 영역
                         attachedPhotos.forEach { photoUri ->
-                            Box(
+                            GlideImage(
+                                model = photoUri,
+                                contentDescription = "Attached Photo",
                                 modifier = Modifier
                                     .size(100.dp)
-                                    .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop
                             )
                         }
                     }
@@ -482,7 +525,41 @@ fun ActionDetailScreen(
 
                     // 전송 버튼
                     Button(
-                        onClick = { /* 전송 로직 */ },
+                        onClick = {
+                            if (actionType.isEmpty() || title.isEmpty() || content.isEmpty()) {
+                                Toast.makeText(context, "모든 항목을 입력해주세요.", Toast.LENGTH_SHORT).show()
+                            } else {
+                                val eventIdBody = RequestBody.create(MediaType.parse("text/plain"), eventId.toString())
+                                val requesterIdBody = RequestBody.create(MediaType.parse("text/plain"), (UserSession.userId ?: ""))
+                                val typeBody = RequestBody.create(MediaType.parse("text/plain"), actionType)
+                                val titleBody = RequestBody.create(MediaType.parse("text/plain"), title)
+                                val detailsBody = RequestBody.create(MediaType.parse("text/plain"), content)
+
+                                val imageParts = attachedPhotos.mapNotNull { uriString ->
+                                    val uri = Uri.parse(uriString)
+                                    uriToFile(context, uri)?.let { file ->
+                                        val requestFile = RequestBody.create(MediaType.parse("image/*"), file)
+                                        MultipartBody.Part.createFormData("images", file.name, requestFile)
+                                    }
+                                }
+
+                                RetrofitClient.instance.createActionRequest(
+                                    eventIdBody, requesterIdBody, typeBody, titleBody, detailsBody, imageParts
+                                ).enqueue(object : Callback<Void> {
+                                    override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                                        if (response.isSuccessful) {
+                                            Toast.makeText(context, "조치 요청이 완료되었습니다.", Toast.LENGTH_SHORT).show()
+                                            onBackClick()
+                                        } else {
+                                            Toast.makeText(context, "요청 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                    override fun onFailure(call: Call<Void>, t: Throwable) {
+                                        Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                })
+                            }
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp)
@@ -538,18 +615,20 @@ fun Modifier.verticalScrollbar(
             cornerRadius = CornerRadius(width.toPx() / 2)
         )
     }
+}
 
-data class DetectionEventDetailResponse(
-    @SerializedName("event_id") val eventId: Int,
-    @SerializedName("event_name") val eventName: String?,
-    @SerializedName("install_area") val installArea: String?,
-    @SerializedName("risk_level") val riskLevel: String?,
-    @SerializedName("detected_at") val detectedAt: String?,
-    @SerializedName("device_name") val deviceName: String?,
-    @SerializedName("capture_image_url") val captureImageUrl: String?,
-    @SerializedName("live_url") val liveUrl: String?,
-    @SerializedName("accuracy") val accuracy: Double?,
-    @SerializedName("status") val status: String?,
-    @SerializedName("installation_address") val installationAddress: String?
-)
+fun uriToFile(context: android.content.Context, uri: Uri): File? {
+    return try {
+        val contentResolver = context.contentResolver
+        val inputStream = contentResolver.openInputStream(uri) ?: return null
+        val tempFile = File.createTempFile("upload", ".jpg", context.cacheDir)
+        val outputStream = FileOutputStream(tempFile)
+        inputStream.copyTo(outputStream)
+        inputStream.close()
+        outputStream.close()
+        tempFile
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
 }
