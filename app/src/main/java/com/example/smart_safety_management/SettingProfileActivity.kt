@@ -103,14 +103,10 @@ class SettingProfileActivity : AppCompatActivity() {
     }
 
     private fun performLogout() {
-        // 1. 세션 정보 초기화
-        UserSession.userId = null
-        UserSession.userName = ""
-        UserSession.userPhone = null
-        UserSession.userEmail = null
-        UserSession.profileImageUri = null
+        // 1. 세션 정보 초기화 (SharedPreferences 포함)
+        UserSession.clearSession(this)
         
-        // 현장 목록 로컬 데이터 초기화 (다른 사용자의 데이터가 남지 않도록 함)
+        // 현장 목록 로컬 데이터 초기화
         getSharedPreferences("workplace_prefs", MODE_PRIVATE).edit().clear().apply()
         
         // 2. 로그인 화면으로 이동 및 기존 스택 제거
@@ -168,11 +164,7 @@ class SettingProfileActivity : AppCompatActivity() {
                     Toast.makeText(this@SettingProfileActivity, "회원 탈퇴가 완료되었습니다.", Toast.LENGTH_SHORT).show()
                     
                     // 세션 및 로컬 데이터 초기화
-                    UserSession.userId = null
-                    UserSession.userName = ""
-                    UserSession.userPhone = null
-                    UserSession.userEmail = null
-                    UserSession.profileImageUri = null
+                    UserSession.clearSession(this@SettingProfileActivity)
                     getSharedPreferences("workplace_prefs", MODE_PRIVATE).edit().clear().apply()
 
                     val intent = Intent(this@SettingProfileActivity, LogInActivity::class.java)
@@ -251,6 +243,7 @@ class SettingProfileActivity : AppCompatActivity() {
             override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
                 if (response.isSuccessful) {
                     UserSession.profileImageUri = imageUrl // 세션에도 URL 저장
+                    UserSession.saveSession(this@SettingProfileActivity) // 변경된 이미지 URL 저장
                     Toast.makeText(this@SettingProfileActivity, "프로필 사진이 서버에 저장되었습니다.", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(this@SettingProfileActivity, "프로필 정보 업데이트 실패", Toast.LENGTH_SHORT).show()
@@ -329,6 +322,7 @@ class SettingProfileActivity : AppCompatActivity() {
                 override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
                     if (response.isSuccessful) {
                         UserSession.userPhone = newPhone
+                        UserSession.saveSession(this@SettingProfileActivity) // 변경된 정보 저장
                         tvPhoneValue.text = formatPhoneNumber(newPhone)
                         layoutPhoneEdit.visibility = View.GONE
                         layoutPhoneView?.visibility = View.VISIBLE
@@ -378,6 +372,7 @@ class SettingProfileActivity : AppCompatActivity() {
                 override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
                     if (response.isSuccessful) {
                         UserSession.userEmail = newEmail
+                        UserSession.saveSession(this@SettingProfileActivity) // 변경된 정보 저장
                         tvEmailValue.text = newEmail
                         layoutEmailEdit.visibility = View.GONE
                         layoutEmailView?.visibility = View.VISIBLE
@@ -433,6 +428,7 @@ class SettingProfileActivity : AppCompatActivity() {
                     override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
                         if (response.isSuccessful) {
                             UserSession.userName = newName
+                            UserSession.saveSession(this@SettingProfileActivity) // 변경된 정보 저장
                             findViewById<TextView>(R.id.tv_user_name).text = newName
                             Toast.makeText(this@SettingProfileActivity, "이름이 변경되었습니다.", Toast.LENGTH_SHORT).show()
                             alertDialog.dismiss()
