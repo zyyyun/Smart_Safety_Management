@@ -69,7 +69,8 @@
         app:boxCornerRadiusTopStart="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_id_label">
+        app:layout_constraintTop_toBottomOf="@id/tv_id_label"
+        app:hintTextColor="@color/et_hint_color">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_id"
@@ -83,7 +84,8 @@
             android:digits="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black_white" />
+            android:textColor="@color/black_white"
+            android:textCursorDrawable="@null"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- 비밀번호 라벨 -->
@@ -123,6 +125,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_password_label"
         app:endIconMode="password_toggle"
+        app:hintTextColor="@color/et_hint_color"
         app:passwordToggleDrawable="@drawable/selector_password_toggle">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -136,7 +139,8 @@
             android:inputType="textPassword"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black_white"/>
+            android:textColor="@color/black_white"
+            android:textCursorDrawable="@null"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- 비밀번호 재입력 라벨 -->
@@ -176,6 +180,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_re_password_label"
         app:endIconMode="password_toggle"
+        app:hintTextColor="@color/et_hint_color"
         app:passwordToggleDrawable="@drawable/selector_password_toggle">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -189,7 +194,8 @@
             android:inputType="textPassword"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black_white"/>
+            android:textColor="@color/black_white"
+            android:textCursorDrawable="@null"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- 완료 버튼 -->

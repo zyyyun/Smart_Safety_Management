@@ -67,6 +67,7 @@
         android:paddingHorizontal="16dp"
         android:textColor="@color/black_white"
         android:textColorHint="@color/et_hint_color"
+        android:textCursorDrawable="@null"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/txt_workplace_name" />

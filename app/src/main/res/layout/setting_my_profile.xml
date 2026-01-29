@@ -270,7 +270,8 @@
                 android:textColorHint="@color/et_hint_color"
                 app:boxBackgroundColor="@color/white_gray900"
                 app:boxStrokeWidth="1dp"
-                app:boxStrokeWidthFocused="1dp">
+                app:boxStrokeWidthFocused="1dp"
+                app:hintTextColor="@color/et_hint_color">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_phone_edit"
@@ -279,7 +280,8 @@
                     android:inputType="phone"
                     android:padding="10dp"
                     android:textSize="16sp"
-                    android:text="010-1234-4567"/>
+                    android:text="010-1234-4567"
+                    android:textCursorDrawable="@null"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- 체크(확인) 아이콘 -->
@@ -369,7 +371,8 @@
                 app:boxStrokeColor="@color/gray200_gray800"
                 app:hintEnabled="false"
                 app:boxBackgroundColor="@color/white_gray900"
-                app:boxStrokeWidth="1dp">
+                app:boxStrokeWidth="1dp"
+                app:hintTextColor="@color/et_hint_color">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_email_edit"
@@ -377,7 +380,8 @@
                     android:layout_height="wrap_content"
                     android:inputType="textEmailAddress"
                     android:padding="10dp"
-                    android:textSize="16sp"/>
+                    android:textSize="16sp"
+                    android:textCursorDrawable="@null"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <ImageView
