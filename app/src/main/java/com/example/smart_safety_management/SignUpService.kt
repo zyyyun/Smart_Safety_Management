@@ -238,6 +238,11 @@ data class UpdateEventStatusRequest(
     @SerializedName("status") val status: String
 )
 
+data class CompleteActionRequest(
+    @SerializedName("event_id") val eventId: Int,
+    @SerializedName("worker_id") val workerId: String
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -317,4 +322,7 @@ interface SignUpService {
 
     @POST("/update_event_status")
     fun updateEventStatus(@Body request: UpdateEventStatusRequest): Call<Void>
+
+    @POST("/complete_action")
+    fun completeAction(@Body request: CompleteActionRequest): Call<Void>
 }

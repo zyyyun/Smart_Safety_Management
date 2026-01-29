@@ -6,6 +6,7 @@ import android.graphics.SurfaceTexture
 import android.location.Geocoder
 import android.preference.PreferenceManager
 import android.util.Log
+import android.widget.Toast
 import android.view.TextureView
 import android.view.ViewGroup
 import androidx.compose.foundation.Canvas
@@ -725,15 +726,17 @@ fun ActionDetailWorkerScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 eventDetail?.actionImages?.forEach { imageUrl ->
-                                    val fullUrl = if (imageUrl.startsWith("http")) imageUrl else "${RetrofitClient.BASE_URL}${imageUrl.removePrefix("/")}"
-                                    GlideImage(
-                                        model = fullUrl,
-                                        contentDescription = "Attached Image",
-                                        modifier = Modifier
-                                            .size(100.dp)
-                                            .clip(RoundedCornerShape(8.dp)),
-                                        contentScale = ContentScale.Crop
-                                    )
+                                    if (imageUrl != null) {
+                                        val fullUrl = if (imageUrl.startsWith("http")) imageUrl else "${RetrofitClient.BASE_URL}${imageUrl.removePrefix("/")}"
+                                        GlideImage(
+                                            model = fullUrl,
+                                            contentDescription = "Attached Image",
+                                            modifier = Modifier
+                                                .size(100.dp)
+                                                .clip(RoundedCornerShape(8.dp)),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -754,7 +757,7 @@ fun ActionDetailWorkerScreen(
                             elevation = ButtonDefaults.elevation(0.dp, 0.dp)
                         ) {
                             Text(
-                                text = "작성완료",
+                                text = "조치완료",
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 18.sp,
                                 fontFamily = Pretendard,
@@ -771,9 +774,31 @@ fun ActionDetailWorkerScreen(
         if (showActionCompletedDialog) {
             ActionCompletedDialog(
                 onDismiss = { showActionCompletedDialog = false },
-                onConfirm = { 
-                    showActionCompletedDialog = false
-                    onBackClick()
+                onConfirm = {
+                    val userId = UserSession.userId
+                    if (!userId.isNullOrEmpty()) {
+                        val request = CompleteActionRequest(eventId = eventId, workerId = userId)
+                        RetrofitClient.instance.completeAction(request).enqueue(object : Callback<Void> {
+                            override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                                if (response.isSuccessful) {
+                                    Toast.makeText(context, "조치 완료 처리되었습니다.", Toast.LENGTH_SHORT).show()
+                                    showActionCompletedDialog = false
+                                    onBackClick() // 성공 시 뒤로가기
+                                } else {
+                                    Toast.makeText(context, "오류가 발생했습니다: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                    showActionCompletedDialog = false
+                                }
+                            }
+
+                            override fun onFailure(call: Call<Void>, t: Throwable) {
+                                Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                                showActionCompletedDialog = false
+                            }
+                        })
+                    } else {
+                        Toast.makeText(context, "사용자 정보를 가져올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                        showActionCompletedDialog = false
+                    }
                 }
             )
         }
