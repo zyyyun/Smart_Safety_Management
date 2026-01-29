@@ -243,6 +243,16 @@ data class CompleteActionRequest(
     @SerializedName("worker_id") val workerId: String
 )
 
+data class FindIdRequest(
+    val name: String,
+    @SerializedName("phone_num") val phoneNum: String
+)
+
+data class FindIdResponse(
+    val message: String,
+    @SerializedName("user_id") val userId: String?
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -325,4 +335,7 @@ interface SignUpService {
 
     @POST("/complete_action")
     fun completeAction(@Body request: CompleteActionRequest): Call<Void>
+
+    @POST("/find_id")
+    fun findId(@Body request: FindIdRequest): Call<FindIdResponse>
 }
