@@ -109,8 +109,8 @@ class SettingProfileActivity : AppCompatActivity() {
         // 현장 목록 로컬 데이터 초기화
         getSharedPreferences("workplace_prefs", MODE_PRIVATE).edit().clear().apply()
         
-        // 2. 로그인 화면으로 이동 및 기존 스택 제거
-        val intent = Intent(this, LogInActivity::class.java)
+        // 2. 스플래시(첫 화면)로 이동 및 기존 스택 제거
+        val intent = Intent(this, SplashActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         startActivity(intent)
         finish()
@@ -167,7 +167,7 @@ class SettingProfileActivity : AppCompatActivity() {
                     UserSession.clearSession(this@SettingProfileActivity)
                     getSharedPreferences("workplace_prefs", MODE_PRIVATE).edit().clear().apply()
 
-                    val intent = Intent(this@SettingProfileActivity, LogInActivity::class.java)
+                    val intent = Intent(this@SettingProfileActivity, SplashActivity::class.java)
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)
                     finish()
