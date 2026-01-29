@@ -16,3 +16,9 @@ local.properties
 .idea/gradle.xml
 .idea/vcs.xml
 .idea/deploymentTargetSelector.xml
+
+# -- Node.js 파일
+server/node_modules/
+server/npm-debug.log*
+server/.env
+server/postgres_data/

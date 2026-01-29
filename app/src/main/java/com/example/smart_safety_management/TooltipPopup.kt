@@ -17,7 +17,7 @@ import androidx.core.view.doOnPreDraw
 class TooltipPopup(private val context: Context) {
 
     private var popup: PopupWindow? = null
-    private var anchor: View? = null
+    var anchor: View? = null // anchor에 접근할 수 있도록 공개
     private var marginDp: Int = 8
 
     private var cachedWidth: Int = 0
@@ -37,26 +37,20 @@ class TooltipPopup(private val context: Context) {
             val tooltipText = tooltipView.findViewById<TextView>(R.id.tooltip_text)
             val tooltipArrow = tooltipView.findViewById<View>(R.id.tooltip_arrow)
 
-            // 역할에 따른 텍스트, 아이콘, 그리고 화살표 위치 설정
             if (UserSession.userRole == UserRole.MANAGER) {
                 tooltipIcon.visibility = View.VISIBLE
                 tooltipText.text = "누르면 근로자에게 알림이 가요"
-                
-                // 관리자 기본 화살표 위치
                 val params = tooltipArrow.layoutParams as LinearLayout.LayoutParams
                 params.marginStart = dp(168)
                 tooltipArrow.layoutParams = params
             } else {
                 tooltipIcon.visibility = View.GONE
                 tooltipText.text = "눌러서 일일안전점검 리스트를 작성할 수 있어요"
-                
-                // 근로자용 화살표 위치
                 val params = tooltipArrow.layoutParams as LinearLayout.LayoutParams
                 params.marginStart = dp(249)
                 tooltipArrow.layoutParams = params
             }
 
-            // 뷰 크기 측정
             tooltipView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
             cachedWidth = tooltipView.measuredWidth
             cachedHeight = tooltipView.measuredHeight
@@ -105,6 +99,7 @@ class TooltipPopup(private val context: Context) {
 
         val marginPx = dp(marginDp)
 
+        // 윈도우에서의 절대 좌표 계산
         val loc = IntArray(2)
         anchorView.getLocationInWindow(loc)
         val anchorX = loc[0]
@@ -114,9 +109,8 @@ class TooltipPopup(private val context: Context) {
 
         val anchorCenterX = anchorX + (anchorW / 2)
         
-        // 화살표 위치에 따른 X 좌표 계산 (중심점 기준 보정)
         val arrowStartMarginDp = if (UserSession.userRole == UserRole.MANAGER) 168 else 249
-        val arrowCenterXInTooltip = dp(arrowStartMarginDp) + dp(6) // marginStart + (화살표 너비 12dp / 2)
+        val arrowCenterXInTooltip = dp(arrowStartMarginDp) + dp(6)
 
         var x = anchorCenterX - arrowCenterXInTooltip
         var y = anchorY - cachedHeight - marginPx
@@ -124,19 +118,26 @@ class TooltipPopup(private val context: Context) {
         val windowRect = Rect()
         anchorView.getWindowVisibleDisplayFrame(windowRect)
 
+        // 화면 밖으로 나가지 않게 보정
         if (x < windowRect.left) x = windowRect.left
         if (x + cachedWidth > windowRect.right) x = windowRect.right - cachedWidth
 
+        // 툴팁이 화면 상단 밖으로 나가면 아래쪽에 표시
         if (y < windowRect.top) {
             y = anchorY + anchorH + marginPx
         }
 
-        val isVisible = anchorView.isShown &&
-                anchorY + anchorH > windowRect.top &&
-                anchorY < windowRect.bottom
+        // 부모 뷰(RecyclerView나 ScrollView)의 가시 영역 체크
+        val scrollBounds = Rect()
+        anchorView.getGlobalVisibleRect(scrollBounds)
+        
+        // anchorView가 실제로 화면에 보이고 있고, 부모 스크롤 가시 영역 안에 있는지 확인
+        val isVisibleInParent = anchorView.isShown && 
+                               scrollBounds.bottom > (anchorY + (anchorH / 2)) && 
+                               scrollBounds.top < (anchorY + (anchorH / 2))
 
         try {
-            if (isVisible) {
+            if (isVisibleInParent) {
                 if (pw.isShowing) {
                     pw.update(x, y, -1, -1)
                 } else {

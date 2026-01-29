@@ -8,12 +8,16 @@ import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class SettingChangePasswordActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,8 +78,26 @@ class SettingChangePasswordActivity : AppCompatActivity() {
             val reNewPassword = etReNewPassword.text.toString()
 
             if (newPassword.isNotEmpty() && newPassword == reNewPassword) {
-                // 성공 로직
-                finish()
+                val userId = UserSession.userId
+                if (userId == null) {
+                    Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                val request = ChangePasswordRequest(userId, newPassword)
+                RetrofitClient.instance.changePassword(request).enqueue(object : Callback<ChangePasswordResponse> {
+                    override fun onResponse(call: Call<ChangePasswordResponse>, response: Response<ChangePasswordResponse>) {
+                        if (response.isSuccessful) {
+                            Toast.makeText(this@SettingChangePasswordActivity, "비밀번호가 변경되었습니다.", Toast.LENGTH_SHORT).show()
+                            finish()
+                        } else {
+                            Toast.makeText(this@SettingChangePasswordActivity, "비밀번호 변경 실패", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    override fun onFailure(call: Call<ChangePasswordResponse>, t: Throwable) {
+                        Toast.makeText(this@SettingChangePasswordActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    }
+                })
             }
         }
     }

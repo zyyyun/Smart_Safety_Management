@@ -32,6 +32,7 @@ import com.example.smart_safety_management.screens.realtime.RealTimeActivity
 import kotlin.math.abs
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.ActivityResultLauncher
+import android.util.Log
 
 private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>(
     7 to mutableListOf(
@@ -101,15 +102,20 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var dailyAdapter: DailyCheckAdapter
     private var selectedDay: Int? = null
     private var isInviteDialogShowing = false
+    private var selectedYear: Int = 0
+    private var selectedMonth: Int = 0 // 1~12
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("PHOTO_DEBUG", "HomeActivity onCreate called")
         setContentView(R.layout.main_home)
 
         initUI()
     }
 
     private val addDailyLauncher =
+
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode != RESULT_OK) return@registerForActivityResult
             val data = result.data ?: return@registerForActivityResult
@@ -117,29 +123,63 @@ class HomeActivity : AppCompatActivity() {
             val dateStr = data.getStringExtra("date") ?: return@registerForActivityResult
             val location = data.getStringExtra("location") ?: ""
             val riskFactor = data.getStringExtra("riskFactor") ?: ""
-            val safetyMeasure = data.getStringExtra("safetyMeasure") ?: "" // 지금은 저장 안 쓰면 일단 놔둬도 됨
+            val safetyMeasure = data.getStringExtra("safetyMeasure") ?: ""
+            val photoUris = data.getStringArrayListExtra("photoUris")?.toList() ?: emptyList()
+            Log.d("PHOTO_DEBUG", "addDailyLauncher received photoCount=${photoUris.size} uris=$photoUris")
 
-            // "YYYY-MM-DD" 형태라고 가정
-            val day = dateStr.split("-").getOrNull(2)?.toIntOrNull() ?: return@registerForActivityResult
 
-            // ✅ DailyCheckItem (id,title,desc,status) 버전에 맞춤
-            val newItem = DailyCheckItem(
-                title = location,        // 위치를 title로
-                desc = riskFactor,       // 위험요인을 desc로
-                status = "미점검"        // 상태
-            )
 
-            // ✅ 해당 날짜 리스트에 추가
-            val list = dailyCheckMap.getOrPut(day) { mutableListOf() }
-            list.add(0, newItem)
+            val editMode = data.getBooleanExtra("editMode", false)
+            val oldDay = data.getIntExtra("day", -1)
 
-            selectedDay = day
+            val itemId = data.getStringExtra("itemId") ?: ""
 
-            // ✅ 달력 점 + 리스트 갱신
+            val newDay = dateStr.split("-").getOrNull(2)?.toIntOrNull() ?: return@registerForActivityResult
+
+            if (editMode && oldDay != -1 && itemId.isNotBlank()) {
+                // ✅ 수정 처리 (교체)
+                val oldList = dailyCheckMap[oldDay] ?: mutableListOf()
+                val idx = oldList.indexOfFirst { it.id == itemId }
+
+                if (idx != -1) {
+                    val oldItem = oldList[idx]
+
+                    val updatedItem = oldItem.copy(
+                        title = location,
+                        desc = riskFactor,
+                        safetyMeasure = safetyMeasure,
+                        photoUris = photoUris
+                    )
+
+                    // ✅ 날짜가 그대로면 같은 리스트에서 교체
+                    if (oldDay == newDay) {
+                        oldList[idx] = updatedItem
+                    } else {
+                        // ✅ 날짜가 바뀌면: 기존에서 제거 후 새 날짜 리스트에 추가
+                        oldList.removeAt(idx)
+                        val newList = dailyCheckMap.getOrPut(newDay) { mutableListOf() }
+                        newList.add(0, updatedItem)
+                    }
+                }
+            } else {
+                val newItem = DailyCheckItem(
+                    title = location,
+                    desc = riskFactor,
+                    safetyMeasure = safetyMeasure,
+                    photoUris = photoUris,
+                    status = "미점검"
+                )
+
+                val list = dailyCheckMap.getOrPut(newDay) { mutableListOf() }
+                list.add(0, newItem)
+            }
+            val savedCount = dailyCheckMap[newDay]?.firstOrNull { it.id == itemId }?.photoUris?.size
+            Log.d("PHOTO_DEBUG", "afterSave newDay=$newDay editMode=$editMode itemId=$itemId savedPhotoCount=$savedCount")
+
+            selectedDay = newDay
             fillCalendarReal()
             updateDailyCheckList(selectedDay)
-
-            Toast.makeText(this, "작성 완료!", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, if (editMode) "수정 완료!" else "작성 완료!", Toast.LENGTH_SHORT).show()
         }
 
 
@@ -150,35 +190,84 @@ class HomeActivity : AppCompatActivity() {
             val data = result.data ?: return@registerForActivityResult
 
             val action = data.getStringExtra("action") ?: return@registerForActivityResult
-            if (action != "delete") return@registerForActivityResult
 
-            val day = data.getIntExtra("day", -1)
-            val itemId = data.getStringExtra("itemId") ?: ""
-            if (day == -1 || itemId.isBlank()) return@registerForActivityResult
+            // ✅ 1) 삭제 처리
+            if (action == "delete") {
+                val day = data.getIntExtra("day", -1)
+                val itemId = data.getStringExtra("itemId") ?: ""
+                if (day == -1 || itemId.isBlank()) return@registerForActivityResult
 
-            val list = dailyCheckMap[day] ?: return@registerForActivityResult
+                val list = dailyCheckMap[day] ?: return@registerForActivityResult
+                list.removeAll { it.id == itemId }
 
-            // ✅ id로 삭제
-            list.removeAll { it.id == itemId }
+                selectedDay = day
+                fillCalendarReal()
+                updateDailyCheckList(selectedDay)
 
-            // ✅ UI 갱신
-            selectedDay = day
-            fillCalendarReal()
-            updateDailyCheckList(selectedDay)
+                Toast.makeText(this, "삭제 완료!", Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
+            }
 
-            Toast.makeText(this, "삭제 완료!", Toast.LENGTH_SHORT).show()
+            // ✅ 2) 수정 처리 (DailyDetailActivity -> DailyListActivity 수정 완료 결과)
+            if (action == "edit") {
+                val dateStr = data.getStringExtra("date") ?: return@registerForActivityResult
+                val location = data.getStringExtra("location") ?: ""
+                val riskFactor = data.getStringExtra("riskFactor") ?: ""
+                val safetyMeasure = data.getStringExtra("safetyMeasure") ?: ""
+                val photoUris = data.getStringArrayListExtra("photoUris")?.toList() ?: emptyList()
+
+                val oldDay = data.getIntExtra("day", -1)
+                val itemId = data.getStringExtra("itemId") ?: ""
+                if (oldDay == -1 || itemId.isBlank()) return@registerForActivityResult
+
+                val newDay = dateStr.split("-").getOrNull(2)?.toIntOrNull()
+                    ?: return@registerForActivityResult
+
+                val oldList = dailyCheckMap[oldDay] ?: return@registerForActivityResult
+                val idx = oldList.indexOfFirst { it.id == itemId }
+                if (idx == -1) return@registerForActivityResult
+
+                val oldItem = oldList[idx]
+                val updatedItem = oldItem.copy(
+                    title = location,
+                    desc = riskFactor,
+                    safetyMeasure = safetyMeasure,
+                    photoUris = photoUris
+                )
+
+                if (oldDay == newDay) {
+                    oldList[idx] = updatedItem
+                } else {
+                    oldList.removeAt(idx)
+                    val newList = dailyCheckMap.getOrPut(newDay) { mutableListOf() }
+                    newList.add(0, updatedItem)
+                }
+
+                selectedDay = newDay
+                fillCalendarReal()
+                updateDailyCheckList(selectedDay)
+
+                Toast.makeText(this, "수정 완료!", Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
+            }
+
+            // 그 외 action이면 무시
         }
+
 
     private fun initUI() {
         updateProfileName()
         checkInviteCodeDialog()
+        val cal = Calendar.getInstance()
+        selectedYear = cal.get(Calendar.YEAR)
+        selectedMonth = cal.get(Calendar.MONTH) + 1
 
         val topBar = findViewById<View>(R.id.top_bar)
         val btnAlarm = topBar.findViewById<ImageButton>(R.id.btn_alarm)
         val alarmDot = findViewById<View>(R.id.view_alarm_dot)
         val btnSetting = topBar.findViewById<ImageButton>(R.id.btn_setting)
 
-        alarmDot.visibility = if (true) View.VISIBLE else View.GONE 
+        alarmDot.visibility = if (true) View.VISIBLE else View.GONE
 
         btnAlarm.setOnClickListener {
             startActivity(Intent(this, NoticeActivity::class.java))
@@ -193,28 +282,51 @@ class HomeActivity : AppCompatActivity() {
         }
 
         findViewById<View>(R.id.btn_add).setOnClickListener {
-            addDailyLauncher.launch(Intent(this, DailyListActivity::class.java))
+
+            val cal = Calendar.getInstance()
+            val day = selectedDay ?: cal.get(Calendar.DAY_OF_MONTH)
+
+            val intent = Intent(this, DailyListActivity::class.java).apply {
+                putExtra("year", selectedYear)
+                putExtra("month", selectedMonth)
+                putExtra("day", day)
+            }
+
+            addDailyLauncher.launch(intent)
         }
+
 
         val rv = findViewById<RecyclerView>(R.id.rv_daily_check)
         rv.layoutManager = LinearLayoutManager(this)
         dailyAdapter = DailyCheckAdapter(emptyList()) { day, item ->
+            Log.d("PHOTO_DEBUG", "detail open day=$day id=${item.id} photoCount=${item.photoUris.size} uris=${item.photoUris}")
+
+            val dateStr = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, day)
+
             val intent = Intent(this, DailyDetailActivity::class.java).apply {
-                // 삭제에 필요한 값
                 putExtra("day", day)
                 putExtra("itemId", item.id)
 
-                // (선택) 상세에 보여줄 데이터도 같이 넘기고 싶으면
-                putExtra("title", item.title)
-                putExtra("desc", item.desc)
+                // ✅ 디테일 화면에 보여줄 실제 데이터
+                putExtra("date", dateStr)
+                putExtra("location", item.title)      // title을 위치로 쓰고 있었지?
+                putExtra("riskFactor", item.desc)     // desc를 위험요인으로
+                putExtra("safetyMeasure", item.safetyMeasure)
                 putExtra("status", item.status)
+
+                putStringArrayListExtra("photoUris", ArrayList(item.photoUris))
+
             }
-            detailLauncher.launch(intent)   // ✅ 핵심: startActivity 말고 launcher로!
+            detailLauncher.launch(intent)
         }
+
         rv.adapter = dailyAdapter
 
 
-        selectedDay = findClosestUncheckedDay()
+        if (selectedDay == null) {
+            selectedDay = findClosestUncheckedDay()
+        }
+
         dailyAdapter.initTooltip()
 
         val scroll = findViewById<NestedScrollView>(R.id.home_scroll)
@@ -285,15 +397,15 @@ class HomeActivity : AppCompatActivity() {
 
         val totalCount = list.size
         val uncheckedCount = list.count { it.status == "미점검" }
-        
+
         val progressText = "$uncheckedCount/$totalCount"
         val spannable = SpannableString(progressText)
 
         val orangeColor = ContextCompat.getColor(this, R.color.orange500)
         val grayColor = ContextCompat.getColor(this, R.color.gray600)
-        
+
         val separatorIndex = progressText.indexOf("/")
-        
+
         if (separatorIndex != -1) {
             spannable.setSpan(ForegroundColorSpan(orangeColor), 0, separatorIndex, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             spannable.setSpan(ForegroundColorSpan(grayColor), separatorIndex, progressText.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -383,7 +495,7 @@ class HomeActivity : AppCompatActivity() {
                 setImageResource(R.drawable.ellipse_alram)
                 visibility = if (hasDailyCheckItem(day) && day != selectedDay) View.VISIBLE else View.INVISIBLE
                 val size = (resources.displayMetrics.density * 6).toInt()
-                layoutParams = FrameLayout.LayoutParams(size, size).apply { 
+                layoutParams = FrameLayout.LayoutParams(size, size).apply {
                     gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
                 }
             }
@@ -391,7 +503,7 @@ class HomeActivity : AppCompatActivity() {
 
         dayFrame.addView(tv)
         if (alarmDot != null) dayFrame.addView(alarmDot)
-        
+
         dayContainer.addView(dayFrame)
         grid.addView(dayContainer)
     }

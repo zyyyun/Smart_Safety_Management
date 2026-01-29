@@ -51,9 +51,11 @@
             android:backgroundTint="@color/gray50"
             app:cardCornerRadius="56dp"
             app:cardElevation="0dp"
-            app:strokeWidth="0dp">
+            app:strokeWidth="0.7dp"
+            app:strokeColor="@color/gray100">
 
             <ImageView
+                android:id="@+id/iv_profile"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="fitCenter"
@@ -215,13 +217,15 @@
             android:textColor="@color/gray800_gray200"
             android:textSize="18sp"/>
 
-        <!-- 오른쪽 값 + 아이콘 -->
+        <!-- 오른쪽 값 + 아이콘 (표시 상태) -->
         <LinearLayout
+            android:id="@+id/layout_phone_view"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="horizontal"
-            android:gravity="end|center_vertical">
+            android:gravity="end|center_vertical"
+            android:visibility="visible">
 
             <TextView
                 android:id="@+id/tv_user_phone"
@@ -239,6 +243,60 @@
                 android:layout_marginStart="8dp"
                 android:src="@drawable/right_arrow"
                 android:tint="@color/gray600"/>
+        </LinearLayout>
+
+        <!-- 오른쪽 값 + 아이콘 (수정 상태) -->
+        <LinearLayout
+            android:id="@+id/layout_phone_edit"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="end|center_vertical"
+            android:visibility="gone">
+
+            <!-- 박스 스타일 -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="160dp"
+                android:layout_height="wrap_content"
+                app:boxBackgroundMode="outline"
+                app:boxCornerRadiusBottomEnd="8dp"
+                app:boxCornerRadiusBottomStart="8dp"
+                app:boxCornerRadiusTopEnd="8dp"
+                app:boxCornerRadiusTopStart="8dp"
+                app:boxStrokeColor="@color/gray200_gray800"
+                app:hintEnabled="false"
+                android:textColorHint="@color/et_hint_color"
+                app:boxBackgroundColor="@color/white_gray900"
+                app:boxStrokeWidth="1dp"
+                app:boxStrokeWidthFocused="1dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_phone_edit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="phone"
+                    android:padding="10dp"
+                    android:textSize="16sp"
+                    android:text="010-1234-4567"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- 체크(확인) 아이콘 -->
+            <ImageView
+                android:id="@+id/btn_phone_confirm"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:src="@drawable/ic_check"
+                android:tint="@color/teal500"/>
+
+            <!-- X(취소) 아이콘 -->
+            <ImageView
+                android:id="@+id/btn_phone_cancel"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:src="@drawable/ic_x" />
         </LinearLayout>
     </LinearLayout>
 
@@ -260,13 +318,15 @@
             android:textColor="@color/gray800_gray200"
             android:textSize="18sp"/>
 
-        <!-- 오른쪽 값 + 아이콘 -->
+        <!-- 오른쪽 값 + 아이콘 (표시 상태) -->
         <LinearLayout
+            android:id="@+id/layout_email_view"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="horizontal"
-            android:gravity="end|center_vertical">
+            android:gravity="end|center_vertical"
+            android:visibility="visible">
 
             <TextView
                 android:id="@+id/tv_user_email"
@@ -279,11 +339,60 @@
                 android:textSize="18sp"/>
 
             <ImageView
+                android:id="@+id/btn_edit_email"
                 android:layout_width="10dp"
                 android:layout_height="16dp"
                 android:layout_marginStart="8dp"
                 android:src="@drawable/right_arrow"
                 android:tint="@color/gray600"/>
+        </LinearLayout>
+
+        <!-- 오른쪽 값 + 아이콘 (수정 상태) -->
+        <LinearLayout
+            android:id="@+id/layout_email_edit"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="end|center_vertical"
+            android:visibility="gone">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:layout_width="180dp"
+                android:layout_height="wrap_content"
+                app:boxBackgroundMode="outline"
+                app:boxCornerRadiusBottomEnd="8dp"
+                app:boxCornerRadiusBottomStart="8dp"
+                app:boxCornerRadiusTopEnd="8dp"
+                app:boxCornerRadiusTopStart="8dp"
+                app:boxStrokeColor="@color/gray200_gray800"
+                app:hintEnabled="false"
+                app:boxBackgroundColor="@color/white_gray900"
+                app:boxStrokeWidth="1dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_email_edit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textEmailAddress"
+                    android:padding="10dp"
+                    android:textSize="16sp"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <ImageView
+                android:id="@+id/btn_email_confirm"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:src="@drawable/ic_check"
+                android:tint="@color/teal500"/>
+
+            <ImageView
+                android:id="@+id/btn_email_cancel"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="8dp"
+                android:src="@drawable/ic_x" />
         </LinearLayout>
     </LinearLayout>
     </LinearLayout>
