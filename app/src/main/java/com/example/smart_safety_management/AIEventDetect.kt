@@ -87,18 +87,18 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
 
     // ✅ DTO -> EventData 변환 및 분류
     val allPendingEvents = rawEvents
-        .filter { it.status.equals("PENDING", ignoreCase = true) || it.status.equals("REQUESTED", ignoreCase = true) }
+        .filter { it.status == "PENDING" }
         .map { it.toEventData() }
 
     val allCompletedEvents = rawEvents
-        .filter { it.status.equals("COMPLETED", ignoreCase = true) || it.status.equals("FALSE_POSITIVE", ignoreCase = true) }
+        .filter { it.status == "COMPLETED" }
         .map { it.toEventData() }
 
     val allFalseDetectionEvents = rawEvents
-        .filter { it.status.equals("FALSE_POSITIVE", ignoreCase = true) }
+        .filter { it.status == "FALSE_DETECTION" }
         .map { it.toEventData() }
 
-    val allEvents = rawEvents.map { it.toEventData() }
+    val allEvents = allPendingEvents + allCompletedEvents + allFalseDetectionEvents
     val counts = mapOf(
         "전체" to allEvents.size,
         "위험" to allEvents.count { it.accidentType == "위험" },

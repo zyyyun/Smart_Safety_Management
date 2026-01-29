@@ -27,7 +27,7 @@ router.get('/get_worker_device_status', async (req, res) => {
         res.status(200).json({ devices: result.rows });
 
     } catch (err) {
-        console.error(err);
+        console.error('Error fetching worker device status:', err);
         res.status(500).json({ message: "서버 오류 발생" });
     }
 });

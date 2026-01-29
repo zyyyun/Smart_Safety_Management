@@ -52,8 +52,7 @@ class WorkerEventAdapter(
             holder.card.isEnabled = true
 
             holder.card.setOnClickListener {
-                val intent = Intent(context, ActionDetailActivity::class.java)
-                context.startActivity(intent)
+                onItemClick?.invoke(event)
             }
         }
         

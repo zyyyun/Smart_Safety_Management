@@ -206,6 +206,12 @@
             android:name=".SettingWorkplaceLocationActivity"
             android:exported="false" />
 
+
+        <activity
+            android:name=".ActionDetailWorkerActivity"
+            android:exported="false"/>
+
+        
     </application>
 
 </manifest>

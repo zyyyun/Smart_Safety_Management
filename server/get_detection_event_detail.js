@@ -15,10 +15,21 @@ router.get('/get_detection_event_detail', async (req, res) => {
                 de.*,
                 to_char(de.detected_at, 'YYYY-MM-DD HH24:MI:SS') as detected_at,
                 et.event_name,
-                c.image_res_name as capture_image_url
+                c.image_res_name as capture_image_url,
+                ar.request_type,
+                ar.request_title,
+                ar.request_details,
+                COALESCE(
+                    (
+                        SELECT json_agg(ai.image_url)
+                        FROM action_images ai
+                        WHERE ai.request_id = ar.request_id
+                    ), '[]'
+                ) as action_images
             FROM detection_events de
             LEFT JOIN cameras c ON de.camera_id = c.camera_id
             LEFT JOIN event_types et ON de.type_id = et.id
+            LEFT JOIN action_requests ar ON de.event_id = ar.event_id
             WHERE de.event_id = $1
         `;
         const result = await pool.query(query, [event_id]);

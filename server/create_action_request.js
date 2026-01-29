@@ -7,7 +7,7 @@ const path = require('path');
 // 이미지 저장을 위한 Multer 설정
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/') // uploads 폴더가 서버 루트에 존재해야 합니다.
+        cb(null, 'public/uploads/') 
     },
     filename: function (req, file, cb) {
         // 파일명 중복 방지를 위해 타임스탬프 추가

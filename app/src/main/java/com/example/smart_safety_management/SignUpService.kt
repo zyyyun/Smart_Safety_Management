@@ -210,7 +210,11 @@ data class DetectionEventDetailResponse(
     @SerializedName("status") val status: String?,
     @SerializedName("installation_address") val installationAddress: String?,
     @SerializedName("live_url") val liveUrl: String?,
-    @SerializedName("capture_image_url") val captureImageUrl: String?
+    @SerializedName("capture_image_url") val captureImageUrl: String?,
+    @SerializedName("request_type") val requestType: String?,
+    @SerializedName("request_title") val requestTitle: String?,
+    @SerializedName("request_details") val requestDetails: String?,
+    @SerializedName("action_images") val actionImages: List<String>?
 )
 
 data class WorkplaceResponseItem(

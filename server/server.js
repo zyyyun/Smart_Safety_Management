@@ -1,6 +1,14 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const app = express();
 const PORT = 3000;
+
+// 업로드 디렉토리 자동 생성 (public/uploads)
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // JSON 요청 본문을 파싱하기 위한 미들웨어
 app.use(express.json());
@@ -52,7 +60,7 @@ app.use('/', updateEventStatusRouter);
 app.use('/', verificationRouter); // 추가
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
-app.use('/uploads', express.static('public/uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`서버가 ${PORT} 포트에서 실행 중입니다.`);

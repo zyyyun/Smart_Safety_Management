@@ -39,7 +39,7 @@ router.get('/get_detection_events', async (req, res) => {
         const result = await pool.query(query, [groupId]);
         res.status(200).json({ events: result.rows });
     } catch (err) {
-        console.error(err);
+        console.error('Error fetching detection events:', err);
         res.status(500).json({ message: "서버 오류 발생" });
     }
 });
