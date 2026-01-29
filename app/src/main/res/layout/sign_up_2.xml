@@ -231,6 +231,37 @@
         app:layout_constraintTop_toTopOf="@id/til_write_verify"
         app:layout_constraintHorizontal_weight="3"/>
 
+    <!-- 성공/에러 메시지 -->
+    <LinearLayout
+        android:id="@+id/ll_notice"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toBottomOf="@id/til_write_verify"
+        app:layout_constraintStart_toStartOf="@id/til_write_verify"
+        android:layout_marginTop="4dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/iv_notice"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:foregroundGravity="center"
+            app:srcCompat="@drawable/ic_success" />
+
+        <TextView
+            android:id="@+id/tv_notice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="인증이 완료되었습니다."
+            android:letterSpacing="0"
+            android:textSize="12sp"
+            android:textColor="@color/teal500"
+            android:visibility="visible"
+            android:layout_marginStart="4dp"/>
+    </LinearLayout>
+
     <!-- 다음 버튼 -->
     <Button
         android:id="@+id/next_button"

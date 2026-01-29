@@ -10,6 +10,26 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Query
 
+// ... (기존 데이터 클래스들 동일)
+
+data class VerificationRequest(
+    @SerializedName("phone_num") val phoneNum: String
+)
+
+data class VerificationResponse(
+    val message: String
+)
+
+data class CheckVerificationRequest(
+    @SerializedName("phone_num") val phoneNum: String,
+    val code: String
+)
+
+data class CheckVerificationResponse(
+    val message: String,
+    val success: Boolean
+)
+
 data class SignUpRequest(
     @SerializedName("user_id") val userId: String,
     val password: String,
@@ -208,6 +228,12 @@ data class DeleteAccountResponse(
 )
 
 interface SignUpService {
+    @POST("/send_verification")
+    fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
+
+    @POST("/verify_code")
+    fun verifyCode(@Body request: CheckVerificationRequest): Call<CheckVerificationResponse>
+
     @POST("/signup")
     fun signUp(@Body request: SignUpRequest): Call<SignUpResponse>
 
