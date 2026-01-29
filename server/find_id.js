@@ -3,16 +3,19 @@ const router = express.Router();
 const pool = require('./db'); // pg pool 사용
 
 router.post('/find_id', async (req, res) => {
-    const { name, phone_num } = req.body;
+    let { name, phone_num } = req.body;
 
     if (!name || !phone_num) {
         return res.status(400).json({ message: "이름과 전화번호를 모두 제공해야 합니다." });
     }
 
+    // 입력받은 전화번호에서 하이픈(-) 제거 (숫자만 남김)
+    const cleanPhoneNum = phone_num.replace(/-/g, '');
+
     try {
-        // PostgreSQL 쿼리 (SELECT user_id FROM users WHERE name = $1 AND phone_num = $2)
-        const query = "SELECT user_id FROM users WHERE name = $1 AND phone_num = $2";
-        const result = await pool.query(query, [name, phone_num]);
+        // DB의 phone_num에서 하이픈을 제거한 값과 입력받은 cleanPhoneNum을 비교
+        const query = "SELECT user_id FROM users WHERE name = $1 AND REPLACE(phone_num, '-', '') = $2";
+        const result = await pool.query(query, [name, cleanPhoneNum]);
 
         if (result.rows.length > 0) {
             const userId = result.rows[0].user_id;
