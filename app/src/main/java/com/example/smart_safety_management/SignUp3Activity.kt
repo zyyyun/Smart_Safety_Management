@@ -87,6 +87,12 @@ class SignUp3Activity : AppCompatActivity() {
             return
         }
 
+        // 아이디 길이 체크 (2글자 이상)
+        if (id.length < 2) {
+            Toast.makeText(this, "아이디는 2글자 이상 입력해주세요.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         // 아이디 영문/숫자 체크
         val idRegex = Regex("^[a-zA-Z0-9]*$")
         if (!id.matches(idRegex)) {
