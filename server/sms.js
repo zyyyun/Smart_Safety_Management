@@ -4,16 +4,24 @@ const { SolapiMessageService } = require('solapi');
 const redis = require('redis');
 
 // 1. Redis 클라이언트 설정
+// 로컬(터미널)에서 서버를 돌릴 때는 localhost:6379가 기본입니다.
 const redisClient = redis.createClient({
-    url: 'redis://redis:6379' // 도커 서비스 이름인 'redis' 사용
+    url: 'redis://127.0.0.1:6379' // localhost 대신 127.0.0.1로 더 확실하게 지정
 });
 
-redisClient.on('error', (err) => console.log('Redis Client Error', err));
+redisClient.on('error', (err) => {
+    console.log('Redis 연결 대기 중 또는 오류:', err.message);
+});
 
 // 서버 시작 시 Redis 연결
 (async () => {
-    await redisClient.connect();
-    console.log('Redis 연결 완료');
+    try {
+        await redisClient.connect();
+        console.log('✅ Redis 서버에 정상적으로 연결되었습니다.');
+    } catch (err) {
+        console.error('❌ Redis 연결 실패! 도커에서 redis가 실행 중인지 확인하세요.');
+        console.error('명령어: docker-compose up -d');
+    }
 })();
 
 // 2. CoolSMS (Solapi) 설정
@@ -27,30 +35,26 @@ router.post('/send_verification', async (req, res) => {
         return res.status(400).json({ message: "전화번호를 입력해주세요." });
     }
 
-    // 6자리 난수 생성
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     
     try {
-        // Redis에 저장 (키: 전화번호, 값: 인증번호, EX: 만료시간 180초)
-        await redisClient.set(phone_num, code, {
-            EX: 180 
-        });
+        if (redisClient.isOpen) {
+            await redisClient.set(phone_num, code, { EX: 180 });
+            console.log(`[Redis 저장 완료] ${phone_num} : ${code}`);
+        }
 
-        // 실제 SMS 발송
         await messageService.sendOne({
             to: phone_num,
             from: "YOUR_SENDER_NUMBER",
             text: `[Smart Safety] 인증번호 [${code}]를 입력해주세요.`
         });
 
-        console.log(`[SMS 발송] ${phone_num} : ${code}`);
         res.status(200).json({ message: "인증번호가 발송되었습니다." });
 
     } catch (error) {
-        console.error("발송 에러:", error);
-        // 테스트용 로그
-        console.log(`[테스트 모드] ${phone_num} -> ${code}`);
-        res.status(200).json({ message: "인증번호가 발송되었습니다. (테스트)" });
+        // 실제 발송 실패 시에도 개발 중에는 로그를 보고 테스트할 수 있도록 함
+        console.log(`[인증번호 로그(테스트용)] 번호: ${phone_num}, 번호: ${code}`);
+        res.status(200).json({ message: "인증번호가 발송되었습니다. (테스트 모드)" });
     }
 });
 
@@ -59,17 +63,19 @@ router.post('/verify_code', async (req, res) => {
     const { phone_num, code } = req.body;
 
     try {
-        // Redis에서 해당 번호의 코드 조회
+        if (!redisClient.isOpen) {
+            return res.status(500).json({ message: "서버 Redis 연결 오류" });
+        }
+
         const savedCode = await redisClient.get(phone_num);
 
         if (savedCode && savedCode === code) {
-            await redisClient.del(phone_num); // 인증 성공 시 즉시 삭제
+            await redisClient.del(phone_num);
             res.status(200).json({ message: "인증 성공", success: true });
         } else {
-            res.status(400).json({ message: "인증번호가 일치하지 않거나 만료되었습니다.", success: false });
+            res.status(400).json({ message: "인증번호가 올바르지 않거나 만료되었습니다.", success: false });
         }
     } catch (error) {
-        console.error("Redis 조회 에러:", error);
         res.status(500).json({ message: "서버 오류 발생" });
     }
 });
