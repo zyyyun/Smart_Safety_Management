@@ -16,7 +16,27 @@ services:
     volumes:
       - ./postgres_data:/var/lib/postgresql/data # 데이터 유지 (컨테이너 삭제돼도 데이터 보존)
 
-  # 2. pgAdmin 4 설정 (웹 기반 DB 관리 도구)
+  # 2. Redis 설정 (인증번호, 세션 등 임시 데이터 저장용)
+  redis:
+    image: redis:latest
+    container_name: smart_safety_redis
+    restart: always
+    ports:
+      - "6379:6379"                   # Redis 기본 포트
+
+  # 3. Redis Commander (Redis 웹 관리 도구 - pgAdmin과 같은 역할)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: smart_safety_redis_commander
+    restart: always
+    environment:
+      - REDIS_HOSTS=local:redis:6379  # 연결할 Redis 호스트 설정
+    ports:
+      - "8082:8081"                   # 브라우저에서 8082로 접속
+    depends_on:
+      - redis                         # Redis가 먼저 실행된 후 실행
+
+  # 4. pgAdmin 4 설정 (웹 기반 DB 관리 도구)
   pgadmin:
     platform: linux/amd64 
     image: dpage/pgadmin4
