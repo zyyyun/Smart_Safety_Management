@@ -271,6 +271,22 @@ data class VerifyUserResponse(
     val exists: Boolean
 )
 
+data class DailyCheckDTO(
+    @SerializedName("check_id") val checkId: Int,
+    val location: String,
+    val hazard: String?,
+    val countermeasure: String?,
+    val status: String,
+    @SerializedName("check_date") val checkDate: String,
+    @SerializedName("created_at") val createdAt: String?,
+    @SerializedName("writer_id") val writerId: String,
+    @SerializedName("worker_id") val workerId: String?
+)
+
+data class GetDailyChecksResponse(
+    val checks: List<DailyCheckDTO>
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -362,4 +378,11 @@ interface SignUpService {
 
     @POST("/verify_user_for_password")
     fun verifyUserForPassword(@Body request: VerifyUserRequest): Call<VerifyUserResponse>
+
+    @GET("/get_daily_checks")
+    fun getDailyChecks(
+        @Query("user_id") userId: String,
+        @Query("year") year: Int,
+        @Query("month") month: Int
+    ): Call<GetDailyChecksResponse>
 }

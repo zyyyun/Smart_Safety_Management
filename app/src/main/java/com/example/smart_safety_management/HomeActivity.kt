@@ -36,72 +36,13 @@ import kotlin.math.abs
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.ActivityResultLauncher
 import android.util.Log
-
-private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>(
-    7 to mutableListOf(
-        DailyCheckItem(
-            title = "B구역 1열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "미점검"
-        ),
-        DailyCheckItem(
-            title = "C구역 3열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "점검완료"
-        )
-    ),
-    12 to mutableListOf(
-        DailyCheckItem(
-            title = "A구역 1열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "점검완료"
-        )
-    ),
-    22 to mutableListOf(
-        DailyCheckItem(
-            title = "A구역 4열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "미점검"
-        ),
-        DailyCheckItem(
-            title = "A구역 4열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "미점검"
-        ),
-        DailyCheckItem(
-            title = "D구역 2열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "점검완료"
-        ),
-        DailyCheckItem(
-            title = "D구역 1열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "점검완료"
-        ),
-        DailyCheckItem(
-            title = "D구역 2열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "점검완료"
-        )
-    ),
-    25 to mutableListOf(
-        DailyCheckItem(
-            title = "C구역 2열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "미점검"
-        )
-    ),
-    26 to mutableListOf(
-        DailyCheckItem(
-            title = "A구역 4열",
-            desc = "정리미흡으로 인적사고 발생 우려",
-            status = "미점검"
-        )
-    )
-)
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class HomeActivity : AppCompatActivity() {
 
+    private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>()
     private lateinit var dailyAdapter: DailyCheckAdapter
     private var selectedDay: Int? = null
     private var isInviteDialogShowing = false
@@ -114,6 +55,7 @@ class HomeActivity : AppCompatActivity() {
         Log.d("PHOTO_DEBUG", "HomeActivity onCreate called")
         setContentView(R.layout.main_home)
 
+        // initUI 내부에서 fetchDailyChecks 호출 예정
         initUI()
     }
 
@@ -265,6 +207,41 @@ class HomeActivity : AppCompatActivity() {
         selectedYear = cal.get(Calendar.YEAR)
         selectedMonth = cal.get(Calendar.MONTH) + 1
 
+        // RecyclerView 및 Adapter 초기화 (데이터 갱신 전에 먼저 수행해야 함)
+        val rv = findViewById<RecyclerView>(R.id.rv_daily_check)
+        rv.layoutManager = LinearLayoutManager(this)
+        dailyAdapter = DailyCheckAdapter(emptyList()) { day, item ->
+            Log.d("PHOTO_DEBUG", "detail open day=$day id=${item.id} photoCount=${item.photoUris.size} uris=${item.photoUris}")
+
+            val dateStr = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, day)
+
+            val intent = Intent(this, DailyDetailActivity::class.java).apply {
+                putExtra("day", day)
+                putExtra("itemId", item.id)
+
+                // ✅ 디테일 화면에 보여줄 실제 데이터
+                putExtra("date", dateStr)
+                putExtra("location", item.title)
+                putExtra("riskFactor", item.desc)
+                putExtra("safetyMeasure", item.safetyMeasure)
+                putExtra("status", item.status)
+
+                putStringArrayListExtra("photoUris", ArrayList(item.photoUris))
+            }
+            detailLauncher.launch(intent)
+        }
+        rv.adapter = dailyAdapter
+        dailyAdapter.initTooltip()
+
+        // 오늘 날짜로 초기화
+        selectedDay = cal.get(Calendar.DAY_OF_MONTH)
+
+        // UI 먼저 그리기 (달력 및 빈 리스트 표시)
+        fillCalendarReal()
+        updateDailyCheckList(selectedDay)
+
+        fetchDailyChecks()
+
         val topBar = findViewById<View>(R.id.top_bar)
         val btnAlarm = topBar.findViewById<ImageButton>(R.id.btn_alarm)
         val alarmDot = findViewById<View>(R.id.view_alarm_dot)
@@ -298,40 +275,6 @@ class HomeActivity : AppCompatActivity() {
             addDailyLauncher.launch(intent)
         }
 
-
-        val rv = findViewById<RecyclerView>(R.id.rv_daily_check)
-        rv.layoutManager = LinearLayoutManager(this)
-        dailyAdapter = DailyCheckAdapter(emptyList()) { day, item ->
-            Log.d("PHOTO_DEBUG", "detail open day=$day id=${item.id} photoCount=${item.photoUris.size} uris=${item.photoUris}")
-
-            val dateStr = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, day)
-
-            val intent = Intent(this, DailyDetailActivity::class.java).apply {
-                putExtra("day", day)
-                putExtra("itemId", item.id)
-
-                // ✅ 디테일 화면에 보여줄 실제 데이터
-                putExtra("date", dateStr)
-                putExtra("location", item.title)      // title을 위치로 쓰고 있었지?
-                putExtra("riskFactor", item.desc)     // desc를 위험요인으로
-                putExtra("safetyMeasure", item.safetyMeasure)
-                putExtra("status", item.status)
-
-                putStringArrayListExtra("photoUris", ArrayList(item.photoUris))
-
-            }
-            detailLauncher.launch(intent)
-        }
-
-        rv.adapter = dailyAdapter
-
-
-        if (selectedDay == null) {
-            selectedDay = findClosestUncheckedDay()
-        }
-
-        dailyAdapter.initTooltip()
-
         val scroll = findViewById<NestedScrollView>(R.id.home_scroll)
         scroll.setOnScrollChangeListener(
             NestedScrollView.OnScrollChangeListener { _, scrollX, scrollY, oldX, oldY ->
@@ -341,8 +284,6 @@ class HomeActivity : AppCompatActivity() {
             }
         )
 
-        fillCalendarReal()
-        updateDailyCheckList(selectedDay)
         setupBottomNavigation()
     }
 
@@ -377,6 +318,7 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateProfile()
+        fetchDailyChecks()
     }
 
     private fun updateProfile() {
@@ -397,7 +339,11 @@ class HomeActivity : AppCompatActivity() {
                 val params = ivProfileBar.layoutParams as ViewGroup.MarginLayoutParams
                 UserSession.profileImageUri?.let { uriString ->
                     // 사진이 있을 때: 부모 CardView 제약까지 풀어서 원에 꽉 차도록 설정
-                    ivProfileBar.setImageURI(Uri.parse(uriString))
+                    Glide.with(this)
+                        .load(uriString)
+                        .placeholder(R.drawable.profile)
+                        .error(R.drawable.profile)
+                        .into(ivProfileBar)
 
                     cardProfile?.apply {
                         setContentPadding(0, 0, 0, 0)
@@ -431,6 +377,45 @@ class HomeActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun fetchDailyChecks() {
+        val userId = UserSession.userId ?: return
+        RetrofitClient.instance.getDailyChecks(userId, selectedYear, selectedMonth).enqueue(object : Callback<GetDailyChecksResponse> {
+            override fun onResponse(call: Call<GetDailyChecksResponse>, response: Response<GetDailyChecksResponse>) {
+                if (response.isSuccessful) {
+                    dailyCheckMap.clear()
+                    val checks = response.body()?.checks ?: emptyList()
+                    Log.d("DailyCheck", "Fetched ${checks.size} checks for $selectedYear-$selectedMonth")
+                    
+                    checks.forEach { dto ->
+                        // created_at 기준으로 날짜 파싱 (YYYY-MM-DD HH:mm:ss)
+                        // createdAt이 없으면 checkDate를 사용하도록 예외 처리
+                        val targetDate = dto.createdAt ?: dto.checkDate
+                        val day = try {
+                            targetDate.substring(8, 10).toInt()
+                        } catch (e: Exception) {
+                            targetDate.split("-").getOrNull(2)?.take(2)?.toIntOrNull()
+                        }
+
+                        if (day != null) {
+                            val item = DailyCheckItem(
+                                id = dto.checkId.toString(),
+                                title = dto.location,
+                                desc = dto.hazard ?: "",
+                                safetyMeasure = dto.countermeasure ?: "",
+                                status = dto.status,
+                                photoUris = emptyList()
+                            )
+                            dailyCheckMap.getOrPut(day) { mutableListOf() }.add(item)
+                        }
+                    }
+                    fillCalendarReal()
+                    updateDailyCheckList(selectedDay)
+                }
+            }
+            override fun onFailure(call: Call<GetDailyChecksResponse>, t: Throwable) {}
+        })
     }
 
     private fun findClosestUncheckedDay(): Int? {

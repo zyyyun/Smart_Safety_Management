@@ -413,7 +413,7 @@ fun FilterBottomSheetContent() {
         Text(text = "상태", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = CategoryColor, modifier = Modifier.padding(horizontal = 24.dp))
         Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val statusOptions = listOf("조치완료", "오탐처리")
+            val statusOptions = listOf("미조치", "조치완료")
             statusOptions.forEach { option ->
                 val isSelected = selectedStatus == option
                 Button(onClick = { selectedStatus = option }, modifier = Modifier.height(37.dp).weight(1f), colors = ButtonDefaults.buttonColors(backgroundColor = if (isSelected) MainOrange.copy(alphavalue) else bgColor), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), border = BorderStroke(1.dp, if (isSelected) MainOrange else borderColor)) {
