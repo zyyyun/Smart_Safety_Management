@@ -7,6 +7,9 @@ import android.text.TextWatcher
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class SignUp3Activity : AppCompatActivity() {
 
@@ -86,19 +89,11 @@ class SignUp3Activity : AppCompatActivity() {
             return
         }
 
-        // 아이디 영문/숫자 체크
-        val idRegex = Regex("^[a-zA-Z0-9]*$")
-        if (!id.matches(idRegex)) {
-            Toast.makeText(this, "아이디는 영문과 숫자만 입력 가능합니다.", Toast.LENGTH_SHORT).show()
-            return
-        }
-
         // 비밀번호 유효성 체크
         val pwError = getPasswordErrorMessage(pw)
         if (pwError != null) {
             tvNotice.text = pwError
             llNotice.visibility = View.VISIBLE
-            Toast.makeText(this, pwError, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -107,13 +102,37 @@ class SignUp3Activity : AppCompatActivity() {
             return
         }
 
-        // UserSession에 임시 저장
-        UserSession.userId = id
-        UserSession.userPassword = pw
+        // 서버로 회원가입 요청
+        val signUpData = SignUpRequest(
+            userId = id,
+            password = pw,
+            userRole = UserSession.userRole.name.lowercase(),
+            name = UserSession.userName,
+            email = UserSession.userEmail,
+            phoneNum = UserSession.userPhone,
+            groupId = null
+        )
 
-        // 다음 화면으로 이동 (실제 DB 저장은 다음 화면에서 수행)
-        val intent = Intent(this, SignUp4Activity::class.java)
-        startActivity(intent)
-        finish()
+        RetrofitClient.instance.signUp(signUpData).enqueue(object : Callback<SignUpResponse> {
+            override fun onResponse(call: Call<SignUpResponse>, response: Response<SignUpResponse>) {
+                if (response.isSuccessful) {
+                    // 가입 성공 - 세션에 ID 저장 후 이동
+                    UserSession.userId = id
+                    UserSession.userPassword = null // 보안상 비번은 제거
+                    
+                    val intent = Intent(this@SignUp3Activity, SignUp4Activity::class.java)
+                    startActivity(intent)
+                    finish()
+                } else {
+                    // 실패 시
+                    val errorMsg = response.errorBody()?.string() ?: "회원가입 처리 중 오류가 발생했습니다."
+                    Toast.makeText(this@SignUp3Activity, errorMsg, Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<SignUpResponse>, t: Throwable) {
+                Toast.makeText(this@SignUp3Activity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 }
