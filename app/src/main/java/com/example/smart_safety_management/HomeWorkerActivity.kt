@@ -3,6 +3,10 @@ package com.example.smart_safety_management
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.view.Gravity
+import android.widget.GridLayout
+import android.widget.LinearLayout
+import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.NestedScrollView
@@ -11,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 import java.util.Calendar
 import android.content.Intent
 import android.graphics.Paint
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.text.Spannable
 import android.text.SpannableString
@@ -30,30 +35,6 @@ import retrofit2.Callback
 import retrofit2.Response
 import com.google.firebase.messaging.FirebaseMessaging
 import android.util.Log
-private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>(
-    7 to mutableListOf(
-        DailyCheckItem(title="B구역 1열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
-        DailyCheckItem(title="C구역 3열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
-    ),
-    12 to mutableListOf(
-        DailyCheckItem(title="A구역 1열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
-    ),
-    23 to mutableListOf(
-        DailyCheckItem(title="A구역 4열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
-        DailyCheckItem(title="A구역 4열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
-        DailyCheckItem(title="D구역 2열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
-        DailyCheckItem(title="D구역 1열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
-        DailyCheckItem(title="D구역 2열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
-    ),
-    25 to mutableListOf(
-        DailyCheckItem(title="C구역 2열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
-    ),
-    26 to mutableListOf(
-        DailyCheckItem(title="A구역 4열", desc="정리미흡으로 인적사고 발생 우려", status="미점검"),
-    )
-)
-
-
 
 
 class HomeWorkerActivity : AppCompatActivity() {
@@ -156,6 +137,7 @@ class HomeWorkerActivity : AppCompatActivity() {
         selectedMonth = cal.get(Calendar.MONTH) + 1
 
         // 초기 리스트 갱신 (오늘 날짜 기준 빈 리스트라도 표시)
+        fillCalendarReal()
         updateDailyCheckList(selectedDay)
 
         fetchWorkerEvents()
@@ -184,11 +166,12 @@ class HomeWorkerActivity : AppCompatActivity() {
                                 desc = dto.hazard ?: "",
                                 safetyMeasure = dto.countermeasure ?: "",
                                 status = dto.status,
-                                photoUris = emptyList()
+                                photoUris = dto.images ?: emptyList()
                             )
                             dailyCheckMap.getOrPut(day) { mutableListOf() }.add(item)
                         }
                     }
+                    fillCalendarReal()
                     updateDailyCheckList(selectedDay)
                 }
             }
@@ -427,6 +410,110 @@ class HomeWorkerActivity : AppCompatActivity() {
 
     private fun calculateTimeAgo(dateStr: String?): String {
         return "방금 전" // 실제 로직 생략
+    }
+
+    private fun hasDailyCheckItem(day: Int): Boolean {
+        val list = dailyCheckMap[day] ?: return false
+        return list.isNotEmpty()
+    }
+
+    private fun fillCalendarReal() {
+        val grid = findViewById<GridLayout>(R.id.calendar_grid) ?: return
+        val tvMonth = findViewById<TextView>(R.id.tv_month) ?: return
+
+        grid.removeAllViews()
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.YEAR, selectedYear)
+        calendar.set(Calendar.MONTH, selectedMonth - 1)
+
+        tvMonth.text = "${selectedYear}년 ${selectedMonth}월"
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+
+        val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+        val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+        val prevCalendar = calendar.clone() as Calendar
+        prevCalendar.add(Calendar.MONTH, -1)
+        val prevMaxDay = prevCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+        for (i in 1 until firstDayOfWeek) {
+            addCalendarDay(grid, prevMaxDay - (firstDayOfWeek - 1 - i), false)
+        }
+        for (day in 1..daysInMonth) {
+            addCalendarDay(grid, day, true)
+        }
+        val totalCells = (firstDayOfWeek - 1) + daysInMonth
+        for (day in 1..((7 - (totalCells % 7)) % 7)) {
+            addCalendarDay(grid, day, false)
+        }
+    }
+
+    private fun addCalendarDay(grid: GridLayout, day: Int, isCurrentMonth: Boolean) {
+        val dayContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutParams = GridLayout.LayoutParams().apply {
+                width = 0
+                columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+
+                setMargins(0, 0, 0, (resources.displayMetrics.density * 8).toInt())
+            }
+        }
+
+        val daySize = (resources.displayMetrics.density * 36).toInt()
+        val dayFrame = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(daySize, daySize)
+        }
+
+        val tv = TextView(this).apply {
+            text = day.toString()
+            gravity = Gravity.CENTER
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
+            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+
+            if (isCurrentMonth) {
+                setOnClickListener {
+                    selectedDay = day
+                    fillCalendarReal()
+                    updateDailyCheckList(selectedDay)
+                }
+            }
+        }
+
+        if (isCurrentMonth) {
+            tv.setTextColor(ContextCompat.getColor(this, R.color.gray700_gray400))
+            if (day == selectedDay) {
+                tv.background = circleDrawable(ContextCompat.getColor(this, R.color.orange500))
+                tv.setTextColor(ContextCompat.getColor(this, R.color.white_black))
+            }
+        } else {
+            tv.setTextColor(ContextCompat.getColor(this, R.color.gray200_gray800))
+        }
+
+        val alarmDot = if (isCurrentMonth) {
+            ImageView(this).apply {
+                setImageResource(R.drawable.ellipse_alram)
+                visibility = if (hasDailyCheckItem(day) && day != selectedDay) View.VISIBLE else View.INVISIBLE
+                val size = (resources.displayMetrics.density * 6).toInt()
+                layoutParams = FrameLayout.LayoutParams(size, size).apply {
+                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                }
+            }
+        } else null
+
+        dayFrame.addView(tv)
+        if (alarmDot != null) dayFrame.addView(alarmDot)
+
+        dayContainer.addView(dayFrame)
+        grid.addView(dayContainer)
+    }
+
+    private fun circleDrawable(color: Int): GradientDrawable {
+        return GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(color)
+        }
     }
 }
 

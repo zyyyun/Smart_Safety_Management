@@ -39,6 +39,8 @@ const verificationRouter = require('./verification'); // 추가
 const completeActionRouter = require('./complete_action');
 const handleFalsePositiveRouter = require('./handle_false_positive');
 const getDailyChecksRouter = require('./get_daily_checks');
+const createDailyCheckRouter = require('./create_daily_check');
+const updateDailyCheckRouter = require('./update_daily_check');
 
 // 라우터 등록
 app.use('/', signupRouter);
@@ -66,6 +68,8 @@ app.use('/', verificationRouter); // 추가
 app.use('/', completeActionRouter);
 app.use('/', handleFalsePositiveRouter);
 app.use('/', getDailyChecksRouter);
+app.use('/', createDailyCheckRouter);
+app.use('/', updateDailyCheckRouter);
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));

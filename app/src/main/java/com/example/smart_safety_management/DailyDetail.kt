@@ -71,24 +71,6 @@
             activity?.finish()
         }
 
-        // ✅ 수정하기: 작성 화면(DailyListActivity)로 이동 + 기존 값 전달
-        fun goEdit() {
-            val intent = Intent(context, DailyListActivity::class.java).apply {
-                // 수정 화면에서 미리 채울 값들
-                putExtra("date", date)
-                putExtra("location", location)
-                putExtra("riskFactor", riskFactor)
-                putExtra("safetyMeasure", safetyMeasure)
-
-                putStringArrayListExtra("photoUris", ArrayList(photoUris))
-                // 수정 대상 식별용
-                putExtra("editMode", true)
-                putExtra("day", day)
-                putExtra("itemId", itemId)
-            }
-            context.startActivity(intent)
-        }
-
         Smart_Safety_ManagementTheme {
             val labelColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
             val borderColor = if (MaterialTheme.colors.isLight) Lightgray else GrayBackground
@@ -235,17 +217,16 @@
 
                     Spacer(modifier = Modifier.height(25.dp))
 
-                    // ✅ 현장사진: Uri로 받은 사진이 있을 때만 보여주기
+                    // ✅ 현장사진
+                    Text(
+                        text = "현장사진",
+                        fontSize = 16.sp,
+                        color = labelColor,
+                        fontFamily = Pretendard,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
                     if (photoUris.isNotEmpty()) {
-                        Text(
-                            text = "현장사진",
-                            fontSize = 16.sp,
-                            color = labelColor,
-                            fontFamily = Pretendard,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -266,12 +247,15 @@
                                 if (index == 0 && photoUris.size > 1) Spacer(modifier = Modifier.width(12.dp))
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(24.dp))
                     } else {
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            text = "첨부된 사진이 없습니다.",
+                            fontSize = 14.sp,
+                            color = if (MaterialTheme.colors.isLight) TextGray30 else TextGray60,
+                            fontFamily = Pretendard
+                        )
                     }
-
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     Spacer(modifier = Modifier.height(40.dp))
 
@@ -317,4 +301,3 @@
                 }
             }
         }
-

@@ -280,7 +280,14 @@ data class DailyCheckDTO(
     @SerializedName("check_date") val checkDate: String,
     @SerializedName("created_at") val createdAt: String?,
     @SerializedName("writer_id") val writerId: String,
-    @SerializedName("worker_id") val workerId: String?
+    @SerializedName("worker_id") val workerId: String?,
+    val images: List<String>?
+)
+
+data class CreateDailyCheckResponse(
+    val message: String,
+    @SerializedName("check_id") val checkId: Int,
+    @SerializedName("image_urls") val imageUrls: List<String>
 )
 
 data class GetDailyChecksResponse(
@@ -385,4 +392,27 @@ interface SignUpService {
         @Query("year") year: Int,
         @Query("month") month: Int
     ): Call<GetDailyChecksResponse>
+
+    @Multipart
+    @POST("/create_daily_check")
+    fun createDailyCheck(
+        @Part("writer_id") writerId: RequestBody,
+        @Part("location") location: RequestBody,
+        @Part("hazard") hazard: RequestBody,
+        @Part("countermeasure") countermeasure: RequestBody,
+        @Part("check_date") checkDate: RequestBody?,
+        @Part images: List<MultipartBody.Part>
+    ): Call<CreateDailyCheckResponse>
+
+    @Multipart
+    @POST("/update_daily_check")
+    fun updateDailyCheck(
+        @Part("check_id") checkId: RequestBody,
+        @Part("location") location: RequestBody,
+        @Part("hazard") hazard: RequestBody,
+        @Part("countermeasure") countermeasure: RequestBody,
+        @Part("check_date") checkDate: RequestBody?,
+        @Part keptImageUrls: List<MultipartBody.Part>,
+        @Part newImages: List<MultipartBody.Part>
+    ): Call<CreateDailyCheckResponse>
 }

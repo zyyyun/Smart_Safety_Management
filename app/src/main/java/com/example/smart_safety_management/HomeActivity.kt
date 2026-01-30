@@ -36,69 +36,9 @@ import kotlin.math.abs
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.ActivityResultLauncher
 import android.util.Log
-
-private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>(
-    7 to mutableListOf(
-        DailyCheckItem(
-            title = "B구역 1열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "미점검"
-        ),
-        DailyCheckItem(
-            title = "C구역 3열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "점검완료"
-        )
-    ),
-    12 to mutableListOf(
-        DailyCheckItem(
-            title = "A구역 1열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "점검완료"
-        )
-    ),
-    22 to mutableListOf(
-        DailyCheckItem(
-            title = "A구역 4열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "미점검"
-        ),
-        DailyCheckItem(
-            title = "A구역 4열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "미점검"
-        ),
-        DailyCheckItem(
-            title = "D구역 2열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "점검완료"
-        ),
-        DailyCheckItem(
-            title = "D구역 1열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "점검완료"
-        ),
-        DailyCheckItem(
-            title = "D구역 2열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "점검완료"
-        )
-    ),
-    25 to mutableListOf(
-        DailyCheckItem(
-            title = "C구역 2열",
-            desc = "정리미흡으로 안전사고 발생 우려",
-            status = "미점검"
-        )
-    ),
-    26 to mutableListOf(
-        DailyCheckItem(
-            title = "A구역 4열",
-            desc = "정리미흡으로 인적사고 발생 우려",
-            status = "미점검"
-        )
-    )
-)
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class HomeActivity : AppCompatActivity() {
 
@@ -335,10 +275,13 @@ class HomeActivity : AppCompatActivity() {
 
 
         if (selectedDay == null) {
-            selectedDay = findClosestUncheckedDay()
+            selectedDay = cal.get(Calendar.DAY_OF_MONTH)
         }
 
         dailyAdapter.initTooltip()
+        fillCalendarReal()
+        updateDailyCheckList(selectedDay)
+        fetchDailyChecks()
 
         val scroll = findViewById<NestedScrollView>(R.id.home_scroll)
         scroll.setOnScrollChangeListener(
@@ -349,8 +292,6 @@ class HomeActivity : AppCompatActivity() {
             }
         )
 
-        fillCalendarReal()
-        updateDailyCheckList(selectedDay)
         setupBottomNavigation()
     }
 
@@ -385,6 +326,7 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateProfile()
+        fetchDailyChecks()
     }
 
     private fun updateProfile() {
@@ -445,6 +387,45 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
+    private fun fetchDailyChecks() {
+        val userId = UserSession.userId ?: return
+        RetrofitClient.instance.getDailyChecks(userId, selectedYear, selectedMonth).enqueue(object : retrofit2.Callback<GetDailyChecksResponse> {
+            override fun onResponse(call: retrofit2.Call<GetDailyChecksResponse>, response: retrofit2.Response<GetDailyChecksResponse>) {
+                if (response.isSuccessful) {
+                    dailyCheckMap.clear()
+                    val checks = response.body()?.checks ?: emptyList()
+                    Log.d("DailyCheck", "Fetched ${checks.size} checks for $selectedYear-$selectedMonth")
+                    
+                    checks.forEach { dto ->
+                        // created_at 기준으로 날짜 파싱 (YYYY-MM-DD HH:mm:ss)
+                        // createdAt이 없으면 checkDate를 사용하도록 예외 처리
+                        val targetDate = dto.createdAt ?: dto.checkDate
+                        val day = try {
+                            targetDate.substring(8, 10).toInt()
+                        } catch (e: Exception) {
+                            targetDate.split("-").getOrNull(2)?.take(2)?.toIntOrNull()
+                        }
+
+                        if (day != null) {
+                            val item = DailyCheckItem(
+                                id = dto.checkId.toString(),
+                                title = dto.location,
+                                desc = dto.hazard ?: "",
+                                safetyMeasure = dto.countermeasure ?: "",
+                                status = dto.status,
+                                photoUris = dto.images ?: emptyList()
+                            )
+                            dailyCheckMap.getOrPut(day) { mutableListOf() }.add(item)
+                        }
+                    }
+                    fillCalendarReal()
+                    updateDailyCheckList(selectedDay)
+                }
+            }
+            override fun onFailure(call: retrofit2.Call<GetDailyChecksResponse>, t: Throwable) {}
+        })
+    }
+
     private fun findClosestUncheckedDay(): Int? {
         val today = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
         val uncheckedDays = dailyCheckMap.filter { entry ->
@@ -489,7 +470,10 @@ class HomeActivity : AppCompatActivity() {
 
         grid.removeAllViews()
         val calendar = Calendar.getInstance()
-        tvMonth.text = "${calendar.get(Calendar.YEAR)}년 ${calendar.get(Calendar.MONTH) + 1}월"
+        calendar.set(Calendar.YEAR, selectedYear)
+        calendar.set(Calendar.MONTH, selectedMonth - 1)
+
+        tvMonth.text = "${selectedYear}년 ${selectedMonth}월"
         calendar.set(Calendar.DAY_OF_MONTH, 1)
 
         val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)

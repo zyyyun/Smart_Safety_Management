@@ -31,7 +31,8 @@ router.get('/get_daily_checks', async (req, res) => {
                 d.countermeasure, 
                 d.status, 
                 to_char(d.check_date, 'YYYY-MM-DD') as check_date,
-                to_char(d.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at
+                to_char(d.created_at, 'YYYY-MM-DD HH24:MI:SS') as created_at,
+                (SELECT COALESCE(json_agg(image_url), '[]') FROM check_images WHERE check_id = d.check_id) as images
             FROM daily_safety_check d
             JOIN users u ON d.writer_id = u.user_id
             WHERE u.group_id = $1
