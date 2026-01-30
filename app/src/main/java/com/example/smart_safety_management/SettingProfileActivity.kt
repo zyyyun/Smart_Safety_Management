@@ -219,7 +219,7 @@ class SettingProfileActivity : AppCompatActivity() {
                 } else {
                     val errorMsg = response.errorBody()?.string() ?: "탈퇴 처리 중 오류가 발생했습니다."
                     Log.e("Withdraw", "Account deletion failed: $errorMsg")
-                    ToastUtil.showShort(this@SettingProfileActivity, errorMsg)
+                    ToastUtil.showLong(this@SettingProfileActivity, errorMsg)
                 }
             }
 
