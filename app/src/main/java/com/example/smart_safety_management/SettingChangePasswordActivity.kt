@@ -62,7 +62,6 @@ class SettingChangePasswordActivity : AppCompatActivity() {
                     } else {
                         tvNotice.text = "비밀번호가 일치하지 않습니다."
                         tvNotice.setTextColor(ContextCompat.getColor(this@SettingChangePasswordActivity, R.color.red500))
-                        // 에러 시 테두리 색상 변경 (배경을 직접 바꾸는 대신 TextInputLayout의 속성 활용)
                         tilReNewPassword.setBoxStrokeColorStateList(ContextCompat.getColorStateList(this@SettingChangePasswordActivity, R.color.red500)!!)
                     }
                 }
@@ -77,28 +76,38 @@ class SettingChangePasswordActivity : AppCompatActivity() {
             val newPassword = etNewPassword.text.toString()
             val reNewPassword = etReNewPassword.text.toString()
 
-            if (newPassword.isNotEmpty() && newPassword == reNewPassword) {
-                val userId = UserSession.userId
-                if (userId == null) {
-                    ToastUtil.showShort(this, "로그인 정보가 없습니다.")
-                    return@setOnClickListener
-                }
-
-                val request = ChangePasswordRequest(userId, newPassword)
-                RetrofitClient.instance.changePassword(request).enqueue(object : Callback<ChangePasswordResponse> {
-                    override fun onResponse(call: Call<ChangePasswordResponse>, response: Response<ChangePasswordResponse>) {
-                        if (response.isSuccessful) {
-                            ToastUtil.showShort(this@SettingChangePasswordActivity, "비밀번호가 변경되었습니다.")
-                            finish()
-                        } else {
-                            ToastUtil.showShort(this@SettingChangePasswordActivity, "비밀번호 변경 실패")
-                        }
-                    }
-                    override fun onFailure(call: Call<ChangePasswordResponse>, t: Throwable) {
-                        ToastUtil.showShort(this@SettingChangePasswordActivity, "네트워크 오류: ${t.message}")
-                    }
-                })
+            // 비밀번호 복잡도 체크 (영문, 숫자 포함 8자 이상)
+            val passwordPattern = "^(?=.*[A-Za-z])(?=.*\\d).{8,}$"
+            if (!newPassword.matches(passwordPattern.toRegex())) {
+                ToastUtil.showShort(this, "비밀번호는 영문, 숫자 포함 8자 이상이어야 합니다.")
+                return@setOnClickListener
             }
+
+            if (newPassword != reNewPassword) {
+                ToastUtil.showShort(this, "비밀번호가 일치하지 않습니다.")
+                return@setOnClickListener
+            }
+
+            val userId = UserSession.userId
+            if (userId == null) {
+                ToastUtil.showShort(this, "로그인 정보가 없습니다.")
+                return@setOnClickListener
+            }
+
+            val request = ChangePasswordRequest(userId, newPassword)
+            RetrofitClient.instance.changePassword(request).enqueue(object : Callback<ChangePasswordResponse> {
+                override fun onResponse(call: Call<ChangePasswordResponse>, response: Response<ChangePasswordResponse>) {
+                    if (response.isSuccessful) {
+                        ToastUtil.showShort(this@SettingChangePasswordActivity, "비밀번호가 변경되었습니다.")
+                        finish()
+                    } else {
+                        ToastUtil.showShort(this@SettingChangePasswordActivity, "비밀번호 변경 실패")
+                    }
+                }
+                override fun onFailure(call: Call<ChangePasswordResponse>, t: Throwable) {
+                    ToastUtil.showShort(this@SettingChangePasswordActivity, "네트워크 오류: ${t.message}")
+                }
+            })
         }
     }
 
