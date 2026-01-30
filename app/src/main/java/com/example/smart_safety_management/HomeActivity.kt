@@ -184,7 +184,7 @@ class HomeActivity : AppCompatActivity() {
             selectedDay = newDay
             fillCalendarReal()
             updateDailyCheckList(selectedDay)
-            Toast.makeText(this, if (editMode) "수정 완료!" else "작성 완료!", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(this, if (editMode) "수정 완료!" else "작성 완료!")
         }
 
 
@@ -209,7 +209,7 @@ class HomeActivity : AppCompatActivity() {
                 fillCalendarReal()
                 updateDailyCheckList(selectedDay)
 
-                Toast.makeText(this, "삭제 완료!", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "삭제 완료!")
                 return@registerForActivityResult
             }
 
@@ -252,7 +252,7 @@ class HomeActivity : AppCompatActivity() {
                 fillCalendarReal()
                 updateDailyCheckList(selectedDay)
 
-                Toast.makeText(this, "수정 완료!", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "수정 완료!")
                 return@registerForActivityResult
             }
 
@@ -324,7 +324,7 @@ class HomeActivity : AppCompatActivity() {
             onRequestNotify = { day, item ->
                 // ✅ 여기서 “근로자에게 알림 보내기” 구현
                 // (우선 토스트로 확인 가능)
-                Toast.makeText(this, "근로자에게 점검 요청 알림을 보냈어요.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "근로자에게 점검 요청 알림을 보냈어요.")
 
                 // TODO: 실제 구현 (FCM 푸시 or 앱내 알림함 DB/리스트)
                 // sendUncheckedNoticeToWorker(day, item)

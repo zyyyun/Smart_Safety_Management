@@ -570,19 +570,19 @@ fun AIEventDetailScreen(
                         RetrofitClient.instance.handleFalsePositive(request).enqueue(object : Callback<Void> {
                             override fun onResponse(call: Call<Void>, response: Response<Void>) {
                                 if (response.isSuccessful) {
-                                    Toast.makeText(context, "오탐 처리되었습니다.", Toast.LENGTH_SHORT).show()
+                                    ToastUtil.showShort(context, "오탐 처리되었습니다.")
                                     showFalseDetectionDialog = false
                                     onBackClick()
                                 } else {
-                                    Toast.makeText(context, "처리 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                    ToastUtil.showShort(context, "처리 실패: ${response.code()}")
                                 }
                             }
                             override fun onFailure(call: Call<Void>, t: Throwable) {
-                                Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                                ToastUtil.showShort(context, "네트워크 오류: ${t.message}")
                             }
                         })
                     } else {
-                        Toast.makeText(context, "사용자 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(context, "사용자 정보를 찾을 수 없습니다.")
                     }
                 }
             )

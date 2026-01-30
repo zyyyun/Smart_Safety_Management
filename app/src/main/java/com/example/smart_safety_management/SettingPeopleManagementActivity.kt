@@ -54,15 +54,15 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
                     response: Response<RemoveFromGroupResponse>
                 ) {
                     if (response.isSuccessful) {
-                        Toast.makeText(this@SettingPeopleManagementActivity, "${deletedItem.name} 님을 그룹에서 제외했습니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@SettingPeopleManagementActivity, "${deletedItem.name} 님을 그룹에서 제외했습니다.")
                         allPeople.remove(deletedItem)
                         applyFilterAndSearch()
                     } else {
-                        Toast.makeText(this@SettingPeopleManagementActivity, "제거에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@SettingPeopleManagementActivity, "제거에 실패했습니다.")
                     }
                 }
                 override fun onFailure(call: Call<RemoveFromGroupResponse>, t: Throwable) {
-                    Toast.makeText(this@SettingPeopleManagementActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@SettingPeopleManagementActivity, "네트워크 오류: ${t.message}")
                 }
             })
         }
@@ -133,7 +133,7 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
     private fun loadUsers() {
         val userId = UserSession.userId
         if (userId == null) {
-            Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(this, "로그인 정보가 없습니다.")
             return
         }
 
@@ -156,12 +156,12 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
                     }
                     applyFilterAndSearch()
                 } else {
-                    Toast.makeText(this@SettingPeopleManagementActivity, "사용자 목록을 불러오지 못했습니다.", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@SettingPeopleManagementActivity, "사용자 목록을 불러오지 못했습니다.")
                 }
             }
 
             override fun onFailure(call: Call<GetUsersResponse>, t: Throwable) {
-                Toast.makeText(this@SettingPeopleManagementActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this@SettingPeopleManagementActivity, "네트워크 오류: ${t.message}")
             }
         })
     }

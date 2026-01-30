@@ -70,7 +70,7 @@ fun DailyListScreen(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris: List<Uri> ->
         if (uris.isEmpty()) {
-            Toast.makeText(context, "선택된 사진이 없어요", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(context, "선택된 사진이 없어요")
             return@rememberLauncherForActivityResult
         }
 

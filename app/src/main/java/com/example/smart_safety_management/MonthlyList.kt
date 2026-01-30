@@ -338,7 +338,7 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
 
                 if (pickingStartDate) {
                     if (currentEnd != null && selectedDate.isAfter(currentEnd)) {
-                        Toast.makeText(context, "시작일은 종료일보다 빨라야 합니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(context, "시작일은 종료일보다 빨라야 합니다.")
                     } else {
                         startDateStr = selectedDate.format(formatter)
                         onDateChange(selectedDate, currentEnd ?: selectedDate)
@@ -346,7 +346,7 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
                     }
                 } else {
                     if (currentStart != null && selectedDate.isBefore(currentStart)) {
-                        Toast.makeText(context, "종료일은 시작일보다 늦어야 합니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(context, "종료일은 시작일보다 늦어야 합니다.")
                     } else {
                         endDateStr = selectedDate.format(formatter)
                         onDateChange(currentStart ?: selectedDate, selectedDate)

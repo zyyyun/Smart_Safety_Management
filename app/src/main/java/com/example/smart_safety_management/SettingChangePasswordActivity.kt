@@ -80,7 +80,7 @@ class SettingChangePasswordActivity : AppCompatActivity() {
             if (newPassword.isNotEmpty() && newPassword == reNewPassword) {
                 val userId = UserSession.userId
                 if (userId == null) {
-                    Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this, "로그인 정보가 없습니다.")
                     return@setOnClickListener
                 }
 
@@ -88,14 +88,14 @@ class SettingChangePasswordActivity : AppCompatActivity() {
                 RetrofitClient.instance.changePassword(request).enqueue(object : Callback<ChangePasswordResponse> {
                     override fun onResponse(call: Call<ChangePasswordResponse>, response: Response<ChangePasswordResponse>) {
                         if (response.isSuccessful) {
-                            Toast.makeText(this@SettingChangePasswordActivity, "비밀번호가 변경되었습니다.", Toast.LENGTH_SHORT).show()
+                            ToastUtil.showShort(this@SettingChangePasswordActivity, "비밀번호가 변경되었습니다.")
                             finish()
                         } else {
-                            Toast.makeText(this@SettingChangePasswordActivity, "비밀번호 변경 실패", Toast.LENGTH_SHORT).show()
+                            ToastUtil.showShort(this@SettingChangePasswordActivity, "비밀번호 변경 실패")
                         }
                     }
                     override fun onFailure(call: Call<ChangePasswordResponse>, t: Throwable) {
-                        Toast.makeText(this@SettingChangePasswordActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@SettingChangePasswordActivity, "네트워크 오류: ${t.message}")
                     }
                 })
             }

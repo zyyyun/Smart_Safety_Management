@@ -204,7 +204,7 @@ class SettingInviteActivity : AppCompatActivity() {
         try {
             startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(this, "메시지 앱을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(this, "메시지 앱을 열 수 없습니다.")
         }
     }
 }

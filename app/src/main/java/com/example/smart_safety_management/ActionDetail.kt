@@ -77,7 +77,7 @@ fun ActionDetailScreen(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         if (uris.size > 5) {
-            Toast.makeText(context, "사진은 최대 5장까지 첨부 가능합니다.", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(context, "사진은 최대 5장까지 첨부 가능합니다.")
             attachedPhotos = uris.take(5).map { it.toString() }
         } else {
             attachedPhotos = uris.map { it.toString() }
@@ -521,7 +521,7 @@ fun ActionDetailScreen(
                     Button(
                         onClick = {
                             if (actionType.isEmpty() || title.isEmpty() || content.isEmpty()) {
-                                Toast.makeText(context, "모든 항목을 입력해주세요.", Toast.LENGTH_SHORT).show()
+                                ToastUtil.showShort(context, "모든 항목을 입력해주세요.")
                             } else {
                                 val eventIdBody = RequestBody.create("text/plain".toMediaTypeOrNull(), eventId.toString())
                                 val requesterIdBody = RequestBody.create("text/plain".toMediaTypeOrNull(), (UserSession.userId ?: ""))
@@ -542,14 +542,14 @@ fun ActionDetailScreen(
                                 ).enqueue(object : Callback<Void> {
                                     override fun onResponse(call: Call<Void>, response: Response<Void>) {
                                         if (response.isSuccessful) {
-                                            Toast.makeText(context, "조치 요청이 완료되었습니다.", Toast.LENGTH_SHORT).show()
+                                            ToastUtil.showShort(context, "조치 요청이 완료되었습니다.")
                                             onBackClick()
                                         } else {
-                                            Toast.makeText(context, "요청 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                            ToastUtil.showShort(context, "요청 실패: ${response.code()}")
                                         }
                                     }
                                     override fun onFailure(call: Call<Void>, t: Throwable) {
-                                        Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                                        ToastUtil.showShort(context, "네트워크 오류: ${t.message}")
                                     }
                                 })
                             }

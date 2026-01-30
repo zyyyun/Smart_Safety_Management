@@ -63,7 +63,7 @@ class SettingInviteCodeActivity : AppCompatActivity() {
                     UserSession.isInviteDoneWorker = true
                     UserSession.isInviteSuccessWorker = true
                 }
-                Toast.makeText(this, "초대 코드가 등록되었습니다.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "초대 코드가 등록되었습니다.")
                 finish() // 설정 메인으로 돌아가면 checkInviteCodeVisibility에 의해 메뉴가 사라짐
             } else {
                 // 일치하지 않을 때

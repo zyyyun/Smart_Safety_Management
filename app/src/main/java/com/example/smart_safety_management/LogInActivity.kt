@@ -7,7 +7,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import retrofit2.Call
 import retrofit2.Callback
@@ -47,7 +46,7 @@ class LogInActivity : AppCompatActivity() {
             val pw = etPw.text.toString()
 
             if (id.isBlank() || pw.isBlank()) {
-                Toast.makeText(this, "아이디와 비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "아이디와 비밀번호를 입력해주세요.")
                 return@setOnClickListener
             }
 
@@ -81,19 +80,19 @@ class LogInActivity : AppCompatActivity() {
                                 Intent(this@LogInActivity, HomeWorkerActivity::class.java)
                             }
 
-                            Toast.makeText(this@LogInActivity, "로그인 성공", Toast.LENGTH_SHORT).show()
+                            ToastUtil.showShort(this@LogInActivity, "로그인 성공")
                             startActivity(intent)
                             finishAffinity() // 이전 액티비티 스택 제거
                         } else {
-                            Toast.makeText(this@LogInActivity, "로그인 실패: 사용자 정보 오류", Toast.LENGTH_SHORT).show()
+                            ToastUtil.showShort(this@LogInActivity, "로그인 실패: 사용자 정보 오류")
                         }
                     } else {
-                        Toast.makeText(this@LogInActivity, "로그인 실패: 아이디 또는 비밀번호를 확인하세요.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@LogInActivity, "로그인 실패: 아이디 또는 비밀번호를 확인하세요.")
                     }
                 }
 
                 override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
-                    Toast.makeText(this@LogInActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@LogInActivity, "네트워크 오류: ${t.message}")
                 }
             })
         }

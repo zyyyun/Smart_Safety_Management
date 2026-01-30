@@ -85,7 +85,7 @@ class FindPasswordActivity : AppCompatActivity() {
         btnGetCode.setOnClickListener {
             val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
             if (phoneNum.length < 10) {
-                Toast.makeText(this, "올바른 전화번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "올바른 전화번호를 입력해주세요.")
                 return@setOnClickListener
             }
 
@@ -94,15 +94,15 @@ class FindPasswordActivity : AppCompatActivity() {
                 .enqueue(object : Callback<VerificationResponse> {
                     override fun onResponse(call: Call<VerificationResponse>, response: Response<VerificationResponse>) {
                         if (response.isSuccessful) {
-                            Toast.makeText(this@FindPasswordActivity, "인증번호가 전송되었습니다.", Toast.LENGTH_SHORT).show()
+                            ToastUtil.showShort(this@FindPasswordActivity, "인증번호가 전송되었습니다.")
                             btnGetCode.text = "재전송"
                             startTimer(tvNotice, llNotice, ivNotice)
                         } else {
-                            Toast.makeText(this@FindPasswordActivity, "인증번호 전송 실패", Toast.LENGTH_SHORT).show()
+                            ToastUtil.showShort(this@FindPasswordActivity, "인증번호 전송 실패")
                         }
                     }
                     override fun onFailure(call: Call<VerificationResponse>, t: Throwable) {
-                        Toast.makeText(this@FindPasswordActivity, "서버 연결 실패", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@FindPasswordActivity, "서버 연결 실패")
                     }
                 })
         }
@@ -113,7 +113,7 @@ class FindPasswordActivity : AppCompatActivity() {
             val code = etVerifyCode.text.toString().trim()
 
             if (code.isEmpty()) {
-                Toast.makeText(this, "인증번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "인증번호를 입력해주세요.")
                 return@setOnClickListener
             }
 
@@ -123,11 +123,11 @@ class FindPasswordActivity : AppCompatActivity() {
                         if (response.isSuccessful && response.body()?.isVerified == true) {
                             onVerificationSuccess(etPhoneNumber, etVerifyCode, btnGetCode, btnVerify, llNotice, tvNotice, ivNotice)
                         } else {
-                            Toast.makeText(this@FindPasswordActivity, "인증번호가 일치하지 않습니다.", Toast.LENGTH_SHORT).show()
+                            ToastUtil.showShort(this@FindPasswordActivity, "인증번호가 일치하지 않습니다.")
                         }
                     }
                     override fun onFailure(call: Call<CheckVerificationResponse>, t: Throwable) {
-                        Toast.makeText(this@FindPasswordActivity, "서버 연결 실패", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@FindPasswordActivity, "서버 연결 실패")
                     }
                 })
         }
@@ -139,12 +139,12 @@ class FindPasswordActivity : AppCompatActivity() {
             val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
 
             if (name.isEmpty() || id.isEmpty() || phoneNum.isEmpty()) {
-                Toast.makeText(this, "모든 정보를 입력해주세요.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "모든 정보를 입력해주세요.")
                 return@setOnClickListener
             }
 
             if (!isPhoneVerified) {
-                Toast.makeText(this, "휴대폰 인증을 완료해주세요.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "휴대폰 인증을 완료해주세요.")
                 return@setOnClickListener
             }
 
@@ -157,11 +157,11 @@ class FindPasswordActivity : AppCompatActivity() {
                         intent.putExtra("userId", id)
                         startActivity(intent)
                     } else {
-                        Toast.makeText(this@FindPasswordActivity, "입력하신 정보와 일치하는 유저가 없습니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@FindPasswordActivity, "입력하신 정보와 일치하는 유저가 없습니다.")
                     }
                 }
                 override fun onFailure(call: Call<VerifyUserResponse>, t: Throwable) {
-                    Toast.makeText(this@FindPasswordActivity, "서버 통신 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@FindPasswordActivity, "서버 통신 오류: ${t.message}")
                 }
             })
         }

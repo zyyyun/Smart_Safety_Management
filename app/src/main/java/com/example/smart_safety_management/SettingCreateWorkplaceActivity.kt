@@ -78,22 +78,22 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
                             if (response.isSuccessful) {
                                 workplaceAdapter.removeItem(position)
                                 updateUIState() // 삭제 후 UI 상태 업데이트
-                                Toast.makeText(this@SettingCreateWorkplaceActivity, "현장이 삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                                ToastUtil.showShort(this@SettingCreateWorkplaceActivity, "현장이 삭제되었습니다.")
                             } else if (response.code() == 404) {
                                 // 서버에 데이터가 없는 경우(404), 로컬 목록에서도 삭제 처리
                                 workplaceAdapter.removeItem(position)
                                 updateUIState()
-                                Toast.makeText(this@SettingCreateWorkplaceActivity, "서버에 없는 현장을 목록에서 삭제했습니다.", Toast.LENGTH_SHORT).show()
+                                ToastUtil.showShort(this@SettingCreateWorkplaceActivity, "서버에 없는 현장을 목록에서 삭제했습니다.")
                             } else {
-                                Toast.makeText(this@SettingCreateWorkplaceActivity, "삭제 실패: ${response.message()}", Toast.LENGTH_SHORT).show()
+                                ToastUtil.showShort(this@SettingCreateWorkplaceActivity, "삭제 실패: ${response.message()}")
                             }
                         }
                         override fun onFailure(call: Call<DeleteWorkplaceResponse>, t: Throwable) {
-                            Toast.makeText(this@SettingCreateWorkplaceActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                            ToastUtil.showShort(this@SettingCreateWorkplaceActivity, "네트워크 오류: ${t.message}")
                         }
                     })
                 } else {
-                    Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this, "로그인 정보가 없습니다.")
                 }
             }
         )
@@ -124,7 +124,7 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
         // 추가 버튼 클릭 시 리스트에 추가 및 저장
         btnCreate.setOnClickListener {
             if (workplaceList.size >= 1) {
-                //Toast.makeText(this, "현장은 하나만 등록할 수 있습니다.", Toast.LENGTH_SHORT).show()
+                //ToastUtil.showShort(this, "현장은 하나만 등록할 수 있습니다.")
                 return@setOnClickListener
             }
 
@@ -133,7 +133,7 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
 
             if (name.isNotEmpty()) {
                 if (userId == null) {
-                    Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this, "로그인 정보가 없습니다.")
                     return@setOnClickListener
                 }
 
@@ -147,17 +147,17 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
                             etWorkplaceName.text.clear()
                             rvWorkplace.scrollToPosition(workplaceList.size - 1)
                             updateUIState() // 추가 후 UI 상태 업데이트
-                            Toast.makeText(this@SettingCreateWorkplaceActivity, "현장이 생성되었습니다.", Toast.LENGTH_SHORT).show()
+                            ToastUtil.showShort(this@SettingCreateWorkplaceActivity, "현장이 생성되었습니다.")
                         } else {
-                            Toast.makeText(this@SettingCreateWorkplaceActivity, "현장 생성 실패", Toast.LENGTH_SHORT).show()
+                            ToastUtil.showShort(this@SettingCreateWorkplaceActivity, "현장 생성 실패")
                         }
                     }
                     override fun onFailure(call: Call<CreateWorkplaceResponse>, t: Throwable) {
-                        Toast.makeText(this@SettingCreateWorkplaceActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@SettingCreateWorkplaceActivity, "네트워크 오류: ${t.message}")
                     }
                 })
             } /*else {
-                Toast.makeText(this, "현장명을 입력해주세요.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "현장명을 입력해주세요.")
             }*/
         }
     }
@@ -178,7 +178,7 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
                 }
             }
             override fun onFailure(call: Call<GetWorkplaceResponse>, t: Throwable) {
-                Toast.makeText(this@SettingCreateWorkplaceActivity, "목록 불러오기 실패", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this@SettingCreateWorkplaceActivity, "목록 불러오기 실패")
             }
         })
     }

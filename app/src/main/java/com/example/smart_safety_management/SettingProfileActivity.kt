@@ -42,7 +42,7 @@ class SettingProfileActivity : AppCompatActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) openCamera()
-        else Toast.makeText(this, "카메라 권한이 필요합니다.", Toast.LENGTH_SHORT).show()
+        else ToastUtil.showShort(this, "카메라 권한이 필요합니다.")
     }
 
     // 앨범에서 사진 선택 런처
@@ -160,7 +160,7 @@ class SettingProfileActivity : AppCompatActivity() {
         startActivity(intent)
         finish()
         
-        Toast.makeText(this, "로그아웃 되었습니다.", Toast.LENGTH_SHORT).show()
+        ToastUtil.showShort(this, "로그아웃 되었습니다.")
     }
 
     private fun showWithdrawConfirmDialog() {
@@ -195,7 +195,7 @@ class SettingProfileActivity : AppCompatActivity() {
     private fun performWithdraw() {
         val userId = UserSession.userId
         if (userId == null) {
-            Toast.makeText(this, "로그인 정보가 없습니다. 다시 로그인해주세요.", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(this, "로그인 정보가 없습니다. 다시 로그인해주세요.")
             return
         }
 
@@ -206,7 +206,7 @@ class SettingProfileActivity : AppCompatActivity() {
             override fun onResponse(call: Call<Void>, response: Response<Void>) {
                 if (response.isSuccessful) {
                     Log.d("Withdraw", "Account deletion successful")
-                    Toast.makeText(this@SettingProfileActivity, "회원 탈퇴가 완료되었습니다.", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@SettingProfileActivity, "회원 탈퇴가 완료되었습니다.")
                     
                     // 세션 및 로컬 데이터 초기화
                     UserSession.clearSession(this@SettingProfileActivity)
@@ -219,13 +219,13 @@ class SettingProfileActivity : AppCompatActivity() {
                 } else {
                     val errorMsg = response.errorBody()?.string() ?: "탈퇴 처리 중 오류가 발생했습니다."
                     Log.e("Withdraw", "Account deletion failed: $errorMsg")
-                    Toast.makeText(this@SettingProfileActivity, errorMsg, Toast.LENGTH_LONG).show()
+                    ToastUtil.showShort(this@SettingProfileActivity, errorMsg)
                 }
             }
 
             override fun onFailure(call: Call<Void>, t: Throwable) {
                 Log.e("Withdraw", "Network error during account deletion", t)
-                Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this@SettingProfileActivity, "네트워크 오류: ${t.message}")
             }
         })
     }
@@ -239,7 +239,7 @@ class SettingProfileActivity : AppCompatActivity() {
         // 1. Uri를 File로 변환
         val file = uriToFile(uri)
         if (file == null) {
-            Toast.makeText(this, "이미지 파일을 불러올 수 없습니다.", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(this, "이미지 파일을 불러올 수 없습니다.")
             return
         }
 
@@ -255,11 +255,11 @@ class SettingProfileActivity : AppCompatActivity() {
                     // 3. 업로드 성공 시 반환된 URL로 프로필 업데이트
                     updateProfileWithUrl(imageUrl)
                 } else {
-                    Toast.makeText(this@SettingProfileActivity, "이미지 업로드 실패", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@SettingProfileActivity, "이미지 업로드 실패")
                 }
             }
             override fun onFailure(call: Call<UploadImageResponse>, t: Throwable) {
-                Toast.makeText(this@SettingProfileActivity, "업로드 네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this@SettingProfileActivity, "업로드 네트워크 오류: ${t.message}")
             }
         })
     }
@@ -289,13 +289,13 @@ class SettingProfileActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     UserSession.profileImageUri = imageUrl // 세션에도 URL 저장
                     UserSession.saveSession(this@SettingProfileActivity) // 변경된 이미지 URL 저장
-                    Toast.makeText(this@SettingProfileActivity, "프로필 사진이 서버에 저장되었습니다.", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@SettingProfileActivity, "프로필 사진이 서버에 저장되었습니다.")
                 } else {
-                    Toast.makeText(this@SettingProfileActivity, "프로필 정보 업데이트 실패", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@SettingProfileActivity, "프로필 정보 업데이트 실패")
                 }
             }
             override fun onFailure(call: Call<UpdateProfileResponse>, t: Throwable) {
-                Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this@SettingProfileActivity, "네트워크 오류: ${t.message}")
             }
         })
     }
@@ -381,7 +381,7 @@ class SettingProfileActivity : AppCompatActivity() {
             val userId = UserSession.userId
 
             if (userId == null) {
-                Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "로그인 정보가 없습니다.")
                 return@setOnClickListener
             }
 
@@ -394,13 +394,13 @@ class SettingProfileActivity : AppCompatActivity() {
                         tvPhoneValue.text = formatPhoneNumber(newPhone)
                         layoutPhoneEdit.visibility = View.GONE
                         layoutPhoneView?.visibility = View.VISIBLE
-                        Toast.makeText(this@SettingProfileActivity, "전화번호가 수정되었습니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@SettingProfileActivity, "전화번호가 수정되었습니다.")
                     } else {
-                        Toast.makeText(this@SettingProfileActivity, "수정 실패", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@SettingProfileActivity, "수정 실패")
                     }
                 }
                 override fun onFailure(call: Call<UpdateProfileResponse>, t: Throwable) {
-                    Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@SettingProfileActivity, "네트워크 오류: ${t.message}")
                 }
             })
         }
@@ -431,7 +431,7 @@ class SettingProfileActivity : AppCompatActivity() {
             val userId = UserSession.userId
 
             if (userId == null) {
-                Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "로그인 정보가 없습니다.")
                 return@setOnClickListener
             }
 
@@ -444,13 +444,13 @@ class SettingProfileActivity : AppCompatActivity() {
                         tvEmailValue.text = newEmail
                         layoutEmailEdit.visibility = View.GONE
                         layoutEmailView?.visibility = View.VISIBLE
-                        Toast.makeText(this@SettingProfileActivity, "이메일이 수정되었습니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@SettingProfileActivity, "이메일이 수정되었습니다.")
                     } else {
-                        Toast.makeText(this@SettingProfileActivity, "수정 실패", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@SettingProfileActivity, "수정 실패")
                     }
                 }
                 override fun onFailure(call: Call<UpdateProfileResponse>, t: Throwable) {
-                    Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@SettingProfileActivity, "네트워크 오류: ${t.message}")
                 }
             })
         }
@@ -487,7 +487,7 @@ class SettingProfileActivity : AppCompatActivity() {
             if (newName.isNotEmpty()) {
                 val userId = UserSession.userId
                 if (userId == null) {
-                    Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this, "로그인 정보가 없습니다.")
                     return@setOnClickListener
                 }
 
@@ -498,14 +498,14 @@ class SettingProfileActivity : AppCompatActivity() {
                             UserSession.userName = newName
                             UserSession.saveSession(this@SettingProfileActivity) // 변경된 정보 저장
                             findViewById<TextView>(R.id.tv_user_name).text = newName
-                            Toast.makeText(this@SettingProfileActivity, "이름이 변경되었습니다.", Toast.LENGTH_SHORT).show()
+                            ToastUtil.showShort(this@SettingProfileActivity, "이름이 변경되었습니다.")
                             alertDialog.dismiss()
                         } else {
-                            Toast.makeText(this@SettingProfileActivity, "이름 변경 실패", Toast.LENGTH_SHORT).show()
+                            ToastUtil.showShort(this@SettingProfileActivity, "이름 변경 실패")
                         }
                     }
                     override fun onFailure(call: Call<UpdateProfileResponse>, t: Throwable) {
-                        Toast.makeText(this@SettingProfileActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@SettingProfileActivity, "네트워크 오류: ${t.message}")
                     }
                 })
             }
