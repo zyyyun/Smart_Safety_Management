@@ -294,6 +294,23 @@ data class GetDailyChecksResponse(
     val checks: List<DailyCheckDTO>
 )
 
+data class NotificationDTO(
+    @SerializedName("notification_id") val id: Int,
+    val title: String,
+    val content: String,
+    @SerializedName("created_at") val createdAt: String,
+    @SerializedName("is_read") var isRead: Boolean
+)
+
+data class GetNotificationsResponse(
+    val notifications: List<NotificationDTO>
+)
+
+data class MarkNotificationReadRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("notification_id") val notificationId: Int? = null
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -415,4 +432,10 @@ interface SignUpService {
         @Part keptImageUrls: List<MultipartBody.Part>,
         @Part newImages: List<MultipartBody.Part>
     ): Call<CreateDailyCheckResponse>
+
+    @GET("/get_notifications")
+    fun getNotifications(@Query("user_id") userId: String): Call<GetNotificationsResponse>
+
+    @POST("/mark_notifications_read")
+    fun markNotificationsRead(@Body request: MarkNotificationReadRequest): Call<Void>
 }

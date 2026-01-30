@@ -1,6 +1,5 @@
 package com.example.smart_safety_management
 
-import NoticeItem
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,7 +9,7 @@ import android.widget.ImageView
 
 class NoticeAdapter(
     private val items: MutableList<NoticeItem>,
-    private val onItemReadChanged: () -> Unit // 콜백
+    private val onItemReadChanged: (NoticeItem) -> Unit // 콜백: 읽음 처리된 아이템 전달
 ) : RecyclerView.Adapter<NoticeAdapter.ViewHolder>() {
 
     // ===============================
@@ -76,7 +75,7 @@ class NoticeAdapter(
                 notifyItemChanged(position)
 
                 // Activity에 알림
-                onItemReadChanged()
+                onItemReadChanged(item)
             }
         }
     }
