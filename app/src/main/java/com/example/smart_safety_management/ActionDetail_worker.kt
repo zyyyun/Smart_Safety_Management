@@ -430,14 +430,14 @@ fun ActionDetailWorkerScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues),
+                        .padding(paddingValues)
+                        .navigationBarsPadding(), // 시스템 하단 바 높이만큼 패딩 추가
                     color = MaterialTheme.colors.onPrimary
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp)
-                            .verticalScrollbar(scrollState)
                             .verticalScroll(scrollState),
                         horizontalAlignment = Alignment.Start
                     ) {
@@ -765,7 +765,7 @@ fun ActionDetailWorkerScreen(
                                 letterSpacing = (-0.3).sp
                             )
                         }
-                        Spacer(modifier = Modifier.height(60.dp))
+                        Spacer(modifier = Modifier.height(100.dp)) // 하단 여백을 넉넉하게 늘림
                     }
                 }
             }

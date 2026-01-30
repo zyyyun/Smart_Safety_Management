@@ -28,10 +28,14 @@ router.get('/get_detection_events', async (req, res) => {
             SELECT
                 de.event_id, de.risk_level, de.install_area, de.device_name, de.accuracy, de.status,
                 to_char(de.detected_at, 'YYYY-MM-DD HH24:MI:SS') as detected_at,
-                et.event_name
+                et.event_name,
+                u.name as worker_name,
+                to_char(ar.completed_at, 'YYYY-MM-DD HH24:MI:SS') as completed_at
             FROM detection_events de
             JOIN cameras c ON de.camera_id = c.camera_id
             LEFT JOIN event_types et ON de.type_id = et.id
+            LEFT JOIN action_requests ar ON de.event_id = ar.event_id
+            LEFT JOIN users u ON ar.worker_id = u.user_id
             WHERE c.group_id = $1
             ORDER BY de.detected_at DESC
         `;
