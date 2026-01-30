@@ -3,22 +3,30 @@ package com.example.smart_safety_management
 import android.content.Intent
 import android.graphics.Paint
 import android.os.Bundle
+import android.os.CountDownTimer
 import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
+import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.google.android.material.textfield.TextInputEditText
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.util.Locale
 
 class FindPasswordActivity : AppCompatActivity() {
 
     private var isPhoneVerified = false
+    private var countDownTimer: CountDownTimer? = null
+    private val verificationTime = 180000L // 3분
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,11 +35,15 @@ class FindPasswordActivity : AppCompatActivity() {
         val etName = findViewById<TextInputEditText>(R.id.et_name)
         val etId = findViewById<TextInputEditText>(R.id.et_id)
         val etPhoneNumber = findViewById<TextInputEditText>(R.id.et_phone_number)
-        val etVerify = findViewById<TextInputEditText>(R.id.et_verify)
+        val etVerifyCode = findViewById<TextInputEditText>(R.id.et_verify)
 
         val btnGetCode = findViewById<Button>(R.id.phone_number_button)
         val btnVerify = findViewById<Button>(R.id.verify_button)
         val nextButton = findViewById<Button>(R.id.next_button)
+
+        val llNotice = findViewById<LinearLayout>(R.id.ll_notice)
+        val ivNotice = findViewById<ImageView>(R.id.iv_notice)
+        val tvNotice = findViewById<TextView>(R.id.tv_notice)
 
         // 전화번호 하이픈 자동 추가
         etPhoneNumber.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(13))
@@ -72,8 +84,8 @@ class FindPasswordActivity : AppCompatActivity() {
         // 인증번호 받기 버튼
         btnGetCode.setOnClickListener {
             val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
-            if (phoneNum.isEmpty()) {
-                Toast.makeText(this, "전화번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
+            if (phoneNum.length < 10) {
+                Toast.makeText(this, "올바른 전화번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -83,6 +95,8 @@ class FindPasswordActivity : AppCompatActivity() {
                     override fun onResponse(call: Call<VerificationResponse>, response: Response<VerificationResponse>) {
                         if (response.isSuccessful) {
                             Toast.makeText(this@FindPasswordActivity, "인증번호가 전송되었습니다.", Toast.LENGTH_SHORT).show()
+                            btnGetCode.text = "재전송"
+                            startTimer(tvNotice, llNotice, ivNotice)
                         } else {
                             Toast.makeText(this@FindPasswordActivity, "인증번호 전송 실패", Toast.LENGTH_SHORT).show()
                         }
@@ -96,7 +110,7 @@ class FindPasswordActivity : AppCompatActivity() {
         // 인증 확인 버튼
         btnVerify.setOnClickListener {
             val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
-            val code = etVerify.text.toString().trim()
+            val code = etVerifyCode.text.toString().trim()
 
             if (code.isEmpty()) {
                 Toast.makeText(this, "인증번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
@@ -107,12 +121,7 @@ class FindPasswordActivity : AppCompatActivity() {
                 .enqueue(object : Callback<CheckVerificationResponse> {
                     override fun onResponse(call: Call<CheckVerificationResponse>, response: Response<CheckVerificationResponse>) {
                         if (response.isSuccessful && response.body()?.isVerified == true) {
-                            isPhoneVerified = true
-                            etPhoneNumber.isEnabled = false
-                            etVerify.isEnabled = false
-                            btnGetCode.isEnabled = false
-                            btnVerify.isEnabled = false
-                            Toast.makeText(this@FindPasswordActivity, "인증되었습니다.", Toast.LENGTH_SHORT).show()
+                            onVerificationSuccess(etPhoneNumber, etVerifyCode, btnGetCode, btnVerify, llNotice, tvNotice, ivNotice)
                         } else {
                             Toast.makeText(this@FindPasswordActivity, "인증번호가 일치하지 않습니다.", Toast.LENGTH_SHORT).show()
                         }
@@ -144,20 +153,75 @@ class FindPasswordActivity : AppCompatActivity() {
             RetrofitClient.instance.verifyUserForPassword(verifyRequest).enqueue(object : Callback<VerifyUserResponse> {
                 override fun onResponse(call: Call<VerifyUserResponse>, response: Response<VerifyUserResponse>) {
                     if (response.isSuccessful && response.body()?.exists == true) {
-                        // 정보가 일치함 -> 비밀번호 변경 화면으로 이동
                         val intent = Intent(this@FindPasswordActivity, ChangePasswordActivity::class.java)
                         intent.putExtra("userId", id)
                         startActivity(intent)
                     } else {
-                        // 정보가 일치하지 않음
                         Toast.makeText(this@FindPasswordActivity, "입력하신 정보와 일치하는 유저가 없습니다.", Toast.LENGTH_SHORT).show()
                     }
                 }
-
                 override fun onFailure(call: Call<VerifyUserResponse>, t: Throwable) {
                     Toast.makeText(this@FindPasswordActivity, "서버 통신 오류: ${t.message}", Toast.LENGTH_SHORT).show()
                 }
             })
         }
+    }
+
+    private fun startTimer(tvNotice: TextView, llNotice: LinearLayout, ivNotice: ImageView) {
+        countDownTimer?.cancel()
+        llNotice.visibility = View.VISIBLE
+        ivNotice.visibility = View.GONE
+
+        countDownTimer = object : CountDownTimer(verificationTime, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                val minutes = (millisUntilFinished / 1000) / 60
+                val seconds = (millisUntilFinished / 1000) % 60
+                tvNotice.text = String.format(Locale.getDefault(), "남은 시간 %02d:%02d", minutes, seconds)
+                tvNotice.setTextColor(ContextCompat.getColor(this@FindPasswordActivity, R.color.gray700_gray400))
+            }
+
+            override fun onFinish() {
+                tvNotice.text = "인증 시간이 만료되었습니다. 다시 시도해주세요."
+                tvNotice.setTextColor(ContextCompat.getColor(this@FindPasswordActivity, android.R.color.holo_red_dark))
+                ivNotice.visibility = View.VISIBLE
+                ivNotice.setImageResource(R.drawable.ic_error)
+                isPhoneVerified = false
+            }
+        }.start()
+    }
+
+    private fun onVerificationSuccess(
+        etPhone: TextInputEditText,
+        etVerify: TextInputEditText,
+        btnGet: Button,
+        btnVer: Button,
+        llNotice: LinearLayout,
+        tvNotice: TextView,
+        ivNotice: ImageView
+    ) {
+        isPhoneVerified = true
+        countDownTimer?.cancel()
+
+        llNotice.visibility = View.VISIBLE
+        tvNotice.text = "인증이 완료되었습니다."
+        tvNotice.setTextColor(ContextCompat.getColor(this, R.color.teal500))
+        ivNotice.visibility = View.VISIBLE
+        ivNotice.setImageResource(R.drawable.ic_success)
+
+        etPhone.isEnabled = false
+        etVerify.isEnabled = false
+
+        btnGet.isEnabled = false
+        btnGet.backgroundTintList = ContextCompat.getColorStateList(this, R.color.gray50_gray900)
+        btnGet.setTextColor(ContextCompat.getColor(this, R.color.gray400_gray700))
+
+        btnVer.isEnabled = false
+        btnVer.backgroundTintList = ContextCompat.getColorStateList(this, R.color.gray50_gray900)
+        btnVer.setTextColor(ContextCompat.getColor(this, R.color.gray400_gray700))
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        countDownTimer?.cancel()
     }
 }
