@@ -301,27 +301,33 @@ class HomeActivity : AppCompatActivity() {
 
         val rv = findViewById<RecyclerView>(R.id.rv_daily_check)
         rv.layoutManager = LinearLayoutManager(this)
-        dailyAdapter = DailyCheckAdapter(emptyList()) { day, item ->
-            Log.d("PHOTO_DEBUG", "detail open day=$day id=${item.id} photoCount=${item.photoUris.size} uris=${item.photoUris}")
+        dailyAdapter = DailyCheckAdapter(
+            items = emptyList(),
+            onOpenDetail = { day, item ->
+                // 기존 상세 열기 로직 그대로
+                val dateStr = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, day)
 
-            val dateStr = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, day)
+                val intent = Intent(this, DailyDetailActivity::class.java).apply {
+                    putExtra("day", day)
+                    putExtra("itemId", item.id)
+                    putExtra("date", dateStr)
+                    putExtra("location", item.title)
+                    putExtra("riskFactor", item.desc)
+                    putExtra("safetyMeasure", item.safetyMeasure)
+                    putExtra("status", item.status)
+                    putStringArrayListExtra("photoUris", ArrayList(item.photoUris))
+                }
+                detailLauncher.launch(intent)
+            },
+            onRequestNotify = { day, item ->
+                // ✅ 여기서 “근로자에게 알림 보내기” 구현
+                // (우선 토스트로 확인 가능)
+                Toast.makeText(this, "근로자에게 점검 요청 알림을 보냈어요.", Toast.LENGTH_SHORT).show()
 
-            val intent = Intent(this, DailyDetailActivity::class.java).apply {
-                putExtra("day", day)
-                putExtra("itemId", item.id)
-
-                // ✅ 디테일 화면에 보여줄 실제 데이터
-                putExtra("date", dateStr)
-                putExtra("location", item.title)      // title을 위치로 쓰고 있었지?
-                putExtra("riskFactor", item.desc)     // desc를 위험요인으로
-                putExtra("safetyMeasure", item.safetyMeasure)
-                putExtra("status", item.status)
-
-                putStringArrayListExtra("photoUris", ArrayList(item.photoUris))
-
+                // TODO: 실제 구현 (FCM 푸시 or 앱내 알림함 DB/리스트)
+                // sendUncheckedNoticeToWorker(day, item)
             }
-            detailLauncher.launch(intent)
-        }
+        )
 
         rv.adapter = dailyAdapter
 

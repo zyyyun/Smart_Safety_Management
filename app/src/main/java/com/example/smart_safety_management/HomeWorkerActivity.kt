@@ -27,7 +27,8 @@ import com.google.android.material.card.MaterialCardView
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-
+import com.google.firebase.messaging.FirebaseMessaging
+import android.util.Log
 private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>(
     7 to mutableListOf(
         DailyCheckItem(title="B구역 1열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
@@ -73,6 +74,7 @@ class HomeWorkerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        subscribeWorkerTopic()
         setContentView(R.layout.main_home_worker)
 
         initUI()
@@ -114,9 +116,16 @@ class HomeWorkerActivity : AppCompatActivity() {
                     putExtra("day", day)
                     putExtra("itemId", item.id)
                 }
-                detailLauncher.launch(intent)   // ✅ 삭제 결과 받는 launcher로 열기
+                detailLauncher.launch(intent)
+            },
+            onRequestNotify = { day, item ->
+                // ✅ HomeWorkerActivity(근로자 화면)에서는 보통 호출될 일이 없지만,
+                // 혹시라도 들어오면 그냥 상세 열기로 보내거나 무시해도 됨.
+                // (무시)
+                // 또는: onOpenDetail(day, item) 같은 동작
             }
         )
+
         rvDaily.adapter = dailyAdapter
 
 
@@ -370,4 +379,10 @@ class HomeWorkerActivity : AppCompatActivity() {
     private fun calculateTimeAgo(dateStr: String?): String {
         return "방금 전" // 실제 로직 생략
     }
+}
+
+private fun subscribeWorkerTopic() {
+    FirebaseMessaging.getInstance().subscribeToTopic("workers")
+        .addOnSuccessListener { Log.d("FCM", "Subscribed to topic workers") }
+        .addOnFailureListener { e -> Log.e("FCM", "Subscribe failed", e) }
 }

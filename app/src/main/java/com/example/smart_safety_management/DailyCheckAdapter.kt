@@ -12,7 +12,8 @@ import com.google.android.material.card.MaterialCardView
 
 class DailyCheckAdapter(
     private var items: List<DailyCheckItem>,
-    private val onOpenDetail: (day: Int, item: DailyCheckItem) -> Unit // ✅ 추가: HomeActivity가 처리
+    private val onOpenDetail: (day: Int, item: DailyCheckItem) -> Unit,          // ✅ 카드 클릭(상세)
+    private val onRequestNotify: (day: Int, item: DailyCheckItem) -> Unit        // ✅ 관리자 미점검 클릭(알림)
 ) : RecyclerView.Adapter<DailyCheckAdapter.VH>() {
 
     private var tooltipPopup: TooltipPopup? = null
@@ -44,18 +45,26 @@ class DailyCheckAdapter(
         holder.desc.text = item.desc
         holder.statusText.text = item.status
 
-        if (UserSession.userRole == UserRole.MANAGER) {
-            holder.statusIcon.visibility = View.VISIBLE
-        } else {
-            holder.statusIcon.visibility = View.GONE
+        val isManager = UserSession.userRole == UserRole.MANAGER
+
+        // ✅ 관리자만 종 아이콘 보이게
+        holder.statusIcon.visibility = if (isManager) View.VISIBLE else View.GONE
+
+        // ✅ 1) 카드 전체 클릭 -> 상세 열기 (미점검/점검완료 상관없이)
+        holder.cardView.setOnClickListener {
+            if (currentDay != -1) onOpenDetail(currentDay, item)
         }
 
         if (item.status == "점검완료") {
             holder.cardView.setCardBackgroundColor(
                 ContextCompat.getColor(holder.itemView.context, R.color.gray50_gray900)
             )
-            holder.title.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.gray500_gray650))
-            holder.desc.setTextColor(ContextCompat.getColor(holder.itemView.context, R.color.gray500_gray650))
+            holder.title.setTextColor(
+                ContextCompat.getColor(holder.itemView.context, R.color.gray500_gray650)
+            )
+            holder.desc.setTextColor(
+                ContextCompat.getColor(holder.itemView.context, R.color.gray500_gray650)
+            )
 
             holder.statusLayout.isClickable = false
             holder.statusLayout.isFocusable = false
@@ -66,7 +75,9 @@ class DailyCheckAdapter(
             holder.statusIcon.setColorFilter(ContextCompat.getColor(holder.itemView.context, R.color.teal500))
 
             holder.cardView.strokeWidth = 0
+
         } else {
+            // 미점검 UI
             holder.cardView.setCardBackgroundColor(
                 ContextCompat.getColor(holder.itemView.context, R.color.orange400alpha12_orange400alpha36)
             )
@@ -88,14 +99,20 @@ class DailyCheckAdapter(
             holder.cardView.strokeColor =
                 ContextCompat.getColor(holder.itemView.context, R.color.orange400alpha12_orange400alpha36)
 
-            // ✅ 미점검 버튼 클릭
+            // ✅ 2) 미점검 “상태 버튼(칩)” 클릭 동작 분기
             holder.statusLayout.setOnClickListener {
+                // 툴팁은 기존처럼 닫기
                 isTooltipDismissedPermanently = true
                 tooltipPopup?.dismiss()
                 tooltipPopup = null
 
-                // ✅ Adapter가 화면 이동하지 말고, HomeActivity에게 “열어줘” 요청
-                if (currentDay != -1) {
+                if (currentDay == -1) return@setOnClickListener
+
+                if (isManager) {
+                    // ✅ 관리자: 미점검 버튼 누르면 근로자에게 알림 보내기 (상세는 안 열기)
+                    onRequestNotify(currentDay, item)
+                } else {
+                    // ✅ 근로자: 기존처럼 상세 열기
                     onOpenDetail(currentDay, item)
                 }
             }
@@ -137,10 +154,6 @@ class DailyCheckAdapter(
     fun dismissTooltip() {
         tooltipPopup?.dismiss()
         tooltipPopup = null
-    }
-
-    override fun onViewRecycled(holder: VH) {
-        super.onViewRecycled(holder)
     }
 
     fun initTooltip() {

@@ -82,6 +82,7 @@ dependencies {
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("androidx.activity:activity-ktx:1.9.0")
     implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("com.google.firebase:firebase-messaging-ktx")
 
     // Firebase
     implementation(platform(libs.firebase.bom))

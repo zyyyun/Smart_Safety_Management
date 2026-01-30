@@ -510,6 +510,7 @@ fun ActionDetailScreen(
                                     .size(100.dp)
                                     .clip(RoundedCornerShape(8.dp)),
                                 contentScale = ContentScale.Crop
+
                             )
                         }
                     }
