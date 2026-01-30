@@ -102,6 +102,7 @@ private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>(
 
 class HomeActivity : AppCompatActivity() {
 
+    private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>()
     private lateinit var dailyAdapter: DailyCheckAdapter
     private var selectedDay: Int? = null
     private var isInviteDialogShowing = false
@@ -114,6 +115,7 @@ class HomeActivity : AppCompatActivity() {
         Log.d("PHOTO_DEBUG", "HomeActivity onCreate called")
         setContentView(R.layout.main_home)
 
+        // initUI 내부에서 fetchDailyChecks 호출 예정
         initUI()
     }
 
@@ -403,7 +405,11 @@ class HomeActivity : AppCompatActivity() {
                 val params = ivProfileBar.layoutParams as ViewGroup.MarginLayoutParams
                 UserSession.profileImageUri?.let { uriString ->
                     // 사진이 있을 때: 부모 CardView 제약까지 풀어서 원에 꽉 차도록 설정
-                    ivProfileBar.setImageURI(Uri.parse(uriString))
+                    Glide.with(this)
+                        .load(uriString)
+                        .placeholder(R.drawable.profile)
+                        .error(R.drawable.profile)
+                        .into(ivProfileBar)
 
                     cardProfile?.apply {
                         setContentPadding(0, 0, 0, 0)

@@ -24,6 +24,7 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import com.google.android.material.card.MaterialCardView
+import com.bumptech.glide.Glide
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -54,11 +55,15 @@ private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>(
 
 
 
+
 class HomeWorkerActivity : AppCompatActivity() {
 
+    private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>()
     private lateinit var dailyAdapter: DailyCheckAdapter
     private lateinit var eventAdapter: WorkerEventAdapter
     private var selectedDay: Int? = null
+    private var selectedYear: Int = 0
+    private var selectedMonth: Int = 0
     private var isInviteDialogShowing = false
 
     private val detailLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -125,7 +130,6 @@ class HomeWorkerActivity : AppCompatActivity() {
                 // 또는: onOpenDetail(day, item) 같은 동작
             }
         )
-
         rvDaily.adapter = dailyAdapter
 
 
@@ -147,8 +151,49 @@ class HomeWorkerActivity : AppCompatActivity() {
             }
         )
 
+        val cal = Calendar.getInstance()
+        selectedYear = cal.get(Calendar.YEAR)
+        selectedMonth = cal.get(Calendar.MONTH) + 1
+
+        // 초기 리스트 갱신 (오늘 날짜 기준 빈 리스트라도 표시)
         updateDailyCheckList(selectedDay)
+
         fetchWorkerEvents()
+        fetchDailyChecks()
+    }
+
+    private fun fetchDailyChecks() {
+        val userId = UserSession.userId ?: return
+        RetrofitClient.instance.getDailyChecks(userId, selectedYear, selectedMonth).enqueue(object : Callback<GetDailyChecksResponse> {
+            override fun onResponse(call: Call<GetDailyChecksResponse>, response: Response<GetDailyChecksResponse>) {
+                if (response.isSuccessful) {
+                    dailyCheckMap.clear()
+                    val checks = response.body()?.checks ?: emptyList()
+                    checks.forEach { dto ->
+                        val targetDate = dto.createdAt ?: dto.checkDate
+                        val day = try {
+                            targetDate.substring(8, 10).toInt()
+                        } catch (e: Exception) {
+                            targetDate.split("-").getOrNull(2)?.take(2)?.toIntOrNull()
+                        }
+
+                        if (day != null) {
+                            val item = DailyCheckItem(
+                                id = dto.checkId.toString(),
+                                title = dto.location,
+                                desc = dto.hazard ?: "",
+                                safetyMeasure = dto.countermeasure ?: "",
+                                status = dto.status,
+                                photoUris = emptyList()
+                            )
+                            dailyCheckMap.getOrPut(day) { mutableListOf() }.add(item)
+                        }
+                    }
+                    updateDailyCheckList(selectedDay)
+                }
+            }
+            override fun onFailure(call: Call<GetDailyChecksResponse>, t: Throwable) {}
+        })
     }
 
     private fun fetchWorkerEvents() {
@@ -237,7 +282,11 @@ class HomeWorkerActivity : AppCompatActivity() {
                 val params = ivProfileBar.layoutParams as ViewGroup.MarginLayoutParams
                 UserSession.profileImageUri?.let { uriString ->
                     // 사진이 있을 때: 부모 CardView 제약까지 풀어서 원에 꽉 차도록 설정
-                    ivProfileBar.setImageURI(Uri.parse(uriString))
+                    Glide.with(this)
+                        .load(uriString)
+                        .placeholder(R.drawable.profile)
+                        .error(R.drawable.profile)
+                        .into(ivProfileBar)
 
                     cardProfile?.apply {
                         setContentPadding(0, 0, 0, 0)

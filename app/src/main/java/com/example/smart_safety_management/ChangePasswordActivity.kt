@@ -2,9 +2,13 @@ package com.example.smart_safety_management
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.textfield.TextInputEditText
@@ -13,6 +17,10 @@ import retrofit2.Callback
 import retrofit2.Response
 
 class ChangePasswordActivity : AppCompatActivity() {
+
+    private lateinit var llNotice: LinearLayout
+    private lateinit var tvNotice: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.change_password)
@@ -25,6 +33,17 @@ class ChangePasswordActivity : AppCompatActivity() {
 
         val etNewPw = findViewById<TextInputEditText>(R.id.et_new_password)
         val etReNewPw = findViewById<TextInputEditText>(R.id.et_re_new_password)
+        llNotice = findViewById(R.id.ll_notice)
+        tvNotice = findViewById(R.id.tv_notice)
+
+        // 비밀번호 입력 실시간 체크
+        etNewPw.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                validatePasswordRealTime(s.toString())
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
 
         // 변경완료 버튼
         val finishButton = findViewById<Button>(R.id.finish_button)
@@ -40,7 +59,8 @@ class ChangePasswordActivity : AppCompatActivity() {
 
             val pwError = getPasswordErrorMessage(newPw)
             if (pwError != null) {
-                Toast.makeText(this, pwError, Toast.LENGTH_SHORT).show()
+                tvNotice.text = pwError
+                llNotice.visibility = View.VISIBLE
                 return@setOnClickListener
             }
 
@@ -50,7 +70,6 @@ class ChangePasswordActivity : AppCompatActivity() {
             }
 
             // 2. 서버로 변경 요청
-            // FindPasswordActivity에서 전달받은 userId를 사용합니다.
             val userId = intent.getStringExtra("userId")
 
             if (userId == null) {
@@ -63,7 +82,6 @@ class ChangePasswordActivity : AppCompatActivity() {
                 override fun onResponse(call: Call<ChangePasswordResponse>, response: Response<ChangePasswordResponse>) {
                     if (response.isSuccessful) {
                         Toast.makeText(this@ChangePasswordActivity, "비밀번호가 성공적으로 변경되었습니다.", Toast.LENGTH_SHORT).show()
-                        // 로그인 화면으로 이동하거나 가입 완료 화면 등으로 이동
                         val intent = Intent(this@ChangePasswordActivity, LogInActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         startActivity(intent)
@@ -76,6 +94,21 @@ class ChangePasswordActivity : AppCompatActivity() {
                     Toast.makeText(this@ChangePasswordActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
                 }
             })
+        }
+    }
+
+    private fun validatePasswordRealTime(pw: String) {
+        if (pw.isEmpty()) {
+            llNotice.visibility = View.GONE
+            return
+        }
+
+        val errorMsg = getPasswordErrorMessage(pw)
+        if (errorMsg != null) {
+            tvNotice.text = errorMsg
+            llNotice.visibility = View.VISIBLE
+        } else {
+            llNotice.visibility = View.GONE
         }
     }
 

@@ -50,12 +50,6 @@ class SignUp2Activity : AppCompatActivity() {
                         val message = extras.get(SmsRetriever.EXTRA_SMS_MESSAGE) as? String
                         message?.let {
                             Log.d("SignUp2Activity", "SMS 수신 성공: $it")
-                            val pattern = Regex("\\d{6}")
-                            val match = pattern.find(it)
-                            match?.value?.let { code ->
-                                findViewById<TextInputEditText>(R.id.et_verify).setText(code)
-                                Toast.makeText(context, "인증번호가 자동으로 입력되었습니다.", Toast.LENGTH_SHORT).show()
-                            }
                         }
                     }
                     CommonStatusCodes.TIMEOUT -> {

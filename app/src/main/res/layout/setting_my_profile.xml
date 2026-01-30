@@ -200,6 +200,51 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- 아이디 정보 행 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- 왼쪽 라벨 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/pretendard_medium"
+            android:text="아이디"
+            android:letterSpacing="0"
+            android:textColor="@color/gray800_gray200"
+            android:textSize="18sp"/>
+
+        <!-- 오른쪽 값 + 아이콘 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="end|center_vertical">
+
+            <TextView
+                android:id="@+id/tv_user_id"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/pretendard_medium"
+                android:text="123"
+                android:letterSpacing="0"
+                android:textColor="@color/gray900_gray50"
+                android:textSize="18sp"/>
+
+            <ImageView
+                android:layout_width="10dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="8dp"
+                android:src="@drawable/right_arrow"
+                android:tint="@color/gray100_gray950"/>
+        </LinearLayout>
+    </LinearLayout>
+
     <!-- 휴대폰 번호 정보 행 -->
     <LinearLayout
         android:layout_width="match_parent"
