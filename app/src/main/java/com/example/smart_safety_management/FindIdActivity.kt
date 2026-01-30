@@ -3,7 +3,9 @@ package com.example.smart_safety_management
 import android.content.Intent
 import android.graphics.Paint
 import android.os.Bundle
-import android.telephony.PhoneNumberFormattingTextWatcher
+import android.text.Editable
+import android.text.InputFilter
+import android.text.TextWatcher
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
@@ -22,8 +24,28 @@ class FindIdActivity: AppCompatActivity() {
         val etName = findViewById<EditText>(R.id.et_name)
         val etPhoneNumber = findViewById<EditText>(R.id.et_phone_number)
 
-        // 전화번호 하이픈 자동 추가
-        etPhoneNumber.addTextChangedListener(PhoneNumberFormattingTextWatcher())
+        // 전화번호 하이픈 자동 추가 (SignUp2Activity와 동일한 방식)
+        etPhoneNumber.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(13))
+        etPhoneNumber.addTextChangedListener(object : TextWatcher {
+            private var isFormatting = false
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                if (isFormatting) return
+                isFormatting = true
+                val input = s.toString().replace("-", "")
+                val formatted = when {
+                    input.length <= 3 -> input
+                    input.length <= 7 -> {
+                        if (input.length > 3) "${input.substring(0, 3)}-${input.substring(3)}"
+                        else input
+                    }
+                    else -> "${input.substring(0, 3)}-${input.substring(3, 7)}-${input.substring(7)}"
+                }
+                s?.replace(0, s.length, formatted)
+                isFormatting = false
+            }
+        })
 
         // 비밀번호 찾기 텍스트
         val findPassword = findViewById<TextView>(R.id.tv_find_password)
@@ -48,7 +70,7 @@ class FindIdActivity: AppCompatActivity() {
         val nextButton = findViewById<Button>(R.id.next_button)
         nextButton.setOnClickListener {
             val name = etName.text.toString().trim()
-            val phoneNum = etPhoneNumber.text.toString().trim()
+            val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
 
             if (name.isEmpty() || phoneNum.isEmpty()) {
                 Toast.makeText(this, "이름과 전화번호를 모두 입력해주세요.", Toast.LENGTH_SHORT).show()
