@@ -118,7 +118,6 @@ class SignUp3Activity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     // 가입 성공 - 세션에 ID 저장 후 이동
                     UserSession.userId = id
-                    UserSession.userPassword = null // 보안상 비번은 제거
                     
                     val intent = Intent(this@SignUp3Activity, SignUp4Activity::class.java)
                     startActivity(intent)

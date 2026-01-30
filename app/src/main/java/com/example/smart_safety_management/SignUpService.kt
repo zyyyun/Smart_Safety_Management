@@ -63,7 +63,8 @@ data class UserData(
     @SerializedName("user_role") val userRole: String,
     @SerializedName("phone_num") val phoneNum: String?,
     val email: String?,
-    @SerializedName("profile_image_url") val profileImageUri: String?
+    @SerializedName("profile_image_url") val profileImageUri: String?,
+    @SerializedName("group_id") val groupId: String? // 추가
 )
 
 data class UpdateProfileRequest(
@@ -319,6 +320,16 @@ data class DeleteDailyCheckResponse(
     val message: String
 )
 
+data class JoinGroupRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("invite_code") val inviteCode: String
+)
+
+data class JoinGroupResponse(
+    val message: String,
+    @SerializedName("group_id") val groupId: String
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -449,4 +460,7 @@ interface SignUpService {
 
     @POST("/delete_daily_check")
     fun deleteDailyCheck(@Body request: DeleteDailyCheckRequest): Call<DeleteDailyCheckResponse>
+
+    @POST("/join_group")
+    fun joinGroup(@Body request: JoinGroupRequest): Call<JoinGroupResponse>
 }

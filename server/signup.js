@@ -1,30 +1,44 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const pool = require('./db'); // 이전에 설정한 PostgreSQL 연결 파일
+const crypto = require('crypto');
+const pool = require('./db');
 
-// 최종 회원가입 요청 ( 완료버튼을 통한 요청.)
+// 13자리 랜덤 초대코드 생성 함수 (영문 대소문자, 숫자)
+function generateInviteCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 13; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
 router.post('/signup', async (req, res) => {
     const { user_id, password, name, phone_num, email, user_role, group_id } = req.body;
 
     try {
-        // 1. 비밀번호 암호화
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 2. DB 저장 (사용자님이 만든 테이블 구조 기준)
+        // 관리자(manager)인 경우에만 초대코드 생성
+        let inviteCode = null;
+        if (user_role === 'manager') {
+            inviteCode = generateInviteCode();
+        }
+
         const newUser = await pool.query(
-            `INSERT INTO users (user_id, password, name, phone_num, email, user_role, group_id, created_at) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING *`,
-            [user_id, hashedPassword, name, phone_num, email, user_role, group_id]
+            `INSERT INTO users (user_id, password, name, phone_num, email, user_role, group_id, invite_code, created_at) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING *`,
+            [user_id, hashedPassword, name, phone_num, email, user_role, group_id, inviteCode]
         );
 
-        // 3. 가입 완료 메시지와 이름 반환 (4단계 화면용)
         res.status(201).json({
-            userName: newUser.rows[0].name
+            userName: newUser.rows[0].name,
+            invite_code: newUser.rows[0].invite_code // 생성된 초대코드 반환 (필요시)
         });
 
     } catch (err) {
-        if (err.code === '23505') { // PostgreSQL 중복 키 에러 코드
+        if (err.code === '23505') {
             return res.status(400).json({ message: "이미 존재하는 아이디입니다." });
         }
         console.error(err);

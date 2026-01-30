@@ -20,26 +20,19 @@ class LogInActivity : AppCompatActivity() {
         val etId = findViewById<EditText>(R.id.et_id)
         val etPw = findViewById<EditText>(R.id.et_password)
 
-        // 아이디/비밀번호 찾기 텍스트
         val findAccount = findViewById<TextView>(R.id.tv_find_account)
+        findAccount.paintFlags = findAccount.paintFlags or Paint.UNDERLINE_TEXT_FLAG
 
-        // 밑줄 추가
-        findAccount.paintFlags =
-            findAccount.paintFlags or Paint.UNDERLINE_TEXT_FLAG
-
-        // 클릭 이벤트
         findAccount.setOnClickListener {
             val intent = Intent(this, FindIdActivity::class.java)
             startActivity(intent)
         }
 
-        // 뒤로가기 버튼
         val backBtn = findViewById<ImageButton>(R.id.backButton)
         backBtn.setOnClickListener {
             finish()
         }
 
-        // 로그인 버튼
         val loginBtn = findViewById<Button>(R.id.log_in_button)
         loginBtn.setOnClickListener {
             val id = etId.text.toString()
@@ -62,6 +55,7 @@ class LogInActivity : AppCompatActivity() {
                             UserSession.userPhone = body.user.phoneNum
                             UserSession.userEmail = body.user.email
                             UserSession.profileImageUri = body.user.profileImageUri
+                            UserSession.groupId = body.user.groupId // 그룹 ID 저장 추가
 
                             // 2. 역할 설정
                             if (body.user.userRole == "manager") {
@@ -70,7 +64,7 @@ class LogInActivity : AppCompatActivity() {
                                 UserSession.userRole = UserRole.WORKER
                             }
 
-                            // 3. 세션 저장 (자동 로그인용)
+                            // 3. 세션 저장 (자동 로그인 및 초대코드 상태 유지용)
                             UserSession.saveSession(this@LogInActivity)
 
                             // 4. 화면 이동
@@ -82,7 +76,7 @@ class LogInActivity : AppCompatActivity() {
 
                             ToastUtil.showShort(this@LogInActivity, "로그인 성공")
                             startActivity(intent)
-                            finishAffinity() // 이전 액티비티 스택 제거
+                            finishAffinity() 
                         } else {
                             ToastUtil.showShort(this@LogInActivity, "로그인 실패: 사용자 정보 오류")
                         }

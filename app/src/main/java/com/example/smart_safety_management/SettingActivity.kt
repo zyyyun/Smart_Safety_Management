@@ -85,12 +85,10 @@ class SettingActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeVisibility() {
-        val isSuccess = if (UserSession.userRole == UserRole.MANAGER) {
-            UserSession.isInviteSuccessManager
-        } else {
-            UserSession.isInviteSuccessWorker
-        }
-        if (isSuccess) {
+        // 초대 코드를 입력했거나 이미 그룹에 속해 있다면 숨김
+        val isJoined = UserSession.isInviteChecked || !UserSession.groupId.isNullOrEmpty()
+        
+        if (isJoined) {
             findViewById<LinearLayout>(R.id.item_enter_invite_code).visibility = View.GONE
         } else {
             findViewById<LinearLayout>(R.id.item_enter_invite_code).visibility = View.VISIBLE

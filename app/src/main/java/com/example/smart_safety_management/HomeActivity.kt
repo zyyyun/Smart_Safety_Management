@@ -55,7 +55,6 @@ class HomeActivity : AppCompatActivity() {
         Log.d("PHOTO_DEBUG", "HomeActivity onCreate called")
         setContentView(R.layout.main_home)
 
-        // initUI 내부에서 fetchDailyChecks 호출 예정
         initUI()
     }
 
@@ -263,11 +262,7 @@ class HomeActivity : AppCompatActivity() {
             },
             onRequestNotify = { day, item ->
                 // ✅ 여기서 “근로자에게 알림 보내기” 구현
-                // (우선 토스트로 확인 가능)
                 ToastUtil.showShort(this, "근로자에게 점검 요청 알림을 보냈어요.")
-
-                // TODO: 실제 구현 (FCM 푸시 or 앱내 알림함 DB/리스트)
-                // sendUncheckedNoticeToWorker(day, item)
             }
         )
 
@@ -346,7 +341,6 @@ class HomeActivity : AppCompatActivity() {
             if (ivProfileBar != null) {
                 val params = ivProfileBar.layoutParams as ViewGroup.MarginLayoutParams
                 UserSession.profileImageUri?.let { uriString ->
-                    // 사진이 있을 때: 부모 CardView 제약까지 풀어서 원에 꽉 차도록 설정
                     Glide.with(this)
                         .load(uriString)
                         .placeholder(R.drawable.profile)
@@ -355,8 +349,8 @@ class HomeActivity : AppCompatActivity() {
 
                     cardProfile?.apply {
                         setContentPadding(0, 0, 0, 0)
-                        preventCornerOverlap = false // 모서리 겹침 방지 여백 제거
-                        useCompatPadding = false     // 호환성 패딩 제거
+                        preventCornerOverlap = false
+                        useCompatPadding = false
                     }
 
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_CROP
@@ -364,11 +358,10 @@ class HomeActivity : AppCompatActivity() {
                     params.setMargins(0, 0, 0, 0)
                     ivProfileBar.layoutParams = params
                 } ?: run {
-                    // 기본 이미지일 때: XML 디자인(마진 5, 10, 5)을 그대로 유지
                     ivProfileBar.setImageResource(R.drawable.profile)
 
                     cardProfile?.apply {
-                        preventCornerOverlap = true // 기본값 복구
+                        preventCornerOverlap = true
                     }
 
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_INSIDE
@@ -394,11 +387,8 @@ class HomeActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     dailyCheckMap.clear()
                     val checks = response.body()?.checks ?: emptyList()
-                    Log.d("DailyCheck", "Fetched ${checks.size} checks for $selectedYear-$selectedMonth")
                     
                     checks.forEach { dto ->
-                        // created_at 기준으로 날짜 파싱 (YYYY-MM-DD HH:mm:ss)
-                        // createdAt이 없으면 checkDate를 사용하도록 예외 처리
                         val targetDate = dto.createdAt ?: dto.checkDate
                         val day = try {
                             targetDate.substring(8, 10).toInt()
@@ -424,15 +414,6 @@ class HomeActivity : AppCompatActivity() {
             }
             override fun onFailure(call: retrofit2.Call<GetDailyChecksResponse>, t: Throwable) {}
         })
-    }
-
-    private fun findClosestUncheckedDay(): Int? {
-        val today = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
-        val uncheckedDays = dailyCheckMap.filter { entry ->
-            entry.value.any { it.status == "미점검" }
-        }.keys
-        if (uncheckedDays.isEmpty()) return today
-        return uncheckedDays.minByOrNull { abs(it - today) }
     }
 
     private fun updateDailyCheckList(day: Int?) {
@@ -564,7 +545,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeDialog() {
-        if (!UserSession.isInviteDoneManager) showInviteCodeDialog()
+        if (!UserSession.isInviteChecked) showInviteCodeDialog()
     }
 
     private fun showInviteCodeDialog() {
@@ -585,8 +566,8 @@ class HomeActivity : AppCompatActivity() {
         btnSubmit.setOnClickListener {
             val inputCode = etInviteCode.text.toString().trim()
             if (inputCode == "1234") {
-                UserSession.isInviteDoneManager = true
-                UserSession.isInviteSuccessManager = true
+                UserSession.isInviteChecked = true
+                UserSession.saveSession(this) // 로컬에 영구 저장 (계정별 키)
                 dialog.dismiss()
             } else {
                 tvError.visibility = View.VISIBLE
@@ -600,7 +581,8 @@ class HomeActivity : AppCompatActivity() {
         }
 
         tvSkip.setOnClickListener {
-            UserSession.isInviteDoneManager = true
+            UserSession.isInviteChecked = true
+            UserSession.saveSession(this) // 로컬에 영구 저장 (계정별 키)
             dialog.dismiss()
         }
 

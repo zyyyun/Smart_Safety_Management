@@ -105,10 +105,7 @@ class HomeWorkerActivity : AppCompatActivity() {
                 detailLauncher.launch(intent)
             },
             onRequestNotify = { day, item ->
-                // ✅ HomeWorkerActivity(근로자 화면)에서는 보통 호출될 일이 없지만,
-                // 혹시라도 들어오면 그냥 상세 열기로 보내거나 무시해도 됨.
-                // (무시)
-                // 또는: onOpenDetail(day, item) 같은 동작
+                // 근로자 화면에서는 무시
             }
         )
         rvDaily.adapter = dailyAdapter
@@ -214,9 +211,7 @@ class HomeWorkerActivity : AppCompatActivity() {
                     }
 
                     val rvEvent = findViewById<RecyclerView>(R.id.rv_worker_event)
-                    // WorkerEventAdapter에 클릭 리스너를 전달하도록 수정 (Adapter 수정 필요)
                     eventAdapter = WorkerEventAdapter(displayEvents) { eventData ->
-                        // 조치 대기(PENDING) 상태인 경우에만 상세 페이지로 이동
                         val status = displayEvents.find { it.first.id == eventData.id }?.second
                         if (status == EventStatus.PENDING) {
                             val intent = Intent(this@HomeWorkerActivity, ActionDetailWorkerActivity::class.java)
@@ -250,21 +245,16 @@ class HomeWorkerActivity : AppCompatActivity() {
     private fun updateProfile() {
         val profileBar = findViewById<View>(R.id.profile_bar)
         if (profileBar != null) {
-            // 이름 및 역할 업데이트
             profileBar.findViewById<TextView>(R.id.tv_user_name)?.text = UserSession.userName
-            
-            // 역할
             profileBar.findViewById<TextView>(R.id.tv_user_authority)?.text = 
                 if (UserSession.userRole == UserRole.MANAGER) "관리자님" else "근로자님"
             
-            // 프로필 사진 동기화
             val ivProfileBar = profileBar.findViewById<ImageView>(R.id.iv_profile_bar)
             val cardProfile = ivProfileBar?.parent as? MaterialCardView
 
             if (ivProfileBar != null) {
                 val params = ivProfileBar.layoutParams as ViewGroup.MarginLayoutParams
                 UserSession.profileImageUri?.let { uriString ->
-                    // 사진이 있을 때: 부모 CardView 제약까지 풀어서 원에 꽉 차도록 설정
                     Glide.with(this)
                         .load(uriString)
                         .placeholder(R.drawable.profile)
@@ -273,8 +263,8 @@ class HomeWorkerActivity : AppCompatActivity() {
 
                     cardProfile?.apply {
                         setContentPadding(0, 0, 0, 0)
-                        preventCornerOverlap = false // 모서리 겹침 방지 여백 제거
-                        useCompatPadding = false     // 호환성 패딩 제거
+                        preventCornerOverlap = false
+                        useCompatPadding = false
                     }
 
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_CROP
@@ -282,11 +272,10 @@ class HomeWorkerActivity : AppCompatActivity() {
                     params.setMargins(0, 0, 0, 0)
                     ivProfileBar.layoutParams = params
                 } ?: run {
-                    // 기본 이미지일 때: XML 디자인(마진 5, 10, 5)을 그대로 유지
                     ivProfileBar.setImageResource(R.drawable.profile)
 
                     cardProfile?.apply {
-                        preventCornerOverlap = true // 기본값 복구
+                        preventCornerOverlap = true
                     }
 
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_INSIDE
@@ -345,7 +334,9 @@ class HomeWorkerActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeDialog() {
-        if (!UserSession.isInviteDoneWorker) showInviteCodeDialog()
+        if (!UserSession.isInviteChecked && UserSession.groupId.isNullOrEmpty()) {
+            showInviteCodeDialog()
+        }
     }
 
     private fun showInviteCodeDialog() {
@@ -366,8 +357,8 @@ class HomeWorkerActivity : AppCompatActivity() {
         btnSubmit.setOnClickListener {
             val inputCode = etInviteCode.text.toString().trim()
             if (inputCode == "1234") {
-                UserSession.isInviteDoneWorker = true
-                UserSession.isInviteSuccessWorker = true
+                UserSession.isInviteChecked = true
+                UserSession.saveSession(this)
                 dialog.dismiss()
             } else {
                 tvError.visibility = View.VISIBLE
@@ -381,7 +372,8 @@ class HomeWorkerActivity : AppCompatActivity() {
         }
 
         tvSkip.setOnClickListener {
-            UserSession.isInviteDoneWorker = true
+            UserSession.isInviteChecked = true
+            UserSession.saveSession(this)
             dialog.dismiss()
         }
 
@@ -410,7 +402,7 @@ class HomeWorkerActivity : AppCompatActivity() {
     }
 
     private fun calculateTimeAgo(dateStr: String?): String {
-        return "방금 전" // 실제 로직 생략
+        return "방금 전" 
     }
 
     private fun hasDailyCheckItem(day: Int): Boolean {

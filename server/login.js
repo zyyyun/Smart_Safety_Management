@@ -7,7 +7,7 @@ router.post('/login', async (req, res) => {
     const { user_id, password } = req.body;
 
     try {
-        // 1. 아이디로 사용자 조회
+        // 1. 아이디로 사용자 조회 (group_id 포함)
         const result = await pool.query('SELECT * FROM users WHERE user_id = $1', [user_id]);
 
         // 사용자가 없는 경우
@@ -24,7 +24,7 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ message: "비밀번호가 일치하지 않습니다." });
         }
 
-        // 3. 로그인 성공 응답 (필요한 사용자 정보 반환)
+        // 3. 로그인 성공 응답 (group_id 포함)
         res.status(200).json({
             message: "로그인 성공",
             user: {
@@ -33,7 +33,8 @@ router.post('/login', async (req, res) => {
                 user_role: user.user_role,
                 phone_num: user.phone_num,
                 email: user.email,
-                profile_image_url: user.profile_image_url
+                profile_image_url: user.profile_image_url,
+                group_id: user.group_id // 그룹 ID 반환
             }
         });
 
