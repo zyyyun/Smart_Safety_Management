@@ -294,6 +294,14 @@ data class GetDailyChecksResponse(
     val checks: List<DailyCheckDTO>
 )
 
+data class DeleteDailyCheckRequest(
+    @SerializedName("check_id") val checkId: Int
+)
+
+data class DeleteDailyCheckResponse(
+    val message: String
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -415,4 +423,7 @@ interface SignUpService {
         @Part keptImageUrls: List<MultipartBody.Part>,
         @Part newImages: List<MultipartBody.Part>
     ): Call<CreateDailyCheckResponse>
+
+    @POST("/delete_daily_check")
+    fun deleteDailyCheck(@Body request: DeleteDailyCheckRequest): Call<DeleteDailyCheckResponse>
 }

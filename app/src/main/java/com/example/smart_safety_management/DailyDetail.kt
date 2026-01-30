@@ -26,6 +26,10 @@
     import com.example.smart_safety_management.ui.theme.*
     import android.net.Uri
     import coil.compose.AsyncImage
+    import android.widget.Toast
+    import retrofit2.Call
+    import retrofit2.Callback
+    import retrofit2.Response
 
 
     @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
@@ -60,15 +64,34 @@
         val activity = LocalContext.current as? Activity
         val context = LocalContext.current
 
-        // ✅ 삭제 결과를 Activity로 돌려주기
-        fun sendDeleteResult() {
-            val result = Intent().apply {
-                putExtra("action", "delete")
-                putExtra("day", day)
-                putExtra("itemId", itemId)
+        // ✅ 삭제 API 호출 및 결과 처리
+        fun deleteCheck() {
+            val checkIdInt = itemId.toIntOrNull()
+            if (checkIdInt == null) {
+                Toast.makeText(context, "잘못된 ID입니다.", Toast.LENGTH_SHORT).show()
+                return
             }
-            activity?.setResult(Activity.RESULT_OK, result)
-            activity?.finish()
+
+            val request = DeleteDailyCheckRequest(checkIdInt)
+            RetrofitClient.instance.deleteDailyCheck(request).enqueue(object : Callback<DeleteDailyCheckResponse> {
+                override fun onResponse(call: Call<DeleteDailyCheckResponse>, response: Response<DeleteDailyCheckResponse>) {
+                    if (response.isSuccessful) {
+                        Toast.makeText(context, "삭제되었습니다.", Toast.LENGTH_SHORT).show()
+                        val result = Intent().apply {
+                            putExtra("action", "delete")
+                            putExtra("day", day)
+                            putExtra("itemId", itemId)
+                        }
+                        activity?.setResult(Activity.RESULT_OK, result)
+                        activity?.finish()
+                    } else {
+                        Toast.makeText(context, "삭제 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<DeleteDailyCheckResponse>, t: Throwable) {
+                    Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
         }
 
         Smart_Safety_ManagementTheme {
@@ -285,7 +308,7 @@
 
 // ✅ 삭제하기
                     TextButton(
-                        onClick = { sendDeleteResult() },
+                        onClick = { deleteCheck() },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
