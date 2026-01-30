@@ -1,6 +1,7 @@
 package com.example.smart_safety_management
 
 import android.content.res.Configuration
+import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -39,6 +40,9 @@ import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.ui.theme.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import kotlinx.coroutines.launch
 
 // --- 1. 데이터 모델 정의 ---
@@ -54,7 +58,7 @@ data class HistoryEventData(
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun HistoryScreen() {
-    var isAscending by remember { mutableStateOf(true) }
+    var isAscending by remember { mutableStateOf(false) } // 최신순 기본
     var selectedTab by remember { mutableStateOf("AI감지") }
     
     // 검색 모드 및 쿼리 상태 관리
@@ -67,13 +71,42 @@ fun HistoryScreen() {
     )
     val coroutineScope = rememberCoroutineScope()
 
-    // 더미 데이터 생성
-    val dummyHistoryData = listOf(
-        HistoryEventData("위험", "C구역 2열", "화재사고가 감지되었습니다.", "2025-05-07 16:05:20", "홍길동", "2025-05-07 16:10:00"),
-        HistoryEventData("경고", "A구역 1열", "쓰러짐이 감지되었습니다.", "2025-05-07 15:30:10", "김철수", "2025-05-07 15:45:00"),
-        HistoryEventData("주의", "B구역 3열", "미착용 보호구가 감지되었습니다.", "2025-05-07 14:20:05", "이영희", "2025-05-07 14:30:00"),
-        HistoryEventData("경고", "D구역 2열", "접근 금지 구역 진입 감지", "2025-05-07 13:10:45", "박민수", "2025-05-07 13:25:00")
-    )
+    // 서버 데이터 상태
+    var events by remember { mutableStateOf<List<DetectionEventDTO>>(emptyList()) }
+    val userId = UserSession.userId
+
+    // 데이터 불러오기
+    LaunchedEffect(Unit) {
+        if (!userId.isNullOrEmpty()) {
+            RetrofitClient.instance.getDetectionEvents(userId).enqueue(object : Callback<GetDetectionEventsResponse> {
+                override fun onResponse(call: Call<GetDetectionEventsResponse>, response: Response<GetDetectionEventsResponse>) {
+                    if (response.isSuccessful) {
+                        events = response.body()?.events ?: emptyList()
+                    }
+                }
+                override fun onFailure(call: Call<GetDetectionEventsResponse>, t: Throwable) {
+                    Log.e("HistoryScreen", "Failed to fetch events", t)
+                }
+            })
+        }
+    }
+
+    // 필터링 및 정렬 로직
+    val filteredEvents = events.filter { event ->
+        // 1. 탭 필터링
+        val tabCondition = when (selectedTab) {
+            "AI감지" -> true // 모든 데이터 표시
+            "오탐이력" -> event.status.equals("FALSE_POSITIVE", ignoreCase = true)
+            else -> false
+        }
+        // 2. 검색 필터링
+        val searchCondition = if (searchQuery.isNotEmpty()) {
+            (event.eventName?.contains(searchQuery, ignoreCase = true) == true) ||
+            (event.installArea?.contains(searchQuery, ignoreCase = true) == true)
+        } else true
+
+        tabCondition && searchCondition
+    }.sortedWith(if (isAscending) compareBy { it.detectedAt } else compareByDescending { it.detectedAt })
 
     Smart_Safety_ManagementTheme {
         val isLight = MaterialTheme.colors.isLight
@@ -137,11 +170,19 @@ fun HistoryScreen() {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
-                        dummyHistoryData.forEach { data ->
-                            HistoryItemFrame(data)
+                        filteredEvents.forEach { dto ->
+                            val historyData = HistoryEventData(
+                                accidentType = mapRiskLevel(dto.riskLevel),
+                                location = dto.installArea ?: "위치 정보 없음",
+                                content = "${dto.eventName ?: "이벤트"}가 감지되었습니다.",
+                                occurrenceTime = dto.detectedAt,
+                                actionByName = dto.workerName ?: "-",
+                                actionTime = dto.actionTime ?: "-"
+                            )
+                            HistoryItemFrame(historyData)
                         }
                         // 리스트 끝 여백
-                        //Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(80.dp))
                     }
                 }
             }

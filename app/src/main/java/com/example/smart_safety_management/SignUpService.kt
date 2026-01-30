@@ -192,7 +192,9 @@ data class DetectionEventDTO(
     @SerializedName("detected_at") val detectedAt: String,
     @SerializedName("device_name") val deviceName: String?,
     val accuracy: Double?,
-    val status: String
+    val status: String,
+    @SerializedName("worker_name") val workerName: String?,
+    @SerializedName("completed_at") val actionTime: String?
 )
 
 data class GetDetectionEventsResponse(
@@ -241,6 +243,11 @@ data class UpdateEventStatusRequest(
 data class CompleteActionRequest(
     @SerializedName("event_id") val eventId: Int,
     @SerializedName("worker_id") val workerId: String
+)
+
+data class HandleFalsePositiveRequest(
+    @SerializedName("event_id") val eventId: Int,
+    @SerializedName("user_id") val userId: String
 )
 
 data class FindIdRequest(
@@ -346,6 +353,9 @@ interface SignUpService {
 
     @POST("/complete_action")
     fun completeAction(@Body request: CompleteActionRequest): Call<Void>
+
+    @POST("/handle_false_positive")
+    fun handleFalsePositive(@Body request: HandleFalsePositiveRequest): Call<Void>
 
     @POST("/find_id")
     fun findId(@Body request: FindIdRequest): Call<FindIdResponse>

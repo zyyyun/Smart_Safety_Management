@@ -564,21 +564,26 @@ fun AIEventDetailScreen(
             FalseDetectionDialog(
                 onDismiss = { showFalseDetectionDialog = false },
                 onConfirm = { 
-                    val request = UpdateEventStatusRequest(eventId, "FALSE_POSITIVE")
-                    RetrofitClient.instance.updateEventStatus(request).enqueue(object : Callback<Void> {
-                        override fun onResponse(call: Call<Void>, response: Response<Void>) {
-                            if (response.isSuccessful) {
-                                Toast.makeText(context, "오탐 처리되었습니다.", Toast.LENGTH_SHORT).show()
-                                showFalseDetectionDialog = false
-                                onBackClick()
-                            } else {
-                                Toast.makeText(context, "처리 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                    val userId = UserSession.userId
+                    if (!userId.isNullOrEmpty()) {
+                        val request = HandleFalsePositiveRequest(eventId, userId)
+                        RetrofitClient.instance.handleFalsePositive(request).enqueue(object : Callback<Void> {
+                            override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                                if (response.isSuccessful) {
+                                    Toast.makeText(context, "오탐 처리되었습니다.", Toast.LENGTH_SHORT).show()
+                                    showFalseDetectionDialog = false
+                                    onBackClick()
+                                } else {
+                                    Toast.makeText(context, "처리 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                }
                             }
-                        }
-                        override fun onFailure(call: Call<Void>, t: Throwable) {
-                            Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    })
+                            override fun onFailure(call: Call<Void>, t: Throwable) {
+                                Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        })
+                    } else {
+                        Toast.makeText(context, "사용자 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                    }
                 }
             )
         }
