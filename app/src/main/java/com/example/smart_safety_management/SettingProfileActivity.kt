@@ -21,9 +21,10 @@ import androidx.core.content.FileProvider
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textfield.TextInputEditText
 import com.bumptech.glide.Glide
-import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -198,7 +199,7 @@ class SettingProfileActivity : AppCompatActivity() {
         }
 
         // 2. 서버로 이미지 업로드 요청
-        val requestFile = RequestBody.create(MediaType.parse("image/*"), file)
+        val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
         val body = MultipartBody.Part.createFormData("image", file.name, requestFile)
 
         RetrofitClient.instance.uploadImage(body).enqueue(object : Callback<UploadImageResponse> {

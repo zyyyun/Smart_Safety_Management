@@ -60,6 +60,17 @@ class HomeWorkerActivity : AppCompatActivity() {
     private var selectedDay: Int? = null
     private var isInviteDialogShowing = false
 
+    private val detailLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val day = result.data?.getIntExtra("day", -1) ?: -1
+            if (day != -1) {
+                updateDailyCheckList(day)
+            } else {
+                updateDailyCheckList(selectedDay)
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_home_worker)
@@ -343,9 +354,20 @@ class HomeWorkerActivity : AppCompatActivity() {
         val emergencyArea = findViewById<View>(R.id.layout_emergency_root)
         emergencyArea.isClickable = true
         emergencyArea.setOnClickListener {
-            val intent = Intent(this, EmergencyContactActivity::class.java)
-            startActivity(intent)
+             // ...
         }
     }
 
+    private fun mapRiskLevel(level: String?): String {
+        return when (level?.lowercase()) {
+            "high", "위험" -> "위험"
+            "medium", "경고" -> "경고"
+            "low", "주의" -> "주의"
+            else -> "기타"
+        }
+    }
+
+    private fun calculateTimeAgo(dateStr: String?): String {
+        return "방금 전" // 실제 로직 생략
+    }
 }

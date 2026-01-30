@@ -49,7 +49,7 @@ import androidx.compose.ui.unit.toSize
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import com.example.smart_safety_management.ui.theme.*
-import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Call
@@ -522,16 +522,16 @@ fun ActionDetailScreen(
                             if (actionType.isEmpty() || title.isEmpty() || content.isEmpty()) {
                                 Toast.makeText(context, "모든 항목을 입력해주세요.", Toast.LENGTH_SHORT).show()
                             } else {
-                                val eventIdBody = RequestBody.create(MediaType.parse("text/plain"), eventId.toString())
-                                val requesterIdBody = RequestBody.create(MediaType.parse("text/plain"), (UserSession.userId ?: ""))
-                                val typeBody = RequestBody.create(MediaType.parse("text/plain"), actionType)
-                                val titleBody = RequestBody.create(MediaType.parse("text/plain"), title)
-                                val detailsBody = RequestBody.create(MediaType.parse("text/plain"), content)
+                                val eventIdBody = RequestBody.create("text/plain".toMediaTypeOrNull(), eventId.toString())
+                                val requesterIdBody = RequestBody.create("text/plain".toMediaTypeOrNull(), (UserSession.userId ?: ""))
+                                val typeBody = RequestBody.create("text/plain".toMediaTypeOrNull(), actionType)
+                                val titleBody = RequestBody.create("text/plain".toMediaTypeOrNull(), title)
+                                val detailsBody = RequestBody.create("text/plain".toMediaTypeOrNull(), content)
 
                                 val imageParts = attachedPhotos.mapNotNull { uriString ->
                                     val uri = Uri.parse(uriString)
                                     uriToFile(context, uri)?.let { file ->
-                                        val requestFile = RequestBody.create(MediaType.parse("image/*"), file)
+                                        val requestFile = RequestBody.create("image/*".toMediaTypeOrNull(), file)
                                         MultipartBody.Part.createFormData("images", file.name, requestFile)
                                     }
                                 }
