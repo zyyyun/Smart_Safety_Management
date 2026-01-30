@@ -395,7 +395,8 @@ class HomeWorkerActivity : AppCompatActivity() {
         val emergencyArea = findViewById<View>(R.id.layout_emergency_root)
         emergencyArea.isClickable = true
         emergencyArea.setOnClickListener {
-             // ...
+            val intent = Intent(this, EmergencyContactActivity::class.java)
+            startActivity(intent)
         }
     }
 

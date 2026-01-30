@@ -36,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -71,6 +72,7 @@ fun EmergencyContactScreen(
     var contacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         val userId = UserSession.userId
@@ -81,10 +83,12 @@ fun EmergencyContactScreen(
                         val users = response.body()?.users ?: emptyList()
                         contacts = users.filter { it.userRole == "manager" }
                             .map { Contact(it.name, formatPhoneNumber(it.phoneNum ?: "")) }
+                    } else {
+                        ToastUtil.showShort(context, "비상연락처 불러오기 실패")
                     }
                 }
                 override fun onFailure(call: Call<GetUsersResponse>, t: Throwable) {
-                    // Handle failure
+                    ToastUtil.showShort(context, "비상연락처 불러오기 실패")
                 }
             })
         }
