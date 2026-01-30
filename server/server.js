@@ -16,7 +16,7 @@ app.use(express.json());
 // 각 기능별 라우터를 가져옴
 const signupRouter = require('./signup');
 const loginRouter = require('./login');
-const findIdRouter = require('./find_id'); // 추가
+const findUserRouter = require('./find_user'); // 추가
 const updateProfileRouter = require('./update_profile');
 const changePasswordRouter = require('./change_password');
 const createWorkplaceRouter = require('./create_workplace');
@@ -42,7 +42,7 @@ const handleFalsePositiveRouter = require('./handle_false_positive');
 // 라우터 등록
 app.use('/', signupRouter);
 app.use('/', loginRouter);
-app.use('/', findIdRouter); // 추가
+app.use('/', findUserRouter); // 추가
 app.use('/', updateProfileRouter);
 app.use('/', changePasswordRouter);
 app.use('/', createWorkplaceRouter);
