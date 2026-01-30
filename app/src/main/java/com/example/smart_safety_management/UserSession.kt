@@ -19,6 +19,9 @@ object UserSession {
     var userPhone: String? = null
     var userEmail: String? = null
     var profileImageUri: String? = null
+    
+    // 회원가입 시 임시 저장을 위한 필드
+    var userPassword: String? = null
 
     var isInviteDoneManager: Boolean = false
     var isInviteSuccessManager: Boolean = false
@@ -64,6 +67,7 @@ object UserSession {
         userEmail = null
         userRole = UserRole.MANAGER
         profileImageUri = null
+        userPassword = null
         isInviteDoneManager = false
         isInviteSuccessManager = false
         isInviteDoneWorker = false
