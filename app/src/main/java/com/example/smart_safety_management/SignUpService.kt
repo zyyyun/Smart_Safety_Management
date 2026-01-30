@@ -311,6 +311,14 @@ data class MarkNotificationReadRequest(
     @SerializedName("notification_id") val notificationId: Int? = null
 )
 
+data class DeleteDailyCheckRequest(
+    @SerializedName("check_id") val checkId: Int
+)
+
+data class DeleteDailyCheckResponse(
+    val message: String
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -438,4 +446,7 @@ interface SignUpService {
 
     @POST("/mark_notifications_read")
     fun markNotificationsRead(@Body request: MarkNotificationReadRequest): Call<Void>
+
+    @POST("/delete_daily_check")
+    fun deleteDailyCheck(@Body request: DeleteDailyCheckRequest): Call<DeleteDailyCheckResponse>
 }
