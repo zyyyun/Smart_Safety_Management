@@ -1,6 +1,14 @@
 package com.example.smart_safety_management
 
 import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.graphics.SurfaceTexture
+import android.location.Geocoder
+import android.preference.PreferenceManager
+import android.util.Log
+import android.widget.Toast
+import android.view.TextureView
+import android.view.ViewGroup
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
@@ -15,6 +23,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -28,8 +38,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -38,38 +50,52 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.ContextCompat
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
+import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
+import com.bumptech.glide.integration.compose.GlideImage
 import com.example.smart_safety_management.ui.theme.*
+import com.google.gson.annotations.SerializedName
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.osmdroid.config.Configuration as OsmConfiguration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.util.Locale
 
-// ✅ 조치 데이터 모델
-data class ActionWorkerData(
-    val actionType: String,
-    val title: String,
-    val content: String
-)
-
-@OptIn(ExperimentalMaterialApi::class)
+@OptIn(ExperimentalMaterialApi::class, ExperimentalGlideComposeApi::class)
 @Composable
 fun ActionDetailWorkerScreen(
+    eventId: Int,
     onBackClick: () -> Unit = {},
     initialExpanded: Boolean = false // 바텀 시트 초기 확장 여부
 ) {
-    // ✅ 더미 데이터 정의
-    val dummyData = ActionWorkerData(
-        actionType = "즉시조치",
-        title = "근로자 쓰러짐 발생 조치 필요",
-        content = "D구역 1열에서 근로자 1명 쓰러짐"
-    )
+    var eventDetail by remember { mutableStateOf<DetectionEventDetailResponse?>(null) }
 
     // 라이브 컴포넌트와 사용하기위한 상태 변수
     var pos by remember { mutableStateOf(0.5f) }
     var playing by remember { mutableStateOf(true) }
 
-    // 더미데이터
-    var actionType by remember { mutableStateOf(dummyData.actionType) }
-    var title by remember { mutableStateOf(dummyData.title) }
-    var content by remember { mutableStateOf(dummyData.content) }
+    val context = LocalContext.current
+    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var videoTextureView by remember { mutableStateOf<TextureView?>(null) }
+    var mapCenter by remember { mutableStateOf<GeoPoint?>(null) }
+    var isGeocodingError by remember { mutableStateOf(false) }
+
+    // 입력 필드 상태
+    var actionType by remember { mutableStateOf("") }
+    var title by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
     
     // 작성 완료 다이얼로그 상태
     var showActionCompletedDialog by remember { mutableStateOf(false) }
@@ -89,6 +115,50 @@ fun ActionDetailWorkerScreen(
     )
     val coroutineScope = rememberCoroutineScope()
 
+    // 주소를 좌표로 변환 (Geocoding)
+    LaunchedEffect(eventDetail) {
+        val address = eventDetail?.installationAddress
+        if (!address.isNullOrBlank()) {
+            withContext(Dispatchers.IO) {
+                try {
+                    val geocoder = Geocoder(context, Locale.KOREA)
+                    @Suppress("DEPRECATION")
+                    val addresses = geocoder.getFromLocationName(address, 1)
+                    if (!addresses.isNullOrEmpty()) {
+                        mapCenter = GeoPoint(addresses[0].latitude, addresses[0].longitude)
+                        isGeocodingError = false
+                    } else {
+                        isGeocodingError = true
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    isGeocodingError = true
+                }
+            }
+        } else if (eventDetail != null) {
+            isGeocodingError = true
+        }
+    }
+
+    // 서버에서 데이터 불러오기
+    LaunchedEffect(eventId) {
+        RetrofitClient.instance.getDetectionEventDetail(eventId).enqueue(object : Callback<DetectionEventDetailResponse> {
+            override fun onResponse(call: Call<DetectionEventDetailResponse>, response: Response<DetectionEventDetailResponse>) {
+                if (response.isSuccessful) {
+                    eventDetail = response.body()
+                    eventDetail?.let {
+                        actionType = it.requestType ?: ""
+                        title = it.requestTitle ?: ""
+                        content = it.requestDetails ?: ""
+                    }
+                }
+            }
+            override fun onFailure(call: Call<DetectionEventDetailResponse>, t: Throwable) {
+                Log.e("ActionDetailWorker", "Network error: ${t.message}")
+            }
+        })
+    }
+
     Smart_Safety_ManagementTheme {
         val theme = MaterialTheme.colors.onPrimary
         val isLight = MaterialTheme.colors.isLight
@@ -102,7 +172,12 @@ fun ActionDetailWorkerScreen(
         val detailBtnColor = if (isLight) Lightgray else GrayBackground
 
         // 1. 이벤트 아이콘 설정 (위험, 경고, 주의에 따라 변경)
-        val eventIconRes = R.drawable.warning_icon 
+        val eventIconRes = when (eventDetail?.riskLevel?.lowercase()) {
+            "high", "위험", "danger" -> R.drawable.danger_icon
+            "medium", "경고", "warning" -> R.drawable.warning_icon
+            "low", "주의", "caution" -> R.drawable.caution_icon
+            else -> R.drawable.warning_icon
+        }
 
         // 2. 아이콘 종류에 따른 "감지 이벤트" 밸류 텍스트 색상 설정
         val eventValueColor = when (eventIconRes) {
@@ -156,33 +231,70 @@ fun ActionDetailWorkerScreen(
                         }
 
                         LabelText("이벤트 캡처")
-                        Image(
-                            painter = painterResource(id = R.drawable.workeraction),
-                            contentDescription = "이벤트 캡처",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight(),
-                            contentScale = ContentScale.FillWidth
-                        )
+                        if (capturedBitmap != null) {
+                            Image(
+                                bitmap = capturedBitmap!!.asImageBitmap(),
+                                contentDescription = "이벤트 캡처",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.FillWidth
+                            )
+                        } else {
+                            GlideImage(
+                                model = eventDetail?.captureImageUrl,
+                                contentDescription = "이벤트 캡처",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.FillWidth
+                            ) { it.error(R.drawable.workeraction).placeholder(R.drawable.workeraction) }
+                        }
                         Spacer(modifier = Modifier.height(16.dp))
                         LabelText("발생 위치")
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .wrapContentHeight(),
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.workermap),
-                                contentDescription = "발생 위치",
-                                modifier = Modifier.fillMaxWidth(),
-                                contentScale = ContentScale.FillWidth
-                            )
-                            Image(
-                                painter = painterResource(id = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark),
-                                contentDescription = "마커",
-                                modifier = Modifier.scale(1.67f)
-                            )
+                            if (mapCenter != null) {
+                                AndroidView(
+                                    factory = { ctx ->
+                                        OsmConfiguration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))
+                                        MapView(ctx).apply {
+                                            setTileSource(TileSourceFactory.MAPNIK)
+                                            setMultiTouchControls(true)
+                                            controller.setZoom(17.0)
+                                        }
+                                    },
+                                    update = { mapView ->
+                                        mapView.controller.setCenter(mapCenter)
+                                        mapView.overlays.clear()
+                                        val marker = Marker(mapView)
+                                        marker.position = mapCenter
+                                        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                        val iconRes = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark
+                                        marker.icon = ContextCompat.getDrawable(context, iconRes)
+                                        mapView.overlays.add(marker)
+                                        mapView.invalidate()
+                                    },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier.fillMaxSize().background(if (isLight) Color.LightGray else Color.DarkGray),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (isGeocodingError) "위치를 찾을 수 없습니다." else "위치 정보를 불러오는 중...",
+                                        color = Color.White
+                                    )
+                                }
+                            }
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         LabelText("실시간 화면")
@@ -190,15 +302,78 @@ fun ActionDetailWorkerScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                         ) {
-                            // 2. 배경 이미지 (기억하라고 하신 코드)
-                            Image(
-                                painter = painterResource(id = R.drawable.event),
-                                contentDescription = "실시간 화면",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.FillWidth
-                            )
+                            val liveUrl = eventDetail?.liveUrl
+                            if (!liveUrl.isNullOrBlank()) {
+                                val exoPlayer = remember {
+                                    ExoPlayer.Builder(context).build().apply {
+                                        playWhenReady = true
+                                        addListener(object : Player.Listener {
+                                            override fun onRenderedFirstFrame() {
+                                                videoTextureView?.let { view ->
+                                                    val bitmap = view.getBitmap()
+                                                    if (bitmap != null) {
+                                                        capturedBitmap = bitmap
+                                                    }
+                                                }
+                                            }
+                                        })
+                                    }
+                                }
+
+                                DisposableEffect(Unit) {
+                                    onDispose { exoPlayer.release() }
+                                }
+
+                                LaunchedEffect(liveUrl) {
+                                    val mediaItem = MediaItem.fromUri(liveUrl)
+                                    exoPlayer.setMediaItem(mediaItem)
+                                    exoPlayer.prepare()
+                                }
+
+                                LaunchedEffect(playing) {
+                                    if (playing) exoPlayer.play() else exoPlayer.pause()
+                                }
+
+                                AndroidView(
+                                    factory = { ctx ->
+                                        TextureView(ctx).apply {
+                                            layoutParams = ViewGroup.LayoutParams(
+                                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                                ViewGroup.LayoutParams.MATCH_PARENT
+                                            )
+                                            surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                                                override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+                                                    exoPlayer.setVideoTextureView(this@apply)
+                                                    videoTextureView = this@apply
+                                                }
+                                                override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
+                                                override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = false
+                                                override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
+                                                    if (capturedBitmap == null) {
+                                                        val bitmap = this@apply.getBitmap()
+                                                        if (bitmap != null) {
+                                                            capturedBitmap = bitmap
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(16f / 9f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                )
+                            } else {
+                                GlideImage(
+                                    model = eventDetail?.captureImageUrl,
+                                    contentDescription = "실시간 화면",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp)),
+                                    contentScale = ContentScale.FillWidth
+                                ) { it.error(R.drawable.event).placeholder(R.drawable.event) }
+                            }
 
                             // 3. 상단 LIVE 인디케이터 배치
                             LiveIndicator(
@@ -304,14 +479,14 @@ fun ActionDetailWorkerScreen(
                                     )
                                     Column(horizontalAlignment = Alignment.Start) {
                                         Text(
-                                            text = "C구역 2열",
+                                            text = eventDetail?.installArea ?: "-",
                                             color = textColor,
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 16.sp,
                                             fontFamily = Pretendard
                                         )
                                         Text(
-                                            text = "쓰러짐이 감지되었습니다.",
+                                            text = "${eventDetail?.eventName ?: "이벤트"}가 감지되었습니다.",
                                             color = CategoryColor,
                                             fontSize = 14.sp,
                                             fontFamily = Pretendard,
@@ -330,10 +505,10 @@ fun ActionDetailWorkerScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 val detailItems = listOf(
-                                    "감지 이벤트" to "쓰러짐",
-                                    "발생 시간" to "2025-05-07 16:05:20",
-                                    "장치명" to "CAM03",
-                                    "발생위치" to "D구역 1열"
+                                    "감지 이벤트" to (eventDetail?.eventName ?: "-"),
+                                    "발생 시간" to (eventDetail?.detectedAt ?: "-"),
+                                    "장치명" to (eventDetail?.deviceName ?: "-"),
+                                    "발생위치" to (eventDetail?.installArea ?: "-")
                                 )
 
                                 detailItems.forEach { (label, value) ->
@@ -532,6 +707,40 @@ fun ActionDetailWorkerScreen(
                             )
                         )
 
+                        if (!eventDetail?.actionImages.isNullOrEmpty()) {
+                            Spacer(modifier = Modifier.height(32.dp))
+                            Text(
+                                text = "첨부 사진",
+                                fontWeight = FontWeight.Medium,
+                                color = CategoryColor,
+                                fontFamily = Pretendard,
+                                fontSize = 16.sp,
+                                modifier = Modifier.offset(x = 8.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(horizontal = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                eventDetail?.actionImages?.forEach { imageUrl ->
+                                    if (imageUrl != null) {
+                                        val fullUrl = if (imageUrl.startsWith("http")) imageUrl else "${RetrofitClient.BASE_URL}${imageUrl.removePrefix("/")}"
+                                        GlideImage(
+                                            model = fullUrl,
+                                            contentDescription = "Attached Image",
+                                            modifier = Modifier
+                                                .size(100.dp)
+                                                .clip(RoundedCornerShape(8.dp)),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(48.dp))
 
                         Button(
@@ -548,7 +757,7 @@ fun ActionDetailWorkerScreen(
                             elevation = ButtonDefaults.elevation(0.dp, 0.dp)
                         ) {
                             Text(
-                                text = "작성완료",
+                                text = "조치완료",
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 18.sp,
                                 fontFamily = Pretendard,
@@ -565,9 +774,31 @@ fun ActionDetailWorkerScreen(
         if (showActionCompletedDialog) {
             ActionCompletedDialog(
                 onDismiss = { showActionCompletedDialog = false },
-                onConfirm = { 
-                    showActionCompletedDialog = false
-                    onBackClick()
+                onConfirm = {
+                    val userId = UserSession.userId
+                    if (!userId.isNullOrEmpty()) {
+                        val request = CompleteActionRequest(eventId = eventId, workerId = userId)
+                        RetrofitClient.instance.completeAction(request).enqueue(object : Callback<Void> {
+                            override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                                if (response.isSuccessful) {
+                                    Toast.makeText(context, "조치 완료 처리되었습니다.", Toast.LENGTH_SHORT).show()
+                                    showActionCompletedDialog = false
+                                    onBackClick() // 성공 시 뒤로가기
+                                } else {
+                                    Toast.makeText(context, "오류가 발생했습니다: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                    showActionCompletedDialog = false
+                                }
+                            }
+
+                            override fun onFailure(call: Call<Void>, t: Throwable) {
+                                Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                                showActionCompletedDialog = false
+                            }
+                        })
+                    } else {
+                        Toast.makeText(context, "사용자 정보를 가져올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                        showActionCompletedDialog = false
+                    }
                 }
             )
         }
@@ -674,12 +905,12 @@ fun ActionCompletedDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode", heightDp = 1000)
 @Composable
 fun ActionDetailWorkerScreenPreview() {
-    ActionDetailWorkerScreen()
+    ActionDetailWorkerScreen(eventId = 1)
 }
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light Mode - Dialog", heightDp = 1000)
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode - Dialog", heightDp = 1000)
 @Composable
 fun ActionDetailWorkerDialogPreview() {
-    ActionDetailWorkerScreen(initialExpanded = true)
+    ActionDetailWorkerScreen(eventId = 1, initialExpanded = true)
 }

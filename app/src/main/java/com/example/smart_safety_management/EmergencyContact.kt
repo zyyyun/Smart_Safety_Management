@@ -28,6 +28,7 @@ import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,26 +43,57 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.ui.theme.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 data class Contact(val name: String, val phoneNumber: String)
 
-val mockContacts = listOf(
-    Contact("아이유", "010-1234-5678"),
-    Contact("유재석", "010-3456-7890"),
-    Contact("정해인", "010-9012-3456"),
-    Contact("한지민", "010-0123-4567")
-)
+private fun formatPhoneNumber(phone: String): String {
+    val number = phone.replace(Regex("[^0-9]"), "")
+    return when {
+        number.length == 11 -> "${number.substring(0, 3)}-${number.substring(3, 7)}-${number.substring(7)}"
+        number.length == 10 -> {
+            if (number.startsWith("02")) {
+                "${number.substring(0, 2)}-${number.substring(2, 6)}-${number.substring(6)}"
+            } else {
+                "${number.substring(0, 3)}-${number.substring(3, 6)}-${number.substring(6)}"
+            }
+        }
+        else -> number
+    }
+}
 
 @Composable
 fun EmergencyContactScreen(
     onBackClick: () -> Unit = {}
 ) {
+    var contacts by remember { mutableStateOf<List<Contact>>(emptyList()) }
     var isSearchActive by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        val userId = UserSession.userId
+        if (userId != null) {
+            RetrofitClient.instance.getUsers(userId).enqueue(object : Callback<GetUsersResponse> {
+                override fun onResponse(call: Call<GetUsersResponse>, response: Response<GetUsersResponse>) {
+                    if (response.isSuccessful) {
+                        val users = response.body()?.users ?: emptyList()
+                        contacts = users.filter { it.userRole == "manager" }
+                            .map { Contact(it.name, formatPhoneNumber(it.phoneNum ?: "")) }
+                    }
+                }
+                override fun onFailure(call: Call<GetUsersResponse>, t: Throwable) {
+                    // Handle failure
+                }
+            })
+        }
+    }
+
     val filteredContacts = if (searchQuery.isBlank()) {
-        mockContacts
+        contacts
     } else {
-        mockContacts.filter {
+        contacts.filter {
             it.name.contains(searchQuery, ignoreCase = true) ||
             it.phoneNumber.replace("-", "").contains(searchQuery.replace("-", ""), ignoreCase = true)
         }

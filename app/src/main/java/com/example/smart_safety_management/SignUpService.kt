@@ -210,7 +210,11 @@ data class DetectionEventDetailResponse(
     @SerializedName("status") val status: String?,
     @SerializedName("installation_address") val installationAddress: String?,
     @SerializedName("live_url") val liveUrl: String?,
-    @SerializedName("capture_image_url") val captureImageUrl: String?
+    @SerializedName("capture_image_url") val captureImageUrl: String?,
+    @SerializedName("request_type") val requestType: String?,
+    @SerializedName("request_title") val requestTitle: String?,
+    @SerializedName("request_details") val requestDetails: String?,
+    @SerializedName("action_images") val actionImages: List<String>?
 )
 
 data class WorkplaceResponseItem(
@@ -232,6 +236,21 @@ data class DeleteAccountResponse(
 data class UpdateEventStatusRequest(
     @SerializedName("event_id") val eventId: Int,
     @SerializedName("status") val status: String
+)
+
+data class CompleteActionRequest(
+    @SerializedName("event_id") val eventId: Int,
+    @SerializedName("worker_id") val workerId: String
+)
+
+data class FindIdRequest(
+    val name: String,
+    @SerializedName("phone_num") val phoneNum: String
+)
+
+data class FindIdResponse(
+    val message: String,
+    @SerializedName("user_id") val userId: String?
 )
 
 interface SignUpService {
@@ -313,4 +332,10 @@ interface SignUpService {
 
     @POST("/update_event_status")
     fun updateEventStatus(@Body request: UpdateEventStatusRequest): Call<Void>
+
+    @POST("/complete_action")
+    fun completeAction(@Body request: CompleteActionRequest): Call<Void>
+
+    @POST("/find_id")
+    fun findId(@Body request: FindIdRequest): Call<FindIdResponse>
 }

@@ -6,7 +6,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
     // ngrok 공용 주소로 변경하여 어디서든 접속 가능하도록 설정
-    private const val BASE_URL = "https://uniterated-pardonless-laurena.ngrok-free.dev/"
+    const val BASE_URL = "https://uniterated-pardonless-laurena.ngrok-free.dev/"
 
     val instance: SignUpService by lazy {
         Retrofit.Builder()

@@ -1,6 +1,14 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const app = express();
 const PORT = 3000;
+
+// 업로드 디렉토리 자동 생성 (public/uploads)
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // JSON 요청 본문을 파싱하기 위한 미들웨어
 app.use(express.json());
@@ -8,6 +16,7 @@ app.use(express.json());
 // 각 기능별 라우터를 가져옴
 const signupRouter = require('./signup');
 const loginRouter = require('./login');
+const findIdRouter = require('./find_id'); // 추가
 const updateProfileRouter = require('./update_profile');
 const changePasswordRouter = require('./change_password');
 const createWorkplaceRouter = require('./create_workplace');
@@ -27,10 +36,12 @@ const deleteAccountRouter = require('./delete_account');
 const createActionRequestRouter = require('./create_action_request');
 const updateEventStatusRouter = require('./update_event_status');
 const verificationRouter = require('./verification'); // 추가
+const completeActionRouter = require('./complete_action');
 
 // 라우터 등록
 app.use('/', signupRouter);
 app.use('/', loginRouter);
+app.use('/', findIdRouter); // 추가
 app.use('/', updateProfileRouter);
 app.use('/', changePasswordRouter);
 app.use('/', createWorkplaceRouter);
@@ -50,9 +61,10 @@ app.use('/', deleteAccountRouter);
 app.use('/', createActionRequestRouter);
 app.use('/', updateEventStatusRouter);
 app.use('/', verificationRouter); // 추가
+app.use('/', completeActionRouter);
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
-app.use('/uploads', express.static('public/uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`서버가 ${PORT} 포트에서 실행 중입니다.`);

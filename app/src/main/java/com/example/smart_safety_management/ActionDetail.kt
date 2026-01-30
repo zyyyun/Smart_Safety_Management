@@ -498,13 +498,6 @@ fun ActionDetailScreen(
                                     tint = photoColor,
                                     modifier = Modifier.size(32.dp)
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "${attachedPhotos.size}/5",
-                                    color = photoColor,
-                                    fontSize = 14.sp,
-                                    fontFamily = Pretendard
-                                )
                             }
                         }
 

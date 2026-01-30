@@ -166,7 +166,16 @@ class HomeWorkerActivity : AppCompatActivity() {
                     }
 
                     val rvEvent = findViewById<RecyclerView>(R.id.rv_worker_event)
-                    eventAdapter = WorkerEventAdapter(displayEvents)
+                    // WorkerEventAdapter에 클릭 리스너를 전달하도록 수정 (Adapter 수정 필요)
+                    eventAdapter = WorkerEventAdapter(displayEvents) { eventData ->
+                        // 조치 대기(PENDING) 상태인 경우에만 상세 페이지로 이동
+                        val status = displayEvents.find { it.first.id == eventData.id }?.second
+                        if (status == EventStatus.PENDING) {
+                            val intent = Intent(this@HomeWorkerActivity, ActionDetailWorkerActivity::class.java)
+                            intent.putExtra("eventId", eventData.id)
+                            startActivity(intent)
+                        }
+                    }
                     rvEvent.adapter = eventAdapter
                 }
             }
