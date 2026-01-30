@@ -3,6 +3,9 @@ package com.example.smart_safety_management
 import android.content.Intent
 import android.graphics.Paint
 import android.os.Bundle
+import android.text.Editable
+import android.text.InputFilter
+import android.text.TextWatcher
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
@@ -30,6 +33,29 @@ class FindPasswordActivity : AppCompatActivity() {
         val btnVerify = findViewById<Button>(R.id.verify_button)
         val nextButton = findViewById<Button>(R.id.next_button)
 
+        // 전화번호 하이픈 자동 추가
+        etPhoneNumber.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(13))
+        etPhoneNumber.addTextChangedListener(object : TextWatcher {
+            private var isFormatting = false
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                if (isFormatting) return
+                isFormatting = true
+                val input = s.toString().replace("-", "")
+                val formatted = when {
+                    input.length <= 3 -> input
+                    input.length <= 7 -> {
+                        if (input.length > 3) "${input.substring(0, 3)}-${input.substring(3)}"
+                        else input
+                    }
+                    else -> "${input.substring(0, 3)}-${input.substring(3, 7)}-${input.substring(7)}"
+                }
+                s?.replace(0, s.length, formatted)
+                isFormatting = false
+            }
+        })
+
         // 아이디 찾기 텍스트 밑줄 추가 및 이동
         val findId = findViewById<TextView>(R.id.tv_find_id)
         findId.paintFlags = findId.paintFlags or Paint.UNDERLINE_TEXT_FLAG
@@ -45,7 +71,7 @@ class FindPasswordActivity : AppCompatActivity() {
 
         // 인증번호 받기 버튼
         btnGetCode.setOnClickListener {
-            val phoneNum = etPhoneNumber.text.toString().trim()
+            val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
             if (phoneNum.isEmpty()) {
                 Toast.makeText(this, "전화번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
@@ -69,7 +95,7 @@ class FindPasswordActivity : AppCompatActivity() {
 
         // 인증 확인 버튼
         btnVerify.setOnClickListener {
-            val phoneNum = etPhoneNumber.text.toString().trim()
+            val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
             val code = etVerify.text.toString().trim()
 
             if (code.isEmpty()) {
@@ -101,7 +127,7 @@ class FindPasswordActivity : AppCompatActivity() {
         nextButton.setOnClickListener {
             val name = etName.text.toString().trim()
             val id = etId.text.toString().trim()
-            val phoneNum = etPhoneNumber.text.toString().trim()
+            val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
 
             if (name.isEmpty() || id.isEmpty() || phoneNum.isEmpty()) {
                 Toast.makeText(this, "모든 정보를 입력해주세요.", Toast.LENGTH_SHORT).show()
