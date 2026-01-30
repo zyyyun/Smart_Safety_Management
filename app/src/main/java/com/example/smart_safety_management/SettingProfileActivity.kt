@@ -10,6 +10,7 @@ import android.text.Editable
 import android.text.InputFilter
 import android.text.TextWatcher
 import android.util.Log
+import android.util.Patterns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -378,19 +379,26 @@ class SettingProfileActivity : AppCompatActivity() {
             val rawInput = etPhoneEdit.text.toString()
             // DB 저장용: 숫자만 추출 (하이픈 제거)
             val newPhone = rawInput.replace(Regex("[^0-9]"), "")
-            val userId = UserSession.userId
 
+            // 자리수 체크: 숫자만 11자 미만일 경우 처리 중단
+            if (newPhone.length < 11) {
+                ToastUtil.showShort(this, "휴대폰 번호를 올바르게 입력해주세요.")
+                return@setOnClickListener // 여기서 리턴하여 아래의 Retrofit 통신을 막음
+            }
+
+            val userId = UserSession.userId
             if (userId == null) {
                 ToastUtil.showShort(this, "로그인 정보가 없습니다.")
                 return@setOnClickListener
             }
 
+            // 자리수가 올바를 때만 서버로 요청
             val request = UpdateProfileRequest(userId = userId, phoneNum = newPhone)
             RetrofitClient.instance.updateProfile(request).enqueue(object : Callback<UpdateProfileResponse> {
                 override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
                     if (response.isSuccessful) {
                         UserSession.userPhone = newPhone
-                        UserSession.saveSession(this@SettingProfileActivity) // 변경된 정보 저장
+                        UserSession.saveSession(this@SettingProfileActivity) 
                         tvPhoneValue.text = formatPhoneNumber(newPhone)
                         layoutPhoneEdit.visibility = View.GONE
                         layoutPhoneView?.visibility = View.VISIBLE
@@ -427,11 +435,17 @@ class SettingProfileActivity : AppCompatActivity() {
         }
 
         btnConfirm?.setOnClickListener {
-            val newEmail = etEmailEdit.text.toString()
+            val newEmail = etEmailEdit.text.toString().trim()
             val userId = UserSession.userId
 
             if (userId == null) {
                 ToastUtil.showShort(this, "로그인 정보가 없습니다.")
+                return@setOnClickListener
+            }
+
+            // 이메일 형식 체크
+            if (newEmail.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(newEmail).matches()) {
+                ToastUtil.showShort(this, "올바른 이메일 형식이 아닙니다.")
                 return@setOnClickListener
             }
 
@@ -440,7 +454,7 @@ class SettingProfileActivity : AppCompatActivity() {
                 override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
                     if (response.isSuccessful) {
                         UserSession.userEmail = newEmail
-                        UserSession.saveSession(this@SettingProfileActivity) // 변경된 정보 저장
+                        UserSession.saveSession(this@SettingProfileActivity) 
                         tvEmailValue.text = newEmail
                         layoutEmailEdit.visibility = View.GONE
                         layoutEmailView?.visibility = View.VISIBLE
@@ -496,7 +510,7 @@ class SettingProfileActivity : AppCompatActivity() {
                     override fun onResponse(call: Call<UpdateProfileResponse>, response: Response<UpdateProfileResponse>) {
                         if (response.isSuccessful) {
                             UserSession.userName = newName
-                            UserSession.saveSession(this@SettingProfileActivity) // 변경된 정보 저장
+                            UserSession.saveSession(this@SettingProfileActivity) 
                             findViewById<TextView>(R.id.tv_user_name).text = newName
                             ToastUtil.showShort(this@SettingProfileActivity, "이름이 변경되었습니다.")
                             alertDialog.dismiss()
