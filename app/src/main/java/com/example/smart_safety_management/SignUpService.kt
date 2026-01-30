@@ -327,8 +327,8 @@ interface SignUpService {
     @GET("/get_workplace")
     fun getWorkplace(@Query("user_id") userId: String): Call<GetWorkplaceResponse>
 
-    @DELETE("/delete_account/{user_id}")
-    fun deleteAccount(@Path("user_id") userId: String): Call<Void>
+    @POST("/delete_account")
+    fun deleteAccount(@Body request: DeleteAccountRequest): Call<Void>
 
     @Multipart
     @POST("/create_action_request")

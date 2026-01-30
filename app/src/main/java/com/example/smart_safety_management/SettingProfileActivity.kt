@@ -157,7 +157,8 @@ class SettingProfileActivity : AppCompatActivity() {
 
         Log.d("Withdraw", "Attempting to delete account for user: $userId")
 
-        RetrofitClient.instance.deleteAccount(userId).enqueue(object : Callback<Void> {
+        val request = DeleteAccountRequest(userId)
+        RetrofitClient.instance.deleteAccount(request).enqueue(object : Callback<Void> {
             override fun onResponse(call: Call<Void>, response: Response<Void>) {
                 if (response.isSuccessful) {
                     Log.d("Withdraw", "Account deletion successful")
