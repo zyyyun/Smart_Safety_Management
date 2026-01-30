@@ -61,7 +61,6 @@ class ChangePasswordActivity : AppCompatActivity() {
             if (pwError != null) {
                 tvNotice.text = pwError
                 llNotice.visibility = View.VISIBLE
-                Toast.makeText(this, pwError, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 

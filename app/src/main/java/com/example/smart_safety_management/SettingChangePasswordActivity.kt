@@ -51,7 +51,7 @@ class SettingChangePasswordActivity : AppCompatActivity() {
                 val reNewPassword = etReNewPassword.text.toString()
 
                 if (reNewPassword.isEmpty()) {
-                    tvNotice.visibility = View.INVISIBLE
+                    tvNotice.visibility = View.GONE
                     tilReNewPassword.setBoxStrokeColorStateList(ContextCompat.getColorStateList(this@SettingChangePasswordActivity, R.color.til_stroke)!!)
                 } else {
                     tvNotice.visibility = View.VISIBLE
