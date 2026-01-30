@@ -253,6 +253,17 @@ data class FindIdResponse(
     @SerializedName("user_id") val userId: String?
 )
 
+data class VerifyUserRequest(
+    val name: String,
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("phone_num") val phoneNum: String
+)
+
+data class VerifyUserResponse(
+    val message: String,
+    val exists: Boolean
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -338,4 +349,7 @@ interface SignUpService {
 
     @POST("/find_id")
     fun findId(@Body request: FindIdRequest): Call<FindIdResponse>
+
+    @POST("/verify_user_for_password")
+    fun verifyUserForPassword(@Body request: VerifyUserRequest): Call<VerifyUserResponse>
 }
