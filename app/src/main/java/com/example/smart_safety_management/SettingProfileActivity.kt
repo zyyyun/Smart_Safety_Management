@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.text.Editable
+import android.text.InputFilter
 import android.text.TextWatcher
 import android.util.Log
 import android.view.LayoutInflater
@@ -294,6 +295,29 @@ class SettingProfileActivity : AppCompatActivity() {
         val etPhoneEdit = findViewById<TextInputEditText>(R.id.et_phone_edit)
         val btnConfirm = findViewById<ImageView>(R.id.btn_phone_confirm)
         val btnCancel = findViewById<ImageView>(R.id.btn_phone_cancel)
+
+        // 전화번호 하이픈 자동 추가 및 글자수 제한
+        etPhoneEdit?.filters = arrayOf<InputFilter>(InputFilter.LengthFilter(13))
+        etPhoneEdit?.addTextChangedListener(object : TextWatcher {
+            private var isFormatting = false
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                if (isFormatting) return
+                isFormatting = true
+                val input = s.toString().replace("-", "")
+                val formatted = when {
+                    input.length <= 3 -> input
+                    input.length <= 7 -> {
+                        if (input.length > 3) "${input.substring(0, 3)}-${input.substring(3)}"
+                        else input
+                    }
+                    else -> "${input.substring(0, 3)}-${input.substring(3, 7)}-${input.substring(7)}"
+                }
+                s?.replace(0, s.length, formatted)
+                isFormatting = false
+            }
+        })
 
         layoutPhoneView?.setOnClickListener {
             layoutPhoneView.visibility = View.GONE
