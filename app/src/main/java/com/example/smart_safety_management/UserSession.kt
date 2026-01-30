@@ -12,6 +12,7 @@ object UserSession {
     private const val KEY_USER_ROLE = "user_role"
     private const val KEY_PROFILE_IMAGE = "profile_image_uri"
     private const val KEY_GROUP_ID = "group_id"
+    private const val KEY_INVITE_CODE = "invite_code" // 추가
     private const val KEY_IS_LOGGED_IN = "is_logged_in"
     
     private const val KEY_INVITE_CHECKED_PREFIX = "invite_checked_"
@@ -23,27 +24,28 @@ object UserSession {
     var userEmail: String? = null
     var profileImageUri: String? = null
     var groupId: String? = null
+    var inviteCode: String? = null // 현재 사용자의 초대코드 (관리자용)
     
     var isInviteChecked: Boolean = false
 
     fun saveSession(context: Context) {
         val prefs: SharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
-        val editor = prefs.edit()
-        
-        editor.putString(KEY_USER_ID, userId)
-        editor.putString(KEY_USER_NAME, userName)
-        editor.putString(KEY_USER_PHONE, userPhone)
-        editor.putString(KEY_USER_EMAIL, userEmail)
-        editor.putString(KEY_USER_ROLE, userRole.name)
-        editor.putString(KEY_PROFILE_IMAGE, profileImageUri)
-        editor.putString(KEY_GROUP_ID, groupId)
-        editor.putBoolean(KEY_IS_LOGGED_IN, true)
-        
-        // userId가 있는 경우에만 초대코드 상태 저장
-        userId?.let {
-            editor.putBoolean(KEY_INVITE_CHECKED_PREFIX + it, isInviteChecked)
+        prefs.edit().apply {
+            putString(KEY_USER_ID, userId)
+            putString(KEY_USER_NAME, userName)
+            putString(KEY_USER_PHONE, userPhone)
+            putString(KEY_USER_EMAIL, userEmail)
+            putString(KEY_USER_ROLE, userRole.name)
+            putString(KEY_PROFILE_IMAGE, profileImageUri)
+            putString(KEY_GROUP_ID, groupId)
+            putString(KEY_INVITE_CODE, inviteCode) // 저장
+            putBoolean(KEY_IS_LOGGED_IN, true)
+            
+            userId?.let {
+                putBoolean(KEY_INVITE_CHECKED_PREFIX + it, isInviteChecked)
+            }
+            apply()
         }
-        editor.apply()
     }
 
     fun loadSession(context: Context): Boolean {
@@ -55,6 +57,7 @@ object UserSession {
             userPhone = prefs.getString(KEY_USER_PHONE, null)
             userEmail = prefs.getString(KEY_USER_EMAIL, null)
             groupId = prefs.getString(KEY_GROUP_ID, null)
+            inviteCode = prefs.getString(KEY_INVITE_CODE, null) // 로드
             val roleStr = prefs.getString(KEY_USER_ROLE, UserRole.MANAGER.name)
             userRole = if (roleStr == UserRole.WORKER.name) UserRole.WORKER else UserRole.MANAGER
             profileImageUri = prefs.getString(KEY_PROFILE_IMAGE, null)
@@ -77,6 +80,7 @@ object UserSession {
         userRole = UserRole.MANAGER
         profileImageUri = null
         groupId = null
+        inviteCode = null
         isInviteChecked = false
     }
 }

@@ -55,7 +55,8 @@ class LogInActivity : AppCompatActivity() {
                             UserSession.userPhone = body.user.phoneNum
                             UserSession.userEmail = body.user.email
                             UserSession.profileImageUri = body.user.profileImageUri
-                            UserSession.groupId = body.user.groupId // 그룹 ID 저장 추가
+                            UserSession.groupId = body.user.groupId
+                            UserSession.inviteCode = body.user.inviteCode // 초대코드 저장 추가
 
                             // 2. 역할 설정
                             if (body.user.userRole == "manager") {
@@ -64,7 +65,7 @@ class LogInActivity : AppCompatActivity() {
                                 UserSession.userRole = UserRole.WORKER
                             }
 
-                            // 3. 세션 저장 (자동 로그인 및 초대코드 상태 유지용)
+                            // 3. 세션 저장
                             UserSession.saveSession(this@LogInActivity)
 
                             // 4. 화면 이동

@@ -7,24 +7,19 @@ router.post('/login', async (req, res) => {
     const { user_id, password } = req.body;
 
     try {
-        // 1. 아이디로 사용자 조회 (group_id 포함)
         const result = await pool.query('SELECT * FROM users WHERE user_id = $1', [user_id]);
 
-        // 사용자가 없는 경우
         if (result.rows.length === 0) {
             return res.status(401).json({ message: "존재하지 않는 아이디입니다." });
         }
 
         const user = result.rows[0];
-
-        // 2. 비밀번호 비교 (입력받은 값 vs DB에 저장된 해시값)
         const isMatch = await bcrypt.compare(password, user.password);
 
         if (!isMatch) {
             return res.status(401).json({ message: "비밀번호가 일치하지 않습니다." });
         }
 
-        // 3. 로그인 성공 응답 (group_id 포함)
         res.status(200).json({
             message: "로그인 성공",
             user: {
@@ -34,7 +29,8 @@ router.post('/login', async (req, res) => {
                 phone_num: user.phone_num,
                 email: user.email,
                 profile_image_url: user.profile_image_url,
-                group_id: user.group_id // 그룹 ID 반환
+                group_id: user.group_id ? user.group_id.toString() : null,
+                invite_code: user.invite_code // DB에 저장된 코드 그대로 반환
             }
         });
 

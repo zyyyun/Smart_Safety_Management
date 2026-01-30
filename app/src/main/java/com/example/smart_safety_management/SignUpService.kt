@@ -39,7 +39,8 @@ data class SignUpRequest(
     @SerializedName("phone_num") val phoneNum: String?,
     val email: String?,
     @SerializedName("user_role") val userRole: String,
-    @SerializedName("group_id") val groupId: String?
+    @SerializedName("group_id") val groupId: String?,
+    @SerializedName("invite_code") val inviteCode: String? = null
 )
 
 data class SignUpResponse(
@@ -64,7 +65,8 @@ data class UserData(
     @SerializedName("phone_num") val phoneNum: String?,
     val email: String?,
     @SerializedName("profile_image_url") val profileImageUri: String?,
-    @SerializedName("group_id") val groupId: String? // 추가
+    @SerializedName("group_id") val groupId: String?,
+    @SerializedName("invite_code") val inviteCode: String? // 초대코드 추가
 )
 
 data class UpdateProfileRequest(
@@ -254,6 +256,11 @@ data class HandleFalsePositiveRequest(
 data class FindIdRequest(
     val name: String,
     @SerializedName("phone_num") val phoneNum: String
+)
+
+data class FindIdRequestFindIdResponse(
+    val message: String,
+    @SerializedName("user_id") val userId: String?
 )
 
 data class FindIdResponse(
