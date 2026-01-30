@@ -90,14 +90,57 @@ class SettingProfileActivity : AppCompatActivity() {
     }
 
     private fun loadUserData() {
-        findViewById<TextView>(R.id.tv_user_name).text = UserSession.userName
-        val authorityTv = findViewById<TextView>(R.id.tv_user_name_authority)
-        authorityTv.text = if (UserSession.userRole == UserRole.MANAGER) "관리자" else "근로자"
+        val userId = UserSession.userId ?: return
 
-        findViewById<TextView>(R.id.tv_user_phone).text = formatPhoneNumber(UserSession.userPhone)
-        findViewById<TextView>(R.id.tv_user_email).text = UserSession.userEmail ?: ""
+        // 1. 먼저 세션 데이터로 초기화 (UI 즉시 반응)
+        updateUI(
+            UserSession.userName,
+            UserSession.userRole,
+            UserSession.userId,
+            UserSession.userPhone,
+            UserSession.userEmail,
+            UserSession.profileImageUri
+        )
 
-        UserSession.profileImageUri?.let {
+        // 2. 서버에서 최신 정보 불러와서 동기화
+        RetrofitClient.instance.getUsers(userId).enqueue(object : Callback<GetUsersResponse> {
+            override fun onResponse(call: Call<GetUsersResponse>, response: Response<GetUsersResponse>) {
+                if (response.isSuccessful && response.body() != null) {
+                    val userList = response.body()!!.users
+                    // 전체 리스트 중 현재 로그인한 본인의 ID와 일치하는 데이터 찾기
+                    val currentUser = userList.find { it.userId == userId }
+                    
+                    currentUser?.let { user ->
+                        val role = if (user.userRole == "manager") UserRole.MANAGER else UserRole.WORKER
+                        
+                        // UI 업데이트
+                        updateUI(user.name, role, user.userId, user.phoneNum, user.email, user.profileImageUri)
+
+                        // 세션 데이터 동기화
+                        UserSession.userName = user.name
+                        UserSession.userRole = role
+                        UserSession.userPhone = user.phoneNum
+                        UserSession.userEmail = user.email
+                        UserSession.profileImageUri = user.profileImageUri
+                        UserSession.saveSession(this@SettingProfileActivity)
+                    }
+                }
+            }
+
+            override fun onFailure(call: Call<GetUsersResponse>, t: Throwable) {
+                Log.e("SettingProfile", "유저 정보 불러오기 실패: ${t.message}")
+            }
+        })
+    }
+
+    private fun updateUI(name: String, role: UserRole, id: String?, phone: String?, email: String?, profileImg: String?) {
+        findViewById<TextView>(R.id.tv_user_name).text = name
+        findViewById<TextView>(R.id.tv_user_name_authority).text = if (role == UserRole.MANAGER) "관리자" else "근로자"
+        findViewById<TextView>(R.id.tv_user_id).text = id ?: ""
+        findViewById<TextView>(R.id.tv_user_phone).text = formatPhoneNumber(phone)
+        findViewById<TextView>(R.id.tv_user_email).text = email ?: ""
+
+        profileImg?.let {
             val ivProfile = findViewById<ImageView>(R.id.iv_profile)
             Glide.with(this).load(it).centerCrop().into(ivProfile)
             ivProfile.setPadding(0, 0, 0, 0)
