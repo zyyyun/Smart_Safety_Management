@@ -4,7 +4,7 @@
     package="com.example.smart_safety_management">
 
     <!-- 권한 설정 -->
-    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.CAMERA" />
@@ -21,6 +21,10 @@
         android:required="false" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
 
 
     <application
@@ -127,7 +131,7 @@
         <!-- 설정 화면 -->
         <activity
             android:name=".SettingActivity"
-            android:exported="false"/>"
+            android:exported="false"/>
         <activity
             android:name=".SettingWorkerActivity"
             android:exported="false"/>

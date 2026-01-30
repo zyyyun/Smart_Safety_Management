@@ -1,6 +1,8 @@
 package com.example.smart_safety_management
 
 import android.content.res.Configuration
+import android.location.Geocoder
+import android.preference.PreferenceManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -28,29 +31,19 @@ import com.example.smart_safety_management.ui.theme.Pretendard
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.ui.theme.TextGray5
 import com.example.smart_safety_management.ui.theme.*
-
-data class Caminfo(
-    val name : String,
-    val code : String,
-    val hostname : String,
-    val hostid : String,
-    val hostpw : String,
-    val state : Boolean,
-    val lastconnect : String,
-    val install : String,
-)
-
-// 카메라 상세 더미 데이터
-val mockCamInfo = Caminfo(
-    name = "CAM01",
-    code = "TCVR2947G729DH49",
-    hostname = "빌라 에코",
-    hostid = "빌라 에코",
-    hostpw = "********",
-    state = true,
-    lastconnect = "2025-03-18 10:35:59",
-    install = "C구역 1열"
-)
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.osmdroid.config.Configuration as OsmConfiguration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.util.Locale
 
 enum class EventType(val label: String) {
     HELMET_NOT_WEARING("안전모 미착용"),
@@ -84,9 +77,11 @@ enum class HourType(val hour: Int) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CamDetailScreen(
+    cameraId: String,
     onBackClick: () -> Unit = {}
 ) {
     Smart_Safety_ManagementTheme {
+        val context = LocalContext.current
         val isLight = MaterialTheme.colors.isLight
         val categoryColor = if (isLight) TextGray60 else TextGray
         val mainColor = if (isLight) TextGray20 else TextGray5
@@ -94,10 +89,83 @@ fun CamDetailScreen(
         val textColor = if (isLight) TextDark else GrayBorder
 
         // 상태 관리
+        var camInfo by remember { mutableStateOf<CCTVDetailResponse?>(null) }
         var selectedDirection by remember { mutableStateOf("12시") }
         var selectedCycle by remember { mutableStateOf("5분") }
         val selectedEvents = remember { mutableStateListOf<String>() }
         val selectedHours = remember { mutableStateListOf<String>() }
+        
+        // 지도 좌표 상태
+        var mapCenter by remember { mutableStateOf<GeoPoint?>(null) }
+        var isGeocodingError by remember { mutableStateOf(false) }
+
+        // 주소를 좌표로 변환 (Geocoding)
+        LaunchedEffect(camInfo) {
+            val info = camInfo
+            if (info != null) {
+                if (!info.installationAddress.isNullOrBlank()) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val geocoder = Geocoder(context, Locale.KOREA)
+                            @Suppress("DEPRECATION")
+                            val addresses = geocoder.getFromLocationName(info.installationAddress, 1)
+                            if (!addresses.isNullOrEmpty()) {
+                                mapCenter = GeoPoint(addresses[0].latitude, addresses[0].longitude)
+                                isGeocodingError = false
+                            } else {
+                                isGeocodingError = true
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            isGeocodingError = true
+                        }
+                    }
+                } else {
+                    // 주소 정보가 없는 경우 에러 처리하여 '위치를 찾을 수 없습니다' 표시
+                    isGeocodingError = true
+                }
+            }
+        }
+
+        // 서버에서 데이터 불러오기
+        LaunchedEffect(cameraId) {
+            RetrofitClient.instance.getCCTVDetail(cameraId).enqueue(object : Callback<CCTVDetailResponse> {
+                override fun onResponse(call: Call<CCTVDetailResponse>, response: Response<CCTVDetailResponse>) {
+                    if (response.isSuccessful) {
+                        val data = response.body()
+                        if (data != null) {
+                            camInfo = data
+                            
+                            // UI 상태 업데이트
+                            selectedDirection = data.direction ?: "12시"
+                            selectedCycle = if (data.shootingInterval != null) "${data.shootingInterval}분" else "5분"
+                            
+                            selectedEvents.clear()
+                            selectedEvents.addAll(data.events)
+
+                            // 가동 시간 파싱 (000000... 문자열 -> 시간 리스트)
+                            selectedHours.clear()
+                            data.operatingHours?.let { hoursStr ->
+                                if (hoursStr.length == 24) {
+                                    hoursStr.forEachIndexed { index, char ->
+                                        if (char == '1') {
+                                            selectedHours.add(HourType.values().getOrNull(index)?.label ?: "")
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<CCTVDetailResponse>, t: Throwable) {
+                    // 에러 처리
+                }
+            })
+        }
+
+        if (camInfo == null) {
+            // 로딩 중 표시 (필요 시 구현)
+        }
 
         Scaffold(
             backgroundColor = MaterialTheme.colors.onPrimary,
@@ -143,19 +211,20 @@ fun CamDetailScreen(
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
 
-                CamInfoItem("이름", mockCamInfo.name, categoryColor, mainColor)
-                CamInfoItem("장치코드", mockCamInfo.code, categoryColor, mainColor)
-                CamInfoItem("호스트 이름", mockCamInfo.hostname, categoryColor, mainColor)
-                CamInfoItem("호스트 ID", mockCamInfo.hostid, categoryColor, mainColor)
-                CamInfoItem("호스트 PW", mockCamInfo.hostpw, categoryColor, mainColor)
-                CamInfoItem("최근 연결", mockCamInfo.lastconnect, categoryColor, mainColor)
+                CamInfoItem("이름", camInfo?.deviceName ?: "-", categoryColor, mainColor)
+                CamInfoItem("장치코드", camInfo?.deviceCode ?: "-", categoryColor, mainColor)
+                CamInfoItem("호스트 이름", camInfo?.hostCode ?: "-", categoryColor, mainColor)
+                CamInfoItem("호스트 ID", camInfo?.hostId ?: "-", categoryColor, mainColor)
+                CamInfoItem("호스트 PW", camInfo?.hostPassword?.map { '*' }?.joinToString("") ?: "-", categoryColor, mainColor)
+                CamInfoItem("최근 연결", camInfo?.lastCommDate?.replace("T", " ")?.substringBefore(".") ?: "-", categoryColor, mainColor)
                 
                 // ✅ 상태값에 따른 텍스트 및 색상 적용, 편집 아이콘 제거 및 여백 삭제
+                val isStatusNormal = camInfo?.status == "정상" || camInfo?.status == "Active" // DB 값에 따라 조정 필요
                 CamInfoItem(
                     label = "상태",
-                    value = if (mockCamInfo.state) "정상" else "미수신",
+                    value = camInfo?.status ?: "미수신",
                     labelColor = categoryColor,
-                    valueColor = if (mockCamInfo.state) StatusGreenDark else StatusRed,
+                    valueColor = if (isStatusNormal) StatusGreenDark else StatusRed,
                     showEditIcon = false
                 )
 
@@ -186,7 +255,7 @@ fun CamDetailScreen(
                     color = categoryColor
                 )
 
-                CamInfoItem("설치구역", mockCamInfo.install, categoryColor, mainColor)
+                CamInfoItem("설치구역", camInfo?.installArea ?: "-", categoryColor, mainColor)
 
 
                 FilmingInfo("촬영 방향", categoryColor) {
@@ -223,10 +292,7 @@ fun CamDetailScreen(
                             EventSelectButton(
                                 text = eventLabel,
                                 isSelected = isSelected,
-                                onClick = {
-                                    if (isSelected) selectedEvents.remove(eventLabel)
-                                    else selectedEvents.add(eventLabel)
-                                }
+                                onClick = null
                             )
                         }
                     }
@@ -248,10 +314,7 @@ fun CamDetailScreen(
                             EventSelectButton(
                                 text = hourLabel,
                                 isSelected = isSelected,
-                                onClick = {
-                                    if (isSelected) selectedHours.remove(hourLabel)
-                                    else selectedHours.add(hourLabel)
-                                }
+                                onClick = null
                             )
                         }
                     }
@@ -291,23 +354,52 @@ fun CamDetailScreen(
                     color = textColor,
                 )
 
+                // ✅ OSMDroid 지도로 교체
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(200.dp) // 지도 높이 지정
                         .clip(RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.camdetail_map),
-                        contentDescription = "Installation Map",
-                        modifier = Modifier.fillMaxWidth(),
-                        contentScale = ContentScale.FillWidth
-                    )
-                    Image(
-                        painter = painterResource(id = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark),
-                        contentDescription = "Worker Icon",
-                        modifier = Modifier.scale(1.67f)
-                    )
+                    if (mapCenter != null) {
+                        AndroidView(
+                            factory = { ctx ->
+                                OsmConfiguration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))
+                                MapView(ctx).apply {
+                                    setTileSource(TileSourceFactory.MAPNIK)
+                                    setMultiTouchControls(true)
+                                    controller.setZoom(17.0)
+                                }
+                            },
+                            update = { mapView ->
+                                mapView.controller.setCenter(mapCenter)
+                                mapView.overlays.clear()
+                                val marker = Marker(mapView)
+                                marker.position = mapCenter
+                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                val iconRes = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark
+                                marker.icon = ContextCompat.getDrawable(context, iconRes)
+                                mapView.overlays.add(marker)
+                                mapView.invalidate()
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        // 로딩 중이거나 주소를 찾을 수 없을 때 표시할 대체 UI (기존 이미지 유지 또는 로딩 표시)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(if (isLight) Color.LightGray else Color.DarkGray),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isGeocodingError) {
+                                Text("위치를 찾을 수 없습니다.", color = Color.White)
+                            } else {
+                                Text("위치 정보를 불러오는 중...", color = Color.White)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -468,7 +560,7 @@ fun FilmingInfo(
 fun EventSelectButton(
     text: String,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: (() -> Unit)? = null
 ) {
     val isLight = MaterialTheme.colors.isLight
     val notBgColor = if (isLight) TextGray5 else TextGray20
@@ -480,7 +572,7 @@ fun EventSelectButton(
                 color = if (isSelected) MainOrange else notBgColor,
                 shape = RoundedCornerShape(20.dp)
             )
-            .clickable { onClick() }
+            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
             .padding(horizontal = 10.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -497,5 +589,5 @@ fun EventSelectButton(
 @Preview(showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode")
 @Composable
 fun CamDetailScreenPreview() {
-    CamDetailScreen()
+    CamDetailScreen(cameraId = "1")
 }

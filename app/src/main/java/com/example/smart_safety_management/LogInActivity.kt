@@ -57,24 +57,33 @@ class LogInActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         val body = response.body()
                         if (body?.user != null) {
-                            // 1. 세션 정보 업데이트 (이름)
+                            // 1. 세션 정보 업데이트
                             UserSession.userId = body.user.userId
                             UserSession.userName = body.user.name
                             UserSession.userPhone = body.user.phoneNum
                             UserSession.userEmail = body.user.email
+                            UserSession.profileImageUri = body.user.profileImageUri
 
-                            // 2. 역할에 따른 화면 이동 및 세션 역할 설정
-                            val intent = if (body.user.userRole == "manager") {
+                            // 2. 역할 설정
+                            if (body.user.userRole == "manager") {
                                 UserSession.userRole = UserRole.MANAGER
-                                Intent(this@LogInActivity, HomeActivity::class.java)
                             } else {
                                 UserSession.userRole = UserRole.WORKER
+                            }
+
+                            // 3. 세션 저장 (자동 로그인용)
+                            UserSession.saveSession(this@LogInActivity)
+
+                            // 4. 화면 이동
+                            val intent = if (UserSession.userRole == UserRole.MANAGER) {
+                                Intent(this@LogInActivity, HomeActivity::class.java)
+                            } else {
                                 Intent(this@LogInActivity, HomeWorkerActivity::class.java)
                             }
 
                             Toast.makeText(this@LogInActivity, "로그인 성공", Toast.LENGTH_SHORT).show()
                             startActivity(intent)
-                            finish()
+                            finishAffinity() // 이전 액티비티 스택 제거
                         } else {
                             Toast.makeText(this@LogInActivity, "로그인 실패: 사용자 정보 오류", Toast.LENGTH_SHORT).show()
                         }

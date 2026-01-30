@@ -11,18 +11,18 @@ class SettingCctvManagementActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             // 상세 화면 표시 여부 상태
-            var showDetail by remember { mutableStateOf(false) }
+            var selectedCameraId by remember { mutableStateOf<String?>(null) }
 
             // 시스템 백버튼 처리
-            BackHandler(enabled = showDetail) {
-                showDetail = false
+            BackHandler(enabled = selectedCameraId != null) {
+                selectedCameraId = null
             }
 
-            if (showDetail) {
-                // 임시로 어떤 카메라를 클릭해도 동일한 상세 화면 표시
+            if (selectedCameraId != null) {
                 CamDetailScreen(
+                    cameraId = selectedCameraId!!,
                     onBackClick = {
-                        showDetail = false
+                        selectedCameraId = null
                     }
                 )
             } else {
@@ -30,8 +30,9 @@ class SettingCctvManagementActivity : ComponentActivity() {
                     onBackClick = {
                         finish()
                     },
-                    onCameraClick = {
-                        showDetail = true
+                    onCameraClick = { cameraData ->
+                        // 클릭된 카메라의 ID 저장
+                        selectedCameraId = cameraData.id
                     }
                 )
             }

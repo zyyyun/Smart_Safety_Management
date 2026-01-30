@@ -69,7 +69,8 @@
         app:boxCornerRadiusTopStart="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tv_id_label">
+        app:layout_constraintTop_toBottomOf="@id/tv_id_label"
+        app:hintTextColor="@color/et_hint_color">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_id"
@@ -80,9 +81,11 @@
             android:hint="사용하실 아이디를 입력해주세요"
             android:letterSpacing="0"
             android:inputType="text"
+            android:digits="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black_white" />
+            android:textColor="@color/black_white"
+            android:textCursorDrawable="@null"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- 비밀번호 라벨 -->
@@ -122,6 +125,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_password_label"
         app:endIconMode="password_toggle"
+        app:hintTextColor="@color/et_hint_color"
         app:passwordToggleDrawable="@drawable/selector_password_toggle">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -130,13 +134,46 @@
             android:layout_height="64dp"
             app:boxBackgroundColor="@color/white_gray900"
             android:fontFamily="@font/pretendard_medium"
-            android:hint="비밀번호를 입력해주세요"
+            android:hint="영문과 숫자를 포함해 8자 이상"
             android:letterSpacing="0"
             android:inputType="textPassword"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black_white"/>
+            android:textColor="@color/black_white"
+            android:textCursorDrawable="@null"/>
     </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- 성공/에러 메시지 -->
+    <LinearLayout
+        android:id="@+id/ll_notice"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        app:layout_constraintTop_toBottomOf="@id/til_write_password"
+        app:layout_constraintStart_toStartOf="@id/til_write_password"
+        android:layout_marginTop="4dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/iv_notice"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:foregroundGravity="center"
+            app:srcCompat="@drawable/ic_error" />
+
+        <TextView
+            android:id="@+id/tv_notice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="비밀번호에 영문을 입력해주세요."
+            android:letterSpacing="0"
+            android:textSize="12sp"
+            android:textColor="@color/red500"
+            android:visibility="visible"
+            android:layout_marginStart="4dp"/>
+    </LinearLayout>
+
 
     <!-- 비밀번호 재입력 라벨 -->
     <TextView
@@ -151,7 +188,7 @@
         android:textColor="@color/gray700_gray400"
         android:textSize="16sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/til_write_password" />
+        app:layout_constraintTop_toBottomOf="@id/ll_notice" />
 
     <!-- 비밀번호 재입력 필드 -->
     <com.google.android.material.textfield.TextInputLayout
@@ -175,6 +212,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/tv_re_password_label"
         app:endIconMode="password_toggle"
+        app:hintTextColor="@color/et_hint_color"
         app:passwordToggleDrawable="@drawable/selector_password_toggle">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -188,7 +226,8 @@
             android:inputType="textPassword"
             android:maxLines="1"
             android:padding="20dp"
-            android:textColor="@color/black_white"/>
+            android:textColor="@color/black_white"
+            android:textCursorDrawable="@null"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- 완료 버튼 -->

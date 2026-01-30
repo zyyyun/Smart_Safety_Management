@@ -23,6 +23,9 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.checkbox.MaterialCheckBox
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class SettingInvitePhonenumberActivity : AppCompatActivity() {
 
@@ -131,7 +134,7 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
     }
 
     private fun loadActualContacts() {
-        contactList.clear()
+        val tempContactList = mutableListOf<InviteContactItem>()
         val resolver = contentResolver
         val cursor = resolver.query(
             ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
@@ -145,17 +148,62 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
 
             while (it.moveToNext()) {
                 val name = it.getString(nameIndex) ?: "이름 없음"
-                val number = it.getString(numberIndex) ?: ""
+                val rawNumber = it.getString(numberIndex) ?: ""
+                val normalizedNumber = rawNumber.replace(Regex("[^0-9]"), "")
                 
                 // 중복 번호 제거 로직 추가 가능
-                if (contactList.none { item -> item.phoneNumber == number }) {
-                    contactList.add(InviteContactItem(name, number))
+                if (normalizedNumber.isNotEmpty() && tempContactList.none { item -> item.phoneNumber.replace(Regex("[^0-9]"), "") == normalizedNumber }) {
+                    val formattedNumber = formatPhoneNumber(normalizedNumber)
+                    tempContactList.add(InviteContactItem(name, formattedNumber))
                 }
             }
         }
         
+        // 서버에 등록된 유저인지 확인 후 필터링
+        checkRegisteredUsers(tempContactList)
+    }
+
+    private fun checkRegisteredUsers(tempList: MutableList<InviteContactItem>) {
+        val alreadyInvited = intent.getStringArrayListExtra("already_invited") ?: arrayListOf()
+        val allPhoneNumbers = tempList.map { it.phoneNumber.replace(Regex("[^0-9]"), "") }
+
+        if (allPhoneNumbers.isEmpty()) {
+            updateList(tempList)
+            return
+        }
+
+        val request = CheckRegisteredContactsRequest(allPhoneNumbers)
+        RetrofitClient.instance.checkRegisteredContacts(request).enqueue(object : Callback<CheckRegisteredContactsResponse> {
+            override fun onResponse(call: Call<CheckRegisteredContactsResponse>, response: Response<CheckRegisteredContactsResponse>) {
+                if (response.isSuccessful) {
+                    val registeredNumbers = response.body()?.registeredPhoneNumbers ?: emptyList()
+                    // 1. 서버에 등록된 유저 제외 AND 2. 이미 초대 리스트에 있는 유저 제외
+                    val filteredContacts = tempList.filter { contact ->
+                        val pureNumber = contact.phoneNumber.replace(Regex("[^0-9]"), "")
+                        !registeredNumbers.contains(pureNumber) && !alreadyInvited.contains(pureNumber)
+                    }
+                    updateList(filteredContacts)
+                } else {
+                    Toast.makeText(this@SettingInvitePhonenumberActivity, "유저 확인 실패", Toast.LENGTH_SHORT).show()
+                    // 실패 시에도 이미 초대된 번호는 제외하고 표시
+                    val filtered = tempList.filter { !alreadyInvited.contains(it.phoneNumber.replace(Regex("[^0-9]"), "")) }
+                    updateList(filtered)
+                }
+            }
+            override fun onFailure(call: Call<CheckRegisteredContactsResponse>, t: Throwable) {
+                Toast.makeText(this@SettingInvitePhonenumberActivity, "네트워크 오류", Toast.LENGTH_SHORT).show()
+                // 오류 시에도 이미 초대된 번호는 제외하고 표시
+                val filtered = tempList.filter { !alreadyInvited.contains(it.phoneNumber.replace(Regex("[^0-9]"), "")) }
+                updateList(filtered)
+            }
+        })
+    }
+
+    private fun updateList(list: List<InviteContactItem>) {
+        contactList.clear()
+        contactList.addAll(list)
         filteredList.clear()
-        filteredList.addAll(contactList)
+        filteredList.addAll(list)
         adapter.notifyDataSetChanged()
     }
 
@@ -169,5 +217,21 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
             }
         }
         adapter.updateData(filtered)
+    }
+
+    // 전화번호 포맷팅 함수 (01012345678 -> 010-1234-5678)
+    private fun formatPhoneNumber(phone: String): String {
+        val number = phone.replace(Regex("[^0-9]"), "")
+        return if (number.length == 11) {
+            "${number.substring(0, 3)}-${number.substring(3, 7)}-${number.substring(7)}"
+        } else if (number.length == 10) {
+            if (number.startsWith("02")) {
+                "${number.substring(0, 2)}-${number.substring(2, 6)}-${number.substring(6)}"
+            } else {
+                "${number.substring(0, 3)}-${number.substring(3, 6)}-${number.substring(6)}"
+            }
+        } else {
+            number
+        }
     }
 }

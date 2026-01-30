@@ -2,6 +2,7 @@ package com.example.smart_safety_management
 
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.NestedScrollView
@@ -22,6 +23,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
+import com.google.android.material.card.MaterialCardView
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>(
     7 to mutableListOf(
@@ -107,7 +112,7 @@ class HomeWorkerActivity : AppCompatActivity() {
         // 조치요청 리스트 초기화
         val rvEvent = findViewById<RecyclerView>(R.id.rv_worker_event)
         rvEvent.layoutManager = LinearLayoutManager(this)
-        eventAdapter = WorkerEventAdapter(getSampleEvents())
+        eventAdapter = WorkerEventAdapter(emptyList())
         rvEvent.adapter = eventAdapter
 
         selectedDay = Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
@@ -123,18 +128,51 @@ class HomeWorkerActivity : AppCompatActivity() {
         )
 
         updateDailyCheckList(selectedDay)
+        fetchWorkerEvents()
     }
 
-    private fun getSampleEvents(): List<Pair<EventData, EventStatus>> {
-        return listOf(
-            EventData(accidentType = "위험", location = "C구역 2열", content = "화재사고가 감지되었습니다.", "지금") to EventStatus.PENDING,
-            EventData(accidentType = "경고", location = "C구역 2열", content = "쓰러짐이 감지되었습니다.", "1분 전") to EventStatus.PENDING,
-            EventData(accidentType = "주의", location = "C구역 2열", content = "이동경로 미정돈이 감지되었습니다.", "3분 전") to EventStatus.PENDING,
-            // 조치완료 및 오탐처리 추가
-            EventData(accidentType = "주의", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.", "1분 전") to EventStatus.COMPLETED,
-            EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.", "1분 전") to EventStatus.COMPLETED
-            //EventData(accidentType = "경고", location = "C구역 2열", content = "안전고리 미착용이 감지되었습니다.", "1분 전") to EventStatus.FALSE_DETECTION
-        )
+    private fun fetchWorkerEvents() {
+        val userId = UserSession.userId ?: return
+        RetrofitClient.instance.getDetectionEvents(userId).enqueue(object : Callback<GetDetectionEventsResponse> {
+            override fun onResponse(call: Call<GetDetectionEventsResponse>, response: Response<GetDetectionEventsResponse>) {
+                if (response.isSuccessful) {
+                    val rawEvents = response.body()?.events ?: emptyList()
+
+                    val filteredEvents = rawEvents.filter {
+                        it.status.equals("REQUESTED", ignoreCase = true) ||
+                                it.status.equals("COMPLETED", ignoreCase = true) ||
+                                it.status.equals("FALSE_POSITIVE", ignoreCase = true)
+                    }.sortedBy {
+                        if (it.status.equals("REQUESTED", ignoreCase = true)) 0 else 1
+                    }
+
+                    val displayEvents = filteredEvents.map { dto ->
+                        val eventData = EventData(
+                            id = dto.eventId,
+                            accidentType = mapRiskLevel(dto.riskLevel),
+                            location = dto.installArea ?: "알 수 없음",
+                            content = "${dto.eventName ?: "알 수 없는 이벤트"}가 감지되었습니다.",
+                            occurrenceTime = calculateTimeAgo(dto.detectedAt),
+                            deviceName = dto.deviceName ?: "",
+                            accuracy = "${dto.accuracy ?: 0}%"
+                        )
+                        val statusEnum = when {
+                            dto.status.equals("REQUESTED", ignoreCase = true) -> EventStatus.PENDING
+                            dto.status.equals("COMPLETED", ignoreCase = true) -> EventStatus.COMPLETED
+                            dto.status.equals("FALSE_POSITIVE", ignoreCase = true) -> EventStatus.FALSE_DETECTION
+                            else -> EventStatus.COMPLETED
+                        }
+                        Pair(eventData, statusEnum)
+                    }
+
+                    val rvEvent = findViewById<RecyclerView>(R.id.rv_worker_event)
+                    eventAdapter = WorkerEventAdapter(displayEvents)
+                    rvEvent.adapter = eventAdapter
+                }
+            }
+            override fun onFailure(call: Call<GetDetectionEventsResponse>, t: Throwable) {
+            }
+        })
     }
 
     private fun updateWorkerDay() {
@@ -149,6 +187,7 @@ class HomeWorkerActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateProfile()
+        fetchWorkerEvents()
     }
 
     private fun updateProfile() {
@@ -163,21 +202,43 @@ class HomeWorkerActivity : AppCompatActivity() {
             
             // 프로필 사진 동기화
             val ivProfileBar = profileBar.findViewById<ImageView>(R.id.iv_profile_bar)
+            val cardProfile = ivProfileBar?.parent as? MaterialCardView
+
             if (ivProfileBar != null) {
+                val params = ivProfileBar.layoutParams as ViewGroup.MarginLayoutParams
                 UserSession.profileImageUri?.let { uriString ->
+                    // 사진이 있을 때: 부모 CardView 제약까지 풀어서 원에 꽉 차도록 설정
                     ivProfileBar.setImageURI(Uri.parse(uriString))
+
+                    cardProfile?.apply {
+                        setContentPadding(0, 0, 0, 0)
+                        preventCornerOverlap = false // 모서리 겹침 방지 여백 제거
+                        useCompatPadding = false     // 호환성 패딩 제거
+                    }
+
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_CROP
                     ivProfileBar.setPadding(0, 0, 0, 0)
+                    params.setMargins(0, 0, 0, 0)
+                    ivProfileBar.layoutParams = params
                 } ?: run {
-                    // 설정된 사진이 없으면 기본값 유지
+                    // 기본 이미지일 때: XML 디자인(마진 5, 10, 5)을 그대로 유지
                     ivProfileBar.setImageResource(R.drawable.profile)
+
+                    cardProfile?.apply {
+                        preventCornerOverlap = true // 기본값 복구
+                    }
+
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_INSIDE
-                    ivProfileBar.setPadding(
-                        (resources.displayMetrics.density * 5).toInt(),
-                        (resources.displayMetrics.density * 8).toInt(),
-                        (resources.displayMetrics.density * 5).toInt(),
+                    ivProfileBar.setPadding(0, 0, 0, 0)
+
+                    val density = resources.displayMetrics.density
+                    params.setMargins(
+                        (5 * density).toInt(),
+                        (10 * density).toInt(),
+                        (5 * density).toInt(),
                         0
                     )
+                    ivProfileBar.layoutParams = params
                 }
             }
         }
@@ -277,24 +338,5 @@ class HomeWorkerActivity : AppCompatActivity() {
             startActivity(intent)
         }
     }
-    private val detailLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode != RESULT_OK) return@registerForActivityResult
-            val data = result.data ?: return@registerForActivityResult
 
-            val action = data.getStringExtra("action") ?: return@registerForActivityResult
-            if (action != "delete") return@registerForActivityResult
-
-            val day = data.getIntExtra("day", -1)
-            val itemId = data.getStringExtra("itemId").orEmpty()
-            if (day == -1 || itemId.isBlank()) return@registerForActivityResult
-
-            val list = dailyCheckMap[day] ?: return@registerForActivityResult
-            list.removeAll { it.id == itemId }
-
-            selectedDay = day
-            updateDailyCheckList(selectedDay)
-
-            Toast.makeText(this@HomeWorkerActivity, "삭제 완료!", Toast.LENGTH_SHORT).show()
-        }
 }

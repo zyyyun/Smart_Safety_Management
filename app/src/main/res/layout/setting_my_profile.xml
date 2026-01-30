@@ -52,6 +52,7 @@
             app:cardCornerRadius="56dp"
             app:cardElevation="0dp"
             app:strokeWidth="0.7dp"
+            app:cardUseCompatPadding="false"
             app:strokeColor="@color/gray100">
 
             <ImageView
@@ -220,11 +221,11 @@
         <!-- 오른쪽 값 + 아이콘 (표시 상태) -->
         <LinearLayout
             android:id="@+id/layout_phone_view"
-            android:layout_width="0dp"
+            android:layout_width="281dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="horizontal"
             android:gravity="end|center_vertical"
+            android:orientation="horizontal"
             android:visibility="visible">
 
             <TextView
@@ -232,17 +233,17 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/pretendard_medium"
-                android:text="010-1234-1234"
                 android:letterSpacing="0"
+                android:text="010-1234-1234"
                 android:textColor="@color/gray900_gray50"
-                android:textSize="18sp"/>
+                android:textSize="18sp" />
 
             <ImageView
                 android:layout_width="10dp"
                 android:layout_height="16dp"
                 android:layout_marginStart="8dp"
                 android:src="@drawable/right_arrow"
-                android:tint="@color/gray600"/>
+                android:tint="@color/gray600" />
         </LinearLayout>
 
         <!-- 오른쪽 값 + 아이콘 (수정 상태) -->
@@ -269,7 +270,8 @@
                 android:textColorHint="@color/et_hint_color"
                 app:boxBackgroundColor="@color/white_gray900"
                 app:boxStrokeWidth="1dp"
-                app:boxStrokeWidthFocused="1dp">
+                app:boxStrokeWidthFocused="1dp"
+                app:hintTextColor="@color/et_hint_color">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_phone_edit"
@@ -278,7 +280,8 @@
                     android:inputType="phone"
                     android:padding="10dp"
                     android:textSize="16sp"
-                    android:text="010-1234-4567"/>
+                    android:text="010-1234-4567"
+                    android:textCursorDrawable="@null"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- 체크(확인) 아이콘 -->
@@ -368,7 +371,8 @@
                 app:boxStrokeColor="@color/gray200_gray800"
                 app:hintEnabled="false"
                 app:boxBackgroundColor="@color/white_gray900"
-                app:boxStrokeWidth="1dp">
+                app:boxStrokeWidth="1dp"
+                app:hintTextColor="@color/et_hint_color">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_email_edit"
@@ -376,7 +380,8 @@
                     android:layout_height="wrap_content"
                     android:inputType="textEmailAddress"
                     android:padding="10dp"
-                    android:textSize="16sp"/>
+                    android:textSize="16sp"
+                    android:textCursorDrawable="@null"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <ImageView
@@ -447,6 +452,7 @@
                 android:gravity="end|center_vertical">
 
                 <ImageView
+                    android:id="@+id/btn_withdraw"
                     android:layout_width="10dp"
                     android:layout_height="16dp"
                     android:layout_marginStart="8dp"

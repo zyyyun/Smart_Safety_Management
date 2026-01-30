@@ -15,8 +15,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Photo
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,7 +70,6 @@ fun ActionDetailWorkerScreen(
     var actionType by remember { mutableStateOf(dummyData.actionType) }
     var title by remember { mutableStateOf(dummyData.title) }
     var content by remember { mutableStateOf(dummyData.content) }
-    var attachedPhotos by remember { mutableStateOf<List<String>>(emptyList()) }
     
     // 작성 완료 다이얼로그 상태
     var showActionCompletedDialog by remember { mutableStateOf(false) }
@@ -532,74 +532,6 @@ fun ActionDetailWorkerScreen(
                             )
                         )
 
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        Text(
-                            text = "사진",
-                            fontWeight = FontWeight.Medium,
-                            color = CategoryColor,
-                            fontFamily = Pretendard,
-                            fontSize = 16.sp,
-                            modifier = Modifier.offset(x = 8.dp)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState())
-                                .padding(horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(120.dp)
-                                    .clickable {
-                                        attachedPhotos = attachedPhotos + "photoUri_${System.currentTimeMillis()}"
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Canvas(modifier = Modifier.fillMaxSize()) {
-                                    val pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
-                                    drawRoundRect(
-                                        color = btnBackColor,
-                                        cornerRadius = CornerRadius(8.dp.toPx())
-                                    )
-                                    drawRoundRect(
-                                        color = borderColor,
-                                        style = Stroke(width = 1.dp.toPx(), pathEffect = pathEffect),
-                                        cornerRadius = CornerRadius(8.dp.toPx())
-                                    )
-                                }
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.camera_icon),
-                                        contentDescription = "사진첨부",
-                                        tint = photoColor
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "사진첨부",
-                                        color = photoColor,
-                                        fontSize = 18.sp
-                                    )
-                                }
-                            }
-
-                            attachedPhotos.reversed().forEach { photoUri ->
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .size(120.dp)
-                                        .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(Icons.Filled.Photo, contentDescription = "Attached Photo: $photoUri", tint = if (isLight) Color.Gray else TextGray)
-                                }
-                            }
-                        }
-                        
                         Spacer(modifier = Modifier.height(48.dp))
 
                         Button(

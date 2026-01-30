@@ -16,6 +16,9 @@ composeBom = "2024.05.00"
 lifecycleRuntimeKtx = "2.8.0"
 firebaseCrashlyticsBuildtools = "3.0.6"
 gson = "2.13.2"
+googleServices = "4.4.1"
+firebaseBom = "32.8.1"
+playServicesAuthPhone = "18.1.0"
 
 
 [libraries]
@@ -46,6 +49,14 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
+# Firebase
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx" }
+
+# Play Services
+play-services-auth-api-phone = { group = "com.google.android.gms", name = "play-services-auth-api-phone", version.ref = "playServicesAuthPhone" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

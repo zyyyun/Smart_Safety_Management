@@ -14,9 +14,13 @@ import android.widget.ImageButton
 import android.widget.ListView
 import android.widget.Spinner
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class SettingPeopleManagementActivity : AppCompatActivity() {
     private lateinit var adapter: PeopleAdapter
@@ -38,20 +42,29 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
             finish()
         }
 
-        // 임시 데이터 생성
-        allPeople = mutableListOf(
-            PeopleItem(1, "지코", "010-2345-6789", "관리자"),
-            PeopleItem(2, "박보검", "010-3456-7890", "근로자"),
-            PeopleItem(3, "수지", "010-4567-8901", "근로자"),
-            PeopleItem(4, "정해인", "010-5678-9012", "근로자"),
-            PeopleItem(5, "아이유", "010-6789-0123", "관리자"),
-            PeopleItem(6, "공유", "010-7890-1234", "근로자")
-        )
+        // 데이터 초기화 (서버에서 불러옴)
+        allPeople = mutableListOf()
 
         // 어댑터 설정 (삭제 콜백 전달)
         adapter = PeopleAdapter(allPeople) { deletedItem ->
-            allPeople.remove(deletedItem)
-            applyFilterAndSearch()
+            val request = RemoveFromGroupRequest(userId = deletedItem.userId)
+            RetrofitClient.instance.removeFromGroup(request).enqueue(object: Callback<RemoveFromGroupResponse> {
+                override fun onResponse(
+                    call: Call<RemoveFromGroupResponse>,
+                    response: Response<RemoveFromGroupResponse>
+                ) {
+                    if (response.isSuccessful) {
+                        Toast.makeText(this@SettingPeopleManagementActivity, "${deletedItem.name} 님을 그룹에서 제외했습니다.", Toast.LENGTH_SHORT).show()
+                        allPeople.remove(deletedItem)
+                        applyFilterAndSearch()
+                    } else {
+                        Toast.makeText(this@SettingPeopleManagementActivity, "제거에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                override fun onFailure(call: Call<RemoveFromGroupResponse>, t: Throwable) {
+                    Toast.makeText(this@SettingPeopleManagementActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                }
+            })
         }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
@@ -101,6 +114,9 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
             }
             override fun afterTextChanged(s: Editable?) {}
         })
+
+        // 사용자 목록 불러오기
+        loadUsers()
     }
 
     private fun applyFilterAndSearch() {
@@ -112,5 +128,56 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
             matchesFilter && matchesSearch
         }
         adapter.updateList(filteredList)
+    }
+
+    private fun loadUsers() {
+        val userId = UserSession.userId
+        if (userId == null) {
+            Toast.makeText(this, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        RetrofitClient.instance.getUsers(userId).enqueue(object : Callback<GetUsersResponse> {
+            override fun onResponse(call: Call<GetUsersResponse>, response: Response<GetUsersResponse>) {
+                if (response.isSuccessful) {
+                    val users = response.body()?.users ?: emptyList()
+                    allPeople.clear()
+                    users.forEach { user ->
+                        // 본인은 리스트에서 제외
+                        if (user.userId == userId) return@forEach
+
+                        // DB의 role(manager/worker)을 한글로 변환
+                        val roleName = if (user.userRole == "manager") "관리자" else "근로자"
+                        // 전화번호 포맷팅
+                        val formattedPhone = formatPhoneNumber(user.phoneNum ?: "")
+                        
+                        // PeopleItem 생성 (id는 userId의 해시코드 사용)
+                        allPeople.add(PeopleItem(user.userId, user.name, formattedPhone, roleName))
+                    }
+                    applyFilterAndSearch()
+                } else {
+                    Toast.makeText(this@SettingPeopleManagementActivity, "사용자 목록을 불러오지 못했습니다.", Toast.LENGTH_SHORT).show()
+                }
+            }
+
+            override fun onFailure(call: Call<GetUsersResponse>, t: Throwable) {
+                Toast.makeText(this@SettingPeopleManagementActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private fun formatPhoneNumber(phone: String): String {
+        val number = phone.replace(Regex("[^0-9]"), "")
+        return if (number.length == 11) {
+            "${number.substring(0, 3)}-${number.substring(3, 7)}-${number.substring(7)}"
+        } else if (number.length == 10) {
+            if (number.startsWith("02")) {
+                "${number.substring(0, 2)}-${number.substring(2, 6)}-${number.substring(6)}"
+            } else {
+                "${number.substring(0, 3)}-${number.substring(3, 6)}-${number.substring(6)}"
+            }
+        } else {
+            number
+        }
     }
 }

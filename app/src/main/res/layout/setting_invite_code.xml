@@ -63,6 +63,7 @@
         android:letterSpacing="0"
         android:inputType="textPassword"
         android:paddingHorizontal="16dp"
+        android:textCursorDrawable="@null"
         android:textColor="@color/black_white"
         android:textColorHint="@color/et_hint_color"
         app:layout_constraintEnd_toEndOf="parent"

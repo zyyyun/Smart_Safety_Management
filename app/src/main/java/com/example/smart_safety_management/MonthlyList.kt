@@ -1,10 +1,8 @@
 package com.example.smart_safety_management
 
-import android.content.res.Configuration
 import android.os.Build
-import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
@@ -30,13 +28,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -46,19 +47,20 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import com.example.smart_safety_management.ui.theme.*
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import java.util.Calendar
 import kotlin.math.roundToInt
 
 enum class InspectionStatus { CHECKED, UNCHECKED }
@@ -91,7 +93,7 @@ val TooltipShape = object : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val triangleWidth = with(density) { 12.dp.toPx() }
         val triangleHeight = with(density) { 8.dp.toPx() }
-        val cornerRadius = with(density) { 6.dp.toPx() }
+        val cornerRadius = with(density) { 8.dp.toPx() }
         val path = Path().apply {
             addRoundRect(RoundRect(left = 0f, top = 0f, right = size.width, bottom = size.height - triangleHeight, cornerRadius = CornerRadius(cornerRadius)))
             val tailOffsetX = with(density) { 30.dp.toPx() }
@@ -119,7 +121,7 @@ fun MonthlyListScreen() {
     var currentYearMonth by remember { mutableStateOf(YearMonth.now()) }
     var startDate by remember { mutableStateOf(currentYearMonth.atDay(1)) }
     var endDate by remember { mutableStateOf(currentYearMonth.atEndOfMonth()) }
-    var lastUserInteraction by remember { mutableStateOf(0L) }
+    var lastUserInteraction by remember { mutableLongStateOf(0L) }
     val listState = rememberLazyListState()
     val isScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
 
@@ -139,7 +141,13 @@ fun MonthlyListScreen() {
                 )
             },
         ) { paddingValues ->
-            Column(modifier = Modifier.padding(paddingValues).pointerInput(Unit) { detectTapGestures(onTap = { lastUserInteraction = System.currentTimeMillis() }) }) {
+            Column(modifier = Modifier
+                .padding(paddingValues)
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        lastUserInteraction = System.currentTimeMillis()
+                    })
+                }) {
                 YearMonthSelector(yearMonth = currentYearMonth, onMonthChange = { newMonth -> currentYearMonth = newMonth })
                 DateRangeSelector(yearMonth = currentYearMonth, onDateChange = { start, end -> startDate = start; endDate = end })
                 Spacer(modifier = Modifier.height(24.dp)); Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f)); Spacer(modifier = Modifier.height(24.dp))
@@ -163,7 +171,17 @@ fun ReportHeader(report: DailyInspectionReport) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp)) {
         Text(text = "${report.date.dayOfMonth}일", fontWeight = FontWeight.Medium, fontSize = 18.sp, fontFamily = Pretendard, color = MaterialTheme.colors.onBackground)
         Spacer(modifier = Modifier.width(8.dp))
-        Box(modifier = Modifier.background(color = MaterialTheme.colors.surface, shape = RoundedCornerShape(percent = 50)).border(width = 1.dp, color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), shape = RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 2.dp)) {
+        Box(modifier = Modifier
+            .background(
+                color = MaterialTheme.colors.surface,
+                shape = RoundedCornerShape(percent = 50)
+            )
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .padding(horizontal = 8.dp, vertical = 2.dp)) {
             Text(text = buildAnnotatedString {
                 withStyle(style = SpanStyle(color = if (allChecked) TextMedium else MaterialTheme.colors.primary, fontFamily = Pretendard)) { append(checkedCount.toString()) }
                 withStyle(style = SpanStyle(color = TextMedium, fontFamily = Pretendard)) { append("/${totalCount}") }
@@ -176,8 +194,13 @@ fun ReportHeader(report: DailyInspectionReport) {
 fun DailyReportItemsCard(report: DailyInspectionReport, lastUserInteraction: Long) {
     val borderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f)
     Box(modifier = Modifier.fillMaxWidth()) {
-        Box(modifier = Modifier.matchParentSize().background(MaterialTheme.colors.surface, RoundedCornerShape(8.dp)).border(1.dp, borderColor, RoundedCornerShape(8.dp)))
-        Column(modifier = Modifier.fillMaxWidth().padding(1.dp)) {
+        Box(modifier = Modifier
+            .matchParentSize()
+            .background(MaterialTheme.colors.surface, RoundedCornerShape(8.dp))
+            .border(1.dp, borderColor, RoundedCornerShape(8.dp)))
+        Column(modifier = Modifier
+            .fillMaxWidth()
+            .padding(1.dp)) {
             report.items.forEachIndexed { index, item ->
                 val itemShape = when { report.items.size == 1 -> RoundedCornerShape(8.dp); index == 0 -> RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp); index == report.items.size - 1 -> RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp); else -> RoundedCornerShape(0.dp) }
                 val itemZIndex = if (item.specialNote != null && item.status == InspectionStatus.UNCHECKED) 1f else 0f
@@ -202,7 +225,17 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
         }
         if (item.specialNote != null && item.status == InspectionStatus.UNCHECKED) {
             val tooltipBgColor = if (MaterialTheme.colors.isLight) Lightgray else GrayBackground
-            AnimatedVisibility(visible = tooltipVisible, exit = fadeOut(), modifier = Modifier.align(Alignment.TopEnd).offset(y = (-40).dp).offset { IntOffset(0, floatingOffset.roundToInt()) }.zIndex(10f).layout { measurable, constraints -> val placeable = measurable.measure(constraints); layout(0, 0) { placeable.place(-placeable.width, 0) } }) {
+            AnimatedVisibility(visible = tooltipVisible, exit = fadeOut(), modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(y = (-40).dp)
+                .offset { IntOffset(0, floatingOffset.roundToInt()) }
+                .zIndex(10f)
+                .layout { measurable, constraints ->
+                    val placeable = measurable.measure(constraints); layout(
+                    0,
+                    0
+                ) { placeable.place(-placeable.width, 0) }
+                }) {
                 Surface(onClick = onTooltipTap, shape = TooltipShape, color = tooltipBgColor, elevation = 2.dp) {
                     Text(text = item.specialNote, modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 16.dp), fontSize = 12.sp, fontWeight = FontWeight.Normal, fontFamily = Pretendard, color = if (MaterialTheme.colors.isLight) TextDark else Color.White)
                 }
@@ -215,12 +248,15 @@ private fun InspectionItemActions(item: InspectionItem, tooltipVisible: Boolean,
 fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: Shape = RoundedCornerShape(0.dp)) {
     var showDialog by remember { mutableStateOf(false) }; var dialogWasOpened by remember { mutableStateOf(false) }; val creationTime = remember { System.currentTimeMillis() }; var tooltipVisible by remember { mutableStateOf(true) }
     LaunchedEffect(lastUserInteraction) { if (lastUserInteraction > creationTime) tooltipVisible = false }
-    val itemBackgroundColor = if (item.status == InspectionStatus.UNCHECKED && !dialogWasOpened) MaterialTheme.colors.primary.copy(alpha = 0.1f) else Color.Transparent
-    val buttonBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) if (MaterialTheme.colors.isLight) MaterialTheme.colors.primary.copy(alpha = 0.2f) else MaterialTheme.colors.primary else StatusGreen.copy(alpha = 0.2f)
+    val itemBackgroundColor = if (item.status == InspectionStatus.UNCHECKED && !dialogWasOpened) MaterialTheme.colors.primary.copy(alpha = 0.2f) else Color.Transparent
+    val buttonBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) if (MaterialTheme.colors.isLight) MaterialTheme.colors.primary.copy(alpha = 0.2f) else  Color(0xFFFB923C) else StatusGreen.copy(alpha = 0.2f)
     val buttonContentColor = if (item.status == InspectionStatus.UNCHECKED) if (MaterialTheme.colors.isLight) MaterialTheme.colors.primary else Color.Black else StatusGreenDark
     val buttonText = if (item.status == InspectionStatus.UNCHECKED) "미점검" else "점검완료"
-    if (showDialog) UncheckedItemDialog(onDismissRequest = { showDialog = false })
-    Row(modifier = Modifier.fillMaxWidth().background(itemBackgroundColor, shape = shape).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+    
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .background(itemBackgroundColor, shape = shape)
+        .padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(text = item.location, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface, maxLines = 1)
             Spacer(modifier = Modifier.height(4.dp))
@@ -229,6 +265,8 @@ fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: S
         Spacer(modifier = Modifier.width(12.dp))
         InspectionItemActions(item = item, tooltipVisible = tooltipVisible, onShowDialog = { showDialog = true; dialogWasOpened = true; tooltipVisible = false }, onTooltipTap = { tooltipVisible = false }, buttonBackgroundColor = buttonBackgroundColor, buttonContentColor = buttonContentColor, buttonText = buttonText)
     }
+
+    if (showDialog) UncheckedItemDialog(onDismissRequest = { showDialog = false })
 }
 
 @Composable
@@ -237,12 +275,18 @@ fun UncheckedItemDialog(onDismissRequest: () -> Unit) { Dialog(onDismissRequest 
 @Composable
 fun UncheckedItemDialogContent(onDismissRequest: () -> Unit) {
     val cardBgColor = if (MaterialTheme.colors.isLight) Color.White else GrayBackground
-    Card(modifier = Modifier.width(330.dp).height(259.dp), shape = RoundedCornerShape(16.dp), elevation = 0.dp, backgroundColor = cardBgColor) {
-        Column(modifier = Modifier.fillMaxSize().padding(top = 24.dp),horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
+    Card(modifier = Modifier
+        .width(330.dp)
+        .height(259.dp), shape = RoundedCornerShape(16.dp), elevation = 0.dp, backgroundColor = cardBgColor) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 24.dp),horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Top) {
             Icon(painter = painterResource(id = R.drawable.bell_icon), null, tint = MaterialTheme.colors.primary, modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(24.dp)); Text(text = "점검요청 재알림", fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
             Spacer(modifier = Modifier.height(4.dp)); Text(text = "근로자에게 점검요청 재알림을 \n발송하였습니다.", color = MaterialTheme.colors.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.Medium, fontSize = 14.sp, textAlign = TextAlign.Center, fontFamily = Pretendard)
-            Spacer(modifier = Modifier.height(24.dp)); Button(onClick = onDismissRequest, modifier = Modifier.width(290.dp).height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(12.dp)) { Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, fontFamily = Pretendard) }
+            Spacer(modifier = Modifier.height(24.dp)); Button(onClick = onDismissRequest, modifier = Modifier
+            .width(290.dp)
+            .height(55.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary, contentColor = MaterialTheme.colors.onPrimary), shape = RoundedCornerShape(12.dp)) { Text(text = "확인", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, fontFamily = Pretendard) }
         }
     }
 }
@@ -250,7 +294,9 @@ fun UncheckedItemDialogContent(onDismissRequest: () -> Unit) {
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun YearMonthSelector(yearMonth: YearMonth, onMonthChange: (YearMonth) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .padding(vertical = 16.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = { onMonthChange(yearMonth.minusMonths(1)) }) { Icon(painter = painterResource(id = R.drawable.left), contentDescription = null, tint = Color.Unspecified) }
         Spacer(modifier = Modifier.width(20.dp)); Text(text = "${yearMonth.year}년 ${yearMonth.monthValue}월", fontSize = 24.sp, fontWeight = FontWeight.Bold, fontFamily = Pretendard, color = MaterialTheme.colors.onBackground)
         Spacer(modifier = Modifier.width(20.dp)); IconButton(onClick = { onMonthChange(yearMonth.plusMonths(1)) }) { Icon(painter = painterResource(id = R.drawable.right), contentDescription = null, tint = Color.Unspecified) }
@@ -260,11 +306,26 @@ fun YearMonthSelector(yearMonth: YearMonth, onMonthChange: (YearMonth) -> Unit) 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate) -> Unit) {
+    val context = LocalContext.current
     var startDateStr by remember { mutableStateOf("") }; var endDateStr by remember { mutableStateOf("") }
     var showCustomPicker by remember { mutableStateOf(false) }; var pickingStartDate by remember { mutableStateOf(true) }
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     LaunchedEffect(yearMonth) { val firstDay = yearMonth.atDay(1); val lastDay = yearMonth.atEndOfMonth(); startDateStr = firstDay.format(formatter); endDateStr = lastDay.format(formatter); onDateChange(firstDay, lastDay) }
     val iconTint = if (MaterialTheme.colors.isLight) Color.Unspecified else GrayBorder
+
+    CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
+        Row(Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(value = startDateStr, onValueChange = {}, modifier = Modifier
+                .weight(1f)
+                .height(50.dp), readOnly = true, textStyle = TextStyle(fontFamily = Pretendard, fontSize = 14.sp), trailingIcon = { IconButton(onClick = { pickingStartDate = true; showCustomPicker = true }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = iconTint) } }, colors = TextFieldDefaults.outlinedTextFieldColors(focusedBorderColor = MaterialTheme.colors.primary, unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), textColor = MaterialTheme.colors.onSurface))
+            Icon(painter = painterResource(id = R.drawable.underbar), null, tint = MaterialTheme.colors.onSurface)
+            OutlinedTextField(value = endDateStr, onValueChange = {}, modifier = Modifier
+                .weight(1f)
+                .height(50.dp), readOnly = true, textStyle = TextStyle(fontFamily = Pretendard, fontSize = 14.sp), trailingIcon = { IconButton(onClick = { pickingStartDate = false; showCustomPicker = true }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = iconTint) } }, colors = TextFieldDefaults.outlinedTextFieldColors(focusedBorderColor = MaterialTheme.colors.primary, unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), textColor = MaterialTheme.colors.onSurface))
+        }
+    }
 
     if (showCustomPicker) {
         val initialDate = if (pickingStartDate) (if(startDateStr.isEmpty()) LocalDate.now() else LocalDate.parse(startDateStr, formatter)) else (if(endDateStr.isEmpty()) LocalDate.now() else LocalDate.parse(endDateStr, formatter))
@@ -272,17 +333,28 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
             initialDate = initialDate,
             onDismiss = { showCustomPicker = false },
             onDateSelected = { selectedDate ->
-                if (pickingStartDate) startDateStr = selectedDate.format(formatter) else endDateStr = selectedDate.format(formatter)
-                onDateChange(LocalDate.parse(startDateStr, formatter), LocalDate.parse(endDateStr, formatter))
-                showCustomPicker = false
+                val currentStart = if (startDateStr.isNotEmpty()) LocalDate.parse(startDateStr, formatter) else null
+                val currentEnd = if (endDateStr.isNotEmpty()) LocalDate.parse(endDateStr, formatter) else null
+
+                if (pickingStartDate) {
+                    if (currentEnd != null && selectedDate.isAfter(currentEnd)) {
+                        Toast.makeText(context, "시작일은 종료일보다 빨라야 합니다.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        startDateStr = selectedDate.format(formatter)
+                        onDateChange(selectedDate, currentEnd ?: selectedDate)
+                        showCustomPicker = false
+                    }
+                } else {
+                    if (currentStart != null && selectedDate.isBefore(currentStart)) {
+                        Toast.makeText(context, "종료일은 시작일보다 늦어야 합니다.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        endDateStr = selectedDate.format(formatter)
+                        onDateChange(currentStart ?: selectedDate, selectedDate)
+                        showCustomPicker = false
+                    }
+                }
             }
         )
-    }
-
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(value = startDateStr, onValueChange = {}, modifier = Modifier.weight(1f).height(50.dp), readOnly = true, textStyle = TextStyle(fontFamily = Pretendard, fontSize = 14.sp), trailingIcon = { IconButton(onClick = { pickingStartDate = true; showCustomPicker = true }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = iconTint) } }, colors = TextFieldDefaults.outlinedTextFieldColors(focusedBorderColor = MaterialTheme.colors.primary, unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), textColor = MaterialTheme.colors.onSurface))
-        Icon(painter = painterResource(id = R.drawable.underbar), null, tint = MaterialTheme.colors.onSurface)
-        OutlinedTextField(value = endDateStr, onValueChange = {}, modifier = Modifier.weight(1f).height(50.dp), readOnly = true, textStyle = TextStyle(fontFamily = Pretendard, fontSize = 14.sp), trailingIcon = { IconButton(onClick = { pickingStartDate = false; showCustomPicker = true }) { Icon(painter = painterResource(id = R.drawable.calendar2), null, tint = iconTint) } }, colors = TextFieldDefaults.outlinedTextFieldColors(focusedBorderColor = MaterialTheme.colors.primary, unfocusedBorderColor = MaterialTheme.colors.onSurface.copy(alpha = 0.12f), textColor = MaterialTheme.colors.onSurface))
     }
 }
 
@@ -293,32 +365,57 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
     var viewMonth by remember { mutableStateOf(YearMonth.from(initialDate)) }
     val datesWithReports = remember { mockReports.map { it.date }.toSet() }
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(8.dp), color = if (MaterialTheme.colors.isLight) Color.White else GrayBackground, modifier = Modifier.width(330.dp)) {
+    val dayOfWeekColor = Color(0xFF6D7882)
+    val isLight = MaterialTheme.colors.isLight
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(8.dp), 
+            color = if (isLight) Color.White else GrayBackground, 
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+        ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
                     val navIconColor = Color(0xFFF97316)
                     IconButton(
-                        onClick = { viewMonth = viewMonth.minusMonths(1) })
-                    {
+                        onClick = { viewMonth = viewMonth.minusMonths(1) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
                         Icon(painterResource(id = R.drawable.left), null, tint = navIconColor, modifier = Modifier.size(32.dp))
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        YearDropdown(viewMonth.year) { viewMonth = viewMonth.withYear(it) }
-                        Spacer(modifier = Modifier.width(8.dp)); MonthDropdown(viewMonth.monthValue) { viewMonth = viewMonth.withMonth(it) }
-                    }
+                    
+                    Spacer(modifier = Modifier.width(13.8.dp))
+                    
+                    YearDropdown(viewMonth.year, modifier = Modifier.weight(1.2f)) { viewMonth = viewMonth.withYear(it) }
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    MonthDropdown(viewMonth.monthValue, modifier = Modifier.weight(0.8f)) { viewMonth = viewMonth.withMonth(it) }
+                    
+                    Spacer(modifier = Modifier.width(13.8.dp))
+                    
                     IconButton(
-                        onClick = { viewMonth = viewMonth.plusMonths(1) })
-                    {
+                        onClick = { viewMonth = viewMonth.plusMonths(1) },
+                        modifier = Modifier.size(32.dp)
+                    ) {
                         Icon(painterResource(id = R.drawable.right), null, tint = navIconColor, modifier = Modifier.size(32.dp))
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(9.dp))
                 Row(modifier = Modifier.fillMaxWidth()) {
                     val days = listOf("일", "월", "화", "수", "목", "금", "토")
-                    days.forEach { day -> Text(text = day, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 12.sp, fontFamily = Pretendard, color = Color.Gray) }
+                    days.forEach { day -> Text(text = day, modifier = Modifier.weight(1f), textAlign = TextAlign.Center, fontSize = 14.sp, fontFamily = Pretendard, color = dayOfWeekColor) }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 
                 val firstDayOfMonth = viewMonth.atDay(1)
                 val dayOfWeek = firstDayOfMonth.dayOfWeek.value % 7
@@ -343,7 +440,9 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
                                 val isSelected = date == selectedDate
                                 val hasReport = datesWithReports.contains(date)
                                 
-                                Box(modifier = Modifier.weight(1f).aspectRatio(1f), contentAlignment = Alignment.Center) {
+                                Box(modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f), contentAlignment = Alignment.Center) {
                                     Column(
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.Center,
@@ -357,14 +456,17 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
                                             text = date.dayOfMonth.toString(),
                                             color = when {
                                                 isSelected -> Color.White
-                                                isCurrentMonth -> if (MaterialTheme.colors.isLight) Color.Black else Color.White
-                                                else -> Color.Gray.copy(alpha = 0.4f)
+                                                isCurrentMonth -> if (isLight) Color(0xFF58616A) else Color(0xFF8A949E)
+                                                else -> if (isLight) Color(0xFFCDD1D5) else Color(0xFF33363D)
                                             },
-                                            fontSize = 14.sp,
+                                            fontSize = 16.sp,
                                             fontFamily = Pretendard
                                         )
                                         if (hasReport && !isSelected) {
-                                            Box(modifier = Modifier.size(4.dp).clip(CircleShape).background(MaterialTheme.colors.primary))
+                                            Box(modifier = Modifier
+                                                .size(4.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colors.primary))
                                         }
                                     }
                                 }
@@ -375,8 +477,12 @@ fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDate
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onDismiss, modifier = Modifier.weight(1f).height(48.dp), colors = ButtonDefaults.buttonColors(backgroundColor = if (MaterialTheme.colors.isLight) Color(0xFFF4F5F6) else Color(0xFF333333)), elevation = ButtonDefaults.elevation(0.dp), shape = RoundedCornerShape(8.dp)) { Text("취소", color = Color.Gray, fontFamily = Pretendard) }
-                    Button(onClick = { onDateSelected(selectedDate) }, modifier = Modifier.weight(1f).height(48.dp), colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary), elevation = ButtonDefaults.elevation(0.dp), shape = RoundedCornerShape(8.dp)) { Text("선택", color = Color.White, fontFamily = Pretendard) }
+                    Button(onClick = onDismiss, modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp), colors = ButtonDefaults.buttonColors(backgroundColor = if (isLight) Color(0xFFF4F5F6) else Color(0xFF131416)), elevation = ButtonDefaults.elevation(0.dp), shape = RoundedCornerShape(8.dp)) { Text("취소", color = if (isLight) Color(0xFF58616A) else Color(0xFF8A949E), fontFamily = Pretendard, fontWeight = FontWeight.SemiBold, fontSize = 18.sp) }
+                    Button(onClick = { onDateSelected(selectedDate) }, modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp), colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFF97316)), elevation = ButtonDefaults.elevation(0.dp), shape = RoundedCornerShape(8.dp)) { Text("선택", color = if (isLight) Color(0xFFFFFFFF) else Color.Black, fontFamily = Pretendard, fontWeight = FontWeight.SemiBold, fontSize = 18.sp) }
                 }
             }
         }
@@ -390,30 +496,69 @@ private object OrangeRippleTheme : RippleTheme {
     override fun defaultColor() = Color(0xFFFB923C)
 
     @Composable
-    override fun rippleAlpha(): RippleAlpha = RippleAlpha(0.12f, 0.12f, 0.12f, 0.12f)
+    override fun rippleAlpha(): RippleAlpha {
+        val isLight = MaterialTheme.colors.isLight
+        val alpha = if (isLight) 0.12f else 0.36f
+        return RippleAlpha(alpha, alpha, alpha, alpha)
+    }
 }
 
 @Composable
-fun YearDropdown(year: Int, onYearSelected: (Int) -> Unit) {
+fun YearDropdown(year: Int, modifier: Modifier = Modifier, onYearSelected: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Box {
-        SelectorBox(text = "${year}년") { expanded = true }
-        DropdownMenu(
-            expanded = expanded, 
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.width(130.dp)
+    var width by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val isLight = MaterialTheme.colors.isLight
+    val itemTextColor = if (isLight) Color(0xFF33363D) else Color(0xFFCDD1D5)
+    val dropdownBorderColor = if (isLight) Color(0xFFCDD1D5) else Color(0xFF33363D)
+    val dividerColor = if (isLight) Color(0xFFF4F5F6) else Color(0xFF131416)
+    val dropdownBgColor = if (isLight) Color.White else GrayBackground
+    val shadowColor = Color.Black.copy(alpha = if (isLight) 0.08f else 0.20f)
+    
+    Box(modifier = modifier.onGloballyPositioned { width = it.size.width }) {
+        SelectorBox(
+            text = "${year}년",
+            isExpanded = expanded,
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { expanded = true }
+        )
+        MaterialTheme(
+            colors = MaterialTheme.colors.copy(surface = dropdownBgColor),
+            shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(8.dp))
         ) {
-            CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
-                (2020..2030).forEach { y ->
-                    DropdownMenuItem(onClick = { onYearSelected(y); expanded = false }) {
-                        Text(
-                            text = "${y}년",
-                            fontFamily = Pretendard,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center,
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colors.onSurface
-                        )
+            DropdownMenu(
+                expanded = expanded, 
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .width(with(density) { width.toDp() })
+                    .height(153.dp)
+                    .shadow(
+                        elevation = 1.dp,
+                        shape = RoundedCornerShape(8.dp),
+                        ambientColor = shadowColor,
+                        spotColor = shadowColor
+                    )
+                    .border(1.dp, dropdownBorderColor, RoundedCornerShape(8.dp)),
+                offset = DpOffset(x = 0.dp, y = 0.dp),
+                properties = PopupProperties(clippingEnabled = false)
+            ) {
+                CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
+                    val years = (2026..2100).toList()
+                    years.forEachIndexed { index, y ->
+                        DropdownMenuItem(onClick = { onYearSelected(y); expanded = false }) {
+                            Text(
+                                text = "${y}년",
+                                fontFamily = Pretendard,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                                fontSize = 18.sp,
+                                color = itemTextColor,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        if (index < years.size - 1) {
+                            Divider(color = dividerColor, thickness = 1.dp)
+                        }
                     }
                 }
             }
@@ -422,26 +567,61 @@ fun YearDropdown(year: Int, onYearSelected: (Int) -> Unit) {
 }
 
 @Composable
-fun MonthDropdown(month: Int, onMonthSelected: (Int) -> Unit) {
+fun MonthDropdown(month: Int, modifier: Modifier = Modifier, onMonthSelected: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Box {
-        SelectorBox(text = "${month}월") { expanded = true }
-        DropdownMenu(
-            expanded = expanded, 
-            onDismissRequest = { expanded = false },
-            modifier = Modifier.width(100.dp)
+    var width by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val isLight = MaterialTheme.colors.isLight
+    val itemTextColor = if (isLight) Color(0xFF33363D) else Color(0xFFCDD1D5)
+    val dropdownBorderColor = if (isLight) Color(0xFFCDD1D5) else Color(0xFF33363D)
+    val dividerColor = if (isLight) Color(0xFFF4F5F6) else Color(0xFF131416)
+    val dropdownBgColor = if (isLight) Color.White else GrayBackground
+    val shadowColor = Color.Black.copy(alpha = if (isLight) 0.08f else 0.20f)
+    
+    Box(modifier = modifier.onGloballyPositioned { width = it.size.width }) {
+        SelectorBox(
+            text = "${month}월",
+            isExpanded = expanded,
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { expanded = true }
+        )
+        MaterialTheme(
+            colors = MaterialTheme.colors.copy(surface = dropdownBgColor),
+            shapes = MaterialTheme.shapes.copy(medium = RoundedCornerShape(8.dp))
         ) {
-            CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
-                (1..12).forEach { m ->
-                    DropdownMenuItem(onClick = { onMonthSelected(m); expanded = false }) {
-                        Text(
-                            text = "${m}월",
-                            fontFamily = Pretendard,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center,
-                            fontSize = 16.sp,
-                            color = MaterialTheme.colors.onSurface
-                        )
+            DropdownMenu(
+                expanded = expanded, 
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .width(with(density) { width.toDp() })
+                    .height(153.dp)
+                    .shadow(
+                        elevation = 1.dp,
+                        shape = RoundedCornerShape(8.dp),
+                        ambientColor = shadowColor,
+                        spotColor = shadowColor
+                    )
+                    .border(1.dp, dropdownBorderColor, RoundedCornerShape(8.dp)),
+                offset = DpOffset(x = 0.dp, y = 0.dp),
+                properties = PopupProperties(clippingEnabled = false)
+            ) {
+                CompositionLocalProvider(LocalRippleTheme provides OrangeRippleTheme) {
+                    val months = (1..12).toList()
+                    months.forEachIndexed { index, m ->
+                        DropdownMenuItem(onClick = { onMonthSelected(m); expanded = false }) {
+                            Text(
+                                text = "${m}월",
+                                fontFamily = Pretendard,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                                fontSize = 18.sp,
+                                color = itemTextColor,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                        if (index < months.size - 1) {
+                            Divider(color = dividerColor, thickness = 1.dp)
+                        }
                     }
                 }
             }
@@ -450,11 +630,54 @@ fun MonthDropdown(month: Int, onMonthSelected: (Int) -> Unit) {
 }
 
 @Composable
-fun SelectorBox(text: String, onClick: () -> Unit) {
-    Box(modifier = Modifier.border(1.dp, MaterialTheme.colors.onSurface.copy(alpha = 0.12f), RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(text = text, fontWeight = FontWeight.Bold, fontSize = 18.sp, fontFamily = Pretendard, color = MaterialTheme.colors.onSurface)
-            Icon(Icons.Default.ArrowDropDown, null, tint = MaterialTheme.colors.onSurface)
+fun SelectorBox(text: String, isExpanded: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val isLight = MaterialTheme.colors.isLight
+    val textColor = if (isLight) Color(0xFF131416) else Color(0xFFF4F5F6)
+    val shadowColor = Color.Black.copy(alpha = if (isLight) 0.08f else 0.20f)
+    
+    Box(
+        modifier = modifier
+            .height(51.dp)
+            .then(
+                if (isExpanded) {
+                    Modifier
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(8.dp),
+                            ambientColor = shadowColor,
+                            spotColor = shadowColor
+                        )
+                        .border(
+                            1.dp,
+                            MaterialTheme.colors.onSurface.copy(alpha = 0.12f),
+                            RoundedCornerShape(8.dp)
+                        )
+                } else Modifier
+            )
+            .background(MaterialTheme.colors.surface, RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = text, 
+                fontWeight = FontWeight.Bold, 
+                fontSize = 24.sp, 
+                fontFamily = Pretendard, 
+                color = textColor,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown, 
+                contentDescription = null, 
+                tint = textColor, 
+                modifier = Modifier.requiredSize(24.dp)
+            )
         }
     }
 }

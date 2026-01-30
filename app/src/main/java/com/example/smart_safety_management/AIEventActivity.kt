@@ -74,9 +74,24 @@ fun AIEventNavigation() {
                 composable("detect") {
                     AIEventDetectScreen(
                         onEventClick = { event ->
-                            context.startActivity(Intent(context, ActionDetailActivity::class.java))
+                            navController.navigate("detail/${event.id}")
                         }
                     )
+                }
+                composable("detail/{eventId}") { backStackEntry ->
+                    val eventId = backStackEntry.arguments?.getString("eventId")?.toIntOrNull()
+                    if (eventId != null) {
+                        val currentContext = LocalContext.current
+                        AIEventDetailScreen(
+                            eventId = eventId,
+                            onBackClick = { navController.popBackStack() },
+                            onRequestAction = {
+                                val intent = Intent(currentContext, ActionDetailActivity::class.java)
+                                intent.putExtra("eventId", eventId)
+                                currentContext.startActivity(intent)
+                            }
+                        )
+                    }
                 }
             }
         }

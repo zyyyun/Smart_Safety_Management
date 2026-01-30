@@ -28,12 +28,16 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.ui.theme.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 // ✅ 데이터 모델
 data class CCTVCameraData(
@@ -42,14 +46,6 @@ data class CCTVCameraData(
     val location: String,
     val events: List<String>,
     val image: Int
-)
-
-// ✅ 더미 데이터
-val mockCCTVList = listOf(
-    CCTVCameraData("1", "CAM01", "A구역 1열", listOf("안전모 미착용", "운반사고", "통로사고"), R.drawable.cctvcam1),
-    CCTVCameraData("2", "CAM02", "B구역 3열", listOf("협착사고", "운반사고", "쓰러짐", "통로사고"), R.drawable.cctvcam2),
-    CCTVCameraData("3", "CAM03", "C구역 1열", listOf("쓰러짐", "화재사고", "통로사고"), R.drawable.cctvcam3),
-    CCTVCameraData("4", "CAM04", "D구역 1열", listOf("안전모 미착용", "협착사고"), R.drawable.cctvcam4)
 )
 
 // ✅ 카테고리 Enum
@@ -75,6 +71,7 @@ fun CCTVManagementScreen(
     onCameraClick: (CCTVCameraData) -> Unit = {}
 ) {
     Smart_Safety_ManagementTheme {
+        val context = LocalContext.current
         val isLight = MaterialTheme.colors.isLight
         val editColor = TextMedium
         val titleColor = if (isLight) Color.Black else TextGray5
@@ -85,16 +82,43 @@ fun CCTVManagementScreen(
         var selectedArea by remember { mutableStateOf("전체 구역") }
         val selectedEvents = remember { mutableStateListOf("전체") }
         val selectedCameras = remember { mutableStateListOf<String>() }
+        
+        // ✅ 서버에서 불러온 데이터를 저장할 상태
+        var cctvList by remember { mutableStateOf<List<CCTVCameraData>>(emptyList()) }
 
-        val filteredCCTVList by remember(selectedArea, selectedEvents.size) {
-            derivedStateOf {
-                mockCCTVList.filter { camera ->
-                    val matchesArea = if (selectedArea == "전체 구역") true 
-                                     else camera.location.contains(selectedArea.split(" ")[0])
-                    val matchesEvent = if (selectedEvents.contains("전체")) true
-                                      else camera.events.any { it in selectedEvents }
-                    matchesArea && matchesEvent
-                }
+        // ✅ 필터 변경 시 서버에 데이터 요청
+        LaunchedEffect(selectedArea, selectedEvents.toList()) {
+            val areaParam = if (selectedArea == "전체 구역") null else selectedArea
+            val eventsParam = if (selectedEvents.contains("전체")) null else selectedEvents.toList()
+            val userId = UserSession.userId
+
+            if (userId != null) {
+                RetrofitClient.instance.getCCTVList(areaParam, eventsParam, userId).enqueue(object : Callback<GetCCTVListResponse> {
+                    override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
+                        if (response.isSuccessful) {
+                            val items = response.body()?.cctvList ?: emptyList()
+                            cctvList = items.map { item ->
+                                // DB의 이미지 리소스 이름(String)을 안드로이드 리소스 ID(Int)로 변환
+                                val imageResId = if (!item.imageResName.isNullOrEmpty()) {
+                                    context.resources.getIdentifier(item.imageResName, "drawable", context.packageName)
+                                } else {
+                                    0 // 기본 이미지 또는 에러 처리
+                                }
+                                
+                                CCTVCameraData(
+                                    id = item.id.toString(),
+                                    name = item.name,
+                                    location = item.location,
+                                    events = item.events,
+                                    image = if (imageResId != 0) imageResId else R.drawable.cctvcam // 기본값 설정
+                                )
+                            }
+                        }
+                    }
+                    override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {
+                        // 에러 처리 (로그 등)
+                    }
+                })
             }
         }
 
@@ -130,7 +154,7 @@ fun CCTVManagementScreen(
                 // 편집 액션바
                 if (isEditMode) {
                     CCTVEditActionBar(
-                        filteredCCTVList = filteredCCTVList,
+                        filteredCCTVList = cctvList,
                         selectedCameras = selectedCameras,
                         dividerColor = dividerColor,
                         isLight = isLight,
@@ -147,7 +171,7 @@ fun CCTVManagementScreen(
 
                 // 카메라 리스트
                 CCTVCameraList(
-                    cameras = filteredCCTVList,
+                    cameras = cctvList,
                     isEditMode = isEditMode,
                     selectedCameras = selectedCameras,
                     onCameraClick = onCameraClick,

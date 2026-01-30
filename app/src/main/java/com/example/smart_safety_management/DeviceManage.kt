@@ -34,6 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.smart_safety_management.ui.theme.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 
 data class MainCategory (
@@ -57,27 +60,12 @@ data class DeviceBatteryData(
     val watchBattery : Int
 )
 
-// 메인 카테고리 리스트
-val MainCategoryList = listOf(
-    MainCategory ( title = "전체직원", count =  80, unit = "명"),
-    MainCategory ( "GPS 미수신", 4, R.drawable.gps, iconColor = Color(0xFFEF4444)),
-    MainCategory ( "배터리 부족", 3, R.drawable.battery, iconColor = Color(0xFFF97316)),
-    MainCategory("배터리 부족", 6, R.drawable.watch, iconColor = Color(0xFF3B82F6))
-)
 // 서브 카테고리 리스트
 val SubCategoryList = listOf(
     SubCategory("전체"),
     SubCategory("GPS 미수신", R.drawable.gps),
     SubCategory("배터리 부족", R.drawable.battery),
     SubCategory("배터리 부족", R.drawable.watch)
-)
-
-// 배터리 현황 더미 데이터
-val BatteryStatusList = listOf(
-    DeviceBatteryData("안정우", "관리자", true, 85, 25),
-    DeviceBatteryData("김철수", "작업자", false, 15, 10),
-    DeviceBatteryData("이영희", "작업자", true, 45, 40),
-    DeviceBatteryData("박민수", "작업자", true, 20, 95)
 )
 
 @Composable
@@ -87,8 +75,38 @@ fun DeviceManageScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategoryObj by remember { mutableStateOf(SubCategoryList[0]) }
     var showAlarmDialog by remember { mutableStateOf(false) }
+    
+    // ✅ 서버 데이터 상태 관리
+    var deviceList by remember { mutableStateOf<List<DeviceBatteryData>>(emptyList()) }
 
-    val filteredBatteryList = BatteryStatusList.filter { data ->
+    // ✅ 서버에서 데이터 불러오기
+    LaunchedEffect(Unit) {
+        val userId = UserSession.userId
+        if (userId != null) {
+            RetrofitClient.instance.getDeviceStatus(userId).enqueue(object : Callback<GetDeviceStatusResponse> {
+                override fun onResponse(call: Call<GetDeviceStatusResponse>, response: Response<GetDeviceStatusResponse>) {
+                    if (response.isSuccessful) {
+                        val items = response.body()?.deviceStatus ?: emptyList()
+                        deviceList = items.map { 
+                            DeviceBatteryData(it.name, it.role, it.isGpsConnected, it.battery, it.watchBattery) 
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<GetDeviceStatusResponse>, t: Throwable) {
+                    // 에러 처리
+                }
+            })
+        }
+    }
+
+    // ✅ 데이터 기반으로 메인 카테고리(상단 요약) 계산
+    val totalCount = deviceList.size
+    val gpsErrorCount = deviceList.count { !it.isGpsConnected }
+    val helmetLowCount = deviceList.count { it.battery < 30 }
+    val watchLowCount = deviceList.count { it.watchBattery < 30 }
+
+    // ✅ 필터링 로직 적용
+    val filteredBatteryList = deviceList.filter { data ->
         val matchesSearch = data.name.contains(searchQuery, ignoreCase = true)
         val matchesCategory = when (selectedCategoryObj.title) {
             "GPS 미수신" -> !data.isGpsConnected
@@ -146,7 +164,13 @@ fun DeviceManageScreen(
 
                     Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp) ) {
                         Spacer(modifier = Modifier.width(23.dp))
-                        MainCategoryList.forEach { category ->
+                        // ✅ 동적 카테고리 리스트 생성 및 표시
+                        listOf(
+                            MainCategory("전체직원", totalCount, unit = "명"),
+                            MainCategory("GPS 미수신", gpsErrorCount, R.drawable.gps, iconColor = Color(0xFFEF4444)),
+                            MainCategory("배터리 부족", helmetLowCount, R.drawable.battery, iconColor = Color(0xFFF97316)),
+                            MainCategory("배터리 부족", watchLowCount, R.drawable.watch, iconColor = Color(0xFF3B82F6))
+                        ).forEach { category ->
                             MainCategoryItem(
                                 category = category, 
                                 borderColor = borderColor, 
