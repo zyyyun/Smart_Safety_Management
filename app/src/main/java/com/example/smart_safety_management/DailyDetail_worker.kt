@@ -29,6 +29,7 @@ fun DailyDetailWorkerScreen(
     onBackClick: () -> Unit = {},
     onEditClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {},
+    onReportClick: () -> Unit = {},
 
     // ✅ 상세 데이터는 파라미터로만 받기
     date: String,
@@ -138,6 +139,30 @@ fun DailyDetailWorkerScreen(
                     Spacer(modifier = Modifier.height(20.dp))
                 }
 
+
+                // ✅ 점검 보고하기 버튼
+                Button(
+                    onClick = onReportClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(55.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = MaterialTheme.colors.primary,
+                        contentColor = MaterialTheme.colors.onPrimary
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    elevation = ButtonDefaults.elevation(0.dp, 0.dp)
+                ) {
+                    Text(
+                        text = "점검 보고하기",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        fontFamily = Pretendard,
+                        letterSpacing = (-0.3).sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
 
                 // ✅ 수정하기 버튼
                 Button(

@@ -78,8 +78,7 @@ fun DailyListScreen(
     val isFormComplete = date.isNotBlank() &&
             location.isNotBlank() &&
             riskFactor.isNotBlank() &&
-            safetyMeasure.isNotBlank() &&
-            attachedPhotos.isNotEmpty()
+            safetyMeasure.isNotBlank()
 
     val context = LocalContext.current
 

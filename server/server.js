@@ -41,9 +41,12 @@ const handleFalsePositiveRouter = require('./handle_false_positive');
 const getDailyChecksRouter = require('./get_daily_checks');
 const createDailyCheckRouter = require('./create_daily_check');
 const updateDailyCheckRouter = require('./update_daily_check');
+const deleteDailyCheckRouter = require('./delete_daily_check');
 const getNotificationsRouter = require('./get_notifications');
 const markNotificationsReadRouter = require('./mark_notifications_read');
 const joinGroupRouter = require('./join_group'); // 추가
+const getGroupMembersRouter = require('./get_group_members'); // 추가: 그룹 멤버 조회
+const getEventTypesRouter = require('./get_event_types'); // 추가: 이벤트 유형 조회
 
 // 라우터 등록
 app.use('/', signupRouter);
@@ -73,9 +76,12 @@ app.use('/', handleFalsePositiveRouter);
 app.use('/', getDailyChecksRouter);
 app.use('/', createDailyCheckRouter);
 app.use('/', updateDailyCheckRouter);
+app.use('/', deleteDailyCheckRouter);
 app.use('/', getNotificationsRouter);
 app.use('/', markNotificationsReadRouter);
 app.use('/', joinGroupRouter); // 추가
+app.use('/', getGroupMembersRouter); // 추가
+app.use('/', getEventTypesRouter); // 추가
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));

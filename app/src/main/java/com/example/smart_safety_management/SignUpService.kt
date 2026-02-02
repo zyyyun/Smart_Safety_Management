@@ -13,6 +13,17 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+data class JoinGroupRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("invite_code") val inviteCode: String
+)
+
+data class JoinGroupResponse(
+    val message: String,
+    @SerializedName("group_id") val groupId: String
+)
+
+
 data class VerificationRequest(
     @SerializedName("phone_num") val phoneNum: String,
     @SerializedName("app_hash") val appHash: String // 앱 해시 추가
@@ -327,15 +338,9 @@ data class DeleteDailyCheckResponse(
     val message: String
 )
 
-data class JoinGroupRequest(
-    @SerializedName("user_id") val userId: String,
-    @SerializedName("invite_code") val inviteCode: String
-)
+data class GroupMembersResponse(val members: List<String>)
 
-data class JoinGroupResponse(
-    val message: String,
-    @SerializedName("group_id") val groupId: String
-)
+data class EventTypesResponse(val event_types: List<String>)
 
 interface SignUpService {
     @POST("/send_verification_code")
@@ -470,4 +475,20 @@ interface SignUpService {
 
     @POST("/join_group")
     fun joinGroup(@Body request: JoinGroupRequest): Call<JoinGroupResponse>
+
+    @Multipart
+    @POST("/complete_daily_check")
+    fun completeDailyCheck(
+        @Part("check_id") checkId: RequestBody,
+        @Part("worker_id") workerId: RequestBody,
+        @Part("check_content") checkContent: RequestBody,
+        @Part("check_date") checkDate: RequestBody,
+        @Part images: List<MultipartBody.Part>
+    ): Call<Void>
+
+    @GET("/get_group_members")
+    fun getGroupMembers(@Query("user_id") userId: String): Call<GroupMembersResponse>
+
+    @GET("/get_event_types")
+    fun getEventTypes(): Call<EventTypesResponse>
 }

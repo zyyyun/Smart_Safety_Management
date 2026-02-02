@@ -4,6 +4,8 @@ import android.app.DatePickerDialog
 import android.content.res.Configuration
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Canvas
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,7 +15,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.runtime.*
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -28,125 +34,70 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.smart_safety_management.ui.theme.*
-import java.util.Calendar
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import android.net.Uri
-import android.widget.Toast
+import androidx.navigation.activity
 import coil.compose.AsyncImage
-import android.content.Intent
-import android.util.Log
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
+import com.example.smart_safety_management.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.io.File
+import java.io.FileOutputStream
+import java.util.Calendar
 
-
-// ✅ Preview는 파라미터 없는 Composable이 필요해서 래퍼를 하나 둠
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
-@Preview
 @Composable
-fun PreviewDailyListWorker() {
-    DailyListWorkerScreen(
-        defaultDate = "2026-01-16",
-        initialDate = "2026-01-16",
-        onComplete = { _, _, _, _, _ -> }
-    )
-}
-
-@Composable
-fun DailyListWorkerScreen(
-    defaultDate: String,
-
-    // ✅ 추가: 수정모드에서 날짜도 프리필하려면 필요
-    initialDate: String = "",
-
-    initialLocation: String = "",
-    initialRiskFactor: String = "",
-    initialSafetyMeasure: String = "",
-    initialPhotoUris: List<String> = emptyList(),
-    onComplete: (String, String, String, String, List<String>) -> Unit
-) {
+fun DailyListWorkerScreen(checkId: String? = null, onComplete: () -> Unit = {}) {
     val activity = LocalContext.current as? ComponentActivity
+    val calendar = Calendar.getInstance()
+    val year = calendar.get(Calendar.YEAR)
+    val month = calendar.get(Calendar.MONTH)
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+    var date by remember { mutableStateOf("$year-${month + 1}-$day") }
+    var riskFactor by remember { mutableStateOf("") }
+    var attachedPhotos by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    val coroutineScope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
+
+    val isFormComplete = date.isNotBlank() &&
+            riskFactor.isNotBlank() &&
+            attachedPhotos.isNotEmpty()
+
     val context = LocalContext.current
 
-    // ✅ 핵심: initialDate가 있으면 그걸로 시작, 없으면 defaultDate
-    val startDate = remember(defaultDate, initialDate) {
-        if (initialDate.isNotBlank()) initialDate else defaultDate
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        attachedPhotos = attachedPhotos + uris.map { it.toString() }
     }
-    var dateStr by remember(startDate) { mutableStateOf(startDate) }
 
-    // ✅ dateStr("YYYY-MM-DD")를 DatePicker 초기값으로 쓰기
-    val parts = dateStr.split("-")
-    val initYear = parts.getOrNull(0)?.toIntOrNull() ?: Calendar.getInstance().get(Calendar.YEAR)
-    val initMonth0 =
-        (parts.getOrNull(1)?.toIntOrNull() ?: (Calendar.getInstance().get(Calendar.MONTH) + 1)) - 1 // 0~11
-    val initDay =
-        parts.getOrNull(2)?.toIntOrNull() ?: Calendar.getInstance().get(Calendar.DAY_OF_MONTH)
-
-    // ✅ dateStr가 바뀌면 DatePicker도 그 날짜로 열리게 remember(dateStr)
-    val datePickerDialog = remember(dateStr) {
+    val datePickerDialog = remember {
         DatePickerDialog(
             context,
             { _, selectedYear, selectedMonth, selectedDayOfMonth ->
-                dateStr = String.format(
-                    "%04d-%02d-%02d",
-                    selectedYear,
-                    selectedMonth + 1,
-                    selectedDayOfMonth
-                )
+                date = "$selectedYear-${selectedMonth + 1}-$selectedDayOfMonth"
             },
-            initYear, initMonth0, initDay
+            year, month, day
         )
     }
 
-    var location by remember(initialLocation) { mutableStateOf(initialLocation) }
-    var riskFactor by remember(initialRiskFactor) { mutableStateOf(initialRiskFactor) }
-    var safetyMeasure by remember(initialSafetyMeasure) { mutableStateOf(initialSafetyMeasure) }
-    var attachedPhotos by remember(initialPhotoUris) { mutableStateOf(initialPhotoUris) }
-
-    val pickImagesLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenMultipleDocuments()
-    ) { uris: List<Uri> ->
-        if (uris.isEmpty()) {
-            ToastUtil.showShort(context, "선택된 사진이 없어요")
-            return@rememberLauncherForActivityResult
-        }
-
-        uris.forEach { uri ->
-            try {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
-            } catch (e: SecurityException) {
-                Log.w("PHOTO_DEBUG", "persist permission failed uri=$uri", e)
-            }
-        }
-
-        val newOnes = uris.map { it.toString() }.distinct().filterNot { it in attachedPhotos }
-        attachedPhotos = attachedPhotos + newOnes
-    }
-
-
-    // ✅ 완료조건: 4개 입력 + 사진 1장 이상
-    val isFormComplete =
-        dateStr.isNotBlank() &&
-                location.isNotBlank() &&
-                riskFactor.isNotBlank() &&
-                safetyMeasure.isNotBlank() &&
-                attachedPhotos.isNotEmpty()
-
     Smart_Safety_ManagementTheme {
+        // 테마 블록 내부에서 색상 정의 (다크모드 인지 가능)
         val isLight = MaterialTheme.colors.isLight
         val labelColor = if (isLight) TextGray60 else TextGray
         val calendarIconTint = if (isLight) Color.Unspecified else GrayBorder
         val fieldBgColor = if (isLight) Color.White else TextGray20
         val borderColor = if (isLight) GrayBorder else TextDark
         val textColor = if (isLight) TextGray else TextGray60
-        val placeholder = if (isLight) TextLight else TextGray30
-        val fieldTextColor = if (isLight) TextGray20 else TextGray5
-
+        val placeholder = if(isLight) TextLight else TextGray30
+        val fieldTextColor = if(isLight) TextGray20 else TextGray5
         Scaffold(
             backgroundColor = MaterialTheme.colors.onPrimary,
             topBar = {
@@ -183,29 +134,20 @@ fun DailyListWorkerScreen(
                     .padding(horizontal = 16.dp, vertical = 20.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-
-                // ✅ 작성일
                 Text(
-                    text = "작성일",
+                    text = "작성일", 
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(horizontal = 4.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-
                 OutlinedTextField(
-                    value = dateStr,
-                    onValueChange = { dateStr = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
+                    value = date,
+                    onValueChange = { date = it },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(
-                        fontFamily = Pretendard,
-                        fontSize = 18.sp,
-                        color = fieldTextColor
-                    ),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fieldTextColor),
                     trailingIcon = {
                         IconButton(onClick = { datePickerDialog.show() }) {
                             Icon(
@@ -225,47 +167,6 @@ fun DailyListWorkerScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // ✅ 위치
-                Text(
-                    text = "위치",
-                    fontSize = 16.sp,
-                    color = labelColor,
-                    fontFamily = Pretendard,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = location,
-                    onValueChange = { location = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    placeholder = {
-                        Text(
-                            text = "예) A구역 3열",
-                            fontFamily = Pretendard,
-                            fontSize = 18.sp,
-                            color = placeholder
-                        )
-                    },
-                    singleLine = true,
-                    textStyle = TextStyle(
-                        fontFamily = Pretendard,
-                        fontSize = 18.sp,
-                        color = fieldTextColor
-                    ),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        textColor = MaterialTheme.colors.onSurface,
-                        unfocusedBorderColor = borderColor,
-                        focusedBorderColor = MaterialTheme.colors.primary,
-                        backgroundColor = fieldBgColor
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // ✅ 점검결과(기존 riskFactor)
                 Text(
                     text = "점검결과",
                     fontSize = 16.sp,
@@ -282,19 +183,16 @@ fun DailyListWorkerScreen(
                         .height(120.dp)
                         .padding(horizontal = 4.dp),
                     shape = RoundedCornerShape(8.dp),
-                    placeholder = {
-                        Text(
+                    placeholder={
+                        Text (
                             text = "점검 내용을 작성해주세요.",
                             fontFamily = Pretendard,
                             fontSize = 18.sp,
                             color = placeholder
                         )
                     },
-                    textStyle = TextStyle(
-                        fontFamily = Pretendard,
-                        fontSize = 18.sp,
-                        color = fieldTextColor
-                    ),
+                    singleLine = false,
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,color = fieldTextColor ),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         textColor = MaterialTheme.colors.onSurface,
                         unfocusedBorderColor = borderColor,
@@ -305,47 +203,6 @@ fun DailyListWorkerScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // ✅ 조치내용
-                Text(
-                    text = "조치내용",
-                    fontSize = 16.sp,
-                    color = labelColor,
-                    fontFamily = Pretendard,
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = safetyMeasure,
-                    onValueChange = { safetyMeasure = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .padding(horizontal = 4.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    placeholder = {
-                        Text(
-                            text = "조치 내용을 작성해주세요.",
-                            fontFamily = Pretendard,
-                            fontSize = 18.sp,
-                            color = placeholder
-                        )
-                    },
-                    textStyle = TextStyle(
-                        fontFamily = Pretendard,
-                        fontSize = 18.sp,
-                        color = fieldTextColor
-                    ),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        textColor = MaterialTheme.colors.onSurface,
-                        unfocusedBorderColor = borderColor,
-                        focusedBorderColor = MaterialTheme.colors.primary,
-                        backgroundColor = fieldBgColor
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // ✅ 사진
                 Text(
                     text = "사진",
                     fontSize = 16.sp,
@@ -361,13 +218,14 @@ fun DailyListWorkerScreen(
                         .horizontalScroll(rememberScrollState()),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 첨부 박스
                     Box(
                         modifier = Modifier
                             .padding(horizontal = 4.dp)
                             .size(120.dp)
                             .background(fieldBgColor, shape = RoundedCornerShape(8.dp))
-                            .clickable { pickImagesLauncher.launch(arrayOf("image/*")) },
+                            .clickable {
+                                launcher.launch("image/*")
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -378,90 +236,127 @@ fun DailyListWorkerScreen(
                                 cornerRadius = CornerRadius(8.dp.toPx())
                             )
                         }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.camera_icon),
                                 contentDescription = "사진첨부",
-                                tint = if (isLight) Color.Unspecified else TextGray30
+                                tint = if (MaterialTheme.colors.isLight) Color.Unspecified else TextGray30
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "사진첨부",
-                                color = if (isLight) TextLight else TextGray30,
+                                color = if (MaterialTheme.colors.isLight) TextLight else TextGray30,
                                 fontSize = 18.sp,
                                 fontFamily = Pretendard
                             )
                         }
                     }
 
-                    attachedPhotos.reversed().forEach { uriStr ->
+                    attachedPhotos.reversed().forEach { photoUri ->
                         Spacer(modifier = Modifier.width(8.dp))
-
                         Box(
                             modifier = Modifier
                                 .size(120.dp)
                                 .background(fieldBgColor, shape = RoundedCornerShape(8.dp))
-                                .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+                                .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
                         ) {
                             AsyncImage(
-                                model = uriStr,
-                                contentDescription = null,
+                                model = Uri.parse(photoUri),
+                                contentDescription = "Attached Photo",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier.fillMaxSize()
                             )
-
-                            // ✅ 삭제 X 버튼
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(6.dp)
-                                    .size(22.dp)
-                                    .background(fieldBgColor, RoundedCornerShape(999.dp))
-                                    .clickable {
-                                        attachedPhotos = attachedPhotos.filterNot { it == uriStr }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "remove",
-                                    tint = MaterialTheme.colors.onSurface,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
                         }
                     }
-
                 }
 
                 Spacer(modifier = Modifier.height(48.dp))
-
                 Button(
                     onClick = {
-                        if (isFormComplete) {
-                            onComplete(dateStr, location, riskFactor, safetyMeasure, attachedPhotos)
+                        if (isFormComplete && !isLoading) {
+                            if (checkId == null) {
+                                Toast.makeText(context, "잘못된 접근입니다 (ID 없음)", Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+                            isLoading = true
+                            coroutineScope.launch(Dispatchers.IO) {
+                                val userId = UserSession.userId ?: ""
+                                val checkIdBody = RequestBody.create("text/plain".toMediaTypeOrNull(), checkId)
+                                val workerIdBody = RequestBody.create("text/plain".toMediaTypeOrNull(), userId)
+                                val checkContentBody = RequestBody.create("text/plain".toMediaTypeOrNull(), riskFactor)
+                                val checkDateBody = RequestBody.create("text/plain".toMediaTypeOrNull(), date)
+
+                                val imageParts = attachedPhotos.mapNotNull { uriString ->
+                                    val uri = Uri.parse(uriString)
+                                    uriToTempFile(context, uri)?.let { file ->
+                                        val requestFile = RequestBody.create("image/*".toMediaTypeOrNull(), file)
+                                        MultipartBody.Part.createFormData("images", file.name, requestFile)
+                                    }
+                                }
+
+                                RetrofitClient.instance.completeDailyCheck(
+                                    checkIdBody, workerIdBody, checkContentBody, checkDateBody, imageParts
+                                ).enqueue(object : Callback<Void> {
+                                    override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                                        isLoading = false
+                                        if (response.isSuccessful) {
+                                            Toast.makeText(context, "점검이 완료되었습니다.", Toast.LENGTH_SHORT).show()
+                                            onComplete()
+                                        } else {
+                                            Toast.makeText(context, "저장 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                    override fun onFailure(call: Call<Void>, t: Throwable) {
+                                        isLoading = false
+                                        Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                })
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    enabled = isFormComplete,
+                    enabled = isFormComplete && !isLoading,
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = MaterialTheme.colors.primary,
                         contentColor = MaterialTheme.colors.onPrimary,
-                        disabledBackgroundColor = if (isLight) TextGray5 else TextGray20,
+                        disabledBackgroundColor = if (MaterialTheme.colors.isLight) TextGray5 else TextGray20,
                         disabledContentColor = textColor
                     )
                 ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
                     Text(
                         text = "작성완료",
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = Pretendard,
                         fontSize = 18.sp,
                         modifier = Modifier.padding(vertical = 8.dp),
-                        letterSpacing = (-0.3).sp
+                        letterSpacing = (-0.3).sp,
                     )
+                    }
                 }
             }
         }
+    }
+}
+
+private fun uriToTempFile(context: android.content.Context, uri: Uri): File? {
+    return try {
+        val contentResolver = context.contentResolver
+        val inputStream = contentResolver.openInputStream(uri) ?: return null
+        val tempFile = File.createTempFile("upload", ".jpg", context.cacheDir)
+        val outputStream = FileOutputStream(tempFile)
+        inputStream.copyTo(outputStream)
+        inputStream.close()
+        outputStream.close()
+        tempFile
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
     }
 }

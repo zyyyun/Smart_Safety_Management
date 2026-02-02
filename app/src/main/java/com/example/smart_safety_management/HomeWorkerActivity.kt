@@ -55,6 +55,8 @@ class HomeWorkerActivity : AppCompatActivity() {
             } else {
                 updateDailyCheckList(selectedDay)
             }
+            // ✅ 데이터 변경(점검 완료 등)이 있을 수 있으므로 서버에서 최신 목록 갱신
+            fetchDailyChecks()
         }
     }
 

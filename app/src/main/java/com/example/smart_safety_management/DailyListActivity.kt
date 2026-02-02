@@ -86,17 +86,11 @@ class DailyListActivity : ComponentActivity() {
                     // 2. 근로자일 경우 근로자용 화면 표시
                     when (currentScreen) {
                         "write" -> {
-                            DailyListScreen(
-                                defaultDate = null,
-                                onComplete = { date, location, risk, measure, photos, id, day ->
-                                    detailDate = date
-                                    detailLocation = location
-                                    detailRiskFactor = risk
-                                    detailSafetyMeasure = measure
-                                    detailPhotoUris = photos
-                                    detailItemId = id
-                                    detailDay = day
-                                    currentScreen = "detail"
+                            DailyListWorkerScreen(
+                                checkId = detailItemId.ifBlank { intent.getStringExtra("itemId") },
+                                onComplete = {
+                                    setResult(RESULT_OK)
+                                    finish()
                                 }
                             )
                         }
