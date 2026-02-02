@@ -184,7 +184,7 @@ fun WorkerDeviceBox(device: DeviceData) {
                     painter = painterResource(id = iconRes),
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),
-                    tint = MainOrange
+                    tint = if (device is DeviceData.SmartHelmet) MainOrange else StatusBlue
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(

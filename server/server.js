@@ -48,7 +48,6 @@ const markNotificationsReadRouter = require('./mark_notifications_read');
 const joinGroupRouter = require('./join_group'); // 추가
 const getGroupMembersRouter = require('./get_group_members'); // 추가: 그룹 멤버 조회
 const getEventTypesRouter = require('./get_event_types'); // 추가: 이벤트 유형 조회
-const joinGroupRouter = require('./join_group');
 const sendGroupNotificationRouter = require('./send_group_notification'); // 추가
 
 // 라우터 등록
@@ -86,7 +85,6 @@ app.use('/', markNotificationsReadRouter);
 app.use('/', joinGroupRouter); // 추가
 app.use('/', getGroupMembersRouter); // 추가
 app.use('/', getEventTypesRouter); // 추가
-app.use('/', joinGroupRouter);
 app.use('/', sendGroupNotificationRouter); // 추가
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
