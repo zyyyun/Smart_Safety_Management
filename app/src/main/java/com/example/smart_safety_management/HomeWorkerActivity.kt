@@ -74,10 +74,7 @@ class HomeWorkerActivity : AppCompatActivity() {
 
         val topBar = findViewById<View>(R.id.top_bar)
         val btnAlarm = topBar.findViewById<ImageButton>(R.id.btn_alarm)
-        val alarmDot = findViewById<View>(R.id.view_alarm_dot)
         val btnSetting = topBar.findViewById<ImageButton>(R.id.btn_setting)
-
-        alarmDot.visibility = if (true) View.VISIBLE else View.GONE
 
         // 알림 버튼 -> 알림 화면
         btnAlarm.setOnClickListener {
@@ -240,6 +237,25 @@ class HomeWorkerActivity : AppCompatActivity() {
         super.onResume()
         updateProfile()
         fetchWorkerEvents()
+        updateAlarmDotVisibility()
+    }
+
+    private fun updateAlarmDotVisibility() {
+        val userId = UserSession.userId ?: return
+        val alarmDot = findViewById<View>(R.id.view_alarm_dot) ?: return
+
+        RetrofitClient.instance.getNotifications(userId).enqueue(object : Callback<GetNotificationsResponse> {
+            override fun onResponse(call: Call<GetNotificationsResponse>, response: Response<GetNotificationsResponse>) {
+                if (response.isSuccessful) {
+                    val notifications = response.body()?.notifications ?: emptyList()
+                    val hasUnread = notifications.any { !it.isRead }
+                    alarmDot.visibility = if (hasUnread) View.VISIBLE else View.GONE
+                }
+            }
+            override fun onFailure(call: Call<GetNotificationsResponse>, t: Throwable) {
+                Log.e("HomeWorkerActivity", "Error checking notifications", t)
+            }
+        })
     }
 
     private fun updateProfile() {

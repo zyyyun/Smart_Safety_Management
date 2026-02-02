@@ -208,10 +208,7 @@ class HomeActivity : AppCompatActivity() {
 
         val topBar = findViewById<View>(R.id.top_bar)
         val btnAlarm = topBar.findViewById<ImageButton>(R.id.btn_alarm)
-        val alarmDot = findViewById<View>(R.id.view_alarm_dot)
         val btnSetting = topBar.findViewById<ImageButton>(R.id.btn_setting)
-
-        alarmDot.visibility = if (true) View.VISIBLE else View.GONE
 
         btnAlarm.setOnClickListener {
             startActivity(Intent(this, NoticeActivity::class.java))
@@ -262,7 +259,11 @@ class HomeActivity : AppCompatActivity() {
             },
             onRequestNotify = { day, item ->
                 // ✅ 여기서 “근로자에게 알림 보내기” 구현
+                // (우선 토스트로 확인 가능)
                 ToastUtil.showShort(this, "근로자에게 점검 요청 알림을 보냈어요.")
+
+                // TODO: 실제 구현 (FCM 푸시 or 앱내 알림함 DB/리스트)
+                // sendUncheckedNoticeToWorker(day, item)
             }
         )
 
@@ -322,6 +323,25 @@ class HomeActivity : AppCompatActivity() {
         super.onResume()
         updateProfile()
         fetchDailyChecks()
+        updateAlarmDotVisibility() // ✅ 추가
+    }
+
+    private fun updateAlarmDotVisibility() {
+        val userId = UserSession.userId ?: return
+        val alarmDot = findViewById<View>(R.id.view_alarm_dot) ?: return
+
+        RetrofitClient.instance.getNotifications(userId).enqueue(object : Callback<GetNotificationsResponse> {
+            override fun onResponse(call: Call<GetNotificationsResponse>, response: Response<GetNotificationsResponse>) {
+                if (response.isSuccessful) {
+                    val notifications = response.body()?.notifications ?: emptyList()
+                    val hasUnread = notifications.any { !it.isRead }
+                    alarmDot.visibility = if (hasUnread) View.VISIBLE else View.GONE
+                }
+            }
+            override fun onFailure(call: Call<GetNotificationsResponse>, t: Throwable) {
+                Log.e("HomeActivity", "Error checking notifications", t)
+            }
+        })
     }
 
     private fun updateProfile() {
@@ -341,6 +361,7 @@ class HomeActivity : AppCompatActivity() {
             if (ivProfileBar != null) {
                 val params = ivProfileBar.layoutParams as ViewGroup.MarginLayoutParams
                 UserSession.profileImageUri?.let { uriString ->
+                    // 사진이 있을 때: 부모 CardView 제약까지 풀어서 원에 꽉 차도록 설정
                     Glide.with(this)
                         .load(uriString)
                         .placeholder(R.drawable.profile)
@@ -349,8 +370,8 @@ class HomeActivity : AppCompatActivity() {
 
                     cardProfile?.apply {
                         setContentPadding(0, 0, 0, 0)
-                        preventCornerOverlap = false
-                        useCompatPadding = false
+                        preventCornerOverlap = false // 모서리 겹침 방지 여백 제거
+                        useCompatPadding = false     // 호환성 패딩 제거
                     }
 
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_CROP
@@ -358,10 +379,11 @@ class HomeActivity : AppCompatActivity() {
                     params.setMargins(0, 0, 0, 0)
                     ivProfileBar.layoutParams = params
                 } ?: run {
+                    // 기본 이미지일 때: XML 디자인(마진 5, 10, 5)을 그대로 유지
                     ivProfileBar.setImageResource(R.drawable.profile)
 
                     cardProfile?.apply {
-                        preventCornerOverlap = true
+                        preventCornerOverlap = true // 기본값 복구
                     }
 
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_INSIDE
@@ -389,6 +411,8 @@ class HomeActivity : AppCompatActivity() {
                     val checks = response.body()?.checks ?: emptyList()
                     
                     checks.forEach { dto ->
+                        // created_at 기준으로 날짜 파싱 (YYYY-MM-DD HH:mm:ss)
+                        // createdAt이 없으면 checkDate를 사용하도록 예외 처리
                         val targetDate = dto.createdAt ?: dto.checkDate
                         val day = try {
                             targetDate.substring(8, 10).toInt()
