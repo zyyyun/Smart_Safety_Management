@@ -39,6 +39,7 @@ class DailyDetailActivity : ComponentActivity() {
         val location = intent.getStringExtra("location") ?: ""
         val riskFactor = intent.getStringExtra("riskFactor") ?: ""
         val safetyMeasure = intent.getStringExtra("safetyMeasure") ?: ""
+        val status = intent.getStringExtra("status") ?: ""
 
         // ✅ Compose 쪽이 List<String>을 쓰므로 그대로 맞춤
         val photoUris: List<String> =
@@ -80,6 +81,7 @@ class DailyDetailActivity : ComponentActivity() {
                         riskFactor = riskFactor,
                         safetyMeasure = safetyMeasure,
                         photoUris = photoUris,
+                        status = status,
                         onBackClick = { finish() },
                         onReportClick = {
                             // 근로자 점검 보고 화면으로 이동

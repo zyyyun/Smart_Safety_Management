@@ -38,7 +38,9 @@ router.get('/get_daily_checks', async (req, res) => {
             WHERE u.group_id = $1
             AND to_char(d.created_at, 'YYYY') = $2::text
             AND to_char(d.created_at, 'FMMM') = $3::text
-            ORDER BY d.created_at DESC
+            ORDER BY 
+                CASE WHEN d.status = '미점검' THEN 0 ELSE 1 END ASC,
+                d.created_at ASC
         `;
 
         const result = await pool.query(query, [groupId, year, month]);

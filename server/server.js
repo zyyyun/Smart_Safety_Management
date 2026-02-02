@@ -42,6 +42,7 @@ const getDailyChecksRouter = require('./get_daily_checks');
 const createDailyCheckRouter = require('./create_daily_check');
 const updateDailyCheckRouter = require('./update_daily_check');
 const deleteDailyCheckRouter = require('./delete_daily_check');
+const completeDailyCheckRouter = require('./complete_daily_check'); // ✅ 추가
 const getNotificationsRouter = require('./get_notifications');
 const markNotificationsReadRouter = require('./mark_notifications_read');
 const joinGroupRouter = require('./join_group'); // 추가
@@ -79,6 +80,7 @@ app.use('/', getDailyChecksRouter);
 app.use('/', createDailyCheckRouter);
 app.use('/', updateDailyCheckRouter);
 app.use('/', deleteDailyCheckRouter);
+app.use('/', completeDailyCheckRouter); // ✅ 추가
 app.use('/', getNotificationsRouter);
 app.use('/', markNotificationsReadRouter);
 app.use('/', joinGroupRouter); // 추가

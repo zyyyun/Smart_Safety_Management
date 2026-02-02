@@ -37,7 +37,9 @@ router.get('/get_detection_events', async (req, res) => {
             LEFT JOIN action_requests ar ON de.event_id = ar.event_id
             LEFT JOIN users u ON ar.worker_id = u.user_id
             WHERE c.group_id = $1
-            ORDER BY de.detected_at DESC
+            ORDER BY 
+                CASE WHEN de.status IN ('REQUESTED', 'PENDING') THEN 0 ELSE 1 END ASC,
+                de.detected_at ASC
         `;
 
         const result = await pool.query(query, [groupId]);

@@ -13,6 +13,9 @@ import androidx.core.widget.NestedScrollView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import android.content.Intent
 import android.graphics.Paint
 import android.graphics.drawable.GradientDrawable
@@ -100,6 +103,12 @@ class HomeWorkerActivity : AppCompatActivity() {
                 val intent = Intent(this, DailyDetailActivity::class.java).apply {
                     putExtra("day", day)
                     putExtra("itemId", item.id)
+                    putExtra("date", String.format("%04d-%02d-%02d", selectedYear, selectedMonth, day))
+                    putExtra("location", item.title)
+                    putExtra("riskFactor", item.desc)
+                    putExtra("safetyMeasure", item.safetyMeasure)
+                    putExtra("status", item.status)
+                    putStringArrayListExtra("photoUris", ArrayList(item.photoUris))
                 }
                 detailLauncher.launch(intent)
             },
@@ -240,6 +249,7 @@ class HomeWorkerActivity : AppCompatActivity() {
         updateProfile()
         fetchWorkerEvents()
         updateAlarmDotVisibility()
+        fetchDailyChecks() // ✅ 화면이 다시 보일 때마다 점검 목록 최신화
     }
 
     private fun updateAlarmDotVisibility() {
@@ -424,15 +434,32 @@ class HomeWorkerActivity : AppCompatActivity() {
 
     private fun mapRiskLevel(level: String?): String {
         return when (level?.lowercase()) {
-            "high", "위험" -> "위험"
-            "medium", "경고" -> "경고"
-            "low", "주의" -> "주의"
-            else -> "기타"
+            "high", "위험", "danger" -> "위험"
+            "medium", "경고", "warning" -> "경고"
+            "low", "주의", "caution" -> "주의"
+            else -> "주의"
         }
     }
 
-    private fun calculateTimeAgo(dateStr: String?): String {
-        return "방금 전" 
+    private fun calculateTimeAgo(dateString: String?): String {
+        if (dateString.isNullOrEmpty()) return ""
+        try {
+            val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            val date = format.parse(dateString) ?: return ""
+            val diff = Date().time - date.time
+            val minutes = diff / (1000 * 60)
+            val hours = minutes / 60
+            val days = hours / 24
+
+            return when {
+                minutes < 1 -> "방금 전"
+                minutes < 60 -> "${minutes}분 전"
+                hours < 24 -> "${hours}시간 전"
+                else -> "${days}일 전"
+            }
+        } catch (e: Exception) {
+            return dateString
+        }
     }
 
     private fun hasDailyCheckItem(day: Int): Boolean {

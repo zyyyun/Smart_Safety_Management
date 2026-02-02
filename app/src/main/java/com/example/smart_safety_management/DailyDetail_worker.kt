@@ -36,6 +36,7 @@ fun DailyDetailWorkerScreen(
     location: String,
     riskFactor: String,
     safetyMeasure: String,
+    status: String = "",
 
     photoUris: List<String> = emptyList()
 
@@ -140,53 +141,55 @@ fun DailyDetailWorkerScreen(
                 }
 
 
-                // ✅ 점검 보고하기 버튼
-                Button(
-                    onClick = onReportClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(55.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = MaterialTheme.colors.primary,
-                        contentColor = MaterialTheme.colors.onPrimary
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = ButtonDefaults.elevation(0.dp, 0.dp)
-                ) {
-                    Text(
-                        text = "점검 보고하기",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = Pretendard,
-                        letterSpacing = (-0.3).sp
-                    )
+                // ✅ 점검 보고하기 버튼 (미점검 상태일 때만 표시)
+                if (status == "미점검" || status == "UNCHECKED") {
+                    Button(
+                        onClick = onReportClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(55.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = MaterialTheme.colors.primary,
+                            contentColor = MaterialTheme.colors.onPrimary
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.elevation(0.dp, 0.dp)
+                    ) {
+                        Text(
+                            text = "점검 보고하기",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = Pretendard,
+                            letterSpacing = (-0.3).sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(18.dp))
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // ✅ 수정하기 버튼
-                Button(
-                    onClick = onEditClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(55.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        backgroundColor = MaterialTheme.colors.primary,
-                        contentColor = MaterialTheme.colors.onPrimary
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    elevation = ButtonDefaults.elevation(0.dp, 0.dp)
-                ) {
-                    Text(
-                        text = "수정하기",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = Pretendard,
-                        letterSpacing = (-0.3).sp
-                    )
+                // ✅ 수정하기 버튼 (점검 완료 상태일 때 표시)
+                if (status != "미점검" && status != "UNCHECKED") {
+                    Button(
+                        onClick = onEditClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(55.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = MaterialTheme.colors.primary,
+                            contentColor = MaterialTheme.colors.onPrimary
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        elevation = ButtonDefaults.elevation(0.dp, 0.dp)
+                    ) {
+                        Text(
+                            text = "수정하기",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = Pretendard,
+                            letterSpacing = (-0.3).sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(18.dp))
                 }
-
-                Spacer(modifier = Modifier.height(18.dp))
 
                 // ✅ 삭제하기 (텍스트 버튼)
                 TextButton(
