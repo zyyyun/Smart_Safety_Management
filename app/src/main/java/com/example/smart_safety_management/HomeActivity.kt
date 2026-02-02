@@ -211,7 +211,8 @@ class HomeActivity : AppCompatActivity() {
         val alarmDot = findViewById<View>(R.id.view_alarm_dot)
         val btnSetting = topBar.findViewById<ImageButton>(R.id.btn_setting)
 
-        alarmDot.visibility = if (true) View.VISIBLE else View.GONE
+        // 초기 상태는 GONE, onResume에서 서버 확인 후 표시
+        alarmDot.visibility = View.GONE
 
         btnAlarm.setOnClickListener {
             startActivity(Intent(this, NoticeActivity::class.java))
@@ -261,8 +262,8 @@ class HomeActivity : AppCompatActivity() {
                 detailLauncher.launch(intent)
             },
             onRequestNotify = { day, item ->
-                // ✅ 여기서 “근로자에게 알림 보내기” 구현
-                ToastUtil.showShort(this, "근로자에게 점검 요청 알림을 보냈어요.")
+                // ✅ 같은 그룹의 모든 근로자에게 알림 전송
+                sendGroupNotification(item.title)
             }
         )
 
@@ -276,6 +277,7 @@ class HomeActivity : AppCompatActivity() {
         dailyAdapter.initTooltip()
         fillCalendarReal()
         updateDailyCheckList(selectedDay)
+        fetchDailyChecks()
 
         val scroll = findViewById<NestedScrollView>(R.id.home_scroll)
         scroll.setOnScrollChangeListener(
@@ -287,6 +289,27 @@ class HomeActivity : AppCompatActivity() {
         )
 
         setupBottomNavigation()
+    }
+
+    private fun sendGroupNotification(location: String) {
+        val userId = UserSession.userId ?: return
+        val title = "안전감시단"
+        val content = "$location 점검이 필요합니다."
+
+        val request = SendGroupNotificationRequest(userId, title, content)
+        RetrofitClient.instance.sendGroupNotification(request).enqueue(object : Callback<Void> {
+            override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                if (response.isSuccessful) {
+                    ToastUtil.showShort(this@HomeActivity, "근로자들에게 점검 요청 알림을 보냈어요.")
+                } else {
+                    ToastUtil.showShort(this@HomeActivity, "알림 전송에 실패했습니다.")
+                }
+            }
+
+            override fun onFailure(call: Call<Void>, t: Throwable) {
+                ToastUtil.showShort(this@HomeActivity, "네트워크 오류가 발생했습니다.")
+            }
+        })
     }
 
     private fun setupBottomNavigation() {
@@ -321,6 +344,26 @@ class HomeActivity : AppCompatActivity() {
         super.onResume()
         updateProfile()
         fetchDailyChecks()
+        updateAlarmDotVisibility()
+    }
+
+    private fun updateAlarmDotVisibility() {
+        val userId = UserSession.userId ?: return
+        val alarmDot = findViewById<View>(R.id.view_alarm_dot) ?: return
+
+        RetrofitClient.instance.getNotifications(userId).enqueue(object : Callback<GetNotificationsResponse> {
+            override fun onResponse(call: Call<GetNotificationsResponse>, response: Response<GetNotificationsResponse>) {
+                if (response.isSuccessful) {
+                    val notifications = response.body()?.notifications ?: emptyList()
+                    // ✅ 읽지 않은 알림이 하나라도 있는지 확인
+                    val hasUnread = notifications.any { !it.isRead }
+                    alarmDot.visibility = if (hasUnread) View.VISIBLE else View.GONE
+                }
+            }
+            override fun onFailure(call: Call<GetNotificationsResponse>, t: Throwable) {
+                Log.e("HomeActivity", "Error checking notifications", t)
+            }
+        })
     }
 
     private fun updateProfile() {
@@ -340,6 +383,7 @@ class HomeActivity : AppCompatActivity() {
             if (ivProfileBar != null) {
                 val params = ivProfileBar.layoutParams as ViewGroup.MarginLayoutParams
                 UserSession.profileImageUri?.let { uriString ->
+                    // 사진이 있을 때: 부모 CardView 제약까지 풀어서 원에 꽉 차도록 설정
                     Glide.with(this)
                         .load(uriString)
                         .placeholder(R.drawable.profile)
@@ -348,8 +392,8 @@ class HomeActivity : AppCompatActivity() {
 
                     cardProfile?.apply {
                         setContentPadding(0, 0, 0, 0)
-                        preventCornerOverlap = false
-                        useCompatPadding = false
+                        preventCornerOverlap = false // 모서리 겹침 방지 여백 제거
+                        useCompatPadding = false     // 호환성 패딩 제거
                     }
 
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_CROP
@@ -357,10 +401,11 @@ class HomeActivity : AppCompatActivity() {
                     params.setMargins(0, 0, 0, 0)
                     ivProfileBar.layoutParams = params
                 } ?: run {
+                    // 기본 이미지일 때: XML 디자인(마진 5, 10, 5)을 그대로 유지
                     ivProfileBar.setImageResource(R.drawable.profile)
 
                     cardProfile?.apply {
-                        preventCornerOverlap = true
+                        preventCornerOverlap = true // 기본값 복구
                     }
 
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_INSIDE
@@ -388,6 +433,8 @@ class HomeActivity : AppCompatActivity() {
                     val checks = response.body()?.checks ?: emptyList()
                     
                     checks.forEach { dto ->
+                        // created_at 기준으로 날짜 파싱 (YYYY-MM-DD HH:mm:ss)
+                        // createdAt이 없으면 checkDate를 사용하도록 예외 처리
                         val targetDate = dto.createdAt ?: dto.checkDate
                         val day = try {
                             targetDate.substring(8, 10).toInt()
@@ -544,7 +591,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeDialog() {
-        if (!UserSession.isInviteChecked) showInviteCodeDialog()
+        if (!UserSession.isInviteChecked && UserSession.groupId.isNullOrEmpty()) showInviteCodeDialog()
     }
 
     private fun showInviteCodeDialog() {
@@ -564,14 +611,26 @@ class HomeActivity : AppCompatActivity() {
 
         btnSubmit.setOnClickListener {
             val inputCode = etInviteCode.text.toString().trim()
-            if (inputCode == "1234") {
-                UserSession.isInviteChecked = true
-                UserSession.saveSession(this) // 로컬에 영구 저장 (계정별 키)
-                dialog.dismiss()
-            } else {
-                tvError.visibility = View.VISIBLE
-                etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
-            }
+            val userId = UserSession.userId ?: return@setOnClickListener
+
+            val request = JoinGroupRequest(userId, inputCode)
+            RetrofitClient.instance.joinGroup(request).enqueue(object : Callback<JoinGroupResponse> {
+                override fun onResponse(call: Call<JoinGroupResponse>, response: Response<JoinGroupResponse>) {
+                    if (response.isSuccessful) {
+                        UserSession.isInviteChecked = true
+                        UserSession.groupId = response.body()?.groupId
+                        UserSession.saveSession(this@HomeActivity)
+                        ToastUtil.showShort(this@HomeActivity, "그룹에 참여되었습니다.")
+                        dialog.dismiss()
+                    } else {
+                        tvError.visibility = View.VISIBLE
+                        etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
+                    }
+                }
+                override fun onFailure(call: Call<JoinGroupResponse>, t: Throwable) {
+                    ToastUtil.showShort(this@HomeActivity, "네트워크 오류가 발생했습니다.")
+                }
+            })
         }
 
         etInviteCode.doAfterTextChanged {
@@ -581,7 +640,7 @@ class HomeActivity : AppCompatActivity() {
 
         tvSkip.setOnClickListener {
             UserSession.isInviteChecked = true
-            UserSession.saveSession(this)
+            UserSession.saveSession(this) 
             dialog.dismiss()
         }
 

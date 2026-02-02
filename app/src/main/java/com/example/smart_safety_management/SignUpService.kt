@@ -342,6 +342,12 @@ data class GroupMembersResponse(val members: List<String>)
 
 data class EventTypesResponse(val event_types: List<String>)
 
+data class SendGroupNotificationRequest(
+    @SerializedName("sender_id") val senderId: String,
+    val title: String,
+    val content: String
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -491,4 +497,7 @@ interface SignUpService {
 
     @GET("/get_event_types")
     fun getEventTypes(): Call<EventTypesResponse>
+
+    @POST("/send_group_notification")
+    fun sendGroupNotification(@Body request: SendGroupNotificationRequest): Call<Void>
 }
