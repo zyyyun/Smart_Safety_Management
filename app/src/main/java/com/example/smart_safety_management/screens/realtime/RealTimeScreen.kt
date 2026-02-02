@@ -157,6 +157,7 @@ internal fun sampleLiveCards(): List<LiveCardItem> = listOf(
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun RealTimeScreen(
+    cards: List<LiveCardItem> = emptyList(),
     modifier: Modifier = Modifier,
     onCardClick: (LiveCardItem) -> Unit
 ) {
@@ -211,6 +212,7 @@ fun RealTimeScreen(
 
             // ✅ 본문
             RealTimeContent(
+                cards = cards,
                 modifier = Modifier.fillMaxSize(),
                 onCardClick = { item ->
                     selectedItem = item
@@ -221,11 +223,12 @@ fun RealTimeScreen(
 
         if (showMap) {
             MapDialog(
+                cams = cards, // ✅ 실제 데이터 전달
                 item = selectedItem,
                 onDismiss = { showMap = false },
                 onMoveCamera = { camId ->
                     val targetId = normalizeCamId(camId)
-                    val target = sampleLiveCards().firstOrNull { it.camId == targetId }
+                    val target = cards.firstOrNull { it.camId == targetId }
 
                     if (target != null) {
                         selectedItem = target
@@ -245,6 +248,7 @@ fun RealTimeScreen(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun RealTimeContent(
+    cards: List<LiveCardItem>,
     modifier: Modifier = Modifier,
     onCardClick: (LiveCardItem) -> Unit
 ) {
@@ -254,36 +258,29 @@ private fun RealTimeContent(
     // ✅ 라이트는 완전 흰색 / 다크는 앱 bg(완전 검정 톤)
     val screenBg = if (isDark) c.bg else Color.White
 
-    val areaOptions = listOf("도로", "내부", "공간별")
+    // ✅ 왼쪽 다이얼로그: 카메라들의 environment_type 요소들 (중복 제거)
+    val areaOptions = remember(cards) {
+        listOf("공간별") + cards.map { it.place }.distinct().sorted()
+    }
     var selectedArea by remember { mutableStateOf("공간별") }
     var isGrid by remember { mutableStateOf(false) }
 
     // ✅ 지금 열려있는 드롭다운: "area" / "camera" / null
     var openDropdownId by remember { mutableStateOf<String?>(null) }
 
-    // ✅ ✅ ✅ 여기만 바뀜: 카드 리스트를 함수로 빼서 재사용 가능하게
-    val cards = remember { sampleLiveCards() }
-
-    val cameraLabelByCamId = mapOf(
-        "전체" to "전체",
-        "CAM 00" to "00) 도로 - 충돌, 안전모 미착용",
-        "CAM 01" to "01) 내부 - 화재, 통로, 운반, 협착사고",
-        "CAM 02" to "02) 도로 - 중물, 안전모 미착용",
-        "CAM 03" to "03) 도로 - 중물, 안전모 미착용"
-    )
-
-    val cameraOptionsWithAll = listOf("전체") + listOf(
-        cameraLabelByCamId["CAM 00"]!!,
-        cameraLabelByCamId["CAM 01"]!!,
-        cameraLabelByCamId["CAM 02"]!!,
-        cameraLabelByCamId["CAM 03"]!!
-    )
+    // ✅ 오른쪽 다이얼로그: 카메라이름, environment_type, event_type 열거
+    val cameraOptions = remember(cards) {
+        listOf("전체") + cards.map { card ->
+            val events = if (card.tags.isNotEmpty()) card.tags.joinToString(", ") else "이벤트 없음"
+            "${card.camId}) ${card.place} - $events"
+        }
+    }
 
     var selectedCameraLabel by remember { mutableStateOf("전체") }
 
     val selectedCamId = remember(selectedCameraLabel) {
         if (selectedCameraLabel == "전체") null
-        else cameraLabelByCamId.entries.firstOrNull { it.value == selectedCameraLabel }?.key
+        else selectedCameraLabel.split(")").firstOrNull()?.trim()
     }
 
     val filteredCards = remember(selectedArea, selectedCamId, cards) {
@@ -347,7 +344,7 @@ private fun RealTimeContent(
 
                 SimpleDropdown(
                     value = selectedCameraLabel,
-                    options = cameraOptionsWithAll,
+                    options = cameraOptions,
                     onSelect = { selectedCameraLabel = it },
                     expanded = (openDropdownId == "camera"),
                     onExpandedChange = { open ->
@@ -1056,6 +1053,6 @@ private fun LiveCardItem.hasRisk(): Boolean {
 @Composable
 fun PreviewRealTimeScreen() {
     Smart_Safety_ManagementTheme {
-        RealTimeScreen(onCardClick = {})
+        RealTimeScreen(cards = sampleLiveCards(), onCardClick = {})
     }
 }

@@ -36,58 +36,19 @@ import com.example.smart_safety_management.ui.theme.Pretendard
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MapDialog(
+    cams: List<LiveCardItem>, // ✅ 실제 데이터 리스트 받기
     item: LiveCardItem?,
     onDismiss: () -> Unit,
-    onMoveCamera: (camId: String) -> Unit   // ✅ 변경
+    onMoveCamera: (camId: String) -> Unit
 ) {
-    val cams = remember {
-        listOf(
-            LiveCardItem(
-                "CAM 0", "도로", listOf("충돌", "안전모 미착용"),
-                R.drawable.thumb_site, "A구역 외부 도로",
-                R.drawable.thumb_road, R.drawable.thumb_site,
-                listOf(R.drawable.thumb_worker, R.drawable.thumb_workers, R.drawable.thumb_worker),
-                true
-            ),
-            LiveCardItem(
-                "CAM 1", "내부", listOf("화재", "통로", "운반", "협착사고"),
-                R.drawable.thumb_workers, "A구역 1열 내부",
-                R.drawable.frame_a, R.drawable.frame_b,
-                listOf(R.drawable.rectangle_a, R.drawable.rectangle_b, R.drawable.rectangle_c),
-                true
-            ),
-            LiveCardItem(
-                "CAM 2", "도로", listOf("안전모 미착용", "통로", "운반"),
-                R.drawable.thumb_road, "B구역 외부 도로",
-                R.drawable.thumb_road, R.drawable.thumb_site,
-                listOf(R.drawable.thumb_site, R.drawable.thumb_worker, R.drawable.thumb_workers),
-                true
-            ),
-            LiveCardItem(
-                "CAM 3", "도로", listOf("충돌", "안전모 미착용"),
-                R.drawable.thumb_worker, "C구역 외부 도로",
-                R.drawable.thumb_road, R.drawable.thumb_site,
-                listOf(R.drawable.thumb_worker, R.drawable.thumb_workers, R.drawable.thumb_site),
-                true
-            ),
-        )
-    }
-
     val c = LocalSafeColors.current
     val isDark = c.isDark
 
-    val initialCamId = remember(item?.camId) {
-        when (item?.camId) {
-            "CAM 00" -> "CAM 0"
-            "CAM 01" -> "CAM 1"
-            "CAM 02" -> "CAM 2"
-            "CAM 03" -> "CAM 3"
-            else -> item?.camId ?: "CAM 1"
-        }
-    }
+    // ✅ 전달받은 item의 ID를 그대로 사용 (없으면 첫 번째 카메라)
+    val initialCamId = item?.camId ?: cams.firstOrNull()?.camId ?: "CAM 00"
 
     var selectedCamId by remember { mutableStateOf(initialCamId) }
-    val selected = cams.firstOrNull { it.camId == selectedCamId } ?: cams[0]
+    val selected = cams.firstOrNull { it.camId == selectedCamId } ?: cams.firstOrNull()
 
     val infoBg = if (isDark) Color(0xFF1E2124) else Color.White
     val infoLabel = c.sub
@@ -116,10 +77,10 @@ fun MapDialog(
 
     val markers = remember {
         listOf(
-            Marker("CAM 0", 42.68.dp, 202.04.dp),
-            Marker("CAM 1", 129.73.dp, 138.15.dp),
-            Marker("CAM 2", 63.68.dp, 73.04.dp),
-            Marker("CAM 3", 230.68.dp, 8.dp),
+            Marker("CAM 00", 42.68.dp, 202.04.dp),
+            Marker("CAM 01", 129.73.dp, 138.15.dp),
+            Marker("CAM 02", 63.68.dp, 73.04.dp),
+            Marker("CAM 03", 230.68.dp, 8.dp),
         )
     }
 
@@ -212,7 +173,8 @@ fun MapDialog(
 
                         }
 
-                        /* ---------- 정보 카드 ---------- */
+                        /* ---------- 정보 카드 (선택된 카메라 정보 표시) ---------- */
+                        if (selected != null) {
                         Card(
                             shape = RoundedCornerShape(14.dp),
                             colors = CardDefaults.cardColors(containerColor = infoBg),
@@ -294,6 +256,7 @@ fun MapDialog(
                                 }
 
                             }
+                        }
                         }
                     }
 

@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -47,6 +48,12 @@ import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.MainOrange
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.ui.theme.TextDark
+import com.example.smart_safety_management.UserSession
+import com.example.smart_safety_management.RetrofitClient
+import com.example.smart_safety_management.GetCCTVListResponse
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class RealTimeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,6 +73,39 @@ private fun RealTimeNavigation() {
 
     var selectedItem by remember { mutableStateOf<LiveCardItem?>(null) }
     var showMap by remember { mutableStateOf(false) }
+    var allCards by remember { mutableStateOf<List<LiveCardItem>>(emptyList()) }
+
+    // ✅ 서버에서 카메라 리스트 가져오기
+    LaunchedEffect(Unit) {
+        val userId = UserSession.userId
+        if (userId != null) {
+            RetrofitClient.instance.getCCTVList(null, null, userId).enqueue(object : Callback<GetCCTVListResponse> {
+                override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
+                    if (response.isSuccessful) {
+                        val list = response.body()?.cctvList ?: emptyList()
+                        allCards = list.map { dto ->
+                            // 리소스 이름으로 ID 찾기 (없으면 기본값)
+                            val resId = context.resources.getIdentifier(dto.imageResName, "drawable", context.packageName)
+                                .let { if (it == 0) R.drawable.thumb_site else it }
+
+                            LiveCardItem(
+                                camId = dto.name,
+                                place = dto.environmentType ?: "내부",
+                                tags = dto.events,
+                                thumbRes = resId,
+                                location = dto.location,
+                                overviewThumb = resId,
+                                siteThumb = resId,
+                                captureThumbs = listOf(resId, resId, resId),
+                                isLive = true
+                            )
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {}
+            })
+        }
+    }
 
     val c = LocalSafeColors.current
     val bottomBg = c.bottomBar
@@ -155,6 +195,7 @@ private fun RealTimeNavigation() {
 
         if (selectedItem == null) {
             RealTimeScreen(
+                cards = allCards,
                 modifier = Modifier.padding(contentPadding),
                 onCardClick = { item -> selectedItem = item }
             )
@@ -167,11 +208,9 @@ private fun RealTimeNavigation() {
             )
         }
 
-        // ✅ RealTimeNavigation() 안 (selectedItem/showMap 있는 곳)
-        val allCards = remember { sampleLiveCards() }  // 한번만 생성해서 재사용
-
         if (showMap) {
             MapDialog(
+                cams = allCards, // ✅ 실제 데이터 전달
                 item = selectedItem,
                 onDismiss = { showMap = false },
                 onMoveCamera = { camId ->
@@ -179,7 +218,7 @@ private fun RealTimeNavigation() {
                     val target = allCards.firstOrNull { it.camId == targetId }
 
                     if (target != null) {
-                        selectedItem = target   // ✅ InternalDetail이 CAM 03으로 교체됨
+                        selectedItem = target
                     }
                     showMap = false
                 }

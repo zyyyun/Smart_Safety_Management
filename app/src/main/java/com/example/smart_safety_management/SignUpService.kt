@@ -144,7 +144,8 @@ data class CCTVItemResponse(
     @SerializedName("device_name") val name: String,
     @SerializedName("install_area") val location: String,
     @SerializedName("image_res_name") val imageResName: String?,
-    val events: List<String>
+    val events: List<String>,
+    @SerializedName("environment_type") val environmentType: String?
 )
 
 data class GetCCTVListResponse(

@@ -1,5 +1,6 @@
 package com.example.smart_safety_management.screens
 
+import android.app.Activity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -18,16 +20,23 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.smart_safety_management.GetCCTVListResponse
 import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
+import com.example.smart_safety_management.RetrofitClient
+import com.example.smart_safety_management.UserSession
 import com.example.smart_safety_management.screens.detail.InternalDetailScreen
 import com.example.smart_safety_management.screens.dialog.MapDialog
 import com.example.smart_safety_management.screens.location.LocationScreen
+import com.example.smart_safety_management.screens.realtime.normalizeCamId
 import com.example.smart_safety_management.screens.realtime.RealTimeBottomBar
 import com.example.smart_safety_management.screens.realtime.RealTimeScreen
 import com.example.smart_safety_management.ui.theme.ClipartKorea
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +50,41 @@ fun AppRoot() {
 
     // ✅ 다크모드 토글
     var isDark by remember { mutableStateOf(false) }
+
+    // ✅ 서버 데이터 상태 관리
+    var allCards by remember { mutableStateOf<List<LiveCardItem>>(emptyList()) }
+    val context = LocalContext.current
+
+    // ✅ 서버에서 카메라 리스트 가져오기
+    LaunchedEffect(Unit) {
+        val userId = UserSession.userId
+        if (userId != null) {
+            RetrofitClient.instance.getCCTVList(null, null, userId).enqueue(object : Callback<GetCCTVListResponse> {
+                override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
+                    if (response.isSuccessful) {
+                        val list = response.body()?.cctvList ?: emptyList()
+                        allCards = list.map { dto ->
+                            val resId = context.resources.getIdentifier(dto.imageResName, "drawable", context.packageName)
+                                .let { if (it == 0) R.drawable.thumb_site else it }
+
+                            LiveCardItem(
+                                camId = dto.name,
+                                place = dto.environmentType ?: "내부",
+                                tags = dto.events,
+                                thumbRes = resId,
+                                location = dto.location,
+                                overviewThumb = resId,
+                                siteThumb = resId,
+                                captureThumbs = listOf(resId, resId, resId),
+                                isLive = true
+                            )
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {}
+            })
+        }
+    }
 
     Smart_Safety_ManagementTheme(darkTheme = isDark) {
         val c = LocalSafeColors.current
@@ -162,7 +206,10 @@ fun AppRoot() {
                             isDark = isDark
                         )
 
-                        else -> RealTimeScreen(onCardClick = { item -> selectedItem = item })
+                        else -> RealTimeScreen(
+                            cards = allCards, // ✅ 데이터 전달
+                            onCardClick = { item -> selectedItem = item }
+                        )
                     }
                 } else {
                     InternalDetailScreen(
@@ -174,9 +221,18 @@ fun AppRoot() {
 
                 if (showMap) {
                     MapDialog(
+                        cams = allCards, // ✅ 데이터 전달
                         item = selectedItem,
                         onDismiss = { showMap = false },
-                        onMoveCamera = { showMap = false }
+                        onMoveCamera = { camId ->
+                            // ✅ 카메라 이동 로직 구현
+                            val targetId = normalizeCamId(camId)
+                            val target = allCards.firstOrNull { it.camId == targetId }
+                            if (target != null) {
+                                selectedItem = target
+                            }
+                            showMap = false
+                        }
                     )
                 }
             }
