@@ -48,18 +48,17 @@ class NoticeActivity : AppCompatActivity() {
         // RecyclerView 연결
         // ===============================
         adapter = NoticeAdapter(noticeList) { clickedItem ->
-            // 알림 하나 읽힐 때마다 실행됨
-            markNotificationAsRead(clickedItem.id)
-            updateReadAllState(noticeList, readAll, unreadCountText)
+            // ✅ 알림 클릭 시 리스트에서 제거하고 서버에서도 삭제
+            deleteNotification(clickedItem)
         }
         rv.adapter = adapter
 
         // ===============================
-        // "모두 읽음" 클릭
+        // "모두 읽음" 클릭 -> 모두 삭제
         // ===============================
         readAll.setOnClickListener {
-            if (!noticeList.any { !it.isRead }) return@setOnClickListener
-            markAllNotificationsAsRead()
+            if (noticeList.isEmpty()) return@setOnClickListener
+            deleteAllNotifications()
         }
 
         // 데이터 로드
@@ -79,7 +78,6 @@ class NoticeActivity : AppCompatActivity() {
                             id = dto.id,
                             title = dto.title,
                             content = dto.content,
-                            // ✅ TimeUtils를 사용하여 상대 시간으로 변환
                             time = TimeUtils.formatTimeAgo(dto.createdAt),
                             isRead = dto.isRead
                         )
@@ -98,40 +96,48 @@ class NoticeActivity : AppCompatActivity() {
         })
     }
 
-    private fun markNotificationAsRead(notificationId: Int) {
+    private fun deleteNotification(item: NoticeItem) {
         val userId = UserSession.userId ?: return
-        val request = MarkNotificationReadRequest(userId, notificationId)
+        val request = MarkNotificationReadRequest(userId, item.id)
 
+        // UI에서 즉시 제거
+        val position = noticeList.indexOf(item)
+        if (position != -1) {
+            noticeList.removeAt(position)
+            adapter.notifyItemRemoved(position)
+            updateUIState()
+        }
+
+        // 서버에 삭제 요청
         RetrofitClient.instance.markNotificationsRead(request).enqueue(object : Callback<Void> {
             override fun onResponse(call: Call<Void>, response: Response<Void>) {
                 if (!response.isSuccessful) {
-                    Log.e("NoticeActivity", "Failed to mark notification as read")
+                    Log.e("NoticeActivity", "Failed to delete notification")
                 }
             }
-
             override fun onFailure(call: Call<Void>, t: Throwable) {
-                Log.e("NoticeActivity", "Error marking notification as read", t)
+                Log.e("NoticeActivity", "Error deleting notification", t)
             }
         })
     }
 
-    private fun markAllNotificationsAsRead() {
+    private fun deleteAllNotifications() {
         val userId = UserSession.userId ?: return
-        val request = MarkNotificationReadRequest(userId) // notificationId null이면 모두 읽음
+        val request = MarkNotificationReadRequest(userId) // notificationId null이면 모두 삭제
 
+        // UI 즉시 초기화
+        noticeList.clear()
+        adapter.notifyDataSetChanged()
+        updateUIState()
+
+        // 서버에 전체 삭제 요청
         RetrofitClient.instance.markNotificationsRead(request).enqueue(object : Callback<Void> {
             override fun onResponse(call: Call<Void>, response: Response<Void>) {
-                if (response.isSuccessful) {
-                    noticeList.forEach { it.isRead = true }
-                    adapter.notifyDataSetChanged()
-                    updateReadAllState(noticeList, readAll, unreadCountText)
-                } else {
-                    Toast.makeText(this@NoticeActivity, "모두 읽음 처리에 실패했습니다.", Toast.LENGTH_SHORT).show()
+                if (!response.isSuccessful) {
+                    Toast.makeText(this@NoticeActivity, "삭제 처리에 실패했습니다.", Toast.LENGTH_SHORT).show()
                 }
             }
-
             override fun onFailure(call: Call<Void>, t: Throwable) {
-                Log.e("NoticeActivity", "Error marking all read", t)
                 Toast.makeText(this@NoticeActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
             }
         })
@@ -141,48 +147,22 @@ class NoticeActivity : AppCompatActivity() {
         if (noticeList.isEmpty()) {
             rv.visibility = View.GONE
             emptyLayout.visibility = View.VISIBLE
+            readAll.visibility = View.GONE
+            unreadCountText.visibility = View.GONE
         } else {
             rv.visibility = View.VISIBLE
             emptyLayout.visibility = View.GONE
-        }
-        updateReadAllState(noticeList, readAll, unreadCountText)
-    }
-
-    // ===============================
-    // 새 알림 여부로만 상태 판단
-    // ===============================
-    private fun updateReadAllState(
-        noticeList: List<NoticeItem>,
-        readAll: TextView,
-        unreadCountText: TextView
-    ) {
-        // 알림 자체가 없으면 숨김
-        if (noticeList.isEmpty()) {
-            readAll.visibility = View.GONE
-            unreadCountText.visibility = View.GONE
-            return
-        }
-
-        // 알림이 하나라도 있으면 보이게
-        readAll.visibility = View.VISIBLE
-
-        val unreadCount = noticeList.count { !it.isRead }
-
-        if (unreadCount > 0) {
-            // 새 알림 있음 → 주황 + 클릭 가능
-            readAll.setTextColor(Color.parseColor("#F97316"))
-            readAll.isEnabled = true
-            readAll.isClickable = true
-
-            unreadCountText.text = unreadCount.toString()
-            unreadCountText.visibility = View.VISIBLE
-        } else {
-            // 새 알림 없음 → 회색 + 클릭 불가
-            readAll.setTextColor(Color.parseColor("#4DF97316"))
-            readAll.isEnabled = false
-            readAll.isClickable = false
-
-            unreadCountText.visibility = View.GONE
+            readAll.visibility = View.VISIBLE
+            
+            val unreadCount = noticeList.count { !it.isRead }
+            if (unreadCount > 0) {
+                unreadCountText.text = unreadCount.toString()
+                unreadCountText.visibility = View.VISIBLE
+                readAll.setTextColor(Color.parseColor("#F97316"))
+            } else {
+                unreadCountText.visibility = View.GONE
+                readAll.setTextColor(Color.parseColor("#4DF97316"))
+            }
         }
     }
 }

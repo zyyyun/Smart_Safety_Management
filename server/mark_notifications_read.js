@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('./db');
 
-// 특정 알림 또는 모든 알림 읽음 처리
+// 읽은 알림 삭제 처리
 router.post('/mark_notifications_read', async (req, res) => {
     const { user_id, notification_id } = req.body;
 
@@ -15,17 +15,17 @@ router.post('/mark_notifications_read', async (req, res) => {
         let params;
 
         if (notification_id) {
-            // 특정 알림만 읽음 처리
-            query = 'UPDATE notifications SET is_read = TRUE WHERE user_id = $1 AND notification_id = $2';
+            // 특정 알림 읽음 -> 삭제
+            query = 'DELETE FROM notifications WHERE user_id = $1 AND notification_id = $2';
             params = [user_id, notification_id];
         } else {
-            // 해당 사용자의 모든 알림 읽음 처리
-            query = 'UPDATE notifications SET is_read = TRUE WHERE user_id = $1';
+            // 모든 알림 읽음 -> 해당 사용자의 모든 알림 삭제
+            query = 'DELETE FROM notifications WHERE user_id = $1';
             params = [user_id];
         }
 
         await pool.query(query, params);
-        res.status(200).json({ message: "성공적으로 업데이트되었습니다." });
+        res.status(200).json({ message: "성공적으로 삭제되었습니다." });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "서버 오류가 발생했습니다." });
