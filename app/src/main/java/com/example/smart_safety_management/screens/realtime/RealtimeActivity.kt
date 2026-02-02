@@ -167,12 +167,24 @@ private fun RealTimeNavigation() {
             )
         }
 
+        // ✅ RealTimeNavigation() 안 (selectedItem/showMap 있는 곳)
+        val allCards = remember { sampleLiveCards() }  // 한번만 생성해서 재사용
+
         if (showMap) {
             MapDialog(
                 item = selectedItem,
                 onDismiss = { showMap = false },
-                onMoveCamera = { showMap = false }
+                onMoveCamera = { camId ->
+                    val targetId = normalizeCamId(camId)
+                    val target = allCards.firstOrNull { it.camId == targetId }
+
+                    if (target != null) {
+                        selectedItem = target   // ✅ InternalDetail이 CAM 03으로 교체됨
+                    }
+                    showMap = false
+                }
             )
         }
+
     }
 }

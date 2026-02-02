@@ -323,12 +323,25 @@ fun LocationScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
 
+        // ✅ 지도 (여기엔 pointerInput 붙이지 말기)
         AndroidView(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(selectedWorkerId) { detectTapGestures { selectedWorkerId = null } },
+            modifier = Modifier.fillMaxSize(),
             factory = { mapView }
         )
+
+        // ✅ 작업자 선택된 상태면 "빈공간 탭"으로 선택 해제
+        if (selectedWorkerId != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .zIndex(1f) // 지도 위
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { selectedWorkerId = null }
+                        )
+                    }
+            )
+        }
 
         // 상단 어두운 그라데이션
         Box(
@@ -345,7 +358,6 @@ fun LocationScreen(
                     )
                 )
         )
-
         // 상단 타이틀 + 구역 칩
         Column(
             modifier = Modifier

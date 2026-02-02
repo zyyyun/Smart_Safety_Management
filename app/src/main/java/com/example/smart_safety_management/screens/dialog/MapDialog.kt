@@ -38,12 +38,12 @@ import com.example.smart_safety_management.ui.theme.Pretendard
 fun MapDialog(
     item: LiveCardItem?,
     onDismiss: () -> Unit,
-    onMoveCamera: () -> Unit
+    onMoveCamera: (camId: String) -> Unit   // ✅ 변경
 ) {
     val cams = remember {
         listOf(
             LiveCardItem(
-                "CAM 0", "도로", listOf("충돌", "안전모0xFF1E2124 미착용"),
+                "CAM 0", "도로", listOf("충돌", "안전모 미착용"),
                 R.drawable.thumb_site, "A구역 외부 도로",
                 R.drawable.thumb_road, R.drawable.thumb_site,
                 listOf(R.drawable.thumb_worker, R.drawable.thumb_workers, R.drawable.thumb_worker),
@@ -263,7 +263,7 @@ fun MapDialog(
                                 }
 
                                 Button(
-                                    onClick = onMoveCamera,
+                                    onClick = { onMoveCamera(selected.camId) }, // ✅ 선택된 CAM 전달
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(56.dp),
@@ -278,7 +278,7 @@ fun MapDialog(
                                     ) {
                                         Text(
                                             text = "카메라 바로가기",
-                                            color = actionColor, // ✅ 다크: 검정
+                                            color = actionColor,
                                             fontWeight = FontWeight.SemiBold,
                                             fontFamily = Pretendard,
                                             fontSize = 18.sp
@@ -287,11 +287,12 @@ fun MapDialog(
                                         Icon(
                                             painter = painterResource(id = R.drawable.camera),
                                             contentDescription = null,
-                                            tint = actionColor,  // ✅ 다크: 검정
+                                            tint = actionColor,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
                                 }
+
                             }
                         }
                     }

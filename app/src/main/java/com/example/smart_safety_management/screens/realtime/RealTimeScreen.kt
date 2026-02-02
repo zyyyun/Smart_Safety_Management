@@ -53,6 +53,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.alpha
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.navigation.NavController
 
 
 
@@ -84,6 +85,74 @@ private class AnchorBelowPositionProvider(
         return IntOffset(x, y)
     }
 }
+internal fun normalizeCamId(camId: String): String {
+    val m = Regex("""CAM\s*(\d+)""").find(camId.trim()) ?: return camId.trim()
+    val num = m.groupValues[1].toIntOrNull() ?: return camId.trim()
+    return "CAM " + num.toString().padStart(2, '0') // CAM 1 -> CAM 01
+}
+internal fun sampleLiveCards(): List<LiveCardItem> = listOf(
+    LiveCardItem(
+        camId = "CAM 00",
+        place = "도로",
+        tags = listOf("충돌", "안전모 미착용"),
+        thumbRes = R.drawable.thumb_site,
+        location = "A구역 외부 도로",
+        overviewThumb = R.drawable.thumb_road,
+        siteThumb = R.drawable.thumb_site,
+        captureThumbs = listOf(
+            R.drawable.thumb_worker,
+            R.drawable.thumb_workers,
+            R.drawable.thumb_worker
+        ),
+        isLive = true
+    ),
+    LiveCardItem(
+        camId = "CAM 01",
+        place = "내부",
+        tags = listOf("화재", "통로", "운반", "협착사고"),
+        thumbRes = R.drawable.thumb_workers,
+        location = "A구역 1열 내부",
+        overviewThumb = R.drawable.frame_a,
+        siteThumb = R.drawable.frame_b,
+        captureThumbs = listOf(
+            R.drawable.rectangle_a,
+            R.drawable.rectangle_b,
+            R.drawable.rectangle_c
+        ),
+        isLive = true
+    ),
+    LiveCardItem(
+        camId = "CAM 02",
+        place = "도로",
+        tags = listOf("안전모 미착용", "통로", "운반"),
+        thumbRes = R.drawable.thumb_road,
+        location = "B구역 외부 도로",
+        overviewThumb = R.drawable.thumb_road,
+        siteThumb = R.drawable.thumb_site,
+        captureThumbs = listOf(
+            R.drawable.thumb_site,
+            R.drawable.thumb_worker,
+            R.drawable.thumb_workers
+        ),
+        isLive = true
+    ),
+    LiveCardItem(
+        camId = "CAM 03",
+        place = "도로",
+        tags = listOf("충돌", "안전모 미착용"),
+        thumbRes = R.drawable.thumb_worker,
+        location = "C구역 외부 도로",
+        overviewThumb = R.drawable.thumb_road,
+        siteThumb = R.drawable.thumb_site,
+        captureThumbs = listOf(
+            R.drawable.thumb_site,
+            R.drawable.thumb_worker,
+            R.drawable.thumb_workers
+        ),
+        isLive = true
+    )
+)
+
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -133,12 +202,11 @@ fun RealTimeScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     // ✅ 라이트/다크 자동으로 따라가게 변경
-                    containerColor  =if (isDark) Color(0xFF000000) else Color.White,
+                    containerColor = if (isDark) Color(0xFF000000) else Color.White,
                     titleContentColor = c.text,
                     actionIconContentColor = c.sub
                 )
             )
-
 
 
             // ✅ 본문
@@ -151,14 +219,21 @@ fun RealTimeScreen(
             )
         }
 
-        // ✅ 지도 다이얼로그
         if (showMap) {
             MapDialog(
                 item = selectedItem,
                 onDismiss = { showMap = false },
-                onMoveCamera = {
-                    showMap = false
-                    // TODO: 카메라 이동/상세로 이동 연결
+                onMoveCamera = { camId ->
+                    val targetId = normalizeCamId(camId)
+                    val target = sampleLiveCards().firstOrNull { it.camId == targetId }
+
+                    if (target != null) {
+                        selectedItem = target
+                        showMap = false
+                        onCardClick(target) // ✅ Activity로 올려서 InternalDetail로 진입
+                    } else {
+                        showMap = false
+                    }
                 }
             )
         }
@@ -171,7 +246,6 @@ fun RealTimeScreen(
 @Composable
 private fun RealTimeContent(
     modifier: Modifier = Modifier,
-
     onCardClick: (LiveCardItem) -> Unit
 ) {
     val c = LocalSafeColors.current
@@ -187,70 +261,8 @@ private fun RealTimeContent(
     // ✅ 지금 열려있는 드롭다운: "area" / "camera" / null
     var openDropdownId by remember { mutableStateOf<String?>(null) }
 
-    val cards = remember {
-        listOf(
-            LiveCardItem(
-                camId = "CAM 00",
-                place = "도로",
-                tags = listOf("충돌", "안전모 미착용"),
-                thumbRes = R.drawable.thumb_site,
-                location = "A구역 외부 도로",
-                overviewThumb = R.drawable.thumb_road,
-                siteThumb = R.drawable.thumb_site,
-                captureThumbs = listOf(
-                    R.drawable.thumb_worker,
-                    R.drawable.thumb_workers,
-                    R.drawable.thumb_worker
-                ),
-                isLive = true
-            ),
-            LiveCardItem(
-                camId = "CAM 01",
-                place = "내부",
-                tags = listOf("화재", "통로", "운반", "협착사고"),
-                thumbRes = R.drawable.thumb_workers,
-                location = "A구역 1열 내부",
-                overviewThumb = R.drawable.frame_a,
-                siteThumb = R.drawable.frame_b,
-                captureThumbs = listOf(
-                    R.drawable.rectangle_a,
-                    R.drawable.rectangle_b,
-                    R.drawable.rectangle_c
-                ),
-                isLive = true
-            ),
-            LiveCardItem(
-                camId = "CAM 02",
-                place = "도로",
-                tags = listOf("안전모 미착용", "통로", "운반"),
-                thumbRes = R.drawable.thumb_road,
-                location = "B구역 외부 도로",
-                overviewThumb = R.drawable.thumb_road,
-                siteThumb = R.drawable.thumb_site,
-                captureThumbs = listOf(
-                    R.drawable.thumb_site,
-                    R.drawable.thumb_worker,
-                    R.drawable.thumb_workers
-                ),
-                isLive = true
-            ),
-            LiveCardItem(
-                camId = "CAM 03",
-                place = "도로",
-                tags = listOf("충돌", "안전모 미착용"),
-                thumbRes = R.drawable.thumb_worker,
-                location = "C구역 외부 도로",
-                overviewThumb = R.drawable.thumb_road,
-                siteThumb = R.drawable.thumb_site,
-                captureThumbs = listOf(
-                    R.drawable.thumb_worker,
-                    R.drawable.thumb_workers,
-                    R.drawable.thumb_site
-                ),
-                isLive = true
-            )
-        )
-    }
+    // ✅ ✅ ✅ 여기만 바뀜: 카드 리스트를 함수로 빼서 재사용 가능하게
+    val cards = remember { sampleLiveCards() }
 
     val cameraLabelByCamId = mapOf(
         "전체" to "전체",
@@ -279,6 +291,7 @@ private fun RealTimeContent(
             .let { list -> if (selectedArea == "공간별") list else list.filter { it.place == selectedArea } }
             .let { list -> if (selectedCamId == null) list else list.filter { it.camId == selectedCamId } }
     }
+
     val screenW = LocalConfiguration.current.screenWidthDp.dp
     val rowW = screenW - 48.dp // 좌우 padding 24dp * 2
 
@@ -328,9 +341,9 @@ private fun RealTimeContent(
                     alignMenuRight = false
                 )
 
-                Spacer(modifier = Modifier.width(12.dp)) // ✅ 두 드롭다운 사이 최소 간격(원하면 유지)
+                Spacer(modifier = Modifier.width(12.dp))
 
-                Spacer(modifier = Modifier.weight(1f))   // ✅ 오른쪽 드롭다운을 끝으로 밀기 (핵심)
+                Spacer(modifier = Modifier.weight(1f))
 
                 SimpleDropdown(
                     value = selectedCameraLabel,
@@ -343,12 +356,11 @@ private fun RealTimeContent(
                     modifier = Modifier
                         .height(50.dp)
                         .wrapContentWidth(),
-                    menuWidth = rowW,          // ✅ Row 전체 폭(=왼쪽 시작선~오른쪽 끝)
+                    menuWidth = rowW,
                     menuHeight = 204.dp,
-                    alignMenuRight = true      // ✅ 오른쪽 버튼 기준으로 오른쪽 끝 맞춤
+                    alignMenuRight = true
                 )
             }
-
 
             Divider(color = c.divider, thickness = 1.dp, modifier = Modifier.fillMaxWidth())
 
@@ -370,16 +382,15 @@ private fun RealTimeContent(
                 Spacer(Modifier.weight(1f))
                 IconButton(
                     onClick = { isGrid = !isGrid },
-                    modifier = Modifier.size(48.dp) // ✅ 리플 기준 영역(정사각형)
+                    modifier = Modifier.size(48.dp)
                 ) {
                     Icon(
                         painter = painterResource(id = if (isGrid) R.drawable.frame else R.drawable.vector),
                         contentDescription = null,
                         tint = c.sub,
-                        modifier = Modifier.size(28.dp) // ✅ 아이콘 크기(원하면 26~30)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
-
             }
 
             // 리스트/그리드 영역
@@ -421,6 +432,7 @@ private fun RealTimeContent(
         }
     }
 }
+
 
 /* -------------------- Dropdown -------------------- */
 
