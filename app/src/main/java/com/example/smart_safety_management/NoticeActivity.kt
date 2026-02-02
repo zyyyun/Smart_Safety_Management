@@ -79,7 +79,8 @@ class NoticeActivity : AppCompatActivity() {
                             id = dto.id,
                             title = dto.title,
                             content = dto.content,
-                            time = dto.createdAt, // 시간 포맷팅이 필요할 수 있음
+                            // ✅ TimeUtils를 사용하여 상대 시간으로 변환
+                            time = TimeUtils.formatTimeAgo(dto.createdAt),
                             isRead = dto.isRead
                         )
                     })
