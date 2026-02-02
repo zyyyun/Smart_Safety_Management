@@ -24,9 +24,9 @@ router.get('/get_device_status', async (req, res) => {
         }
 
         // 2. 같은 group_id를 가진 유저들과 그들의 디바이스 정보 조회
-        // users 테이블과 devices 테이블을 LEFT JOIN하고 JSON Aggregation으로 디바이스 목록을 묶음
         const query = `
             SELECT
+                u.user_id,
                 u.name,
                 u.user_role,
                 json_agg(
@@ -45,15 +45,14 @@ router.get('/get_device_status', async (req, res) => {
         const result = await pool.query(query, [groupId]);
 
         const deviceStatusList = result.rows.map(row => {
-            // 디바이스 배열을 순회하며 헬멧/워치 정보 추출
             const devices = row.devices || [];
             const helmet = devices.find(d => d.device_type && d.device_type.toLowerCase().includes('helmet'));
             const watch = devices.find(d => d.device_type && d.device_type.toLowerCase().includes('watch'));
 
-            // GPS는 워치와 헬멧 둘 다 '정상'이어야 연결된 것으로 간주
             const isGpsConnected = (helmet && helmet.gps_status === '정상') && (watch && watch.gps_status === '정상');
 
             return {
+                user_id: row.user_id,
                 name: row.name,
                 role: row.user_role === 'manager' ? '관리자' : '근로자',
                 isGpsConnected: isGpsConnected,
