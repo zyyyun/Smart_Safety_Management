@@ -11,12 +11,13 @@ router.get('/get_notifications', async (req, res) => {
     }
 
     try {
+        // 날짜를 YYYY-MM-DD HH:mm 형식으로 포맷팅하여 가져옴
         const query = `
             SELECT 
                 notification_id, 
                 title, 
                 content, 
-                created_at, 
+                TO_CHAR(created_at, 'YYYY-MM-DD HH24:MI') as created_at, 
                 is_read 
             FROM notifications 
             WHERE user_id = $1 
@@ -24,11 +25,13 @@ router.get('/get_notifications', async (req, res) => {
         `;
         const result = await pool.query(query, [user_id]);
 
+        console.log(`[Notifications] Fetched ${result.rows.length} items for user: ${user_id}`);
+
         res.status(200).json({
             notifications: result.rows
         });
     } catch (err) {
-        console.error(err);
+        console.error(`[Notifications] Error:`, err);
         res.status(500).json({ message: "서버 오류가 발생했습니다." });
     }
 });
