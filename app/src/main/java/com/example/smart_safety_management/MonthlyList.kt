@@ -58,6 +58,9 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.ui.zIndex
 import com.example.smart_safety_management.ui.theme.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -65,29 +68,9 @@ import kotlin.math.roundToInt
 
 enum class InspectionStatus { CHECKED, UNCHECKED }
 
-data class InspectionItem(val location: String, val description: String, val status: InspectionStatus, val specialNote: String? = null)
+data class InspectionItem(val checkId: String, val location: String, val description: String, val status: InspectionStatus, val specialNote: String? = null)
 
 data class DailyInspectionReport(val date: LocalDate, val items: List<InspectionItem>)
-
-@RequiresApi(Build.VERSION_CODES.O)
-val mockReports = listOf(
-    DailyInspectionReport(
-        date = LocalDate.of(2026, 1, 7),
-        items = listOf(
-            InspectionItem("E구역 7열", "조명 미점검으로 인한 안전 문제 발생", InspectionStatus.UNCHECKED, "🔔 누르면 근로자에게 알림이 가요"),
-            InspectionItem("F구역 12열", "환풍기 작동 불량으로 공기 순환 필요", InspectionStatus.CHECKED),
-            InspectionItem("G구역 2열", "소화 장비 부족으로 긴급 보충 요망", InspectionStatus.CHECKED)
-        )
-    ),
-    DailyInspectionReport(
-        date = LocalDate.of(2026, 1, 16),
-        items = listOf(
-            InspectionItem("B구역 2열", "화재 위험 요소 발견, 즉시 보완 필요", InspectionStatus.CHECKED),
-            InspectionItem("C구역 1열", "장비 점검 미비로 작동 불량 발생 가능", InspectionStatus.CHECKED),
-            InspectionItem("D구역 3열", "보행 경로 장애물로 인한 이동 불편 사항", InspectionStatus.CHECKED)
-        )
-    )
-)
 
 val TooltipShape = object : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
@@ -124,10 +107,56 @@ fun MonthlyListScreen() {
     var lastUserInteraction by remember { mutableLongStateOf(0L) }
     val listState = rememberLazyListState()
     val isScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
+    
+    // ✅ 서버 데이터 상태 관리
+    var reports by remember { mutableStateOf<List<DailyInspectionReport>>(emptyList()) }
+    val userId = UserSession.userId
 
     LaunchedEffect(isScrolling) { if (isScrolling) lastUserInteraction = System.currentTimeMillis() }
 
-    val filteredReports = mockReports.filter { it.date in startDate..endDate }
+    // ✅ 월별 데이터 가져오기
+    LaunchedEffect(currentYearMonth) {
+        if (userId != null) {
+            RetrofitClient.instance.getDailyChecks(userId, currentYearMonth.year, currentYearMonth.monthValue)
+                .enqueue(object : Callback<GetDailyChecksResponse> {
+                    override fun onResponse(call: Call<GetDailyChecksResponse>, response: Response<GetDailyChecksResponse>) {
+                        if (response.isSuccessful) {
+                            val checks = response.body()?.checks ?: emptyList()
+                            val grouped = checks.groupBy {
+                                try {
+                                    // created_at 사용 (YYYY-MM-DD 추출)
+                                    val dateStr = it.createdAt
+                                    if (!dateStr.isNullOrEmpty() && dateStr.length >= 10) {
+                                        LocalDate.parse(dateStr.substring(0, 10), DateTimeFormatter.ISO_DATE)
+                                    } else {
+                                        LocalDate.now()
+                                    }
+                                } catch (e: Exception) {
+                                    LocalDate.now()
+                                }
+                            }
+                            reports = grouped.map { (date, dtos) ->
+                                DailyInspectionReport(
+                                    date = date,
+                                    items = dtos.map { dto ->
+                                        InspectionItem(
+                                            checkId = dto.checkId.toString(),
+                                            location = dto.location ?: "",
+                                            description = dto.hazard ?: "",
+                                            status = if (dto.status == "미점검") InspectionStatus.UNCHECKED else InspectionStatus.CHECKED,
+                                            specialNote = if (dto.status == "미점검") "🔔 누르면 근로자에게 알림이 가요" else null
+                                        )
+                                    }
+                                )
+                            }.sortedBy { it.date }
+                        }
+                    }
+                    override fun onFailure(call: Call<GetDailyChecksResponse>, t: Throwable) {}
+                })
+        }
+    }
+
+    val filteredReports = reports.filter { it.date in startDate..endDate }
 
     Smart_Safety_ManagementTheme {
         Scaffold(
@@ -149,7 +178,7 @@ fun MonthlyListScreen() {
                     })
                 }) {
                 YearMonthSelector(yearMonth = currentYearMonth, onMonthChange = { newMonth -> currentYearMonth = newMonth })
-                DateRangeSelector(yearMonth = currentYearMonth, onDateChange = { start, end -> startDate = start; endDate = end })
+                DateRangeSelector(yearMonth = currentYearMonth, reports = reports, onDateChange = { start, end -> startDate = start; endDate = end })
                 Spacer(modifier = Modifier.height(24.dp)); Divider(color = MaterialTheme.colors.onSurface.copy(alpha = 0.12f)); Spacer(modifier = Modifier.height(24.dp))
                 LazyColumn(state = listState, modifier = Modifier.padding(horizontal = 16.dp)) {
                     items(filteredReports) { report ->
@@ -305,7 +334,7 @@ fun YearMonthSelector(yearMonth: YearMonth, onMonthChange: (YearMonth) -> Unit) 
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate) -> Unit) {
+fun DateRangeSelector(yearMonth: YearMonth, reports: List<DailyInspectionReport>, onDateChange: (LocalDate, LocalDate) -> Unit) {
     val context = LocalContext.current
     var startDateStr by remember { mutableStateOf("") }; var endDateStr by remember { mutableStateOf("") }
     var showCustomPicker by remember { mutableStateOf(false) }; var pickingStartDate by remember { mutableStateOf(true) }
@@ -331,6 +360,7 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
         val initialDate = if (pickingStartDate) (if(startDateStr.isEmpty()) LocalDate.now() else LocalDate.parse(startDateStr, formatter)) else (if(endDateStr.isEmpty()) LocalDate.now() else LocalDate.parse(endDateStr, formatter))
         CustomDatePickerDialog(
             initialDate = initialDate,
+            reports = reports,
             onDismiss = { showCustomPicker = false },
             onDateSelected = { selectedDate ->
                 val currentStart = if (startDateStr.isNotEmpty()) LocalDate.parse(startDateStr, formatter) else null
@@ -360,10 +390,10 @@ fun DateRangeSelector(yearMonth: YearMonth, onDateChange: (LocalDate, LocalDate)
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun CustomDatePickerDialog(initialDate: LocalDate, onDismiss: () -> Unit, onDateSelected: (LocalDate) -> Unit) {
+fun CustomDatePickerDialog(initialDate: LocalDate, reports: List<DailyInspectionReport>, onDismiss: () -> Unit, onDateSelected: (LocalDate) -> Unit) {
     var selectedDate by remember { mutableStateOf(initialDate) }
     var viewMonth by remember { mutableStateOf(YearMonth.from(initialDate)) }
-    val datesWithReports = remember { mockReports.map { it.date }.toSet() }
+    val datesWithReports = remember(reports) { reports.map { it.date }.toSet() }
 
     val dayOfWeekColor = Color(0xFF6D7882)
     val isLight = MaterialTheme.colors.isLight
