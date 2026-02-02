@@ -372,14 +372,26 @@ class HomeWorkerActivity : AppCompatActivity() {
 
         btnSubmit.setOnClickListener {
             val inputCode = etInviteCode.text.toString().trim()
-            if (inputCode == "1234") {
-                UserSession.isInviteChecked = true
-                UserSession.saveSession(this)
-                dialog.dismiss()
-            } else {
-                tvError.visibility = View.VISIBLE
-                etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
-            }
+            val userId = UserSession.userId ?: return@setOnClickListener
+
+            val request = JoinGroupRequest(userId, inputCode)
+            RetrofitClient.instance.joinGroup(request).enqueue(object : Callback<JoinGroupResponse> {
+                override fun onResponse(call: Call<JoinGroupResponse>, response: Response<JoinGroupResponse>) {
+                    if (response.isSuccessful) {
+                        UserSession.isInviteChecked = true
+                        UserSession.groupId = response.body()?.groupId
+                        UserSession.saveSession(this@HomeWorkerActivity)
+                        ToastUtil.showShort(this@HomeWorkerActivity, "그룹에 참여되었습니다.")
+                        dialog.dismiss()
+                    } else {
+                        tvError.visibility = View.VISIBLE
+                        etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
+                    }
+                }
+                override fun onFailure(call: Call<JoinGroupResponse>, t: Throwable) {
+                    ToastUtil.showShort(this@HomeWorkerActivity, "네트워크 오류가 발생했습니다.")
+                }
+            })
         }
 
         etInviteCode.doAfterTextChanged {

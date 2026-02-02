@@ -323,7 +323,7 @@ class HomeActivity : AppCompatActivity() {
         super.onResume()
         updateProfile()
         fetchDailyChecks()
-        updateAlarmDotVisibility() // ✅ 추가
+        updateAlarmDotVisibility()
     }
 
     private fun updateAlarmDotVisibility() {
@@ -569,7 +569,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeDialog() {
-        if (!UserSession.isInviteChecked) showInviteCodeDialog()
+        if (!UserSession.isInviteChecked && UserSession.groupId.isNullOrEmpty()) showInviteCodeDialog()
     }
 
     private fun showInviteCodeDialog() {
@@ -589,14 +589,26 @@ class HomeActivity : AppCompatActivity() {
 
         btnSubmit.setOnClickListener {
             val inputCode = etInviteCode.text.toString().trim()
-            if (inputCode == "1234") {
-                UserSession.isInviteChecked = true
-                UserSession.saveSession(this) // 로컬에 영구 저장 (계정별 키)
-                dialog.dismiss()
-            } else {
-                tvError.visibility = View.VISIBLE
-                etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
-            }
+            val userId = UserSession.userId ?: return@setOnClickListener
+
+            val request = JoinGroupRequest(userId, inputCode)
+            RetrofitClient.instance.joinGroup(request).enqueue(object : Callback<JoinGroupResponse> {
+                override fun onResponse(call: Call<JoinGroupResponse>, response: Response<JoinGroupResponse>) {
+                    if (response.isSuccessful) {
+                        UserSession.isInviteChecked = true
+                        UserSession.groupId = response.body()?.groupId
+                        UserSession.saveSession(this@HomeActivity)
+                        ToastUtil.showShort(this@HomeActivity, "그룹에 참여되었습니다.")
+                        dialog.dismiss()
+                    } else {
+                        tvError.visibility = View.VISIBLE
+                        etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
+                    }
+                }
+                override fun onFailure(call: Call<JoinGroupResponse>, t: Throwable) {
+                    ToastUtil.showShort(this@HomeActivity, "네트워크 오류가 발생했습니다.")
+                }
+            })
         }
 
         etInviteCode.doAfterTextChanged {
@@ -606,7 +618,7 @@ class HomeActivity : AppCompatActivity() {
 
         tvSkip.setOnClickListener {
             UserSession.isInviteChecked = true
-            UserSession.saveSession(this) // 로컬에 영구 저장 (계정별 키)
+            UserSession.saveSession(this) 
             dialog.dismiss()
         }
 
