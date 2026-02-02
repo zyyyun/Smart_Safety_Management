@@ -191,8 +191,9 @@ class SettingInviteActivity : AppCompatActivity() {
     }
 
     private fun sendInviteSms(phoneNumber: String) {
-        val inviteCode = "1234"
-        val message = "[안나 안전관리] 안전관리 시스템에 초대되었습니다.\n" +
+        // DB에서 가져와 UserSession에 저장된 현재 관리자의 초대코드를 사용
+        val inviteCode = UserSession.inviteCode ?: ""
+        val message = "[중대재해예방 플랫폼] 안전관리 시스템에 초대되었습니다.\n" +
                 "초대코드: $inviteCode\n" +
                 "앱을 설치하고 코드를 입력하여 가입을 완료해주세요."
 
