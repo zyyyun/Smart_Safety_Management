@@ -175,6 +175,7 @@ data class CCTVDetailResponse(
 )
 
 data class DeviceStatusDTO(
+    @SerializedName("user_id") val userId: String, // 추가
     val name: String,
     val role: String,
     @SerializedName("isGpsConnected") val isGpsConnected: Boolean,
@@ -348,6 +349,12 @@ data class SendGroupNotificationRequest(
     val content: String
 )
 
+data class SendIndividualNotificationRequest(
+    @SerializedName("user_id") val userId: String,
+    val title: String,
+    val content: String
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -500,4 +507,7 @@ interface SignUpService {
 
     @POST("/send_group_notification")
     fun sendGroupNotification(@Body request: SendGroupNotificationRequest): Call<Void>
+
+    @POST("/send_individual_notification")
+    fun sendIndividualNotification(@Body request: SendIndividualNotificationRequest): Call<Void>
 }

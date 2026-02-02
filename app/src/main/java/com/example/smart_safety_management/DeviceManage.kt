@@ -53,6 +53,7 @@ data class SubCategory (
 
 // 배터리 현황 데이터 모델
 data class DeviceBatteryData(
+    val userId: String,
     val name: String,
     val role: String,
     val isGpsConnected: Boolean,
@@ -88,12 +89,11 @@ fun DeviceManageScreen(
                     if (response.isSuccessful) {
                         val items = response.body()?.deviceStatus ?: emptyList()
                         deviceList = items.map { 
-                            DeviceBatteryData(it.name, it.role, it.isGpsConnected, it.battery, it.watchBattery) 
+                            DeviceBatteryData(it.userId, it.name, it.role, it.isGpsConnected, it.battery, it.watchBattery) 
                         }
                     }
                 }
                 override fun onFailure(call: Call<GetDeviceStatusResponse>, t: Throwable) {
-                    // 에러 처리
                 }
             })
         }
@@ -204,7 +204,10 @@ fun DeviceManageScreen(
                             Text(text = "검색 결과가 없습니다.", modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp), textAlign = TextAlign.Center, color = subTextColor, fontFamily = Pretendard)
                         } else {
                             filteredBatteryList.forEach { data ->
-                                BatteryItem(data = data, onAlarmClick = { showAlarmDialog = true })
+                                BatteryItem(data = data, onAlarmClick = {
+                                    sendBatteryAlarm(data.userId)
+                                    showAlarmDialog = true 
+                                })
                             }
                         }
                     }
@@ -213,6 +216,18 @@ fun DeviceManageScreen(
             }
         }
     }
+}
+
+// ✅ 특정 유저에게 배터리 부족 알림 전송 함수
+fun sendBatteryAlarm(targetUserId: String) {
+    val title = "안전장비 배터리 부족"
+    val content = "⚠️ 충전 및 점검 필요"
+    
+    val request = SendIndividualNotificationRequest(targetUserId, title, content)
+    RetrofitClient.instance.sendIndividualNotification(request).enqueue(object : Callback<Void> {
+        override fun onResponse(call: Call<Void>, response: Response<Void>) {}
+        override fun onFailure(call: Call<Void>, t: Throwable) {}
+    })
 }
 
 @Composable
@@ -251,7 +266,6 @@ fun SubCategoryItem(category: SubCategory, isSelected: Boolean, onClick: () -> U
 @Composable
 fun BatteryItem(data: DeviceBatteryData, onAlarmClick: () -> Unit) {
     val isLight = MaterialTheme.colors.isLight
-    val textColor = if (isLight) TextGray20 else TextGray5
     val subTextColor = if (isLight) TextGray60 else TextGray
     val borderColor = if (isLight) GrayBorder else TextDark
     val bgColor = if (isLight) Color.White else TextGray20
@@ -361,13 +375,13 @@ fun DeviceAlarmDialog(onDismissRequest: () -> Unit) {
 fun DeviceAlarmDialogContent(onDismissRequest: () -> Unit) {
     val cardBgColor = if (MaterialTheme.colors.isLight) Color.White else GrayBackground
     Card(
-        modifier = Modifier.width(330.dp).wrapContentHeight(), // ✅ 고정 높이 대신 내용에 맞게 조절
+        modifier = Modifier.width(330.dp).wrapContentHeight(),
         shape = RoundedCornerShape(16.dp), 
         elevation = 0.dp, 
         backgroundColor = cardBgColor
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 16.dp), // ✅ 하단 여백을 16.dp로 설정
+            modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally, 
             verticalArrangement = Arrangement.Top
         ) {
