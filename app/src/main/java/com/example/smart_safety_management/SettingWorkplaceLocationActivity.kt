@@ -27,6 +27,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +43,7 @@ import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import kotlinx.coroutines.Dispatchers
+import android.widget.Toast
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -54,6 +56,12 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import java.util.Locale
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Body
+import retrofit2.http.POST
+import retrofit2.http.GET
+import retrofit2.http.Query
 
 class SettingWorkplaceLocationActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -118,6 +126,7 @@ fun SettingWorkplaceLocationScreen(
     onConfirm: () -> Unit
 ) {
     val c = LocalSafeColors.current
+    val context = LocalContext.current
     val isPreview = LocalInspectionMode.current
     val focusManager = LocalFocusManager.current
     val density = LocalDensity.current
@@ -145,6 +154,46 @@ fun SettingWorkplaceLocationScreen(
     // ✅ MapView를 remember로 유지 + 디바운스 Job
     val mapViewHolder = remember { mutableStateOf<MapView?>(null) }
     var geocodeJob by remember { mutableStateOf<Job?>(null) }
+
+    // ✅ 서버에서 가져온 초기 좌표 저장용
+    var serverLocationPoint by remember { mutableStateOf<GeoPoint?>(null) }
+
+    // ✅ 초기 진입 시 서버에서 위치 정보 가져오기
+    LaunchedEffect(Unit) {
+        val userId = UserSession.userId
+        if (!userId.isNullOrBlank()) {
+            withContext(Dispatchers.IO) {
+                try {
+                    val retrofit = Retrofit.Builder()
+                        .baseUrl("http://10.0.2.2:3000/")
+                        .addConverterFactory(GsonConverterFactory.create())
+                        .build()
+
+                    val api = retrofit.create(LocationApi::class.java)
+                    val response = api.getLocation(userId)
+
+                    if (response.isSuccessful && response.body() != null) {
+                        val data = response.body()!!
+                        val savedAddr = data.address
+                        if (!savedAddr.isNullOrBlank()) {
+                            // 주소를 좌표로 변환
+                            val point = geocodeToPoint(context, savedAddr)
+                            if (point != null) {
+                                withContext(Dispatchers.Main) {
+                                    address = savedAddr
+                                    road = data.road_address ?: ""
+                                    isRegistered = true
+                                    serverLocationPoint = point // 지도 이동 트리거
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
 
     // ✅ 지도 중심좌표 -> 주소 업데이트 함수
     fun requestAddressUpdate(context: android.content.Context, mapView: MapView) {
@@ -202,7 +251,7 @@ fun SettingWorkplaceLocationScreen(
                             setMultiTouchControls(true)
 
                             controller.setZoom(18.0)
-                            controller.setCenter(GeoPoint(37.4563, 126.7052))
+                            controller.setCenter(GeoPoint(37.4563, 126.7052)) // 기본값
 
                             mapViewHolder.value = this
 
@@ -232,6 +281,16 @@ fun SettingWorkplaceLocationScreen(
                         mapViewHolder.value?.onDetach()
                         mapViewHolder.value = null
                     }
+                }
+            }
+
+            // ✅ 서버에서 가져온 위치가 있고, 맵이 준비되면 해당 위치로 이동
+            LaunchedEffect(mapViewHolder.value, serverLocationPoint) {
+                val map = mapViewHolder.value
+                val point = serverLocationPoint
+                if (map != null && point != null) {
+                    map.controller.setZoom(18.0)
+                    map.controller.animateTo(point)
                 }
             }
 
@@ -317,9 +376,70 @@ fun SettingWorkplaceLocationScreen(
                     address = address,
                     zipcode = zipcode,
                     road = road,
-                    onConfirm = { isRegistered = true },
+                    onConfirm = {
+                        // 1. user_id 가져오기 (UserSession 사용)
+                        val userId = UserSession.userId
+
+                        if (userId.isNullOrBlank()) {
+                            Toast.makeText(context, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                        } else {
+                            // 2. API 호출
+                            scope.launch {
+                                try {
+                                    val retrofit = Retrofit.Builder()
+                                        .baseUrl("http://10.0.2.2:3000/") // 로컬 서버 주소 (에뮬레이터 기준)
+                                        .addConverterFactory(GsonConverterFactory.create())
+                                        .build()
+
+                                    val api = retrofit.create(LocationApi::class.java)
+                                    val request = RegisterLocationRequest(userId, address, road, zipcode)
+                                    val response = api.registerLocation(request)
+
+                                    if (response.isSuccessful) {
+                                        isRegistered = true
+                                        Toast.makeText(context, "위치 등록 성공", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "등록 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "서버 연결 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    e.printStackTrace()
+                                }
+                            }
+                        }
+                    },
                     onDelete = { isRegistered = false },
-                    onEdit = { /* TODO */ }
+                    onEdit = {
+                        // 1. user_id 가져오기 (UserSession 사용)
+                        val userId = UserSession.userId
+
+                        if (userId.isNullOrBlank()) {
+                            Toast.makeText(context, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
+                        } else {
+                            // 2. API 호출 (수정)
+                            scope.launch {
+                                try {
+                                    val retrofit = Retrofit.Builder()
+                                        .baseUrl("http://10.0.2.2:3000/") // 로컬 서버 주소
+                                        .addConverterFactory(GsonConverterFactory.create())
+                                        .build()
+
+                                    val api = retrofit.create(LocationApi::class.java)
+                                    val request = RegisterLocationRequest(userId, address, road, zipcode)
+                                    val response = api.registerLocation(request)
+
+                                    if (response.isSuccessful) {
+                                        Toast.makeText(context, "위치 수정 성공", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "수정 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "서버 연결 오류: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    e.printStackTrace()
+                                }
+                            }
+                        }
+                    }
                 )
             }
 
@@ -792,6 +912,31 @@ fun SettingWorkplaceLocationPreview() {
     Smart_Safety_ManagementTheme(darkTheme = false) {
         SettingWorkplaceLocationScreen(onBack = {}, onConfirm = {})
     }
+}
+
+// ✅ API 통신을 위한 데이터 클래스 및 인터페이스 정의
+data class RegisterLocationRequest(
+    val user_id: String,
+    val address: String,
+    val road_address: String,
+    val zipcode: String
+)
+
+data class RegisterLocationResponse(
+    val message: String
+)
+
+data class GetLocationResponse(
+    val address: String?,
+    val road_address: String?
+)
+
+interface LocationApi {
+    @POST("/register_workplace_location")
+    suspend fun registerLocation(@Body request: RegisterLocationRequest): retrofit2.Response<RegisterLocationResponse>
+
+    @GET("/get_workplace_location")
+    suspend fun getLocation(@Query("user_id") userId: String): retrofit2.Response<GetLocationResponse>
 }
 
 @Preview(

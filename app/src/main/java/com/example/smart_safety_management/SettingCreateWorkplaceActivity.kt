@@ -24,42 +24,26 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
     private lateinit var workplaceAdapter: WorkplaceAdapter
     private var workplaceList = mutableListOf<WorkplaceItem>()
 
+    // 뷰 변수들을 클래스 멤버로 선언하여 다른 메서드에서 접근 가능하게 함
+    private lateinit var etWorkplaceName: EditText
+    private lateinit var btnCreate: Button
+    private lateinit var rvWorkplace: RecyclerView
+    private lateinit var line: View
+    private lateinit var txtCreatedWorkplace: TextView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_create_workplace)
 
         val backButton = findViewById<ImageButton>(R.id.backButton)
-        val etWorkplaceName = findViewById<EditText>(R.id.et_workplace_name)
-        val btnCreate = findViewById<Button>(R.id.btn_create)
-        val rvWorkplace = findViewById<RecyclerView>(R.id.rv_workplace)
-        val line = findViewById<View>(R.id.line)
-        val txtCreatedWorkplace = findViewById<TextView>(R.id.txt_created_workplace)
-
+        etWorkplaceName = findViewById(R.id.et_workplace_name)
+        btnCreate = findViewById(R.id.btn_create)
+        rvWorkplace = findViewById(R.id.rv_workplace)
+        line = findViewById(R.id.line)
+        txtCreatedWorkplace = findViewById(R.id.txt_created_workplace)
+        
         // 저장된 리스트 불러오기
         fetchWorkplaceList()
-
-        // UI 상태 업데이트 함수 (버튼 및 리스트 관련 뷰 가시성)
-        fun updateUIState() {
-            // 버튼 상태 업데이트
-            if (etWorkplaceName.text.isNullOrEmpty() || workplaceList.size >= 1) {
-                btnCreate.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.gray50_gray900))
-                btnCreate.setTextColor(ContextCompat.getColor(this, R.color.gray400_gray700))
-            } else {
-                btnCreate.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.orange500))
-                btnCreate.setTextColor(ContextCompat.getColor(this, R.color.white_black))
-            }
-
-            // 리스트 관련 뷰 가시성 업데이트
-            if (workplaceList.isEmpty()) {
-                line.visibility = View.GONE
-                txtCreatedWorkplace.visibility = View.GONE
-                rvWorkplace.visibility = View.GONE
-            } else {
-                line.visibility = View.VISIBLE
-                txtCreatedWorkplace.visibility = View.VISIBLE
-                rvWorkplace.visibility = View.VISIBLE
-            }
-        }
 
         // 어댑터 초기화
         workplaceAdapter = WorkplaceAdapter(
@@ -67,34 +51,8 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
             onEditClick = { _ ->
                 // TODO: 편집 기능 구현
             },
-            onDeleteClick = { position ->
-                val itemToDelete = workplaceList[position]
-                val userId = UserSession.userId
-
-                if (userId != null) {
-                    val request = DeleteWorkplaceRequest(itemToDelete.name, userId)
-                    RetrofitClient.instance.deleteWorkplace(request).enqueue(object : Callback<DeleteWorkplaceResponse> {
-                        override fun onResponse(call: Call<DeleteWorkplaceResponse>, response: Response<DeleteWorkplaceResponse>) {
-                            if (response.isSuccessful) {
-                                workplaceAdapter.removeItem(position)
-                                updateUIState() // 삭제 후 UI 상태 업데이트
-                                ToastUtil.showShort(this@SettingCreateWorkplaceActivity, "현장이 삭제되었습니다.")
-                            } else if (response.code() == 404) {
-                                // 서버에 데이터가 없는 경우(404), 로컬 목록에서도 삭제 처리
-                                workplaceAdapter.removeItem(position)
-                                updateUIState()
-                                ToastUtil.showShort(this@SettingCreateWorkplaceActivity, "서버에 없는 현장을 목록에서 삭제했습니다.")
-                            } else {
-                                ToastUtil.showShort(this@SettingCreateWorkplaceActivity, "삭제 실패: ${response.message()}")
-                            }
-                        }
-                        override fun onFailure(call: Call<DeleteWorkplaceResponse>, t: Throwable) {
-                            ToastUtil.showShort(this@SettingCreateWorkplaceActivity, "네트워크 오류: ${t.message}")
-                        }
-                    })
-                } else {
-                    ToastUtil.showShort(this, "로그인 정보가 없습니다.")
-                }
+            onDeleteClick = { _ ->
+                // TODO: 삭제 기능 구현
             }
         )
 
@@ -162,8 +120,36 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
         }
     }
 
+    // UI 상태 업데이트 함수 (버튼 및 리스트 관련 뷰 가시성)
+    private fun updateUIState() {
+        // 버튼 상태 업데이트
+        if (etWorkplaceName.text.isNullOrEmpty() || workplaceList.size >= 1) {
+            btnCreate.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.gray50_gray900))
+            btnCreate.setTextColor(ContextCompat.getColor(this, R.color.gray400_gray700))
+        } else {
+            btnCreate.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.orange500))
+            btnCreate.setTextColor(ContextCompat.getColor(this, R.color.white_black))
+        }
+
+        // 리스트 관련 뷰 가시성 업데이트
+        if (workplaceList.isEmpty()) {
+            line.visibility = View.GONE
+            txtCreatedWorkplace.visibility = View.GONE
+            rvWorkplace.visibility = View.GONE
+        } else {
+            line.visibility = View.VISIBLE
+            txtCreatedWorkplace.visibility = View.VISIBLE
+            rvWorkplace.visibility = View.VISIBLE
+        }
+    }
+
     private fun fetchWorkplaceList() {
-        val userId = UserSession.userId ?: return
+        val userId = UserSession.userId
+        if (userId == null) {
+            // ToastUtil.showShort(this, "로그인 정보가 없습니다.") // 필요 시 주석 해제
+            return
+        }
+
         RetrofitClient.instance.getWorkplace(userId).enqueue(object : Callback<GetWorkplaceResponse> {
             override fun onResponse(call: Call<GetWorkplaceResponse>, response: Response<GetWorkplaceResponse>) {
                 if (response.isSuccessful) {
@@ -171,10 +157,9 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
                     workplaceList.clear()
                     workplaceList.addAll(items.map { WorkplaceItem(it.name) })
                     workplaceAdapter.notifyDataSetChanged()
-                    // UI 상태 업데이트는 어댑터 갱신 후 호출
-                    // updateUIState()는 onCreate 내부 함수라 직접 호출이 어려우므로, 
-                    // 필요하다면 etWorkplaceName의 텍스트 변경 리스너를 트리거하거나 별도 메서드로 분리해야 함.
-                    // 여기서는 리스트 갱신만으로도 RecyclerView는 업데이트됨.
+                    
+                    // ✅ 데이터 로드 후 UI 상태(리스트 가시성) 업데이트 호출
+                    updateUIState()
                 }
             }
             override fun onFailure(call: Call<GetWorkplaceResponse>, t: Throwable) {
