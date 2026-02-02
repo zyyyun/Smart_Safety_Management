@@ -45,15 +45,7 @@ fun HistoryNavigationWrapper() {
 
         // 2. 스크린 콘텐츠를 전체 화면(fillMaxSize)으로 깔아줍니다.
         // 하단바에 가려지지 않도록 HistoryScreen 내부 리스트 하단에 패딩만 주면 됩니다.
-        HistoryScreen()
-
-        // 3. 하단바를 화면 최하단에 정렬하여 얹습니다.
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .align(Alignment.BottomCenter) // 👈 최하단 정렬
-        ) {
-            HistoryBottomBar()
-        }
+        HistoryScreen(bottomBar = { HistoryBottomBar() })
     }
 }
 

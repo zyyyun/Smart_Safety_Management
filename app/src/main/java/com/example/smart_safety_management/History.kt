@@ -60,7 +60,7 @@ data class HistoryEventData(
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun HistoryScreen() {
+fun HistoryScreen(bottomBar: @Composable () -> Unit = {}) {
     var isAscending by remember { mutableStateOf(false) } // 최신순 기본
     var selectedTab by remember { mutableStateOf("AI감지") }
     
@@ -157,69 +157,75 @@ fun HistoryScreen() {
             }
         ) {
             // ✅ [핵심] Scaffold 제거: Activity의 Scaffold와 중복되지 않도록 Column으로 레이아웃 구성
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(topBarBackgroundColor)
-                    .background(Color.Transparent)
-            ) {
-                // 1. 상단바 영역
-                Column {
-                    HistoryTopAppBar(
-                        isAscending = isAscending,
-                        onSortToggle = { isAscending = !isAscending },
-                        onFilterClick = {
-                            coroutineScope.launch {
-                                sheetState.show()
-                            }
-                        },
-                        onSearchIconClick = { isSearchMode = !isSearchMode },
-                        backgroundColor = Color.Transparent
-                    )
-                    if (isSearchMode) {
-                        HistorySearchBar(
-                            searchQuery = searchQuery,
-                            onSearchQueryChange = { searchQuery = it },
-                            width = 350.dp 
-                        )
-                        Divider(color = if (isLight) GrayBorder else TextDark, thickness = 1.dp)
-                    }
-                    HistorySecondaryAppBar(
-                        selectedTab = selectedTab,
-                        onTabSelected = { selectedTab = it }
-                    )
-                }
-
-                // 2. 콘텐츠 영역: weight(1f)를 주어 바텀바 바로 위까지 공간을 모두 사용
-                Surface(
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
-                    color = MaterialTheme.colors.onPrimary,
-                    shape = RectangleShape
+                        .fillMaxSize()
+                        .background(topBarBackgroundColor)
+                        .background(Color.Transparent)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .verticalScroll(rememberScrollState()),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
-                    ) {
-                        filteredEvents.forEach { dto ->
-                            val historyData = HistoryEventData(
-                                accidentType = mapRiskLevel(dto.riskLevel),
-                                location = dto.installArea ?: "위치 정보 없음",
-                                content = "${dto.eventName ?: "이벤트"}가 감지되었습니다.",
-                                occurrenceTime = dto.detectedAt,
-                                actionByName = dto.workerName ?: "",
-                                actionTime = dto.actionTime ?: ""
+                    // 1. 상단바 영역
+                    Column {
+                        HistoryTopAppBar(
+                            isAscending = isAscending,
+                            onSortToggle = { isAscending = !isAscending },
+                            onFilterClick = {
+                                coroutineScope.launch {
+                                    sheetState.show()
+                                }
+                            },
+                            onSearchIconClick = { isSearchMode = !isSearchMode },
+                            backgroundColor = Color.Transparent
+                        )
+                        if (isSearchMode) {
+                            HistorySearchBar(
+                                searchQuery = searchQuery,
+                                onSearchQueryChange = { searchQuery = it },
+                                width = 350.dp 
                             )
-                            HistoryItemFrame(historyData)
+                            Divider(color = if (isLight) GrayBorder else TextDark, thickness = 1.dp)
                         }
-                        // 리스트 끝 여백
-                        Spacer(modifier = Modifier.height(80.dp))
+                        HistorySecondaryAppBar(
+                            selectedTab = selectedTab,
+                            onTabSelected = { selectedTab = it }
+                        )
                     }
+
+                    // 2. 콘텐츠 영역: weight(1f)를 주어 바텀바 바로 위까지 공간을 모두 사용
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        color = MaterialTheme.colors.onPrimary,
+                        shape = RectangleShape
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp)
+                                .verticalScroll(rememberScrollState()),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(20.dp)
+                        ) {
+                            filteredEvents.forEach { dto ->
+                                val historyData = HistoryEventData(
+                                    accidentType = mapRiskLevel(dto.riskLevel),
+                                    location = dto.installArea ?: "위치 정보 없음",
+                                    content = "${dto.eventName ?: "이벤트"}가 감지되었습니다.",
+                                    occurrenceTime = dto.detectedAt,
+                                    actionByName = dto.workerName ?: "",
+                                    actionTime = dto.actionTime ?: ""
+                                )
+                                HistoryItemFrame(historyData)
+                            }
+                            // 리스트 끝 여백
+                            Spacer(modifier = Modifier.height(80.dp))
+                        }
+                    }
+                }
+                // ✅ 하단바를 ModalBottomSheetLayout 콘텐츠 내부로 이동 (바텀시트가 덮을 수 있게 됨)
+                Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+                    bottomBar()
                 }
             }
         }

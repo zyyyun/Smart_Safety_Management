@@ -335,15 +335,14 @@ fun ActionDetailScreen(
                                         Icon(
                                             painter = painterResource(id = R.drawable.dropbox),
                                             contentDescription = null,
-                                            tint = if (expanded) MainOrange else dropboxBorder,
-                                            modifier = Modifier.size(24.dp)
+                                            tint = if (expanded) MainOrange else borderColor,
                                         )
                                     }
                                 }
                             },
                             colors = TextFieldDefaults.outlinedTextFieldColors(
                                 focusedBorderColor = MainOrange,
-                                unfocusedBorderColor = dropboxBorder,
+                                unfocusedBorderColor = if (expanded) dropboxBorder else borderColor,
                                 backgroundColor = btnBackColor
                             )
                         )
@@ -408,7 +407,7 @@ fun ActionDetailScreen(
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Text(
-                        text = "조치 제목",
+                        text = "제목",
                         fontWeight = FontWeight.Medium,
                         color = CategoryColor,
                         fontFamily = Pretendard,
@@ -420,7 +419,6 @@ fun ActionDetailScreen(
                     OutlinedTextField(
                         value = title,
                         onValueChange = { title = it },
-                        placeholder = { Text("제목을 입력하세요", color = photoColor, fontSize = 18.sp, fontFamily = Pretendard) },
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp).height(59.dp),
                         textStyle = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium, fontFamily = Pretendard, color = inputTextColor),
                         shape = RoundedCornerShape(8.dp),
@@ -434,7 +432,7 @@ fun ActionDetailScreen(
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Text(
-                        text = "상세 내용",
+                        text = "내용",
                         fontWeight = FontWeight.Medium,
                         color = CategoryColor,
                         fontFamily = Pretendard,
@@ -446,7 +444,7 @@ fun ActionDetailScreen(
                     OutlinedTextField(
                         value = content,
                         onValueChange = { content = it },
-                        placeholder = { Text("내용을 입력하세요", color = photoColor, fontSize = 18.sp, fontFamily = Pretendard) },
+
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp)
@@ -482,36 +480,55 @@ fun ActionDetailScreen(
                         // 사진 추가 버튼
                         Box(
                             modifier = Modifier
-                                .size(100.dp)
+                                .size(120.dp)
                                 .background(btnBackColor, shape = RoundedCornerShape(8.dp))
-                                .dashedBorder(1.dp, borderColor, 8.dp)
-                                .clip(RoundedCornerShape(8.dp))
                                 .clickable {
                                     launcher.launch("image/*")
                                 },
                             contentAlignment = Alignment.Center
                         ) {
+                            Canvas(modifier = Modifier.fillMaxSize()) {
+                                val pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
+                                drawRoundRect(
+                                    color = borderColor,
+                                    style = Stroke(width = 1.dp.toPx(), pathEffect = pathEffect),
+                                    cornerRadius = CornerRadius(8.dp.toPx())
+                                )
+                            }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Icon(
-                                    imageVector = Icons.Default.Photo,
-                                    contentDescription = "Add Photo",
-                                    tint = photoColor,
-                                    modifier = Modifier.size(32.dp)
+                                    painter = painterResource(id = R.drawable.camera_icon),
+                                    contentDescription = "사진첨부",
+                                    tint = if (isLight) Color.Unspecified else TextGray30
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "사진첨부",
+                                    color = photoColor,
+                                    fontSize = 18.sp,
+                                    fontFamily = Pretendard
                                 )
                             }
                         }
 
                         // 첨부된 사진들 표시 영역
                         attachedPhotos.forEach { photoUri ->
-                            GlideImage(
-                                model = photoUri,
-                                contentDescription = "Attached Photo",
+                            Box(
                                 modifier = Modifier
-                                    .size(100.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.Crop
-
-                            )
+                                    .size(120.dp)
+                                    .background(btnBackColor, shape = RoundedCornerShape(8.dp))
+                                    .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                GlideImage(
+                                    model = photoUri,
+                                    contentDescription = "Attached Photo",
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(RoundedCornerShape(8.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
                         }
                     }
 

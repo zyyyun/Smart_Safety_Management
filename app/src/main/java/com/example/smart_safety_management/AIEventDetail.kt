@@ -253,6 +253,14 @@ fun AIEventDetailScreen(
                                     "정확도" to "${eventDetail?.accuracy?.toInt() ?: 0}%"
                                 )
 
+                                // ✅ 위험도에 따른 텍스트 색상 결정
+                                val riskColor = when (eventDetail?.riskLevel?.lowercase()) {
+                                    "high", "위험", "danger" -> Color(0xFFEF4444)
+                                    "medium", "경고", "warning" -> Color(0xFFF97316)
+                                    "low", "주의", "caution" -> Color(0xFFFFB114)
+                                    else -> valueColor
+                                }
+
                                 detailItems.forEach { (label, value) ->
                                     Row(
                                         modifier = Modifier
@@ -267,9 +275,13 @@ fun AIEventDetailScreen(
                                             fontFamily = Pretendard,
                                             fontWeight = FontWeight.Medium
                                         )
+
+                                        // ✅ "감지 이벤트" 라벨일 경우에만 위험도 색상 적용
+                                        val displayColor = if (label == "감지 이벤트") riskColor else valueColor
+
                                         Text(
                                             text = value,
-                                            color = valueColor,
+                                            color = displayColor,
                                             fontSize = 16.sp,
                                             fontFamily = Pretendard,
                                             fontWeight = FontWeight.Medium
