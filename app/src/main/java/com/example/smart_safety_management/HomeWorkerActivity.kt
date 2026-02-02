@@ -3,6 +3,10 @@ package com.example.smart_safety_management
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.view.Gravity
+import android.widget.GridLayout
+import android.widget.LinearLayout
+import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.NestedScrollView
@@ -11,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 import java.util.Calendar
 import android.content.Intent
 import android.graphics.Paint
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.text.Spannable
 import android.text.SpannableString
@@ -30,30 +35,6 @@ import retrofit2.Callback
 import retrofit2.Response
 import com.google.firebase.messaging.FirebaseMessaging
 import android.util.Log
-private val dailyCheckMap = mutableMapOf<Int, MutableList<DailyCheckItem>>(
-    7 to mutableListOf(
-        DailyCheckItem(title="B구역 1열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
-        DailyCheckItem(title="C구역 3열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
-    ),
-    12 to mutableListOf(
-        DailyCheckItem(title="A구역 1열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
-    ),
-    23 to mutableListOf(
-        DailyCheckItem(title="A구역 4열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
-        DailyCheckItem(title="A구역 4열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
-        DailyCheckItem(title="D구역 2열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
-        DailyCheckItem(title="D구역 1열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
-        DailyCheckItem(title="D구역 2열", desc="정리미흡으로 안전사고 발생 우려", status="점검완료"),
-    ),
-    25 to mutableListOf(
-        DailyCheckItem(title="C구역 2열", desc="정리미흡으로 안전사고 발생 우려", status="미점검"),
-    ),
-    26 to mutableListOf(
-        DailyCheckItem(title="A구역 4열", desc="정리미흡으로 인적사고 발생 우려", status="미점검"),
-    )
-)
-
-
 
 
 class HomeWorkerActivity : AppCompatActivity() {
@@ -93,10 +74,7 @@ class HomeWorkerActivity : AppCompatActivity() {
 
         val topBar = findViewById<View>(R.id.top_bar)
         val btnAlarm = topBar.findViewById<ImageButton>(R.id.btn_alarm)
-        val alarmDot = findViewById<View>(R.id.view_alarm_dot)
         val btnSetting = topBar.findViewById<ImageButton>(R.id.btn_setting)
-
-        alarmDot.visibility = if (true) View.VISIBLE else View.GONE
 
         // 알림 버튼 -> 알림 화면
         btnAlarm.setOnClickListener {
@@ -124,10 +102,7 @@ class HomeWorkerActivity : AppCompatActivity() {
                 detailLauncher.launch(intent)
             },
             onRequestNotify = { day, item ->
-                // ✅ HomeWorkerActivity(근로자 화면)에서는 보통 호출될 일이 없지만,
-                // 혹시라도 들어오면 그냥 상세 열기로 보내거나 무시해도 됨.
-                // (무시)
-                // 또는: onOpenDetail(day, item) 같은 동작
+                // 근로자 화면에서는 무시
             }
         )
         rvDaily.adapter = dailyAdapter
@@ -156,6 +131,7 @@ class HomeWorkerActivity : AppCompatActivity() {
         selectedMonth = cal.get(Calendar.MONTH) + 1
 
         // 초기 리스트 갱신 (오늘 날짜 기준 빈 리스트라도 표시)
+        fillCalendarReal()
         updateDailyCheckList(selectedDay)
 
         fetchWorkerEvents()
@@ -184,11 +160,12 @@ class HomeWorkerActivity : AppCompatActivity() {
                                 desc = dto.hazard ?: "",
                                 safetyMeasure = dto.countermeasure ?: "",
                                 status = dto.status,
-                                photoUris = emptyList()
+                                photoUris = dto.images ?: emptyList()
                             )
                             dailyCheckMap.getOrPut(day) { mutableListOf() }.add(item)
                         }
                     }
+                    fillCalendarReal()
                     updateDailyCheckList(selectedDay)
                 }
             }
@@ -231,9 +208,7 @@ class HomeWorkerActivity : AppCompatActivity() {
                     }
 
                     val rvEvent = findViewById<RecyclerView>(R.id.rv_worker_event)
-                    // WorkerEventAdapter에 클릭 리스너를 전달하도록 수정 (Adapter 수정 필요)
                     eventAdapter = WorkerEventAdapter(displayEvents) { eventData ->
-                        // 조치 대기(PENDING) 상태인 경우에만 상세 페이지로 이동
                         val status = displayEvents.find { it.first.id == eventData.id }?.second
                         if (status == EventStatus.PENDING) {
                             val intent = Intent(this@HomeWorkerActivity, ActionDetailWorkerActivity::class.java)
@@ -262,26 +237,40 @@ class HomeWorkerActivity : AppCompatActivity() {
         super.onResume()
         updateProfile()
         fetchWorkerEvents()
+        updateAlarmDotVisibility()
+    }
+
+    private fun updateAlarmDotVisibility() {
+        val userId = UserSession.userId ?: return
+        val alarmDot = findViewById<View>(R.id.view_alarm_dot) ?: return
+
+        RetrofitClient.instance.getNotifications(userId).enqueue(object : Callback<GetNotificationsResponse> {
+            override fun onResponse(call: Call<GetNotificationsResponse>, response: Response<GetNotificationsResponse>) {
+                if (response.isSuccessful) {
+                    val notifications = response.body()?.notifications ?: emptyList()
+                    val hasUnread = notifications.any { !it.isRead }
+                    alarmDot.visibility = if (hasUnread) View.VISIBLE else View.GONE
+                }
+            }
+            override fun onFailure(call: Call<GetNotificationsResponse>, t: Throwable) {
+                Log.e("HomeWorkerActivity", "Error checking notifications", t)
+            }
+        })
     }
 
     private fun updateProfile() {
         val profileBar = findViewById<View>(R.id.profile_bar)
         if (profileBar != null) {
-            // 이름 및 역할 업데이트
             profileBar.findViewById<TextView>(R.id.tv_user_name)?.text = UserSession.userName
-            
-            // 역할
             profileBar.findViewById<TextView>(R.id.tv_user_authority)?.text = 
                 if (UserSession.userRole == UserRole.MANAGER) "관리자님" else "근로자님"
             
-            // 프로필 사진 동기화
             val ivProfileBar = profileBar.findViewById<ImageView>(R.id.iv_profile_bar)
             val cardProfile = ivProfileBar?.parent as? MaterialCardView
 
             if (ivProfileBar != null) {
                 val params = ivProfileBar.layoutParams as ViewGroup.MarginLayoutParams
                 UserSession.profileImageUri?.let { uriString ->
-                    // 사진이 있을 때: 부모 CardView 제약까지 풀어서 원에 꽉 차도록 설정
                     Glide.with(this)
                         .load(uriString)
                         .placeholder(R.drawable.profile)
@@ -290,8 +279,8 @@ class HomeWorkerActivity : AppCompatActivity() {
 
                     cardProfile?.apply {
                         setContentPadding(0, 0, 0, 0)
-                        preventCornerOverlap = false // 모서리 겹침 방지 여백 제거
-                        useCompatPadding = false     // 호환성 패딩 제거
+                        preventCornerOverlap = false
+                        useCompatPadding = false
                     }
 
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_CROP
@@ -299,11 +288,10 @@ class HomeWorkerActivity : AppCompatActivity() {
                     params.setMargins(0, 0, 0, 0)
                     ivProfileBar.layoutParams = params
                 } ?: run {
-                    // 기본 이미지일 때: XML 디자인(마진 5, 10, 5)을 그대로 유지
                     ivProfileBar.setImageResource(R.drawable.profile)
 
                     cardProfile?.apply {
-                        preventCornerOverlap = true // 기본값 복구
+                        preventCornerOverlap = true
                     }
 
                     ivProfileBar.scaleType = ImageView.ScaleType.CENTER_INSIDE
@@ -362,7 +350,9 @@ class HomeWorkerActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeDialog() {
-        if (!UserSession.isInviteDoneWorker) showInviteCodeDialog()
+        if (!UserSession.isInviteChecked && UserSession.groupId.isNullOrEmpty()) {
+            showInviteCodeDialog()
+        }
     }
 
     private fun showInviteCodeDialog() {
@@ -382,14 +372,26 @@ class HomeWorkerActivity : AppCompatActivity() {
 
         btnSubmit.setOnClickListener {
             val inputCode = etInviteCode.text.toString().trim()
-            if (inputCode == "1234") {
-                UserSession.isInviteDoneWorker = true
-                UserSession.isInviteSuccessWorker = true
-                dialog.dismiss()
-            } else {
-                tvError.visibility = View.VISIBLE
-                etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
-            }
+            val userId = UserSession.userId ?: return@setOnClickListener
+
+            val request = JoinGroupRequest(userId, inputCode)
+            RetrofitClient.instance.joinGroup(request).enqueue(object : Callback<JoinGroupResponse> {
+                override fun onResponse(call: Call<JoinGroupResponse>, response: Response<JoinGroupResponse>) {
+                    if (response.isSuccessful) {
+                        UserSession.isInviteChecked = true
+                        UserSession.groupId = response.body()?.groupId
+                        UserSession.saveSession(this@HomeWorkerActivity)
+                        ToastUtil.showShort(this@HomeWorkerActivity, "그룹에 참여되었습니다.")
+                        dialog.dismiss()
+                    } else {
+                        tvError.visibility = View.VISIBLE
+                        etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
+                    }
+                }
+                override fun onFailure(call: Call<JoinGroupResponse>, t: Throwable) {
+                    ToastUtil.showShort(this@HomeWorkerActivity, "네트워크 오류가 발생했습니다.")
+                }
+            })
         }
 
         etInviteCode.doAfterTextChanged {
@@ -398,7 +400,8 @@ class HomeWorkerActivity : AppCompatActivity() {
         }
 
         tvSkip.setOnClickListener {
-            UserSession.isInviteDoneWorker = true
+            UserSession.isInviteChecked = true
+            UserSession.saveSession(this)
             dialog.dismiss()
         }
 
@@ -412,7 +415,8 @@ class HomeWorkerActivity : AppCompatActivity() {
         val emergencyArea = findViewById<View>(R.id.layout_emergency_root)
         emergencyArea.isClickable = true
         emergencyArea.setOnClickListener {
-             // ...
+            val intent = Intent(this, EmergencyContactActivity::class.java)
+            startActivity(intent)
         }
     }
 
@@ -426,7 +430,111 @@ class HomeWorkerActivity : AppCompatActivity() {
     }
 
     private fun calculateTimeAgo(dateStr: String?): String {
-        return "방금 전" // 실제 로직 생략
+        return "방금 전" 
+    }
+
+    private fun hasDailyCheckItem(day: Int): Boolean {
+        val list = dailyCheckMap[day] ?: return false
+        return list.isNotEmpty()
+    }
+
+    private fun fillCalendarReal() {
+        val grid = findViewById<GridLayout>(R.id.calendar_grid) ?: return
+        val tvMonth = findViewById<TextView>(R.id.tv_month) ?: return
+
+        grid.removeAllViews()
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.YEAR, selectedYear)
+        calendar.set(Calendar.MONTH, selectedMonth - 1)
+
+        tvMonth.text = "${selectedYear}년 ${selectedMonth}월"
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+
+        val firstDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+        val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+        val prevCalendar = calendar.clone() as Calendar
+        prevCalendar.add(Calendar.MONTH, -1)
+        val prevMaxDay = prevCalendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+        for (i in 1 until firstDayOfWeek) {
+            addCalendarDay(grid, prevMaxDay - (firstDayOfWeek - 1 - i), false)
+        }
+        for (day in 1..daysInMonth) {
+            addCalendarDay(grid, day, true)
+        }
+        val totalCells = (firstDayOfWeek - 1) + daysInMonth
+        for (day in 1..((7 - (totalCells % 7)) % 7)) {
+            addCalendarDay(grid, day, false)
+        }
+    }
+
+    private fun addCalendarDay(grid: GridLayout, day: Int, isCurrentMonth: Boolean) {
+        val dayContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutParams = GridLayout.LayoutParams().apply {
+                width = 0
+                columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+                rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f)
+
+                setMargins(0, 0, 0, (resources.displayMetrics.density * 8).toInt())
+            }
+        }
+
+        val daySize = (resources.displayMetrics.density * 36).toInt()
+        val dayFrame = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(daySize, daySize)
+        }
+
+        val tv = TextView(this).apply {
+            text = day.toString()
+            gravity = Gravity.CENTER
+            setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
+            layoutParams = FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+
+            if (isCurrentMonth) {
+                setOnClickListener {
+                    selectedDay = day
+                    fillCalendarReal()
+                    updateDailyCheckList(selectedDay)
+                }
+            }
+        }
+
+        if (isCurrentMonth) {
+            tv.setTextColor(ContextCompat.getColor(this, R.color.gray700_gray400))
+            if (day == selectedDay) {
+                tv.background = circleDrawable(ContextCompat.getColor(this, R.color.orange500))
+                tv.setTextColor(ContextCompat.getColor(this, R.color.white_black))
+            }
+        } else {
+            tv.setTextColor(ContextCompat.getColor(this, R.color.gray200_gray800))
+        }
+
+        val alarmDot = if (isCurrentMonth) {
+            ImageView(this).apply {
+                setImageResource(R.drawable.ellipse_alram)
+                visibility = if (hasDailyCheckItem(day) && day != selectedDay) View.VISIBLE else View.INVISIBLE
+                val size = (resources.displayMetrics.density * 6).toInt()
+                layoutParams = FrameLayout.LayoutParams(size, size).apply {
+                    gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                }
+            }
+        } else null
+
+        dayFrame.addView(tv)
+        if (alarmDot != null) dayFrame.addView(alarmDot)
+
+        dayContainer.addView(dayFrame)
+        grid.addView(dayContainer)
+    }
+
+    private fun circleDrawable(color: Int): GradientDrawable {
+        return GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(color)
+        }
     }
 }
 

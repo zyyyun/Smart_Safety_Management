@@ -102,7 +102,7 @@ class SignUp2Activity : AppCompatActivity() {
             val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
 
             if (phoneNum.length < 10) {
-                Toast.makeText(this, "올바른 전화번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "올바른 전화번호를 입력해주세요.")
                 return@setOnClickListener
             }
 
@@ -116,15 +116,15 @@ class SignUp2Activity : AppCompatActivity() {
             service.sendVerificationCode(VerificationRequest(phoneNum, appHash)).enqueue(object : Callback<VerificationResponse> {
                 override fun onResponse(call: Call<VerificationResponse>, response: Response<VerificationResponse>) {
                     if (response.isSuccessful) {
-                        Toast.makeText(this@SignUp2Activity, "인증번호가 전송되었습니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@SignUp2Activity, "인증번호가 전송되었습니다.")
                         btnGetCode.text = "재전송"
                         startTimer(tvNotice, llNotice, ivNotice)
                     } else {
-                        Toast.makeText(this@SignUp2Activity, "인증번호 전송 실패", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@SignUp2Activity, "인증번호 전송 실패")
                     }
                 }
                 override fun onFailure(call: Call<VerificationResponse>, t: Throwable) {
-                    Toast.makeText(this@SignUp2Activity, "서버 연결 실패", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@SignUp2Activity, "서버 연결 실패")
                 }
             })
         }
@@ -134,7 +134,7 @@ class SignUp2Activity : AppCompatActivity() {
             val code = etVerifyCode.text.toString().trim()
 
             if (code.isEmpty()) {
-                Toast.makeText(this, "인증번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "인증번호를 입력해주세요.")
                 return@setOnClickListener
             }
 
@@ -145,18 +145,18 @@ class SignUp2Activity : AppCompatActivity() {
                     if (response.isSuccessful && response.body()?.isVerified == true) {
                         onVerificationSuccess()
                     } else {
-                        Toast.makeText(this@SignUp2Activity, "인증번호가 일치하지 않습니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@SignUp2Activity, "인증번호가 일치하지 않습니다.")
                     }
                 }
                 override fun onFailure(call: Call<CheckVerificationResponse>, t: Throwable) {
-                    Toast.makeText(this@SignUp2Activity, "서버 연결 실패", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@SignUp2Activity, "서버 연결 실패")
                 }
             })
         }
 
         btnNext.setOnClickListener {
             if (!isPhoneVerified) {
-                Toast.makeText(this, "전화번호 인증을 완료해주세요.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "전화번호 인증을 완료해주세요.")
                 return@setOnClickListener
             }
             saveNameAndMoveToNext()
@@ -265,7 +265,7 @@ class SignUp2Activity : AppCompatActivity() {
         val phoneNum = findViewById<TextInputEditText>(R.id.et_phone_number).text.toString().trim().replace("-", "")
 
         if (name.isEmpty()) {
-            Toast.makeText(this, "이름을 입력해주세요.", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(this, "이름을 입력해주세요.")
             return
         }
 

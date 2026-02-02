@@ -1,7 +1,12 @@
 package com.example.smart_safety_management
 
 import android.app.DatePickerDialog
+import android.content.res.Configuration
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,86 +22,91 @@ import androidx.compose.material.icons.filled.Photo
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.smart_safety_management.ui.theme.*
-import java.util.Calendar
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import android.net.Uri
-import android.util.Log
-import android.widget.Toast
+import androidx.navigation.activity
 import coil.compose.AsyncImage
-import androidx.compose.ui.layout.ContentScale
-import android.content.Intent
-import androidx.compose.material.icons.filled.Close
+import com.example.smart_safety_management.ui.theme.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.util.Calendar
 
-
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
 @Composable
 fun DailyListScreen(
-    defaultDate: String,
-
-    // ✅ 추가: 수정모드에서 날짜도 프리필하려면 필요
-    initialDate: String = "",
-
-    initialLocation: String = "",
-    initialRiskFactor: String = "",
-    initialSafetyMeasure: String = "",
-    initialPhotoUris: List<String> = emptyList(),
-    onComplete: (String, String, String, String, List<String>) -> Unit
+    defaultDate: String? = null,
+    defaultLocation: String = "",
+    defaultRiskFactor: String = "",
+    defaultSafetyMeasure: String = "",
+    defaultAttachedPhotos: List<String> = emptyList(),
+    checkId: String? = null,
+    onComplete: (String, String, String, String, List<String>, String, Int) -> Unit = { _, _, _, _, _, _, _ -> }
 ) {
     val activity = LocalContext.current as? ComponentActivity
+    val calendar = Calendar.getInstance()
+    val year = calendar.get(Calendar.YEAR)
+    val month = calendar.get(Calendar.MONTH)
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+    var date by remember { mutableStateOf(defaultDate ?: "$year-${month + 1}-$day") }
+    var location by remember { mutableStateOf(defaultLocation) }
+    var riskFactor by remember { mutableStateOf(defaultRiskFactor) }
+    var safetyMeasure by remember { mutableStateOf(defaultSafetyMeasure) }
+    var attachedPhotos by remember { mutableStateOf(defaultAttachedPhotos) }
+
+    val coroutineScope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
+
+    val isFormComplete = date.isNotBlank() &&
+            location.isNotBlank() &&
+            riskFactor.isNotBlank() &&
+            safetyMeasure.isNotBlank() &&
+            attachedPhotos.isNotEmpty()
+
     val context = LocalContext.current
 
-    // ✅ 핵심: initialDate가 있으면 그걸로 시작, 없으면 defaultDate
-    val startDate = remember(defaultDate, initialDate) {
-        if (initialDate.isNotBlank()) initialDate else defaultDate
-    }
-    var dateStr by remember(startDate) { mutableStateOf(startDate) }
-
-    var location by remember(initialLocation) { mutableStateOf(initialLocation) }
-    var riskFactor by remember(initialRiskFactor) { mutableStateOf(initialRiskFactor) }
-    var safetyMeasure by remember(initialSafetyMeasure) { mutableStateOf(initialSafetyMeasure) }
-    var attachedPhotos by remember(initialPhotoUris) { mutableStateOf(initialPhotoUris) }
-    val pickImagesLauncher = rememberLauncherForActivityResult(
+    val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
-    ) { uris: List<Uri> ->
-        if (uris.isEmpty()) {
-            Toast.makeText(context, "선택된 사진이 없어요", Toast.LENGTH_SHORT).show()
-            return@rememberLauncherForActivityResult
-        }
-
-        val newOnes = uris
-            .map { it.toString() }
-            .distinct()
-            .filterNot { it in attachedPhotos }
-
-        attachedPhotos = attachedPhotos + newOnes
+    ) { uris ->
+        attachedPhotos = attachedPhotos + uris.map { it.toString() }
     }
 
-    val isFormComplete =
-        dateStr.isNotBlank() &&
-                location.isNotBlank() &&
-                riskFactor.isNotBlank() &&
-                safetyMeasure.isNotBlank() &&
-                attachedPhotos.isNotEmpty()
+    val datePickerDialog = remember {
+        DatePickerDialog(
+            context,
+            { _, selectedYear, selectedMonth, selectedDayOfMonth ->
+                date = "$selectedYear-${selectedMonth + 1}-$selectedDayOfMonth"
+            },
+            year, month, day
+        )
+    }
 
     Smart_Safety_ManagementTheme {
+        // 테마 블록 내부에서 색상 정의 (다크모드 인지 가능)
         val labelColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
         val calendarIconTint = if (MaterialTheme.colors.isLight) Color.Unspecified else GrayBorder
         val fieldBgColor = if (MaterialTheme.colors.isLight) Color.White else TextGray20
         val borderColor = if (MaterialTheme.colors.isLight) GrayBorder else TextDark
         val textColor = if (MaterialTheme.colors.isLight) TextGray else TextGray60
         val fieldTextColor = if (MaterialTheme.colors.isLight) TextGray20 else TextGray5
-
         Scaffold(
             backgroundColor = MaterialTheme.colors.onPrimary,
             topBar = {
@@ -133,43 +143,22 @@ fun DailyListScreen(
                     .padding(horizontal = 16.dp, vertical = 24.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                // 작성일
                 Text(
-                    "작성일",
+                    text = "작성일",
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-
                 OutlinedTextField(
-                    value = dateStr,
-                    onValueChange = { dateStr = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
+                    value = date,
+                    onValueChange = { date = it },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(
-                        fontFamily = Pretendard,
-                        fontSize = 18.sp,
-                        color = fieldTextColor
-                    ),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,color = fieldTextColor),
                     trailingIcon = {
-                        IconButton(
-                            onClick = {
-                                val (iy, im, id) = parseYmdOrToday(dateStr)
-                                DatePickerDialog(
-                                    context,
-                                    { _, y, m, d ->
-                                        dateStr = String.format("%04d-%02d-%02d", y, m + 1, d)
-                                    },
-                                    iy,
-                                    im - 1,
-                                    id
-                                ).show()
-                            }
-                        ) {
+                        IconButton(onClick = { datePickerDialog.show() }) {
                             Icon(
                                 painter = painterResource(id = R.drawable.calendar2),
                                 contentDescription = "Select date",
@@ -187,9 +176,8 @@ fun DailyListScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 위치
                 Text(
-                    "위치",
+                    text = "위치",
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
@@ -199,15 +187,9 @@ fun DailyListScreen(
                 OutlinedTextField(
                     value = location,
                     onValueChange = { location = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal=8.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(
-                        fontFamily = Pretendard,
-                        fontSize = 18.sp,
-                        color = fieldTextColor
-                    ),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,color = fieldTextColor),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         textColor = MaterialTheme.colors.onSurface,
                         unfocusedBorderColor = borderColor,
@@ -218,9 +200,8 @@ fun DailyListScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 위험요인
                 Text(
-                    "위험요인",
+                    text = "위험요인",
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
@@ -235,11 +216,7 @@ fun DailyListScreen(
                         .height(120.dp)
                         .padding(horizontal = 8.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(
-                        fontFamily = Pretendard,
-                        fontSize = 18.sp,
-                        color = fieldTextColor
-                    ),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,color = fieldTextColor),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         textColor = MaterialTheme.colors.onSurface,
                         unfocusedBorderColor = borderColor,
@@ -250,9 +227,8 @@ fun DailyListScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 안전대책
                 Text(
-                    "안전대책",
+                    text = "안전대책",
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
@@ -267,11 +243,7 @@ fun DailyListScreen(
                         .height(120.dp)
                         .padding(horizontal = 8.dp),
                     shape = RoundedCornerShape(8.dp),
-                    textStyle = TextStyle(
-                        fontFamily = Pretendard,
-                        fontSize = 18.sp,
-                        color = fieldTextColor
-                    ),
+                    textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp, color = fieldTextColor),
                     colors = TextFieldDefaults.outlinedTextFieldColors(
                         textColor = MaterialTheme.colors.onSurface,
                         unfocusedBorderColor = borderColor,
@@ -282,9 +254,8 @@ fun DailyListScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // 현장사진
                 Text(
-                    "현장사진",
+                    text = "현장사진",
                     fontSize = 16.sp,
                     color = labelColor,
                     fontFamily = Pretendard,
@@ -304,11 +275,8 @@ fun DailyListScreen(
                             .size(120.dp)
                             .background(fieldBgColor, shape = RoundedCornerShape(8.dp))
                             .clickable {
-                                pickImagesLauncher.launch("image/*")
-
-                            }
-                        ,
-
+                                launcher.launch("image/*")
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -319,7 +287,9 @@ fun DailyListScreen(
                                 cornerRadius = CornerRadius(8.dp.toPx())
                             )
                         }
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Icon(
                                 painter = painterResource(id = R.drawable.camera_icon),
                                 contentDescription = "사진첨부",
@@ -335,58 +305,115 @@ fun DailyListScreen(
                         }
                     }
 
-                    attachedPhotos.reversed().forEach { uriStr ->
+                    attachedPhotos.reversed().forEach { photoUri ->
                         Spacer(modifier = Modifier.width(8.dp))
-
                         Box(
                             modifier = Modifier
                                 .size(120.dp)
                                 .background(fieldBgColor, shape = RoundedCornerShape(8.dp))
-                                .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+                                .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
                         ) {
                             AsyncImage(
-                                model = uriStr,
-                                contentDescription = null,
+                                model = Uri.parse(photoUri),
+                                contentDescription = "Attached Photo",
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp))
                             )
-
-                            // ✅ 삭제 X 버튼
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .padding(6.dp)
-                                    .size(22.dp)
-                                    .background(fieldBgColor, RoundedCornerShape(999.dp))
-                                    .clickable {
-                                        attachedPhotos = attachedPhotos.filterNot { it == uriStr }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "remove",
-                                    tint = MaterialTheme.colors.onSurface,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
                         }
                     }
-
-
                 }
 
+                Spacer(modifier = Modifier.weight(1f))
                 Spacer(modifier = Modifier.height(48.dp))
-
                 Button(
                     onClick = {
-                        if (isFormComplete) {
-                            onComplete(dateStr, location, riskFactor, safetyMeasure, attachedPhotos)
+                        if (isFormComplete && !isLoading) {
+                            isLoading = true
+                            coroutineScope.launch(Dispatchers.IO) {
+                                val userId = UserSession.userId ?: ""
+                                val writerIdBody = RequestBody.create("text/plain".toMediaTypeOrNull(), userId)
+                                val locationBody = RequestBody.create("text/plain".toMediaTypeOrNull(), location)
+                                val hazardBody = RequestBody.create("text/plain".toMediaTypeOrNull(), riskFactor)
+                                val countermeasureBody = RequestBody.create("text/plain".toMediaTypeOrNull(), safetyMeasure)
+                                // val checkDateBody = RequestBody.create("text/plain".toMediaTypeOrNull(), date) // check_date는 null로 저장하기 위해 전송하지 않음
+                                
+                                if (checkId == null) {
+                                    // 생성 모드
+                                    val imageParts = attachedPhotos.mapNotNull { uriString ->
+                                        val uri = Uri.parse(uriString)
+                                        uriToFile(context, uri)?.let { file ->
+                                            val requestFile = RequestBody.create("image/*".toMediaTypeOrNull(), file)
+                                            MultipartBody.Part.createFormData("images", file.name, requestFile)
+                                        }
+                                    }
+
+                                    RetrofitClient.instance.createDailyCheck(
+                                        writerIdBody, locationBody, hazardBody, countermeasureBody, null, imageParts
+                                    ).enqueue(object : Callback<CreateDailyCheckResponse> {
+                                        override fun onResponse(call: Call<CreateDailyCheckResponse>, response: Response<CreateDailyCheckResponse>) {
+                                            isLoading = false
+                                            if (response.isSuccessful) {
+                                                val body = response.body()
+                                                val newCheckId = body?.checkId?.toString() ?: ""
+                                                val serverImageUrls = body?.imageUrls ?: emptyList()
+                                                val dayInt = date.split("-").getOrNull(2)?.toIntOrNull() ?: 0
+                                                onComplete(date, location, riskFactor, safetyMeasure, serverImageUrls, newCheckId, dayInt)
+                                            } else {
+                                                Toast.makeText(context, "저장 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                        override fun onFailure(call: Call<CreateDailyCheckResponse>, t: Throwable) {
+                                            isLoading = false
+                                            Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    })
+                                } else {
+                                    // 수정 모드
+                                    val checkIdBody = RequestBody.create("text/plain".toMediaTypeOrNull(), checkId)
+                                    
+                                    // 기존 이미지(URL)와 새 이미지(URI) 분리
+                                    val keptUrls = attachedPhotos.filter { it.startsWith("http") }
+                                    val newUris = attachedPhotos.filter { !it.startsWith("http") }
+
+                                    val keptImageParts = keptUrls.map { url ->
+                                        MultipartBody.Part.createFormData("kept_image_urls", url)
+                                    }
+
+                                    val newImageParts = newUris.mapNotNull { uriString ->
+                                        val uri = Uri.parse(uriString)
+                                        uriToFile(context, uri)?.let { file ->
+                                            val requestFile = RequestBody.create("image/*".toMediaTypeOrNull(), file)
+                                            MultipartBody.Part.createFormData("new_images", file.name, requestFile)
+                                        }
+                                    }
+
+                                    RetrofitClient.instance.updateDailyCheck(
+                                        checkIdBody, locationBody, hazardBody, countermeasureBody, null, keptImageParts, newImageParts
+                                    ).enqueue(object : Callback<CreateDailyCheckResponse> {
+                                        override fun onResponse(call: Call<CreateDailyCheckResponse>, response: Response<CreateDailyCheckResponse>) {
+                                            isLoading = false
+                                            if (response.isSuccessful) {
+                                                val body = response.body()
+                                                val serverImageUrls = body?.imageUrls ?: emptyList()
+                                                val dayInt = date.split("-").getOrNull(2)?.toIntOrNull() ?: 0
+                                                onComplete(date, location, riskFactor, safetyMeasure, serverImageUrls, checkId, dayInt)
+                                            } else {
+                                                Toast.makeText(context, "수정 실패: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                        override fun onFailure(call: Call<CreateDailyCheckResponse>, t: Throwable) {
+                                            isLoading = false
+                                            Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    })
+                                }
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    enabled = isFormComplete,
+                    enabled = isFormComplete && !isLoading,
                     colors = ButtonDefaults.buttonColors(
                         backgroundColor = MaterialTheme.colors.primary,
                         contentColor = MaterialTheme.colors.onPrimary,
@@ -394,34 +421,20 @@ fun DailyListScreen(
                         disabledContentColor = textColor
                     )
                 ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
                     Text(
                         text = "작성완료",
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = Pretendard,
                         fontSize = 18.sp,
                         modifier = Modifier.padding(vertical = 8.dp),
-                        letterSpacing = (-0.3).sp
+                        letterSpacing = (-0.3).sp,
                     )
+                    }
                 }
             }
         }
-    }
-}
-
-private fun parseYmdOrToday(dateStr: String): Triple<Int, Int, Int> {
-    val parts = dateStr.split("-")
-    val y = parts.getOrNull(0)?.toIntOrNull()
-    val m = parts.getOrNull(1)?.toIntOrNull()
-    val d = parts.getOrNull(2)?.toIntOrNull()
-
-    return if (y != null && m != null && d != null) {
-        Triple(y, m, d)
-    } else {
-        val cal = Calendar.getInstance()
-        Triple(
-            cal.get(Calendar.YEAR),
-            cal.get(Calendar.MONTH) + 1,
-            cal.get(Calendar.DAY_OF_MONTH)
-        )
     }
 }

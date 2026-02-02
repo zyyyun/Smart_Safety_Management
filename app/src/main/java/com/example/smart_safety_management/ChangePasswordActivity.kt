@@ -53,7 +53,7 @@ class ChangePasswordActivity : AppCompatActivity() {
 
             // 1. 유효성 검사
             if (newPw.isEmpty() || reNewPw.isEmpty()) {
-                Toast.makeText(this, "비밀번호를 입력해주세요.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "비밀번호를 입력해주세요.")
                 return@setOnClickListener
             }
 
@@ -65,7 +65,7 @@ class ChangePasswordActivity : AppCompatActivity() {
             }
 
             if (newPw != reNewPw) {
-                Toast.makeText(this, "비밀번호가 일치하지 않습니다.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "비밀번호가 일치하지 않습니다.")
                 return@setOnClickListener
             }
 
@@ -73,7 +73,7 @@ class ChangePasswordActivity : AppCompatActivity() {
             val userId = intent.getStringExtra("userId")
 
             if (userId == null) {
-                Toast.makeText(this, "사용자 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "사용자 정보를 찾을 수 없습니다.")
                 return@setOnClickListener
             }
 
@@ -81,17 +81,17 @@ class ChangePasswordActivity : AppCompatActivity() {
             RetrofitClient.instance.changePassword(request).enqueue(object : Callback<ChangePasswordResponse> {
                 override fun onResponse(call: Call<ChangePasswordResponse>, response: Response<ChangePasswordResponse>) {
                     if (response.isSuccessful) {
-                        Toast.makeText(this@ChangePasswordActivity, "비밀번호가 성공적으로 변경되었습니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@ChangePasswordActivity, "비밀번호가 성공적으로 변경되었습니다.")
                         val intent = Intent(this@ChangePasswordActivity, LogInActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                         startActivity(intent)
                         finish()
                     } else {
-                        Toast.makeText(this@ChangePasswordActivity, "비밀번호 변경 실패", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@ChangePasswordActivity, "비밀번호 변경 실패")
                     }
                 }
                 override fun onFailure(call: Call<ChangePasswordResponse>, t: Throwable) {
-                    Toast.makeText(this@ChangePasswordActivity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@ChangePasswordActivity, "네트워크 오류: ${t.message}")
                 }
             })
         }

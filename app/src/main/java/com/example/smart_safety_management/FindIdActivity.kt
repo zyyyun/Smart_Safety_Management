@@ -73,7 +73,7 @@ class FindIdActivity: AppCompatActivity() {
             val phoneNum = etPhoneNumber.text.toString().trim().replace("-", "")
 
             if (name.isEmpty() || phoneNum.isEmpty()) {
-                Toast.makeText(this, "이름과 전화번호를 모두 입력해주세요.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this, "이름과 전화번호를 모두 입력해주세요.")
                 return@setOnClickListener
             }
 
@@ -92,15 +92,15 @@ class FindIdActivity: AppCompatActivity() {
                         intent.putExtra("USER_ID", userId)
                         startActivity(intent)
                     } else {
-                        Toast.makeText(this@FindIdActivity, "일치하는 사용자 정보를 찾을 수 없습니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(this@FindIdActivity, "일치하는 사용자 정보를 찾을 수 없습니다.")
                     }
                 } else {
-                    Toast.makeText(this@FindIdActivity, "서버 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@FindIdActivity, "서버 오류가 발생했습니다.")
                 }
             }
 
             override fun onFailure(call: Call<FindIdResponse>, t: Throwable) {
-                Toast.makeText(this@FindIdActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this@FindIdActivity, "네트워크 오류가 발생했습니다.")
             }
         })
     }

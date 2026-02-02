@@ -5,8 +5,12 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import android.view.View
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class SplashActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,52 +39,69 @@ class SplashActivity : AppCompatActivity() {
         fadeLogo.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
                 if (isLoggedIn) {
-                    // 로그인 되어 있으면 바로 홈화면으로 이동 (딜레이 후)
-                    logo.postDelayed({
-                        val intent = if (UserSession.userRole == UserRole.MANAGER) {
-                            Intent(this@SplashActivity, HomeActivity::class.java)
-                        } else {
-                            Intent(this@SplashActivity, HomeWorkerActivity::class.java)
+                    // 서버에 계정 존재 여부 확인 (계정이 삭제되었거나 문제가 생겼을 경우 대비)
+                    val userId = UserSession.userId ?: ""
+                    RetrofitClient.instance.getUsers(userId).enqueue(object : Callback<GetUsersResponse> {
+                        override fun onResponse(call: Call<GetUsersResponse>, response: Response<GetUsersResponse>) {
+                            if (response.isSuccessful) {
+                                // 계정 존재 확인됨 -> 홈 화면으로
+                                moveToHome()
+                            } else if (response.code() == 404) {
+                                // 계정을 찾을 수 없음 (서버에서 삭제됨 등) -> 세션 지우고 타이틀로
+                                UserSession.clearSession(this@SplashActivity)
+                                showAuthButtons(logo, btnSignUp, btnLogin)
+                            } else {
+                                // 기타 서버 오류 상황 -> 일단 홈으로 보내거나 네트워크 체크 유도 (여기선 홈으로)
+                                moveToHome()
+                            }
                         }
-                        startActivity(intent)
-                        finish()
-                    }, 1000)
+
+                        override fun onFailure(call: Call<GetUsersResponse>, t: Throwable) {
+                            // 네트워크 오류 시에도 일단 저장된 세션으로 진입 시도
+                            moveToHome()
+                        }
+                    })
                 } else {
                     // 로그인 안 되어 있으면 버튼 등장
-                    logo.postDelayed({
-                        // 로고 위로 이동
-                        val moveLogoUp = ObjectAnimator.ofFloat(
-                            logo,
-                            "translationY",
-                            0f,
-                            -150f   // 위로 이동
-                        )
-                        moveLogoUp.duration = 700
-                        moveLogoUp.start()
-
-                        val fadeBtn1 = ObjectAnimator.ofFloat(btnSignUp, "alpha", 0f, 1f)
-                        fadeBtn1.duration = 700
-                        fadeBtn1.start()
-
-                        val fadeBtn2 = ObjectAnimator.ofFloat(btnLogin, "alpha", 0f, 1f)
-                        fadeBtn2.duration = 700
-                        fadeBtn2.start()
-
-                    }, 1000)
+                    showAuthButtons(logo, btnSignUp, btnLogin)
                 }
             }
         })
         
-        // 회원가입 버튼 이동
         btnSignUp.setOnClickListener {
             val intent = Intent(this, SignUp1Activity::class.java)
             startActivity(intent)
         }
 
-        // 로그인 버튼 이동
         btnLogin.setOnClickListener {
             val intent = Intent(this, LogInActivity::class.java)
             startActivity(intent)
         }
+    }
+
+    private fun moveToHome() {
+        val intent = if (UserSession.userRole == UserRole.MANAGER) {
+            Intent(this@SplashActivity, HomeActivity::class.java)
+        } else {
+            Intent(this@SplashActivity, HomeWorkerActivity::class.java)
+        }
+        startActivity(intent)
+        finish()
+    }
+
+    private fun showAuthButtons(logo: View, btnSignUp: View, btnLogin: View) {
+        logo.postDelayed({
+            val moveLogoUp = ObjectAnimator.ofFloat(logo, "translationY", 0f, -150f)
+            moveLogoUp.duration = 700
+            moveLogoUp.start()
+
+            val fadeBtn1 = ObjectAnimator.ofFloat(btnSignUp, "alpha", 0f, 1f)
+            fadeBtn1.duration = 700
+            fadeBtn1.start()
+
+            val fadeBtn2 = ObjectAnimator.ofFloat(btnLogin, "alpha", 0f, 1f)
+            fadeBtn2.duration = 700
+            fadeBtn2.start()
+        }, 1000)
     }
 }

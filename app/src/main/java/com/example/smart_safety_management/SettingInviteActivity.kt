@@ -47,9 +47,9 @@ class SettingInviteActivity : AppCompatActivity() {
                 }
                 updateTabState(isManagerTab)
                 
-                // 선택된 연락처가 있을 경우 첫 번째 연락처로 메시지 앱 실행
+                // 선택된 모든 연락처로 메시지 앱 실행
                 if (it.isNotEmpty()) {
-                    sendInviteSms(it[0].phoneNumber)
+                    sendInviteSms(it)
                 }
             }
         }
@@ -93,8 +93,8 @@ class SettingInviteActivity : AppCompatActivity() {
 
         // 리사이클러뷰 설정
         adapter = InvitedUserAdapter(mutableListOf()) { item ->
-            // 다시초대 클릭 시 메시지 앱 실행
-            sendInviteSms(item.phoneNumber)
+            // 다시초대 클릭 시 해당 한 명에게 발송
+            sendInviteSms(listOf(item))
         }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
@@ -108,7 +108,6 @@ class SettingInviteActivity : AppCompatActivity() {
         btnInvite.setOnClickListener {
             val intent = Intent(this, SettingInvitePhonenumberActivity::class.java)
             
-            // 현재 탭에 이미 추가된 번호들을 추출해서 전달 (중복 방지용)
             val currentList = if (isManagerTab) managerList else workerList
             val alreadyInvitedNumbers = currentList.map { it.phoneNumber.replace(Regex("[^0-9]"), "") }
             intent.putStringArrayListExtra("already_invited", ArrayList(alreadyInvitedNumbers))
@@ -131,15 +130,12 @@ class SettingInviteActivity : AppCompatActivity() {
             getCancelResult.launch(intent)
         }
 
-        // 초기 상태: 관리자 선택
         updateTabState(isManagerSelected = true)
 
-        // 관리자 탭 클릭
         tabManager.setOnClickListener {
             updateTabState(isManagerSelected = true)
         }
 
-        // 근로자 탭 클릭
         tabWorker.setOnClickListener {
             updateTabState(isManagerSelected = false)
         }
@@ -173,7 +169,6 @@ class SettingInviteActivity : AppCompatActivity() {
             emptyText.text = "아직 초대된 근로자가 없어요"
         }
 
-        // 리스트 업데이트 및 빈 화면 처리
         if (currentList.isEmpty()) {
             recyclerView.visibility = View.GONE
             emptyText.visibility = View.VISIBLE
@@ -190,21 +185,30 @@ class SettingInviteActivity : AppCompatActivity() {
         }
     }
 
-    private fun sendInviteSms(phoneNumber: String) {
-        val inviteCode = "1234"
-        val message = "[안나 안전관리] 안전관리 시스템에 초대되었습니다.\n" +
+    private fun sendInviteSms(contacts: List<InviteContactItem>) {
+        // DB에서 가져와 UserSession에 저장된 현재 관리자의 초대코드를 사용
+        val inviteCode = UserSession.inviteCode
+        if (inviteCode.isNullOrEmpty()) {
+            ToastUtil.showShort(this, "초대코드를 불러올 수 없습니다. 다시 로그인해주세요.")
+            return
+        }
+
+        // 선택된 모든 전화번호를 ';'로 연결
+        val phoneNumbers = contacts.joinToString(";") { it.phoneNumber.replace("-", "") }
+        
+        val message = "[중대재해예방 플랫폼] 안전관리 시스템에 초대되었습니다.\n" +
                 "초대코드: $inviteCode\n" +
                 "앱을 설치하고 코드를 입력하여 가입을 완료해주세요."
 
         val intent = Intent(Intent.ACTION_SENDTO).apply {
-            data = Uri.parse("smsto:${phoneNumber.replace("-", "")}")
+            data = Uri.parse("smsto:$phoneNumbers")
             putExtra("sms_body", message)
         }
 
         try {
             startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(this, "메시지 앱을 열 수 없습니다.", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(this, "메시지 앱을 열 수 없습니다.")
         }
     }
 }

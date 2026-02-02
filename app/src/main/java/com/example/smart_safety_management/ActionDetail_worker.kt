@@ -781,22 +781,22 @@ fun ActionDetailWorkerScreen(
                         RetrofitClient.instance.completeAction(request).enqueue(object : Callback<Void> {
                             override fun onResponse(call: Call<Void>, response: Response<Void>) {
                                 if (response.isSuccessful) {
-                                    Toast.makeText(context, "조치 완료 처리되었습니다.", Toast.LENGTH_SHORT).show()
+                                    ToastUtil.showShort(context, "조치 완료 처리되었습니다.")
                                     showActionCompletedDialog = false
                                     onBackClick() // 성공 시 뒤로가기
                                 } else {
-                                    Toast.makeText(context, "오류가 발생했습니다: ${response.code()}", Toast.LENGTH_SHORT).show()
+                                    ToastUtil.showShort(context, "오류가 발생했습니다: ${response.code()}")
                                     showActionCompletedDialog = false
                                 }
                             }
 
                             override fun onFailure(call: Call<Void>, t: Throwable) {
-                                Toast.makeText(context, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                                ToastUtil.showShort(context, "네트워크 오류: ${t.message}")
                                 showActionCompletedDialog = false
                             }
                         })
                     } else {
-                        Toast.makeText(context, "사용자 정보를 가져올 수 없습니다.", Toast.LENGTH_SHORT).show()
+                        ToastUtil.showShort(context, "사용자 정보를 가져올 수 없습니다.")
                         showActionCompletedDialog = false
                     }
                 }

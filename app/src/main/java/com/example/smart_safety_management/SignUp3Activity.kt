@@ -79,13 +79,13 @@ class SignUp3Activity : AppCompatActivity() {
         val rePw = etRePw.text.toString()
 
         if (id.isBlank() || pw.isBlank() || rePw.isBlank()) {
-            Toast.makeText(this, "아이디와 비밀번호를 모두 입력해주세요.", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(this, "아이디와 비밀번호를 모두 입력해주세요.")
             return
         }
 
         // 아이디 길이 체크 (2글자 이상)
         if (id.length < 2) {
-            Toast.makeText(this, "아이디는 2글자 이상 입력해주세요.", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(this, "아이디는 2글자 이상 입력해주세요.")
             return
         }
 
@@ -98,7 +98,7 @@ class SignUp3Activity : AppCompatActivity() {
         }
 
         if (pw != rePw) {
-            Toast.makeText(this, "비밀번호가 일치하지 않습니다.", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(this, "비밀번호가 일치하지 않습니다.")
             return
         }
 
@@ -118,7 +118,6 @@ class SignUp3Activity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     // 가입 성공 - 세션에 ID 저장 후 이동
                     UserSession.userId = id
-                    UserSession.userPassword = null // 보안상 비번은 제거
                     
                     val intent = Intent(this@SignUp3Activity, SignUp4Activity::class.java)
                     startActivity(intent)
@@ -126,12 +125,12 @@ class SignUp3Activity : AppCompatActivity() {
                 } else {
                     // 실패 시
                     val errorMsg = response.errorBody()?.string() ?: "회원가입 처리 중 오류가 발생했습니다."
-                    Toast.makeText(this@SignUp3Activity, errorMsg, Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@SignUp3Activity, errorMsg)
                 }
             }
 
             override fun onFailure(call: Call<SignUpResponse>, t: Throwable) {
-                Toast.makeText(this@SignUp3Activity, "네트워크 오류: ${t.message}", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this@SignUp3Activity, "네트워크 오류: ${t.message}")
             }
         })
     }

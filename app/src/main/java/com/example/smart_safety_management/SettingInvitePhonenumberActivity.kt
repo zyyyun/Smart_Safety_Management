@@ -129,7 +129,7 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
         if (requestCode == CONTACTS_PERMISSION_CODE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             loadActualContacts()
         } else {
-            Toast.makeText(this, "연락처 권한이 필요합니다.", Toast.LENGTH_SHORT).show()
+            ToastUtil.showShort(this, "연락처 권한이 필요합니다.")
         }
     }
 
@@ -184,14 +184,14 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
                     }
                     updateList(filteredContacts)
                 } else {
-                    Toast.makeText(this@SettingInvitePhonenumberActivity, "유저 확인 실패", Toast.LENGTH_SHORT).show()
+                    ToastUtil.showShort(this@SettingInvitePhonenumberActivity, "유저 확인 실패")
                     // 실패 시에도 이미 초대된 번호는 제외하고 표시
                     val filtered = tempList.filter { !alreadyInvited.contains(it.phoneNumber.replace(Regex("[^0-9]"), "")) }
                     updateList(filtered)
                 }
             }
             override fun onFailure(call: Call<CheckRegisteredContactsResponse>, t: Throwable) {
-                Toast.makeText(this@SettingInvitePhonenumberActivity, "네트워크 오류", Toast.LENGTH_SHORT).show()
+                ToastUtil.showShort(this@SettingInvitePhonenumberActivity, "네트워크 오류")
                 // 오류 시에도 이미 초대된 번호는 제외하고 표시
                 val filtered = tempList.filter { !alreadyInvited.contains(it.phoneNumber.replace(Regex("[^0-9]"), "")) }
                 updateList(filtered)

@@ -39,7 +39,8 @@ data class SignUpRequest(
     @SerializedName("phone_num") val phoneNum: String?,
     val email: String?,
     @SerializedName("user_role") val userRole: String,
-    @SerializedName("group_id") val groupId: String?
+    @SerializedName("group_id") val groupId: String?,
+    @SerializedName("invite_code") val inviteCode: String? = null
 )
 
 data class SignUpResponse(
@@ -63,7 +64,9 @@ data class UserData(
     @SerializedName("user_role") val userRole: String,
     @SerializedName("phone_num") val phoneNum: String?,
     val email: String?,
-    @SerializedName("profile_image_url") val profileImageUri: String?
+    @SerializedName("profile_image_url") val profileImageUri: String?,
+    @SerializedName("group_id") val groupId: String?,
+    @SerializedName("invite_code") val inviteCode: String? // 초대코드 추가
 )
 
 data class UpdateProfileRequest(
@@ -255,6 +258,11 @@ data class FindIdRequest(
     @SerializedName("phone_num") val phoneNum: String
 )
 
+data class FindIdRequestFindIdResponse(
+    val message: String,
+    @SerializedName("user_id") val userId: String?
+)
+
 data class FindIdResponse(
     val message: String,
     @SerializedName("user_id") val userId: String?
@@ -280,11 +288,53 @@ data class DailyCheckDTO(
     @SerializedName("check_date") val checkDate: String,
     @SerializedName("created_at") val createdAt: String?,
     @SerializedName("writer_id") val writerId: String,
-    @SerializedName("worker_id") val workerId: String?
+    @SerializedName("worker_id") val workerId: String?,
+    val images: List<String>?
+)
+
+data class CreateDailyCheckResponse(
+    val message: String,
+    @SerializedName("check_id") val checkId: Int,
+    @SerializedName("image_urls") val imageUrls: List<String>
 )
 
 data class GetDailyChecksResponse(
     val checks: List<DailyCheckDTO>
+)
+
+data class NotificationDTO(
+    @SerializedName("notification_id") val id: Int,
+    val title: String,
+    val content: String,
+    @SerializedName("created_at") val createdAt: String,
+    @SerializedName("is_read") var isRead: Boolean
+)
+
+data class GetNotificationsResponse(
+    val notifications: List<NotificationDTO>
+)
+
+data class MarkNotificationReadRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("notification_id") val notificationId: Int? = null
+)
+
+data class DeleteDailyCheckRequest(
+    @SerializedName("check_id") val checkId: Int
+)
+
+data class DeleteDailyCheckResponse(
+    val message: String
+)
+
+data class JoinGroupRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("invite_code") val inviteCode: String
+)
+
+data class JoinGroupResponse(
+    val message: String,
+    @SerializedName("group_id") val groupId: String
 )
 
 interface SignUpService {
@@ -385,4 +435,39 @@ interface SignUpService {
         @Query("year") year: Int,
         @Query("month") month: Int
     ): Call<GetDailyChecksResponse>
+
+    @Multipart
+    @POST("/create_daily_check")
+    fun createDailyCheck(
+        @Part("writer_id") writerId: RequestBody,
+        @Part("location") location: RequestBody,
+        @Part("hazard") hazard: RequestBody,
+        @Part("countermeasure") countermeasure: RequestBody,
+        @Part("check_date") checkDate: RequestBody?,
+        @Part images: List<MultipartBody.Part>
+    ): Call<CreateDailyCheckResponse>
+
+    @Multipart
+    @POST("/update_daily_check")
+    fun updateDailyCheck(
+        @Part("check_id") checkId: RequestBody,
+        @Part("location") location: RequestBody,
+        @Part("hazard") hazard: RequestBody,
+        @Part("countermeasure") countermeasure: RequestBody,
+        @Part("check_date") checkDate: RequestBody?,
+        @Part keptImageUrls: List<MultipartBody.Part>,
+        @Part newImages: List<MultipartBody.Part>
+    ): Call<CreateDailyCheckResponse>
+
+    @GET("/get_notifications")
+    fun getNotifications(@Query("user_id") userId: String): Call<GetNotificationsResponse>
+
+    @POST("/mark_notifications_read")
+    fun markNotificationsRead(@Body request: MarkNotificationReadRequest): Call<Void>
+
+    @POST("/delete_daily_check")
+    fun deleteDailyCheck(@Body request: DeleteDailyCheckRequest): Call<DeleteDailyCheckResponse>
+
+    @POST("/join_group")
+    fun joinGroup(@Body request: JoinGroupRequest): Call<JoinGroupResponse>
 }
