@@ -9,6 +9,10 @@ object TimeUtils {
 
         // 서버에서 오는 포맷 (YYYY-MM-DD HH:mm)
         val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.KOREA)
+        
+        // ✅ 핵심: 서버 데이터(UTC)를 한국 기기 시간과 비교하기 위해 타임존을 UTC로 설정
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
+        
         try {
             val date = sdf.parse(dateString) ?: return dateString
             val now = System.currentTimeMillis()
@@ -20,6 +24,9 @@ object TimeUtils {
             val days = hours / 24
             val months = days / 30
             val years = days / 365
+
+            // 미래 시간일 경우 (서버-클라 미세한 오차)
+            if (diff < 0) return "방금 전"
 
             return when {
                 seconds < 60 -> "방금 전"
