@@ -21,6 +21,7 @@
         android:required="false" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -28,6 +29,7 @@
 
 
     <application
+        android:name=".MyApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -91,7 +93,7 @@
 
         <!-- 비밀번호 수정 화면 -->
         <activity android:name=".ChangePasswordActivity"/>
-        
+
         <!-- 비밀번호 수정 완료 화면 -->
         <activity android:name=".PasswordChangedActivity"/>
 
@@ -219,7 +221,21 @@
             android:name=".ActionDetailWorkerActivity"
             android:exported="false"/>
 
-        
+
+        <!-- ✅ 카카오 네이티브 앱 키 -->
+        <meta-data
+            android:name="com.kakao.sdk.AppKey"
+            android:value="ac06bf15c3f3dc080afb2a22bed9dfba" />
+        <!-- ✅ 카카오 SDK 키 -->
+        <meta-data
+            android:name="com.kakao.sdk.AppKey"
+            android:value="ac06bf15c3f3dc080afb2a22bed9dfba" />
+
+        <!-- ✅ 카카오 VectorMap 키 (추가) -->
+        <meta-data
+            android:name="com.kakao.vectormap.APP_KEY"
+            android:value="ac06bf15c3f3dc080afb2a22bed9dfba" />
+
     </application>
 
 </manifest>
