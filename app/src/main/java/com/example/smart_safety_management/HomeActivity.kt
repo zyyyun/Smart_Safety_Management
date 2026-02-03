@@ -603,6 +603,11 @@ class HomeActivity : AppCompatActivity() {
         val tvError = dialogView.findViewById<View>(R.id.tv_error)
         val tvSkip = dialogView.findViewById<TextView>(R.id.tv_skip_invite_code)
 
+        // 내 초대코드가 있으면 미리 입력해두기
+        if (!UserSession.inviteCode.isNullOrEmpty()) {
+            etInviteCode.setText(UserSession.inviteCode)
+        }
+
         tvSkip.paintFlags = tvSkip.paintFlags or Paint.UNDERLINE_TEXT_FLAG
 
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
