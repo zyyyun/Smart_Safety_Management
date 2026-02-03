@@ -591,7 +591,8 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeDialog() {
-        if (!UserSession.isInviteChecked && UserSession.groupId.isNullOrEmpty()) showInviteCodeDialog()
+        // DB의 is_invited_checked 값이 false이면 팝업 표시
+        if (!UserSession.isInviteChecked) showInviteCodeDialog()
     }
 
     private fun showInviteCodeDialog() {
@@ -639,8 +640,7 @@ class HomeActivity : AppCompatActivity() {
         }
 
         tvSkip.setOnClickListener {
-            UserSession.isInviteChecked = true
-            UserSession.saveSession(this) 
+            // 건너뛰기 시 저장하지 않음 (다음에 다시 뜸)
             dialog.dismiss()
         }
 

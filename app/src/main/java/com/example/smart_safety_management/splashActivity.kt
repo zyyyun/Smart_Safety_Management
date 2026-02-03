@@ -45,6 +45,13 @@ class SplashActivity : AppCompatActivity() {
                         override fun onResponse(call: Call<GetUsersResponse>, response: Response<GetUsersResponse>) {
                             if (response.isSuccessful) {
                                 // 계정 존재 확인됨 -> 홈 화면으로
+                                // 서버에서 최신 유저 정보를 가져와 세션 업데이트 (is_invited_checked 동기화)
+                                val users = response.body()?.users
+                                val currentUser = users?.find { it.userId == userId }
+                                if (currentUser != null) {
+                                    UserSession.isInviteChecked = currentUser.isInvitedChecked
+                                    UserSession.saveSession(this@SplashActivity)
+                                }
                                 moveToHome()
                             } else if (response.code() == 404) {
                                 // 계정을 찾을 수 없음 (서버에서 삭제됨 등) -> 세션 지우고 타이틀로
