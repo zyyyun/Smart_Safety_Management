@@ -58,7 +58,15 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
                         allPeople.remove(deletedItem)
                         applyFilterAndSearch()
                     } else {
-                        ToastUtil.showShort(this@SettingPeopleManagementActivity, "제거에 실패했습니다.")
+                        // 서버에서 보낸 구체적인 에러 메시지 표시
+                        val errorBody = response.errorBody()?.string()
+                        val errorMessage = try {
+                            val json = org.json.JSONObject(errorBody)
+                            json.getString("message")
+                        } catch (e: Exception) {
+                            "제거에 실패했습니다." // 파싱 실패 시 기본 메시지
+                        }
+                        ToastUtil.showShort(this@SettingPeopleManagementActivity, errorMessage)
                     }
                 }
                 override fun onFailure(call: Call<RemoveFromGroupResponse>, t: Throwable) {
