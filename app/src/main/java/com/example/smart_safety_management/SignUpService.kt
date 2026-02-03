@@ -77,7 +77,8 @@ data class UserData(
     val email: String?,
     @SerializedName("profile_image_url") val profileImageUri: String?,
     @SerializedName("group_id") val groupId: String?,
-    @SerializedName("invite_code") val inviteCode: String? // 초대코드 추가
+    @SerializedName("invite_code") val inviteCode: String?, // 초대코드 추가
+    @SerializedName("is_invite_checked") val isInviteChecked: Boolean = false // 초대코드 확인 여부 추가
 )
 
 data class UpdateProfileRequest(
@@ -356,6 +357,14 @@ data class SendIndividualNotificationRequest(
     val content: String
 )
 
+data class DeleteCamerasRequest(
+    @SerializedName("camera_ids") val cameraIds: List<Int>
+)
+
+data class DeleteCamerasResponse(
+    val message: String
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -393,7 +402,7 @@ interface SignUpService {
     @GET("/get_cctv_list")
     fun getCCTVList(
         @Query("area") area: String?,
-        @Query("event_names") eventNames: List<String>?,
+        @Query("events") eventNames: List<String>?, // ✅ [수정] 서버 변수명(events)과 일치시킴
         @Query("user_id") userId: String
     ): Call<GetCCTVListResponse>
 
@@ -511,4 +520,7 @@ interface SignUpService {
 
     @POST("/send_individual_notification")
     fun sendIndividualNotification(@Body request: SendIndividualNotificationRequest): Call<Void>
+
+    @POST("/delete_cameras")
+    fun deleteCameras(@Body request: DeleteCamerasRequest): Call<DeleteCamerasResponse>
 }

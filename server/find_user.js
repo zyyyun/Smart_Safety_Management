@@ -2,9 +2,13 @@ const express = require('express');
 const router = express.Router();
 const pool = require('./db'); // pg pool 사용
 
+console.log("✅ find_user.js 라우터가 로드되었습니다.");
+
 // 1. 아이디 찾기 API
 router.post('/find_id', async (req, res) => {
-    let { name, phone_num } = req.body;
+    const name = req.body.name;
+    // 클라이언트가 phoneNum(camelCase)으로 보낼 경우 대비
+    const phone_num = req.body.phone_num || req.body.phoneNum;
 
     if (!name || !phone_num) {
         return res.status(400).json({ message: "이름과 전화번호를 모두 제공해야 합니다." });
@@ -23,6 +27,7 @@ router.post('/find_id', async (req, res) => {
                 user_id: userId
             });
         } else {
+            console.log(`[find_id] 사용자 찾기 실패 - 이름: ${name}, 전화번호: ${cleanPhoneNum}`);
             return res.status(404).json({ message: "일치하는 사용자를 찾을 수 없습니다." });
         }
     } catch (err) {
@@ -33,7 +38,10 @@ router.post('/find_id', async (req, res) => {
 
 // 2. 비밀번호 찾기 전 사용자 확인 API (추가됨)
 router.post('/verify_user_for_password', async (req, res) => {
-    const { name, user_id, phone_num } = req.body;
+    const name = req.body.name;
+    // 클라이언트가 id 또는 userId, phoneNum으로 보낼 경우 대비
+    const user_id = req.body.user_id || req.body.id || req.body.userId;
+    const phone_num = req.body.phone_num || req.body.phoneNum;
 
     if (!name || !user_id || !phone_num) {
         return res.status(400).json({ message: "이름, 아이디, 전화번호를 모두 입력해야 합니다." });

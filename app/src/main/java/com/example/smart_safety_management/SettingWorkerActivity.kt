@@ -51,8 +51,8 @@ class SettingWorkerActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeVisibility() {
-        // 초대코드 입력 메뉴 노출 여부: 그룹 ID가 없을 때만 노출
-        val isJoined = !UserSession.groupId.isNullOrEmpty()
+        // 초대코드 입력 메뉴 노출 여부: is_invite_checked가 false일 때만 노출
+        val isJoined = UserSession.isInviteChecked
         
         if (isJoined) {
             findViewById<LinearLayout>(R.id.item_enter_invite_code).visibility = View.GONE

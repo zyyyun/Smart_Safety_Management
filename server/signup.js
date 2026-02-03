@@ -32,6 +32,18 @@ router.post('/signup', async (req, res) => {
             [user_id, hashedPassword, name, phone_num, email, user_role, group_id, inviteCode]
         );
 
+        if (user_role === 'manager') {
+            const groupResult = await pool.query(
+                `INSERT INTO groups (manager_id, invite_code) VALUES ($1, $2) RETURNING group_id`,
+                [user_id, inviteCode]
+            );
+
+            if (groupResult.rows.length > 0) {
+                const newGroupId = groupResult.rows[0].group_id;
+                await pool.query('UPDATE users SET group_id = $1 WHERE user_id = $2', [newGroupId, user_id]);
+            }
+        }
+
         res.status(201).json({
             userName: newUser.rows[0].name,
             invite_code: newUser.rows[0].invite_code // 생성된 초대코드 반환 (필요시)

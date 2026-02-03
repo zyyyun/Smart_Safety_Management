@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -25,6 +26,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.example.smart_safety_management.ui.theme.ClipartKorea
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.ui.theme.*
@@ -67,21 +70,41 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
 
     // ✅ 서버 데이터 상태 관리
     var rawEvents by remember { mutableStateOf<List<DetectionEventDTO>>(emptyList()) }
+    var hasUnreadNotifications by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // ✅ 서버에서 데이터 불러오기
-    LaunchedEffect(Unit) {
-        val userId = UserSession.userId
-        if (userId != null) {
-            RetrofitClient.instance.getDetectionEvents(userId).enqueue(object : Callback<GetDetectionEventsResponse> {
-                override fun onResponse(call: Call<GetDetectionEventsResponse>, response: Response<GetDetectionEventsResponse>) {
-                    if (response.isSuccessful) {
-                        rawEvents = response.body()?.events ?: emptyList()
-                    }
+    // ✅ 서버에서 데이터 불러오기 (onResume 시점마다 갱신)
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val userId = UserSession.userId
+                if (userId != null) {
+                    // 이벤트 목록 조회
+                    RetrofitClient.instance.getDetectionEvents(userId).enqueue(object : Callback<GetDetectionEventsResponse> {
+                        override fun onResponse(call: Call<GetDetectionEventsResponse>, response: Response<GetDetectionEventsResponse>) {
+                            if (response.isSuccessful) {
+                                rawEvents = response.body()?.events ?: emptyList()
+                            }
+                        }
+                        override fun onFailure(call: Call<GetDetectionEventsResponse>, t: Throwable) {}
+                    })
+
+                    // 알림 상태 조회
+                    RetrofitClient.instance.getNotifications(userId).enqueue(object : Callback<GetNotificationsResponse> {
+                        override fun onResponse(call: Call<GetNotificationsResponse>, response: Response<GetNotificationsResponse>) {
+                            if (response.isSuccessful) {
+                                val notifications = response.body()?.notifications ?: emptyList()
+                                hasUnreadNotifications = notifications.any { !it.isRead }
+                            }
+                        }
+                        override fun onFailure(call: Call<GetNotificationsResponse>, t: Throwable) {}
+                    })
                 }
-                override fun onFailure(call: Call<GetDetectionEventsResponse>, t: Throwable) {
-                    // 에러 처리
-                }
-            })
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
@@ -122,7 +145,7 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
         ) {
             // 상단바 영역
             Column {
-                MyTopAppBar(Color.Transparent)
+                MyTopAppBar(Color.Transparent, hasUnreadNotifications)
                 MySecondaryTopAppBar(selectedFilter, counts, Color.Transparent) { newFilter ->
                     selectedFilter = newFilter
                 }
@@ -304,7 +327,7 @@ fun CurrentDateText() {
 }
 
 @Composable
-fun MyTopAppBar(backgroundColor: Color) {
+fun MyTopAppBar(backgroundColor: Color, hasUnreadNotifications: Boolean) {
     val context = LocalContext.current
     TopAppBar(
         backgroundColor = backgroundColor,
@@ -333,12 +356,14 @@ fun MyTopAppBar(backgroundColor: Color) {
                     }) {
                         Icon(painter = painterResource(id = R.drawable.alarm), contentDescription = "알림", tint = Color.White)
                     }
-                    Icon(
-                        painter = painterResource(id = R.drawable.dot_icon),
-                        contentDescription = null,
-                        tint = Color(0xFFFFCE69),
-                        modifier = Modifier.align(Alignment.TopEnd).offset(x = (-8).dp, y = 7.dp).size(6.dp)
-                    )
+                    if (hasUnreadNotifications) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.dot_icon),
+                            contentDescription = null,
+                            tint = Color(0xFFFFCE69),
+                            modifier = Modifier.align(Alignment.TopEnd).offset(x = (-8).dp, y = 7.dp).size(6.dp)
+                        )
+                    }
                 }
                 IconButton(onClick = {
                     val intent = Intent(context, SettingActivity::class.java)

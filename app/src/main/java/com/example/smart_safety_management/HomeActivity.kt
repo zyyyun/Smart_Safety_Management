@@ -591,7 +591,8 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeDialog() {
-        if (!UserSession.isInviteChecked && UserSession.groupId.isNullOrEmpty()) showInviteCodeDialog()
+        // DB의 is_invite_checked 값이 false이면 팝업 표시
+        if (!UserSession.isInviteChecked) showInviteCodeDialog()
     }
 
     private fun showInviteCodeDialog() {
@@ -601,6 +602,11 @@ class HomeActivity : AppCompatActivity() {
         val btnSubmit = dialogView.findViewById<View>(R.id.btn_submit)
         val tvError = dialogView.findViewById<View>(R.id.tv_error)
         val tvSkip = dialogView.findViewById<TextView>(R.id.tv_skip_invite_code)
+
+        // 내 초대코드가 있으면 미리 입력해두기
+        if (!UserSession.inviteCode.isNullOrEmpty()) {
+            etInviteCode.setText(UserSession.inviteCode)
+        }
 
         tvSkip.paintFlags = tvSkip.paintFlags or Paint.UNDERLINE_TEXT_FLAG
 
@@ -622,6 +628,10 @@ class HomeActivity : AppCompatActivity() {
                         UserSession.saveSession(this@HomeActivity)
                         ToastUtil.showShort(this@HomeActivity, "그룹에 참여되었습니다.")
                         dialog.dismiss()
+
+                        // 그룹 가입 성공 후 데이터 및 UI 즉시 새로고침
+                        updateProfile()
+                        fetchDailyChecks()
                     } else {
                         tvError.visibility = View.VISIBLE
                         etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
@@ -639,8 +649,7 @@ class HomeActivity : AppCompatActivity() {
         }
 
         tvSkip.setOnClickListener {
-            UserSession.isInviteChecked = true
-            UserSession.saveSession(this) 
+            // 건너뛰기 시 저장하지 않음 (다음에 다시 뜸)
             dialog.dismiss()
         }
 

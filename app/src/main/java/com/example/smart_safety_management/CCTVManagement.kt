@@ -1,6 +1,7 @@
 package com.example.smart_safety_management
 
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -85,12 +86,18 @@ fun CCTVManagementScreen(
         
         // ✅ 서버에서 불러온 데이터를 저장할 상태
         var cctvList by remember { mutableStateOf<List<CCTVCameraData>>(emptyList()) }
+        
+        // ✅ 목록 새로고침을 위한 트리거
+        var refreshTrigger by remember { mutableIntStateOf(0) }
 
         // ✅ 필터 변경 시 서버에 데이터 요청
-        LaunchedEffect(selectedArea, selectedEvents.toList()) {
+        LaunchedEffect(selectedArea, selectedEvents.toList(), refreshTrigger) {
             val areaParam = if (selectedArea == "전체 구역") null else selectedArea
             val eventsParam = if (selectedEvents.contains("전체")) null else selectedEvents.toList()
             val userId = UserSession.userId
+
+            // ✅ [디버깅] 실제 전송하려는 파라미터 값 확인 (Logcat 태그: CCTVManagement)
+            Log.d("CCTVManagement", "필터 적용 요청: area=$areaParam, events=$eventsParam")
 
             if (userId != null) {
                 RetrofitClient.instance.getCCTVList(areaParam, eventsParam, userId).enqueue(object : Callback<GetCCTVListResponse> {
@@ -158,7 +165,26 @@ fun CCTVManagementScreen(
                         selectedCameras = selectedCameras,
                         dividerColor = dividerColor,
                         isLight = isLight,
-                        checkboxColor = checkboxColor
+                        checkboxColor = checkboxColor,
+                        onDelete = {
+                            if (selectedCameras.isNotEmpty()) {
+                                val idsToDelete = selectedCameras.mapNotNull { it.toIntOrNull() }
+                                if (idsToDelete.isNotEmpty()) {
+                                    RetrofitClient.instance.deleteCameras(DeleteCamerasRequest(idsToDelete)).enqueue(object : Callback<DeleteCamerasResponse> {
+                                        override fun onResponse(call: Call<DeleteCamerasResponse>, response: Response<DeleteCamerasResponse>) {
+                                            if (response.isSuccessful) {
+                                                selectedCameras.clear()
+                                                isEditMode = false
+                                                refreshTrigger++ // 목록 새로고침
+                                            }
+                                        }
+                                        override fun onFailure(call: Call<DeleteCamerasResponse>, t: Throwable) {
+                                            Log.e("CCTVManagement", "Delete failed", t)
+                                        }
+                                    })
+                                }
+                            }
+                        }
                     )
                 }
                 
@@ -387,7 +413,8 @@ fun CCTVEditActionBar(
     selectedCameras: SnapshotStateList<String>, 
     dividerColor: Color, 
     isLight: Boolean,
-    checkboxColor: Color
+    checkboxColor: Color,
+    onDelete: () -> Unit
 ) {
     val isAllSelected = filteredCCTVList.isNotEmpty() && selectedCameras.size == filteredCCTVList.size
     Column(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colors.onPrimary)) {
@@ -400,7 +427,7 @@ fun CCTVEditActionBar(
                     if (checked) selectedCameras.addAll(filteredCCTVList.map { it.id })
                 }, 
                 onAddClick = { }, 
-                onDeleteClick = { },
+                onDeleteClick = onDelete,
                 checkboxColor = checkboxColor
             )
         }

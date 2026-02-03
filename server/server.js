@@ -49,8 +49,10 @@ const joinGroupRouter = require('./join_group'); // 추가
 const getGroupMembersRouter = require('./get_group_members'); // 추가: 그룹 멤버 조회
 const getEventTypesRouter = require('./get_event_types'); // 추가: 이벤트 유형 조회
 const sendGroupNotificationRouter = require('./send_group_notification'); // 추가
+const sendIndividualNotificationRouter = require('./send_individual_notification'); // 추가
 const registerWorkplaceLocationRouter = require('./register_workplace_location'); // 추가: 현장 위치 등록
 const getWorkplaceLocationRouter = require('./get_workplace_location'); // 추가: 현장 위치 조회
+const deleteCamerasRouter = require('./delete_cameras'); // ✅ 추가: 카메라 삭제
 
 // 라우터 등록
 app.use('/', signupRouter);
@@ -88,11 +90,19 @@ app.use('/', joinGroupRouter); // 추가
 app.use('/', getGroupMembersRouter); // 추가
 app.use('/', getEventTypesRouter); // 추가
 app.use('/', sendGroupNotificationRouter); // 추가
+app.use('/', sendIndividualNotificationRouter); // 추가
 app.use('/', registerWorkplaceLocationRouter); // 추가
 app.use('/', getWorkplaceLocationRouter); // 추가
+app.use('/', deleteCamerasRouter); // ✅ 추가
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+
+// ✅ [디버깅] 404 핸들러 추가: 라우터 매칭 실패 시 요청된 경로를 로그로 출력
+app.use((req, res, next) => {
+    console.log(`⚠️ [404 Not Found] 요청된 경로: ${req.method} ${req.url}`);
+    res.status(404).json({ message: `경로를 찾을 수 없습니다: ${req.method} ${req.url}` });
+});
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`서버가 ${PORT} 포트에서 실행 중입니다.`);

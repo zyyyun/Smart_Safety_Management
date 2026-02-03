@@ -281,6 +281,7 @@ fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: S
     val buttonBackgroundColor = if (item.status == InspectionStatus.UNCHECKED) if (MaterialTheme.colors.isLight) MaterialTheme.colors.primary.copy(alpha = 0.2f) else  Color(0xFFFB923C) else StatusGreen.copy(alpha = 0.2f)
     val buttonContentColor = if (item.status == InspectionStatus.UNCHECKED) if (MaterialTheme.colors.isLight) MaterialTheme.colors.primary else Color.Black else StatusGreenDark
     val buttonText = if (item.status == InspectionStatus.UNCHECKED) "미점검" else "점검완료"
+    val context = LocalContext.current
     
     Row(modifier = Modifier
         .fillMaxWidth()
@@ -292,7 +293,36 @@ fun InspectionItemView(item: InspectionItem, lastUserInteraction: Long, shape: S
             Text(text = item.description, fontSize = 14.sp, fontFamily = Pretendard, color = if (MaterialTheme.colors.isLight) TextGray60 else TextGray, maxLines = 2, modifier = Modifier.fillMaxWidth())
         }
         Spacer(modifier = Modifier.width(12.dp))
-        InspectionItemActions(item = item, tooltipVisible = tooltipVisible, onShowDialog = { showDialog = true; dialogWasOpened = true; tooltipVisible = false }, onTooltipTap = { tooltipVisible = false }, buttonBackgroundColor = buttonBackgroundColor, buttonContentColor = buttonContentColor, buttonText = buttonText)
+        InspectionItemActions(
+            item = item, 
+            tooltipVisible = tooltipVisible, 
+            onShowDialog = { 
+                val userId = UserSession.userId
+                if (userId != null) {
+                    val title = "안전감시단"
+                    val content = "${item.location} 재점검이 필요합니다."
+                    val request = SendGroupNotificationRequest(userId, title, content)
+                    RetrofitClient.instance.sendGroupNotification(request).enqueue(object : Callback<Void> {
+                        override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                            if (response.isSuccessful) {
+                                showDialog = true
+                                dialogWasOpened = true
+                                tooltipVisible = false
+                            } else {
+                                ToastUtil.showShort(context, "알림 전송에 실패했습니다.")
+                            }
+                        }
+                        override fun onFailure(call: Call<Void>, t: Throwable) {
+                            ToastUtil.showShort(context, "네트워크 오류가 발생했습니다.")
+                        }
+                    })
+                }
+            }, 
+            onTooltipTap = { tooltipVisible = false }, 
+            buttonBackgroundColor = buttonBackgroundColor, 
+            buttonContentColor = buttonContentColor, 
+            buttonText = buttonText
+        )
     }
 
     if (showDialog) UncheckedItemDialog(onDismissRequest = { showDialog = false })

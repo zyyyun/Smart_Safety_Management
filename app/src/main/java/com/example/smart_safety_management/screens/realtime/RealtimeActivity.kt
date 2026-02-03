@@ -197,7 +197,8 @@ private fun RealTimeNavigation() {
             RealTimeScreen(
                 cards = allCards,
                 modifier = Modifier.padding(contentPadding),
-                onCardClick = { item -> selectedItem = item }
+                onCardClick = { item -> selectedItem = item },
+                onMapClick = { showMap = true }
             )
         } else {
             InternalDetailScreen(

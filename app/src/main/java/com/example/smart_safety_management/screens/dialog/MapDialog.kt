@@ -1,5 +1,6 @@
 package com.example.smart_safety_management.screens.dialog
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -18,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -26,10 +26,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.window.DialogWindowProvider
 import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
 import com.example.smart_safety_management.screens.realtime.TagPillCompact
+import com.example.smart_safety_management.screens.realtime.normalizeCamId
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
 
@@ -44,11 +44,17 @@ fun MapDialog(
     val c = LocalSafeColors.current
     val isDark = c.isDark
 
+    // ✅ [추가] cams 데이터가 잘 들어오는지 로그로 확인 (Logcat 태그: MapDialog)
+    LaunchedEffect(cams) {
+        Log.d("MapDialog", "전달받은 카메라 목록: ${cams.map { "${it.camId} -> ${normalizeCamId(it.camId)}" }}")
+    }
+
     // ✅ 전달받은 item의 ID를 그대로 사용 (없으면 첫 번째 카메라)
     val initialCamId = item?.camId ?: cams.firstOrNull()?.camId ?: "CAM 00"
 
-    var selectedCamId by remember { mutableStateOf(initialCamId) }
-    val selected = cams.firstOrNull { it.camId == selectedCamId } ?: cams.firstOrNull()
+    // ✅ [수정] 마커 ID(CAM 01)와 서버 데이터 ID(CAM 1) 매칭을 위해 normalize 적용
+    var selectedCamId by remember { mutableStateOf(normalizeCamId(initialCamId)) }
+    val selected = cams.firstOrNull { normalizeCamId(it.camId) == selectedCamId } ?: cams.firstOrNull()
 
     val infoBg = if (isDark) Color(0xFF1E2124) else Color.White
     val infoLabel = c.sub
@@ -92,13 +98,6 @@ fun MapDialog(
             dismissOnBackPress = true
         )
     ) {
-        // ✅ 바깥 영역 살짝만 어둡게
-        val view = LocalView.current
-        SideEffect {
-            val window = (view.parent as? DialogWindowProvider)?.window
-            window?.setDimAmount(0.22f)
-        }
-
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -189,17 +188,14 @@ fun MapDialog(
                             ) {
                                 InfoRow(
                                     left = "카메라 번호",
-                                    right = String.format(
-                                        "%02d",
-                                        selected.camId.removePrefix("CAM ").trim().toInt()
-                                    ),
+                                    right = selected.camId, // ✅ [수정] 포맷팅 오류 방지를 위해 원본 ID 그대로 표시
                                     leftColor = infoLabel,
                                     rightColor = infoValue // ✅ 다크: 흰색
                                 )
 
                                 InfoRow(
                                     left = "발생위치",
-                                    right = selected.location,
+                                    right = "${selected.location} ${selected.place}",
                                     leftColor = infoLabel,
                                     rightColor = infoValue // ✅ 다크: 흰색
                                 )

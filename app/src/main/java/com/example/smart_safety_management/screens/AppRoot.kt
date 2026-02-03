@@ -208,7 +208,8 @@ fun AppRoot() {
 
                         else -> RealTimeScreen(
                             cards = allCards, // ✅ 데이터 전달
-                            onCardClick = { item -> selectedItem = item }
+                            onCardClick = { item -> selectedItem = item },
+                            onMapClick = { showMap = true }
                         )
                     }
                 } else {
