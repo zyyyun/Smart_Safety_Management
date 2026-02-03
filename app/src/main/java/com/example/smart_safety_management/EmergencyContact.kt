@@ -1,6 +1,12 @@
 package com.example.smart_safety_management
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.example.smart_safety_management.ui.theme.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -212,6 +219,22 @@ fun EmergencyContactScreen(
 
 @Composable
 fun ContactListItem(contact: Contact) {
+    val context = LocalContext.current
+    
+    // 권한 요청 런처: 권한 허용 시 바로 전화, 거부 시 다이얼 화면으로 이동
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        val intent = if (isGranted) {
+            Intent(Intent.ACTION_CALL)
+        } else {
+            Intent(Intent.ACTION_DIAL)
+        }.apply {
+            data = Uri.parse("tel:${contact.phoneNumber.replace("-", "")}")
+        }
+        context.startActivity(intent)
+    }
+
     val phNumColor = TextMedium
     val DividerColor = if ( MaterialTheme.colors.isLight ) TextGray5 else TextGray20
     val searchTextColor = if (MaterialTheme.colors.isLight) TextDark else GrayBorder
@@ -228,7 +251,17 @@ fun ContactListItem(contact: Contact) {
             Text(text = contact.phoneNumber, fontSize = 14.sp, color = phNumColor)
         }
         Spacer(modifier = Modifier.width(16.dp))
-        IconButton(onClick = { }) {
+        IconButton(onClick = {
+            // 권한 확인 후 바로 전화 걸기
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+                val intent = Intent(Intent.ACTION_CALL).apply {
+                    data = Uri.parse("tel:${contact.phoneNumber.replace("-", "")}")
+                }
+                context.startActivity(intent)
+            } else {
+                launcher.launch(Manifest.permission.CALL_PHONE)
+            }
+        }) {
             Box(
                 modifier = Modifier
                     .background(

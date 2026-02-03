@@ -1,10 +1,11 @@
 package com.example.smart_safety_management
 
-import android.app.DatePickerDialog
 import android.content.res.Configuration
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.Canvas
@@ -46,10 +47,13 @@ import okhttp3.RequestBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DailyListScreen(
     defaultDate: String? = null,
@@ -61,12 +65,9 @@ fun DailyListScreen(
     onComplete: (String, String, String, String, List<String>, String, Int) -> Unit = { _, _, _, _, _, _, _ -> }
 ) {
     val activity = LocalContext.current as? ComponentActivity
-    val calendar = Calendar.getInstance()
-    val year = calendar.get(Calendar.YEAR)
-    val month = calendar.get(Calendar.MONTH)
-    val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-    var date by remember { mutableStateOf(defaultDate ?: "$year-${month + 1}-$day") }
+    
+    // LocalDate 사용 (기본값: 오늘)
+    var date by remember { mutableStateOf(defaultDate ?: LocalDate.now().toString()) }
     var location by remember { mutableStateOf(defaultLocation) }
     var riskFactor by remember { mutableStateOf(defaultRiskFactor) }
     var safetyMeasure by remember { mutableStateOf(defaultSafetyMeasure) }
@@ -88,15 +89,7 @@ fun DailyListScreen(
         attachedPhotos = attachedPhotos + uris.map { it.toString() }
     }
 
-    val datePickerDialog = remember {
-        DatePickerDialog(
-            context,
-            { _, selectedYear, selectedMonth, selectedDayOfMonth ->
-                date = "$selectedYear-${selectedMonth + 1}-$selectedDayOfMonth"
-            },
-            year, month, day
-        )
-    }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     Smart_Safety_ManagementTheme {
         // 테마 블록 내부에서 색상 정의 (다크모드 인지 가능)
@@ -157,7 +150,7 @@ fun DailyListScreen(
                     shape = RoundedCornerShape(8.dp),
                     textStyle = TextStyle(fontFamily = Pretendard, fontSize = 18.sp,color = fieldTextColor),
                     trailingIcon = {
-                        IconButton(onClick = { datePickerDialog.show() }) {
+                        IconButton(onClick = { showDatePicker = true }) {
                             Icon(
                                 painter = painterResource(id = R.drawable.calendar2),
                                 contentDescription = "Select date",
@@ -434,6 +427,22 @@ fun DailyListScreen(
                     }
                 }
             }
+        }
+        
+        if (showDatePicker) {
+            val currentDate = try {
+                LocalDate.parse(date)
+            } catch (e: Exception) {
+                LocalDate.now()
+            }
+            CustomDatePickerDialog(
+                initialDate = currentDate,
+                onDismiss = { showDatePicker = false },
+                onDateSelected = { selectedDate ->
+                    date = selectedDate.toString() // yyyy-MM-dd 형식
+                    showDatePicker = false
+                }
+            )
         }
     }
 }

@@ -360,7 +360,7 @@ fun DateRangeSelector(yearMonth: YearMonth, reports: List<DailyInspectionReport>
         val initialDate = if (pickingStartDate) (if(startDateStr.isEmpty()) LocalDate.now() else LocalDate.parse(startDateStr, formatter)) else (if(endDateStr.isEmpty()) LocalDate.now() else LocalDate.parse(endDateStr, formatter))
         CustomDatePickerDialog(
             initialDate = initialDate,
-            reports = reports,
+            eventDates = reports.map { it.date }.toSet(),
             onDismiss = { showCustomPicker = false },
             onDateSelected = { selectedDate ->
                 val currentStart = if (startDateStr.isNotEmpty()) LocalDate.parse(startDateStr, formatter) else null
@@ -390,10 +390,9 @@ fun DateRangeSelector(yearMonth: YearMonth, reports: List<DailyInspectionReport>
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun CustomDatePickerDialog(initialDate: LocalDate, reports: List<DailyInspectionReport>, onDismiss: () -> Unit, onDateSelected: (LocalDate) -> Unit) {
+fun CustomDatePickerDialog(initialDate: LocalDate, eventDates: Set<LocalDate> = emptySet(), onDismiss: () -> Unit, onDateSelected: (LocalDate) -> Unit) {
     var selectedDate by remember { mutableStateOf(initialDate) }
     var viewMonth by remember { mutableStateOf(YearMonth.from(initialDate)) }
-    val datesWithReports = remember(reports) { reports.map { it.date }.toSet() }
 
     val dayOfWeekColor = Color(0xFF6D7882)
     val isLight = MaterialTheme.colors.isLight
@@ -468,7 +467,7 @@ fun CustomDatePickerDialog(initialDate: LocalDate, reports: List<DailyInspection
                             week.forEach { date ->
                                 val isCurrentMonth = date.month == viewMonth.month
                                 val isSelected = date == selectedDate
-                                val hasReport = datesWithReports.contains(date)
+                                val hasReport = eventDates.contains(date)
                                 
                                 Box(modifier = Modifier
                                     .weight(1f)

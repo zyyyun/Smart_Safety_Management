@@ -1,8 +1,10 @@
 package com.example.smart_safety_management
 
 import android.content.res.Configuration
+import android.os.Build
 import android.util.Log
 import androidx.annotation.DrawableRes
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,9 +46,8 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 // --- 1. 데이터 모델 정의 ---
 data class HistoryEventData(
@@ -58,6 +59,7 @@ data class HistoryEventData(
     val actionTime: String
 )
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun HistoryScreen(bottomBar: @Composable () -> Unit = {}) {
@@ -361,6 +363,7 @@ fun HistoryTopAppBar(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun FilterBottomSheetContent(
     userId: String,
@@ -402,20 +405,13 @@ fun FilterBottomSheetContent(
     var eventOptions by remember { mutableStateOf(listOf("전체")) }
 
     // 날짜 계산 (이번 달 1일 ~ 말일)
-    val (startDate, endDate) = remember {
-        val cal = Calendar.getInstance()
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        
-        // 이번 달 1일
-        cal.set(Calendar.DAY_OF_MONTH, 1)
-        val start = sdf.format(cal.time)
-        
-        // 이번 달 말일
-        cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
-        val end = sdf.format(cal.time)
-        
-        start to end
-    }
+    var startDate by remember { mutableStateOf(LocalDate.now().withDayOfMonth(1)) }
+    var endDate by remember { mutableStateOf(LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth())) }
+    
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    
+    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
     LaunchedEffect(Unit) {
         // 조치자(그룹 멤버) 목록 가져오기
@@ -485,18 +481,27 @@ fun FilterBottomSheetContent(
         Text(text = "정렬기준", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = CategoryColor, modifier = Modifier.padding(horizontal = 24.dp))
         Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Box(modifier = Modifier.height(40.dp).weight(1f).border(1.dp, borderColor, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+            // 시작일 선택 박스
+            Box(modifier = Modifier.height(40.dp).weight(1f)
+                .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+                .clickable { showStartDatePicker = true }
+                .padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = startDate, fontFamily = Pretendard, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = textColor)
+                    Text(text = startDate.format(dateFormatter), fontFamily = Pretendard, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = textColor)
                     Icon(painter = painterResource(id = R.drawable.calendar2), contentDescription = null, tint = toptextColor)
                 }
             }
             Spacer(modifier = Modifier.width(15.dp))
             Icon(painter = painterResource(id = R.drawable.underbar), contentDescription = null, tint = if (isLight) Color.Unspecified else TextGray)
             Spacer(modifier = Modifier.width(15.dp))
-            Box(modifier = Modifier.height(40.dp).weight(1f).border(1.dp, borderColor, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+            
+            // 종료일 선택 박스
+            Box(modifier = Modifier.height(40.dp).weight(1f)
+                .border(1.dp, borderColor, RoundedCornerShape(8.dp))
+                .clickable { showEndDatePicker = true }
+                .padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(text = endDate, fontFamily = Pretendard, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = textColor)
+                    Text(text = endDate.format(dateFormatter), fontFamily = Pretendard, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = textColor)
                     Icon(painter = painterResource(id = R.drawable.calendar2), contentDescription = null, tint = toptextColor)
                 }
             }
@@ -658,6 +663,24 @@ fun FilterBottomSheetContent(
         }
         Spacer(modifier = Modifier.height(24.dp))
     }
+    
+    if (showStartDatePicker) {
+        CustomDatePickerDialog(
+            initialDate = startDate,
+            onDismiss = { showStartDatePicker = false },
+            onDateSelected = { 
+                startDate = it
+                showStartDatePicker = false 
+            }
+        )
+    }
+    if (showEndDatePicker) {
+        CustomDatePickerDialog(
+            initialDate = endDate,
+            onDismiss = { showEndDatePicker = false },
+            onDateSelected = { endDate = it; showEndDatePicker = false }
+        )
+    }
 }
 
 @Composable
@@ -750,6 +773,7 @@ fun HistorySecondaryAppBar(selectedTab: String, onTabSelected: (String) -> Unit)
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light Mode")
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark Mode")
 @Composable
@@ -757,6 +781,7 @@ fun HistoryScreenPreview() {
     HistoryScreen()
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Filter BottomSheet - Light")
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Filter BottomSheet - Dark")
 @Composable
