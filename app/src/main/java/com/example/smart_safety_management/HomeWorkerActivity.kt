@@ -355,7 +355,7 @@ class HomeWorkerActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeDialog() {
-        // DB의 is_invited_checked 값이 false이면 팝업 표시
+        // DB의 is_invite_checked 값이 false이면 팝업 표시
         if (!UserSession.isInviteChecked) {
             showInviteCodeDialog()
         }

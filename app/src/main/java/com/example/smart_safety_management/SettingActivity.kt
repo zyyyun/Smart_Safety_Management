@@ -85,7 +85,7 @@ class SettingActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeVisibility() {
-        // 초대코드 입력 메뉴 노출 여부: is_invited_checked가 false일 때만 노출
+        // 초대코드 입력 메뉴 노출 여부: is_invite_checked가 false일 때만 노출
         val isJoined = UserSession.isInviteChecked
         
         if (isJoined) {

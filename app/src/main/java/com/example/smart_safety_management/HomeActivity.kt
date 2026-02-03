@@ -591,7 +591,7 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun checkInviteCodeDialog() {
-        // DB의 is_invited_checked 값이 false이면 팝업 표시
+        // DB의 is_invite_checked 값이 false이면 팝업 표시
         if (!UserSession.isInviteChecked) showInviteCodeDialog()
     }
 
@@ -628,6 +628,10 @@ class HomeActivity : AppCompatActivity() {
                         UserSession.saveSession(this@HomeActivity)
                         ToastUtil.showShort(this@HomeActivity, "그룹에 참여되었습니다.")
                         dialog.dismiss()
+
+                        // 그룹 가입 성공 후 데이터 및 UI 즉시 새로고침
+                        updateProfile()
+                        fetchDailyChecks()
                     } else {
                         tvError.visibility = View.VISIBLE
                         etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)

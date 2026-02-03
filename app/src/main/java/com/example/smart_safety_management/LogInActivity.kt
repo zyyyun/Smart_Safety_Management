@@ -57,7 +57,7 @@ class LogInActivity : AppCompatActivity() {
                             UserSession.profileImageUri = body.user.profileImageUri
                             UserSession.groupId = body.user.groupId
                             UserSession.inviteCode = body.user.inviteCode // 초대코드 저장 추가
-                            UserSession.isInviteChecked = body.user.isInvitedChecked // DB 값으로 동기화
+                            UserSession.isInviteChecked = body.user.isInviteChecked // DB 값으로 동기화
 
                             // 2. 역할 설정
                             if (body.user.userRole == "manager") {

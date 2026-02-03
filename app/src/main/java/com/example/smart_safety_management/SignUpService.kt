@@ -78,7 +78,7 @@ data class UserData(
     @SerializedName("profile_image_url") val profileImageUri: String?,
     @SerializedName("group_id") val groupId: String?,
     @SerializedName("invite_code") val inviteCode: String?, // 초대코드 추가
-    @SerializedName("is_invited_checked") val isInvitedChecked: Boolean = false // 초대코드 확인 여부 추가
+    @SerializedName("is_invite_checked") val isInviteChecked: Boolean = false // 초대코드 확인 여부 추가
 )
 
 data class UpdateProfileRequest(

@@ -49,7 +49,7 @@ class SplashActivity : AppCompatActivity() {
                                 val users = response.body()?.users
                                 val currentUser = users?.find { it.userId == userId }
                                 if (currentUser != null) {
-                                    UserSession.isInviteChecked = currentUser.isInvitedChecked
+                                    UserSession.isInviteChecked = currentUser.isInviteChecked
                                     UserSession.saveSession(this@SplashActivity)
                                 }
                                 moveToHome()
