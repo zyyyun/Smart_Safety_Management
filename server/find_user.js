@@ -27,6 +27,7 @@ router.post('/find_id', async (req, res) => {
                 user_id: userId
             });
         } else {
+            console.log(`[find_id] 사용자 찾기 실패 - 이름: ${name}, 전화번호: ${cleanPhoneNum}`);
             return res.status(404).json({ message: "일치하는 사용자를 찾을 수 없습니다." });
         }
     } catch (err) {

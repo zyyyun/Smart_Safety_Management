@@ -95,7 +95,11 @@ class FindIdActivity: AppCompatActivity() {
                         ToastUtil.showShort(this@FindIdActivity, "일치하는 사용자 정보를 찾을 수 없습니다.")
                     }
                 } else {
-                    ToastUtil.showShort(this@FindIdActivity, "서버 오류가 발생했습니다.")
+                    if (response.code() == 404) {
+                        ToastUtil.showShort(this@FindIdActivity, "입력하신 정보와 일치하는 사용자가 없습니다.")
+                    } else {
+                        ToastUtil.showShort(this@FindIdActivity, "서버 오류가 발생했습니다. (코드: ${response.code()})")
+                    }
                 }
             }
 
