@@ -38,7 +38,6 @@ import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
-import com.example.smart_safety_management.screens.dialog.MapDialog
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.ui.theme.ClipartKorea
@@ -159,14 +158,11 @@ internal fun sampleLiveCards(): List<LiveCardItem> = listOf(
 fun RealTimeScreen(
     cards: List<LiveCardItem> = emptyList(),
     modifier: Modifier = Modifier,
-    onCardClick: (LiveCardItem) -> Unit
+    onCardClick: (LiveCardItem) -> Unit,
+    onMapClick: () -> Unit
 ) {
     val c = LocalSafeColors.current
     val isDark = c.isDark
-
-    // ✅ 지도 다이얼로그 토글 + 선택된 카드 저장
-    var showMap by remember { mutableStateOf(false) }
-    var selectedItem by remember { mutableStateOf<LiveCardItem?>(null) }
 
     // ✅ 이제 RealTimeScreen에서는 바텀바를 그리지 않는다 (Activity가 담당)
     // ✅ 대신 content는 Activity에서 내려준 padding(modifier)에 의해 bottom inset이 확보됨
@@ -191,7 +187,7 @@ fun RealTimeScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { showMap = true },
+                        onClick = onMapClick,
                         modifier = Modifier.padding(end = 20.dp)
                     ) {
                         Icon(
@@ -214,30 +210,7 @@ fun RealTimeScreen(
             RealTimeContent(
                 cards = cards,
                 modifier = Modifier.fillMaxSize(),
-                onCardClick = { item ->
-                    selectedItem = item
-                    onCardClick(item)
-                }
-            )
-        }
-
-        if (showMap) {
-            MapDialog(
-                cams = cards, // ✅ 실제 데이터 전달
-                item = selectedItem,
-                onDismiss = { showMap = false },
-                onMoveCamera = { camId ->
-                    val targetId = normalizeCamId(camId)
-                    val target = cards.firstOrNull { it.camId == targetId }
-
-                    if (target != null) {
-                        selectedItem = target
-                        showMap = false
-                        onCardClick(target) // ✅ Activity로 올려서 InternalDetail로 진입
-                    } else {
-                        showMap = false
-                    }
-                }
+                onCardClick = onCardClick
             )
         }
     }
@@ -1053,6 +1026,6 @@ private fun LiveCardItem.hasRisk(): Boolean {
 @Composable
 fun PreviewRealTimeScreen() {
     Smart_Safety_ManagementTheme {
-        RealTimeScreen(cards = sampleLiveCards(), onCardClick = {})
+        RealTimeScreen(cards = sampleLiveCards(), onCardClick = {}, onMapClick = {})
     }
 }
