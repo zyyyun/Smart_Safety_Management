@@ -41,7 +41,7 @@ router.post('/join_group', async (req, res) => {
         // 3. 요청한 사용자(입력자)에게 동일한 그룹 ID 부여 및 기존 그룹 정리
         
         // 현재 사용자의 정보 조회 (기존 그룹 확인용)
-        const currentUserResult = await pool.query('SELECT group_id, user_role FROM users WHERE user_id = $1', [user_id]);
+        const currentUserResult = await pool.query('SELECT group_id, user_role, phone_num FROM users WHERE user_id = $1', [user_id]);
 
         // 사용자 정보 업데이트 (그룹 이동 및 초대코드 확인 상태 변경)
         await pool.query(
@@ -49,9 +49,21 @@ router.post('/join_group', async (req, res) => {
             [targetGroupId, user_id]
         );
 
-        // 관리자가 다른 그룹에 참여하는 경우, 자신이 생성했던 기존 그룹 삭제
         if (currentUserResult.rows.length > 0) {
             const currentUser = currentUserResult.rows[0];
+
+            // 4. group_members 테이블 상태 업데이트 (PENDING -> ACTIVE)
+            if (currentUser.phone_num) {
+                const cleanPhone = currentUser.phone_num.replace(/[^0-9]/g, '');
+                await pool.query(
+                    `UPDATE group_members 
+                     SET member_status = 'ACTIVE', user_id = $1, joined_at = NOW() 
+                     WHERE group_id = $2 AND phone_number = $3`,
+                    [user_id, targetGroupId, cleanPhone]
+                );
+            }
+
+            // 관리자가 다른 그룹에 참여하는 경우, 자신이 생성했던 기존 그룹 삭제
             if (currentUser.user_role === 'manager' && currentUser.group_id && String(currentUser.group_id) !== String(targetGroupId)) {
                 await pool.query('DELETE FROM groups WHERE group_id = $1 AND manager_id = $2', [currentUser.group_id, user_id]);
             }
