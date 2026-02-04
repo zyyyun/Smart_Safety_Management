@@ -6,6 +6,9 @@ import android.view.View
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class SettingWorkerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,6 +51,7 @@ class SettingWorkerActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         checkInviteCodeVisibility()
+        fetchUserInfo()
     }
 
     private fun checkInviteCodeVisibility() {
@@ -59,5 +63,25 @@ class SettingWorkerActivity : AppCompatActivity() {
         } else {
             findViewById<LinearLayout>(R.id.item_enter_invite_code).visibility = View.VISIBLE
         }
+    }
+
+    private fun fetchUserInfo() {
+        val userId = UserSession.userId ?: return
+        RetrofitClient.instance.getUserInfo(userId).enqueue(object : Callback<GetUserInfoResponse> {
+            override fun onResponse(call: Call<GetUserInfoResponse>, response: Response<GetUserInfoResponse>) {
+                if (response.isSuccessful) {
+                    val userInfo = response.body()
+                    if (userInfo != null) {
+                        UserSession.isInviteChecked = userInfo.isInviteChecked
+                        UserSession.groupId = userInfo.groupId?.toString()
+                        UserSession.inviteCode = userInfo.inviteCode
+                        UserSession.saveSession(this@SettingWorkerActivity)
+
+                        checkInviteCodeVisibility()
+                    }
+                }
+            }
+            override fun onFailure(call: Call<GetUserInfoResponse>, t: Throwable) {}
+        })
     }
 }

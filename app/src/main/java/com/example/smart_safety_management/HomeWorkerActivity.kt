@@ -46,6 +46,7 @@ class HomeWorkerActivity : AppCompatActivity() {
     private var selectedYear: Int = 0
     private var selectedMonth: Int = 0
     private var isInviteDialogShowing = false
+    private var inviteDialog: androidx.appcompat.app.AlertDialog? = null
 
     private val detailLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
@@ -242,6 +243,7 @@ class HomeWorkerActivity : AppCompatActivity() {
         updateProfile()
         fetchWorkerEvents()
         updateAlarmDotVisibility() // ✅ 알림 뱃지 업데이트 추가
+        fetchUserInfo()
     }
 
     private fun updateAlarmDotVisibility() {
@@ -260,6 +262,31 @@ class HomeWorkerActivity : AppCompatActivity() {
             override fun onFailure(call: Call<GetNotificationsResponse>, t: Throwable) {
                 Log.e("HomeWorkerActivity", "Error checking notifications", t)
             }
+        })
+    }
+
+    private fun fetchUserInfo() {
+        val userId = UserSession.userId ?: return
+
+        RetrofitClient.instance.getUserInfo(userId).enqueue(object : Callback<GetUserInfoResponse> {
+            override fun onResponse(call: Call<GetUserInfoResponse>, response: Response<GetUserInfoResponse>) {
+                if (response.isSuccessful) {
+                    val userInfo = response.body()
+                    if (userInfo != null) {
+                        UserSession.isInviteChecked = userInfo.isInviteChecked
+                        UserSession.groupId = userInfo.groupId?.toString()
+                        UserSession.inviteCode = userInfo.inviteCode
+                        UserSession.saveSession(this@HomeWorkerActivity)
+
+                        if (UserSession.isInviteChecked && isInviteDialogShowing) {
+                            inviteDialog?.dismiss()
+                            isInviteDialogShowing = false
+                        }
+                        updateProfile()
+                    }
+                }
+            }
+            override fun onFailure(call: Call<GetUserInfoResponse>, t: Throwable) {}
         })
     }
 
@@ -371,7 +398,7 @@ class HomeWorkerActivity : AppCompatActivity() {
 
         tvSkip.paintFlags = tvSkip.paintFlags or Paint.UNDERLINE_TEXT_FLAG
 
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+        inviteDialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setView(dialogView)
             .setCancelable(false)
             .create()
@@ -388,7 +415,12 @@ class HomeWorkerActivity : AppCompatActivity() {
                         UserSession.groupId = response.body()?.groupId
                         UserSession.saveSession(this@HomeWorkerActivity)
                         ToastUtil.showShort(this@HomeWorkerActivity, "그룹에 참여되었습니다.")
-                        dialog.dismiss()
+                        inviteDialog?.dismiss()
+
+                        // 그룹 가입 성공 후 데이터 및 UI 즉시 새로고침
+                        updateProfile()
+                        fetchDailyChecks()
+                        fetchWorkerEvents()
                     } else {
                         tvError.visibility = View.VISIBLE
                         etInviteCode.setBackgroundResource(R.drawable.bg_edittext_error)
@@ -407,14 +439,14 @@ class HomeWorkerActivity : AppCompatActivity() {
 
         tvSkip.setOnClickListener {
             // 건너뛰기 시 저장하지 않음 (다음에 다시 뜸)
-            dialog.dismiss()
+            inviteDialog?.dismiss()
         }
 
-        dialog.show()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        val params = dialog.window?.attributes
+        inviteDialog?.show()
+        inviteDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        val params = inviteDialog?.window?.attributes
         params?.width = (resources.displayMetrics.widthPixels * 0.85).toInt()
-        dialog.window?.attributes = params
+        inviteDialog?.window?.attributes = params
     }
     private fun emergencyContact() {
         val emergencyArea = findViewById<View>(R.id.layout_emergency_root)

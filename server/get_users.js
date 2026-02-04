@@ -26,7 +26,7 @@ router.get('/get_users', async (req, res) => {
 
         // 2. 같은 group_id를 가진 유저 조회 (비밀번호 제외)
         const result = await pool.query(
-            `SELECT user_id AS "userId", name, phone_num AS "phoneNum", user_role AS "userRole", email, is_invite_checked AS "isInviteChecked" 
+            `SELECT user_id, name, phone_num, user_role, email, is_invite_checked 
              FROM users 
              WHERE group_id = $1 
              ORDER BY CASE WHEN user_role = 'manager' THEN 0 ELSE 1 END, name ASC`,

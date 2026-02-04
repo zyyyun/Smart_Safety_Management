@@ -160,10 +160,17 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
         }
         
         // 서버에 등록된 유저인지 확인 후 필터링
-        checkRegisteredUsers(tempContactList)
+        checkInviteAvailability(tempContactList)
     }
 
-    private fun checkRegisteredUsers(tempList: MutableList<InviteContactItem>) {
+    private fun checkInviteAvailability(tempList: MutableList<InviteContactItem>) {
+        val userId = UserSession.userId
+        if (userId == null) {
+            ToastUtil.showShort(this, "로그인 정보가 없습니다.")
+            updateList(tempList)
+            return
+        }
+
         val alreadyInvited = intent.getStringArrayListExtra("already_invited") ?: arrayListOf()
         val allPhoneNumbers = tempList.map { it.phoneNumber.replace(Regex("[^0-9]"), "") }
 
@@ -172,25 +179,25 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
             return
         }
 
-        val request = CheckRegisteredContactsRequest(allPhoneNumbers)
-        RetrofitClient.instance.checkRegisteredContacts(request).enqueue(object : Callback<CheckRegisteredContactsResponse> {
-            override fun onResponse(call: Call<CheckRegisteredContactsResponse>, response: Response<CheckRegisteredContactsResponse>) {
+        val request = CheckInviteAvailabilityRequest(userId, allPhoneNumbers)
+        RetrofitClient.instance.checkInviteAvailability(request).enqueue(object : Callback<CheckInviteAvailabilityResponse> {
+            override fun onResponse(call: Call<CheckInviteAvailabilityResponse>, response: Response<CheckInviteAvailabilityResponse>) {
                 if (response.isSuccessful) {
-                    val registeredNumbers = response.body()?.registeredPhoneNumbers ?: emptyList()
-                    // 1. 서버에 등록된 유저 제외 AND 2. 이미 초대 리스트에 있는 유저 제외
+                    val availableNumbers = response.body()?.availablePhoneNumbers ?: emptyList()
+                    // 1. 서버에서 확인된 초대 가능 번호만 포함 AND 2. 이미 초대 리스트에 있는 유저 제외
                     val filteredContacts = tempList.filter { contact ->
                         val pureNumber = contact.phoneNumber.replace(Regex("[^0-9]"), "")
-                        !registeredNumbers.contains(pureNumber) && !alreadyInvited.contains(pureNumber)
+                        availableNumbers.contains(pureNumber) && !alreadyInvited.contains(pureNumber)
                     }
                     updateList(filteredContacts)
                 } else {
-                    ToastUtil.showShort(this@SettingInvitePhonenumberActivity, "유저 확인 실패")
+                    ToastUtil.showShort(this@SettingInvitePhonenumberActivity, "초대 가능 여부 확인 실패")
                     // 실패 시에도 이미 초대된 번호는 제외하고 표시
                     val filtered = tempList.filter { !alreadyInvited.contains(it.phoneNumber.replace(Regex("[^0-9]"), "")) }
                     updateList(filtered)
                 }
             }
-            override fun onFailure(call: Call<CheckRegisteredContactsResponse>, t: Throwable) {
+            override fun onFailure(call: Call<CheckInviteAvailabilityResponse>, t: Throwable) {
                 ToastUtil.showShort(this@SettingInvitePhonenumberActivity, "네트워크 오류")
                 // 오류 시에도 이미 초대된 번호는 제외하고 표시
                 val filtered = tempList.filter { !alreadyInvited.contains(it.phoneNumber.replace(Regex("[^0-9]"), "")) }

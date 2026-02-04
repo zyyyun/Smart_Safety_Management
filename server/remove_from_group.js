@@ -11,11 +11,12 @@ router.post('/remove_from_group', async (req, res) => {
 
     try {
         // 1. 사용자의 현재 그룹 ID 조회
-        const userResult = await pool.query('SELECT group_id FROM users WHERE user_id = $1', [user_id]);
+        const userResult = await pool.query('SELECT group_id, phone_num FROM users WHERE user_id = $1', [user_id]);
         if (userResult.rows.length === 0) {
             return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
         }
         const groupId = userResult.rows[0].group_id;
+        const phoneNum = userResult.rows[0].phone_num;
 
         if (!groupId) {
             return res.status(200).json({ message: "사용자가 이미 그룹에 속해있지 않습니다." });
@@ -32,6 +33,14 @@ router.post('/remove_from_group', async (req, res) => {
             'UPDATE users SET group_id = NULL, is_invite_checked = false WHERE user_id = $1',
             [user_id]
         );
+
+        // 4. group_members 테이블에서도 삭제 (초대 상태 초기화)
+        if (phoneNum) {
+            await pool.query(
+                'DELETE FROM group_members WHERE group_id = $1 AND phone_number = $2',
+                [groupId, phoneNum]
+            );
+        }
 
         res.status(200).json({ message: "사용자를 그룹에서 성공적으로 제외했습니다." });
 

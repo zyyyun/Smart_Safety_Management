@@ -70,7 +70,7 @@ data class LoginResponse(
 )
 
 data class UserData(
-    @SerializedName("user_id") val userId: String,
+    @SerializedName("user_id") val userId: String?,
     val name: String,
     @SerializedName("user_role") val userRole: String,
     @SerializedName("phone_num") val phoneNum: String?,
@@ -377,6 +377,39 @@ data class GetUserInfoResponse(
     @SerializedName("profile_image_url") val profileImage: String?
 )
 
+data class CheckInviteAvailabilityRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("phone_numbers") val phoneNumbers: List<String>
+)
+
+data class CheckInviteAvailabilityResponse(
+    @SerializedName("available_phone_numbers") val availablePhoneNumbers: List<String>
+)
+
+data class InviteContactDTO(
+    @SerializedName("phone_number") val phoneNumber: String,
+    @SerializedName("name") val name: String
+)
+
+data class InviteMembersRequest(
+    @SerializedName("sender_id") val senderId: String,
+    @SerializedName("contacts") val contacts: List<InviteContactDTO>
+)
+
+data class InviteMembersResponse(
+    val message: String
+)
+
+data class PendingInviteDTO(
+    @SerializedName("phone_number") val phoneNumber: String,
+    val name: String,
+    @SerializedName("user_role") val userRole: String?
+)
+
+data class GetPendingInvitesResponse(
+    @SerializedName("pending_invites") val pendingInvites: List<PendingInviteDTO>
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -538,4 +571,13 @@ interface SignUpService {
 
     @GET("/get_user_info")
     fun getUserInfo(@Query("user_id") userId: String): Call<GetUserInfoResponse>
+
+    @POST("/check_invite_availability")
+    fun checkInviteAvailability(@Body request: CheckInviteAvailabilityRequest): Call<CheckInviteAvailabilityResponse>
+
+    @POST("/invite_members")
+    fun inviteMembers(@Body request: InviteMembersRequest): Call<InviteMembersResponse>
+
+    @GET("/get_pending_invites")
+    fun getPendingInvites(@Query("user_id") userId: String): Call<GetPendingInvitesResponse>
 }

@@ -17,6 +17,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class SettingInviteActivity : AppCompatActivity() {
 
@@ -139,6 +142,9 @@ class SettingInviteActivity : AppCompatActivity() {
         tabWorker.setOnClickListener {
             updateTabState(isManagerSelected = false)
         }
+
+        // 초기 데이터 로드 (서버에서 PENDING 상태 목록 가져오기)
+        loadPendingInvites()
     }
 
     private fun updateTabState(isManagerSelected: Boolean) {
@@ -185,6 +191,47 @@ class SettingInviteActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadPendingInvites() {
+        val userId = UserSession.userId ?: return
+
+        RetrofitClient.instance.getPendingInvites(userId).enqueue(object : Callback<GetPendingInvitesResponse> {
+            override fun onResponse(call: Call<GetPendingInvitesResponse>, response: Response<GetPendingInvitesResponse>) {
+                if (response.isSuccessful) {
+                    val invites = response.body()?.pendingInvites ?: emptyList()
+                    
+                    managerList.clear()
+                    workerList.clear()
+
+                    for (invite in invites) {
+                        val formattedPhone = formatPhoneNumber(invite.phoneNumber)
+                        val contactItem = InviteContactItem(invite.name, formattedPhone)
+                        
+                        // 역할에 따라 리스트 분류 (역할이 없으면 기본적으로 근로자로 분류하거나, 이름 없음인 경우 근로자로 처리)
+                        if (invite.userRole == "manager") {
+                            managerList.add(contactItem)
+                        } else {
+                            // userRole이 "worker"이거나 null(미가입자)인 경우 근로자 탭에 표시
+                            workerList.add(contactItem)
+                        }
+                    }
+                    // 현재 탭 상태에 맞춰 UI 갱신
+                    updateTabState(isManagerTab)
+                }
+            }
+
+            override fun onFailure(call: Call<GetPendingInvitesResponse>, t: Throwable) {
+                ToastUtil.showShort(this@SettingInviteActivity, "초대 목록을 불러오는데 실패했습니다.")
+            }
+        })
+    }
+
+    private fun formatPhoneNumber(phone: String): String {
+        if (phone.length == 11) {
+            return "${phone.substring(0, 3)}-${phone.substring(3, 7)}-${phone.substring(7)}"
+        }
+        return phone
+    }
+
     private fun sendInviteSms(contacts: List<InviteContactItem>) {
         // DB에서 가져와 UserSession에 저장된 현재 관리자의 초대코드를 사용
         val inviteCode = UserSession.inviteCode
@@ -193,22 +240,49 @@ class SettingInviteActivity : AppCompatActivity() {
             return
         }
 
+        val senderId = UserSession.userId
+        if (senderId == null) {
+            ToastUtil.showShort(this, "로그인 정보가 없습니다.")
+            return
+        }
+
         // 선택된 모든 전화번호를 ';'로 연결
-        val phoneNumbers = contacts.joinToString(";") { it.phoneNumber.replace("-", "") }
-        
-        val message = "[중대재해예방 플랫폼] 안전관리 시스템에 초대되었습니다.\n" +
-                "초대코드: $inviteCode\n" +
-                "앱을 설치하고 코드를 입력하여 가입을 완료해주세요."
-
-        val intent = Intent(Intent.ACTION_SENDTO).apply {
-            data = Uri.parse("smsto:$phoneNumbers")
-            putExtra("sms_body", message)
+        val inviteContacts = contacts.map {
+            InviteContactDTO(it.phoneNumber.replace(Regex("[^0-9]"), ""), it.name)
         }
+        val phoneNumbersStr = inviteContacts.joinToString(";") { it.phoneNumber }
 
-        try {
-            startActivity(intent)
-        } catch (e: Exception) {
-            ToastUtil.showShort(this, "메시지 앱을 열 수 없습니다.")
-        }
+        // 서버에 초대 멤버 등록 요청
+        val request = InviteMembersRequest(senderId, inviteContacts)
+        RetrofitClient.instance.inviteMembers(request).enqueue(object : Callback<InviteMembersResponse> {
+            override fun onResponse(call: Call<InviteMembersResponse>, response: Response<InviteMembersResponse>) {
+                if (response.isSuccessful) {
+                    // DB 등록 성공 시 목록 새로고침
+                    loadPendingInvites()
+
+                    // DB 등록 성공 시 문자 발송 앱 실행
+                    val message = "[중대재해예방 플랫폼] 안전관리 시스템에 초대되었습니다.\n" +
+                            "초대코드: $inviteCode\n" +
+                            "앱을 설치하고 코드를 입력하여 가입을 완료해주세요."
+
+                    val intent = Intent(Intent.ACTION_SENDTO).apply {
+                        data = Uri.parse("smsto:$phoneNumbersStr")
+                        putExtra("sms_body", message)
+                    }
+
+                    try {
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        ToastUtil.showShort(this@SettingInviteActivity, "메시지 앱을 열 수 없습니다.")
+                    }
+                } else {
+                    ToastUtil.showShort(this@SettingInviteActivity, "초대 등록 실패: ${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<InviteMembersResponse>, t: Throwable) {
+                ToastUtil.showShort(this@SettingInviteActivity, "네트워크 오류가 발생했습니다.")
+            }
+        })
     }
 }

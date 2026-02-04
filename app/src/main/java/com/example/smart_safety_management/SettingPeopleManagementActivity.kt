@@ -151,8 +151,9 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
                     val users = response.body()?.users ?: emptyList()
                     allPeople.clear()
                     users.forEach { user ->
+                        val uId = user.userId ?: return@forEach
                         // 본인은 리스트에서 제외
-                        if (user.userId == userId) return@forEach
+                        if (uId == userId) return@forEach
 
                         // DB의 role(manager/worker)을 한글로 변환
                         val roleName = if (user.userRole == "manager") "관리자" else "근로자"
@@ -160,7 +161,7 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
                         val formattedPhone = formatPhoneNumber(user.phoneNum ?: "")
                         
                         // PeopleItem 생성 (id는 userId의 해시코드 사용)
-                        allPeople.add(PeopleItem(user.userId, user.name, formattedPhone, roleName))
+                        allPeople.add(PeopleItem(uId, user.name, formattedPhone, roleName))
                     }
                     applyFilterAndSearch()
                 } else {

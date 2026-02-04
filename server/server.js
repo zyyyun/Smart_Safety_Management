@@ -54,6 +54,9 @@ const registerWorkplaceLocationRouter = require('./register_workplace_location')
 const getWorkplaceLocationRouter = require('./get_workplace_location'); // 추가: 현장 위치 조회
 const deleteCamerasRouter = require('./delete_cameras'); // ✅ 추가: 카메라 삭제
 const getUserInfoRouter = require('./get_user_info'); // ✅ 추가: 유저 정보 조회
+const checkInviteAvailabilityRouter = require('./check_invite_availability'); // ✅ 추가: 초대 가능 여부 확인
+const inviteMembersRouter = require('./invite_members'); // ✅ 추가: 멤버 초대 등록
+const getPendingInvitesRouter = require('./get_pending_invites'); // ✅ 추가: 대기중인 초대 목록 조회
 
 // 라우터 등록
 app.use('/', signupRouter);
@@ -96,6 +99,9 @@ app.use('/', registerWorkplaceLocationRouter); // 추가
 app.use('/', getWorkplaceLocationRouter); // 추가
 app.use('/', deleteCamerasRouter); // ✅ 추가
 app.use('/', getUserInfoRouter); // ✅ 추가
+app.use('/', checkInviteAvailabilityRouter); // ✅ 추가
+app.use('/', inviteMembersRouter); // ✅ 추가
+app.use('/', getPendingInvitesRouter); // ✅ 추가
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
