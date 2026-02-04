@@ -98,19 +98,33 @@ private suspend fun reverseGeocodeKorea(
         if (list.isNullOrEmpty()) return@withContext Triple("", "", "")
 
         val a = list[0]
+
         val fullAddr = a.getAddressLine(0) ?: ""
         val postal = a.postalCode ?: ""
 
-        val roadAddr = listOfNotNull(a.thoroughfare, a.subThoroughfare).joinToString(" ").trim()
-            .ifBlank {
-                listOfNotNull(a.thoroughfare, a.featureName).joinToString(" ").trim()
-            }
+        // ✅ 도로명만 만들기 (시/구/국가 제거)
+        // 1순위: 도로명(thoroughfare) + 번지(subThoroughfare)
+        // 2순위: 도로명(thoroughfare) + featureName(건물번호/번지)
+        // 3순위: 도로명(thoroughfare)만
+        val roadOnly = when {
+            !a.thoroughfare.isNullOrBlank() && !a.subThoroughfare.isNullOrBlank() ->
+                "${a.thoroughfare} ${a.subThoroughfare}".trim()
 
-        Triple(fullAddr, postal, roadAddr)
+            !a.thoroughfare.isNullOrBlank() && !a.featureName.isNullOrBlank() ->
+                "${a.thoroughfare} ${a.featureName}".trim()
+
+            !a.thoroughfare.isNullOrBlank() ->
+                a.thoroughfare!!.trim()
+
+            else -> ""
+        }
+
+        Triple(fullAddr, postal, roadOnly)
     }.getOrElse {
         Triple("", "", "")
     }
 }
+
 
 @Composable
 fun SettingWorkplaceLocationScreen(
@@ -127,13 +141,16 @@ fun SettingWorkplaceLocationScreen(
     // ✅ (중요) 디바운스용 Job 선언 (기존 코드에 없어서 컴파일 에러 나던 부분)
     var geocodeJob by remember { mutableStateOf<Job?>(null) }
 
-    val placeRetrofit = remember {
+    val retrofit = remember {
         Retrofit.Builder()
-            .baseUrl("https://dapi.kakao.com/") // ✅ 카카오 로컬 API
+            .baseUrl("https://dapi.kakao.com/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
-    val placeApi = remember { placeRetrofit.create(PlaceApi::class.java) }
+
+    val placeApi = remember { retrofit.create(PlaceApi::class.java) }
+    val kakaoCoordApi = remember { retrofit.create(KakaoCoordApi::class.java) }
+
     val REST_API_KEY = "549ef0580861ccd75dc20bc5858e349f"
     val placeVm: PlaceSearchViewModel =
         viewModel(factory = PlaceSearchVmFactory(placeApi, REST_API_KEY))
@@ -172,6 +189,9 @@ fun SettingWorkplaceLocationScreen(
     var centerLat by remember { mutableStateOf(37.4563) }
     var centerLon by remember { mutableStateOf(126.7052) }
 
+    var targetLatLng by remember { mutableStateOf<com.kakao.vectormap.LatLng?>(null) }
+    var didServerMove by remember { mutableStateOf(false) }
+
     /** ✅ 좌표 기준으로 주소 업데이트 (MapView/osmdroid 제거) */
     fun requestAddressUpdateByLatLon(lat: Double, lon: Double) {
         geocodeJob?.cancel()
@@ -193,7 +213,7 @@ fun SettingWorkplaceLocationScreen(
             withContext(Dispatchers.IO) {
                 try {
                     val retrofit = Retrofit.Builder()
-                        .baseUrl("http://127.0.0.1:3000/")
+                        .baseUrl("http://192.168.120.64:3000/")
                         .addConverterFactory(GsonConverterFactory.create())
                         .build()
 
@@ -229,19 +249,19 @@ fun SettingWorkplaceLocationScreen(
         }
     }
 
-    // ✅ 서버 좌표가 들어오면 카메라 이동
     LaunchedEffect(kakaoMapObj, serverLatLng) {
-        val map = kakaoMapObj ?: return@LaunchedEffect
         val target = serverLatLng ?: return@LaunchedEffect
+        if (didServerMove) return@LaunchedEffect
+        didServerMove = true
 
-        map.moveCamera(
-            com.kakao.vectormap.camera.CameraUpdateFactory.newCenterPosition(target)
-        )
+        // ✅ "이동"은 targetLatLng로
+        targetLatLng = target
 
-        // 상태도 동기화
+        // 상태 동기화
         centerLat = target.latitude
         centerLon = target.longitude
     }
+
 
     Scaffold(
         containerColor = c.bg,
@@ -264,20 +284,38 @@ fun SettingWorkplaceLocationScreen(
                 )
             } else {
                 KakaoMapView(
-                    lat = centerLat,
-                    lon = centerLon,
-                    onMapReady = { map ->
-                        kakaoMapObj = map
+                    lat = 37.4563,
+                    lon = 126.7052,
+                    targetLatLng = targetLatLng,
+                    onMapReady = { map -> kakaoMapObj = map },
+                    onCenterChanged = { clat, clon ->
+                        centerLat = clat
+                        centerLon = clon
+
+                        geocodeJob?.cancel()
+                        geocodeJob = scope.launch {
+                            delay(400)
+                            val (addr, post, roadAddr) =
+                                reverseGeocodeKorea(context, clat, clon)
+
+                            if (addr.isNotBlank()) {
+                                address = addr
+                                zipcode = post
+                                road = roadAddr
+                            }
+                        }
                     },
                     modifier = Modifier
                         .fillMaxSize()
                         .pointerInput(Unit) {
-                            detectTapGestures(onTap = {
+
+                        detectTapGestures {
                                 dropdownExpanded = false
                                 focusManager.clearFocus()
-                            })
+                            }
                         }
                 )
+
             }
 
             // ✅ 검색창 + 드롭다운
@@ -295,24 +333,24 @@ fun SettingWorkplaceLocationScreen(
                     dropdownExpanded = false
                     focusManager.clearFocus()
 
-                    val map = kakaoMapObj ?: return@SearchBarOverlay
-
                     val lat = selected.lat
                     val lon = selected.lon
-                    if (lat != null && lon != null) {
-                        val target = com.kakao.vectormap.LatLng.from(lat, lon)
-                        map.moveCamera(
-                            com.kakao.vectormap.camera.CameraUpdateFactory.newCenterPosition(target)
-                        )
 
-                        // ✅ 중심좌표 상태 갱신 (버튼/역지오코딩에 사용)
+                    if (lat != null && lon != null) {
+                        // ✅ 이동은 targetLatLng로만 트리거 (지도 드래그해도 다시 안 돌아감)
+                        targetLatLng = com.kakao.vectormap.LatLng.from(lat, lon)
+
+                        // ✅ 현재 중심 좌표 상태도 동기화
                         centerLat = lat
                         centerLon = lon
 
-                        // ✅ 서버 응답에 주소가 있으면 즉시 표시 갱신
+                        // ✅ 표시값은 일단 업데이트
                         address = selected.address ?: address
-                        zipcode = selected.zipcode ?: ""
-                        road = selected.road_address ?: ""
+                        zipcode = selected.zipcode ?: zipcode
+                        road = selected.road_address ?: road
+
+                        // ✅ 정확한 주소로 다시 한 번 역지오코딩 (선택 직후 카드 즉시 갱신)
+                        requestAddressUpdateByLatLon(lat, lon)
                     } else {
                         Toast.makeText(context, "좌표 정보가 없는 항목입니다.", Toast.LENGTH_SHORT).show()
                     }
@@ -323,7 +361,10 @@ fun SettingWorkplaceLocationScreen(
                     .padding(start = 24.dp, end = 24.dp, top = searchTop)
             )
 
-            // ✅ 가운데 핀
+
+
+
+                // ✅ 가운데 핀
             if (isPreview) {
                 Box(
                     modifier = Modifier
@@ -381,7 +422,7 @@ fun SettingWorkplaceLocationScreen(
                             scope.launch {
                                 try {
                                     val retrofit = Retrofit.Builder()
-                                        .baseUrl("http://127.0.0.1:3000/")
+                                        .baseUrl("http://192.168.120.64:3000/")
                                         .addConverterFactory(GsonConverterFactory.create())
                                         .build()
 
@@ -411,7 +452,7 @@ fun SettingWorkplaceLocationScreen(
                             scope.launch {
                                 try {
                                     val retrofit = Retrofit.Builder()
-                                        .baseUrl("http://127.0.0.1:3000/")
+                                        .baseUrl("http://192.168.120.64:3000/")
                                         .addConverterFactory(GsonConverterFactory.create())
                                         .build()
 

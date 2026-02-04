@@ -32,6 +32,9 @@ fun KakaoMapView(
     val mapViewState = remember { mutableStateOf<MapView?>(null) }
     val kakaoMapState = remember { mutableStateOf<KakaoMap?>(null) }
 
+    // ✅ 초기 moveCamera를 딱 1번만 하게 만드는 플래그
+    val didInit = remember { mutableStateOf(false) }
+
     AndroidView(
         modifier = modifier,
         factory = { context ->
@@ -41,7 +44,6 @@ fun KakaoMapView(
                 start(
                     object : MapLifeCycleCallback() {
                         override fun onMapDestroy() {
-                            // 필요하면 로그만
                             Log.d("KakaoMapView", "onMapDestroy")
                         }
 
@@ -53,26 +55,27 @@ fun KakaoMapView(
                         override fun onMapReady(kakaoMap: KakaoMap) {
                             kakaoMapState.value = kakaoMap
 
-                            // 초기 카메라
-                            val initial = LatLng.from(lat, lon)
-                            kakaoMap.moveCamera(CameraUpdateFactory.newCenterPosition(initial))
+                            // ✅ 초기 카메라는 '한 번만' 실행
+                            if (!didInit.value) {
+                                didInit.value = true
+                                val initial = LatLng.from(lat, lon)
+                                kakaoMap.moveCamera(
+                                    CameraUpdateFactory.newCenterPosition(initial)
+                                )
+                                // 라벨(마커) 시도 — 실패해도 앱 안 죽게
+                                tryAddLabelByReflection(kakaoMap, initial)
+                            }
 
                             onMapReady(kakaoMap)
-
-                            // 라벨(마커) 시도 — 실패해도 앱 안 죽게
-                            tryAddLabelByReflection(kakaoMap, initial)
                         }
                     }
                 )
             }
         },
-        // update: recomposition 때도 안전하게 좌표/타겟 반영
+
+        // ✅ 핵심: update에서는 moveCamera 하지 마라 (초기 위치로 튐 원인)
         update = {
-            val km = kakaoMapState.value ?: return@AndroidView
-            val t = targetLatLng ?: LatLng.from(lat, lon)
-            km.moveCamera(CameraUpdateFactory.newCenterPosition(t))
-            // 라벨은 옵션: 너무 많이 찍히면 주석 처리해도 됨
-            tryAddLabelByReflection(km, t)
+            // 아무것도 하지 않음
         }
     )
 
@@ -98,18 +101,19 @@ fun KakaoMapView(
         }
     }
 
-    /** ✅ 외부 targetLatLng가 바뀌면 카메라 이동(맵 준비된 경우만) */
-    LaunchedEffect(targetLatLng) {
+    /** ✅ 외부 targetLatLng가 바뀌면 카메라 이동 (여기서만 이동!) */
+    LaunchedEffect(targetLatLng?.latitude, targetLatLng?.longitude) {
         val km = kakaoMapState.value ?: return@LaunchedEffect
         val t = targetLatLng ?: return@LaunchedEffect
+
         km.moveCamera(CameraUpdateFactory.newCenterPosition(t))
+        // 라벨이 계속 쌓이면 아래 줄은 주석처리해도 됨
         tryAddLabelByReflection(km, t)
     }
 
     /**
-     * ✅ 중심 변화 감지
-     * - 리스너 API가 SDK 버전에 따라 다를 수 있어서 폴링 유지하되,
-     * - isActive로 안전하게 종료되도록 수정
+     * ✅ 중심 변화 감지 (폴링)
+     * - isActive로 안전하게 종료
      */
     LaunchedEffect(kakaoMapState.value) {
         val km = kakaoMapState.value ?: return@LaunchedEffect
@@ -142,48 +146,39 @@ fun KakaoMapView(
 
 private fun MapView.safeResume() {
     try {
-        // 최신 SDK
         val m = this.javaClass.methods.firstOrNull { it.name == "resume" && it.parameterTypes.isEmpty() }
         if (m != null) {
-            m.invoke(this)
-            return
+            m.invoke(this); return
         }
-        // 구버전 fallback
         safeCall("onResume")
-    } catch (_: Exception) {
-    }
+    } catch (_: Exception) {}
 }
 
 private fun MapView.safePause() {
     try {
         val m = this.javaClass.methods.firstOrNull { it.name == "pause" && it.parameterTypes.isEmpty() }
         if (m != null) {
-            m.invoke(this)
-            return
+            m.invoke(this); return
         }
         safeCall("onPause")
-    } catch (_: Exception) {
-    }
+    } catch (_: Exception) {}
 }
 
 private fun MapView.safeFinish() {
     try {
         val m = this.javaClass.methods.firstOrNull { it.name == "finish" && it.parameterTypes.isEmpty() }
         if (m != null) {
-            m.invoke(this)
-            return
+            m.invoke(this); return
         }
         safeCall("onDestroy")
-    } catch (_: Exception) {
-    }
+    } catch (_: Exception) {}
 }
 
 private fun Any.safeCall(methodName: String) {
     try {
         val m = this.javaClass.methods.firstOrNull { it.name == methodName && it.parameterTypes.isEmpty() }
         m?.invoke(this)
-    } catch (_: Exception) {
-    }
+    } catch (_: Exception) {}
 }
 
 /* ---------- 리플렉션 유틸(라벨/중심) ---------- */
@@ -201,12 +196,14 @@ private fun tryAddLabelByReflection(kakaoMap: KakaoMap, pos: LatLng) {
             ?: return
 
         val labelOptionsCls = Class.forName("com.kakao.vectormap.label.LabelOptions")
-        val fromMethod = labelOptionsCls.methods.firstOrNull { it.name == "from" && it.parameterTypes.size == 1 }
-            ?: return
+        val fromMethod = labelOptionsCls.methods
+            .firstOrNull { it.name == "from" && it.parameterTypes.size == 1 } ?: return
+
         val options = fromMethod.invoke(null, pos) ?: return
 
-        val addLabel = layer.javaClass.methods.firstOrNull { it.name == "addLabel" && it.parameterTypes.size == 1 }
-            ?: return
+        val addLabel = layer.javaClass.methods
+            .firstOrNull { it.name == "addLabel" && it.parameterTypes.size == 1 } ?: return
+
         addLabel.invoke(layer, options)
     } catch (e: Exception) {
         Log.d("KakaoMapView", "label add skipped: ${e.message}")
