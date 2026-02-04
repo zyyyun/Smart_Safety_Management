@@ -365,6 +365,18 @@ data class DeleteCamerasResponse(
     val message: String
 )
 
+data class GetUserInfoResponse(
+    @SerializedName("user_id") val userId: String,
+    val name: String,
+    @SerializedName("phone_num") val phoneNum: String?,
+    val email: String?,
+    @SerializedName("user_role") val userRole: String,
+    @SerializedName("group_id") val groupId: Int?,
+    @SerializedName("is_invite_checked") val isInviteChecked: Boolean,
+    @SerializedName("invite_code") val inviteCode: String?,
+    @SerializedName("profile_image_url") val profileImage: String?
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -523,4 +535,7 @@ interface SignUpService {
 
     @POST("/delete_cameras")
     fun deleteCameras(@Body request: DeleteCamerasRequest): Call<DeleteCamerasResponse>
+
+    @GET("/get_user_info")
+    fun getUserInfo(@Query("user_id") userId: String): Call<GetUserInfoResponse>
 }

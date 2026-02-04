@@ -53,6 +53,7 @@ const sendIndividualNotificationRouter = require('./send_individual_notification
 const registerWorkplaceLocationRouter = require('./register_workplace_location'); // 추가: 현장 위치 등록
 const getWorkplaceLocationRouter = require('./get_workplace_location'); // 추가: 현장 위치 조회
 const deleteCamerasRouter = require('./delete_cameras'); // ✅ 추가: 카메라 삭제
+const getUserInfoRouter = require('./get_user_info'); // ✅ 추가: 유저 정보 조회
 
 // 라우터 등록
 app.use('/', signupRouter);
@@ -94,6 +95,7 @@ app.use('/', sendIndividualNotificationRouter); // 추가
 app.use('/', registerWorkplaceLocationRouter); // 추가
 app.use('/', getWorkplaceLocationRouter); // 추가
 app.use('/', deleteCamerasRouter); // ✅ 추가
+app.use('/', getUserInfoRouter); // ✅ 추가
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));

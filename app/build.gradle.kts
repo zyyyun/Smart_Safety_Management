@@ -8,12 +8,17 @@ android {
     namespace = "com.example.smart_safety_management"
     compileSdk = 34
 
+
     defaultConfig {
         applicationId = "com.example.smart_safety_management"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

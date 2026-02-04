@@ -46,6 +46,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var dailyAdapter: DailyCheckAdapter
     private var selectedDay: Int? = null
     private var isInviteDialogShowing = false
+    private var inviteDialog: androidx.appcompat.app.AlertDialog? = null
     private var selectedYear: Int = 0
     private var selectedMonth: Int = 0 // 1~12
 
@@ -345,6 +346,7 @@ class HomeActivity : AppCompatActivity() {
         updateProfile()
         fetchDailyChecks()
         updateAlarmDotVisibility()
+        fetchUserInfo()
     }
 
     private fun updateAlarmDotVisibility() {
@@ -363,6 +365,32 @@ class HomeActivity : AppCompatActivity() {
             override fun onFailure(call: Call<GetNotificationsResponse>, t: Throwable) {
                 Log.e("HomeActivity", "Error checking notifications", t)
             }
+        })
+    }
+
+    private fun fetchUserInfo() {
+        val userId = UserSession.userId ?: return
+        
+        // RetrofitClient에 getUserInfo 메서드와 GetUserInfoResponse 데이터 클래스가 필요합니다.
+        RetrofitClient.instance.getUserInfo(userId).enqueue(object : Callback<GetUserInfoResponse> {
+            override fun onResponse(call: Call<GetUserInfoResponse>, response: Response<GetUserInfoResponse>) {
+                if (response.isSuccessful) {
+                    val userInfo = response.body()
+                    if (userInfo != null) {
+                        UserSession.isInviteChecked = userInfo.isInviteChecked
+                        UserSession.groupId = userInfo.groupId?.toString()
+                        UserSession.inviteCode = userInfo.inviteCode
+                        UserSession.saveSession(this@HomeActivity)
+
+                        if (UserSession.isInviteChecked && isInviteDialogShowing) {
+                            inviteDialog?.dismiss()
+                            isInviteDialogShowing = false
+                        }
+                        updateProfile()
+                    }
+                }
+            }
+            override fun onFailure(call: Call<GetUserInfoResponse>, t: Throwable) {}
         })
     }
 
@@ -610,7 +638,7 @@ class HomeActivity : AppCompatActivity() {
 
         tvSkip.paintFlags = tvSkip.paintFlags or Paint.UNDERLINE_TEXT_FLAG
 
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+        inviteDialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setView(dialogView)
             .setCancelable(false)
             .create()
@@ -627,7 +655,7 @@ class HomeActivity : AppCompatActivity() {
                         UserSession.groupId = response.body()?.groupId
                         UserSession.saveSession(this@HomeActivity)
                         ToastUtil.showShort(this@HomeActivity, "그룹에 참여되었습니다.")
-                        dialog.dismiss()
+                        inviteDialog?.dismiss()
 
                         // 그룹 가입 성공 후 데이터 및 UI 즉시 새로고침
                         updateProfile()
@@ -650,13 +678,13 @@ class HomeActivity : AppCompatActivity() {
 
         tvSkip.setOnClickListener {
             // 건너뛰기 시 저장하지 않음 (다음에 다시 뜸)
-            dialog.dismiss()
+            inviteDialog?.dismiss()
         }
 
-        dialog.show()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        val params = dialog.window?.attributes
+        inviteDialog?.show()
+        inviteDialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        val params = inviteDialog?.window?.attributes
         params?.width = (resources.displayMetrics.widthPixels * 0.85).toInt()
-        dialog.window?.attributes = params
+        inviteDialog?.window?.attributes = params
     }
 }
