@@ -36,6 +36,7 @@ import com.example.smart_safety_management.R
 import com.example.smart_safety_management.RetrofitClient
 import com.example.smart_safety_management.UserSession
 import com.example.smart_safety_management.WorkplaceLocationResponse
+import com.example.smart_safety_management.screens.realtime.TagPillCompact
 import com.example.smart_safety_management.screens.realtime.normalizeCamId
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
@@ -241,10 +242,6 @@ fun MapDialog(
 
                         /* ---------- 정보 카드 (선택된 카메라 정보 표시) ---------- */
                         if (selected != null) {
-                            // ✅ 선택된 카메라의 주소 정보 찾기 (cctvList 활용)
-                            val selectedCctv = cctvList.find { normalizeCamId(it.name) == normalizeCamId(selected.camId) }
-                            val addressToShow = selectedCctv?.installationAddress ?: selected.location
-
                             Card(
                                 shape = RoundedCornerShape(14.dp),
                                 colors = CardDefaults.cardColors(containerColor = infoBg),
@@ -264,17 +261,33 @@ fun MapDialog(
                                         rightColor = infoValue
                                     )
                                     InfoRow(
-                                        left = "설치 장소",
-                                        right = selected.place,
+                                        left = "발생위치",
+                                        right = "${selected.location} ${selected.place}",
                                         leftColor = infoLabel,
                                         rightColor = infoValue
                                     )
-                                    InfoRow(
-                                        left = "주소",
-                                        right = addressToShow,
-                                        leftColor = infoLabel,
-                                        rightColor = infoValue
-                                    )
+                                    // ✅ [수정] 탐지모델을 버튼 형태의 태그로 표시
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Text(
+                                            text = "탐지모델",
+                                            color = infoLabel,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            fontFamily = Pretendard
+                                        )
+                                        if (selected.tags.isNotEmpty()) {
+                                            FlowRow(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                selected.tags.forEach { tag ->
+                                                    TagPillCompact(text = tag)
+                                                }
+                                            }
+                                        } else {
+                                            Text(text = "-", color = infoValue, fontSize = 16.sp)
+                                        }
+                                    }
 
                                     Button(
                                         onClick = { onMoveCamera(selected.camId) }, // ✅ 선택된 CAM 전달
