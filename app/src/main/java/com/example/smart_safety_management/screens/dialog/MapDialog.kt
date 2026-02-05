@@ -1,6 +1,7 @@
 package com.example.smart_safety_management.screens.dialog
 
-import android.util.Log
+import android.content.Context
+import android.location.Geocoder
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -26,35 +27,66 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import com.example.smart_safety_management.CCTVItemResponse
 import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
-import com.example.smart_safety_management.screens.realtime.TagPillCompact
+import com.example.smart_safety_management.RetrofitClient
+import com.example.smart_safety_management.UserSession
+import com.example.smart_safety_management.WorkplaceLocationResponse
 import com.example.smart_safety_management.screens.realtime.normalizeCamId
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.util.Locale
+
+// 주소를 좌표로 변환하는 함수
+private suspend fun geocode(context: Context, address: String): GeoPoint? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val geocoder = Geocoder(context, Locale.KOREA)
+            val addresses = geocoder.getFromLocationName(address, 1)
+            if (!addresses.isNullOrEmpty()) {
+                GeoPoint(addresses[0].latitude, addresses[0].longitude)
+            } else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MapDialog(
-    cams: List<LiveCardItem>, // ✅ 실제 데이터 리스트 받기
+    cams: List<LiveCardItem>,
+    cctvList: List<CCTVItemResponse>,
     item: LiveCardItem?,
     onDismiss: () -> Unit,
     onMoveCamera: (camId: String) -> Unit
 ) {
     val c = LocalSafeColors.current
     val isDark = c.isDark
-
-    // ✅ [추가] cams 데이터가 잘 들어오는지 로그로 확인 (Logcat 태그: MapDialog)
-    LaunchedEffect(cams) {
-        Log.d("MapDialog", "전달받은 카메라 목록: ${cams.map { "${it.camId} -> ${normalizeCamId(it.camId)}" }}")
-    }
+    val context = LocalContext.current
 
     // ✅ 전달받은 item의 ID를 그대로 사용 (없으면 첫 번째 카메라)
     val initialCamId = item?.camId ?: cams.firstOrNull()?.camId ?: "CAM 00"
 
     // ✅ [수정] 마커 ID(CAM 01)와 서버 데이터 ID(CAM 1) 매칭을 위해 normalize 적용
-    var selectedCamId by remember { mutableStateOf(normalizeCamId(initialCamId)) }
+    var selectedCamId by remember(cams) { mutableStateOf(normalizeCamId(initialCamId)) }
     val selected = cams.firstOrNull { normalizeCamId(it.camId) == selectedCamId } ?: cams.firstOrNull()
+
+    // 지도 상태
+    var cameraPoints by remember { mutableStateOf<Map<String, GeoPoint>>(emptyMap()) }
+    var workplacePoint by remember { mutableStateOf<GeoPoint?>(null) }
 
     val infoBg = if (isDark) Color(0xFF1E2124) else Color.White
     val infoLabel = c.sub
@@ -71,23 +103,41 @@ fun MapDialog(
     val mapW = 316.dp
     val mapH = 340.dp
 
-    // 마커 사이즈
-    val baseW = 35.dp
-    val baseH = 46.dp
-    val selW = 70.dp
-    val selH = 92.dp
-    val dx = (selW - baseW) / 2
-    val dy = (selH - baseH)
+    // ✅ 1. 현장 위치(Workplace) 가져오기 (마커 X, 중심점 O)
+    LaunchedEffect(Unit) {
+        val userId = UserSession.userId ?: return@LaunchedEffect
+        withContext(Dispatchers.IO) {
+            try {
+                val response = RetrofitClient.instance.getWorkplaceLocation(userId).execute()
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    val addr = body?.address ?: body?.roadAddress
+                    if (!addr.isNullOrBlank()) {
+                        val point = geocode(context, addr)
+                        if (point != null) {
+                            workplacePoint = point
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
-    data class Marker(val camId: String, val x: Dp, val y: Dp)
-
-    val markers = remember {
-        listOf(
-            Marker("CAM 00", 42.68.dp, 202.04.dp),
-            Marker("CAM 01", 129.73.dp, 138.15.dp),
-            Marker("CAM 02", 63.68.dp, 73.04.dp),
-            Marker("CAM 03", 230.68.dp, 8.dp),
-        )
+    // ✅ 2. 카메라 주소 지오코딩
+    LaunchedEffect(cctvList) {
+        val points = mutableMapOf<String, GeoPoint>()
+        cctvList.forEach { cctv ->
+            val addr = cctv.installationAddress
+            if (!addr.isNullOrBlank()) {
+                val point = geocode(context, addr)
+                if (point != null) {
+                    points[normalizeCamId(cctv.name)] = point
+                }
+            }
+        }
+        cameraPoints = points
     }
 
     Dialog(
@@ -136,123 +186,128 @@ fun MapDialog(
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(Color(0xFFEAECEF))
                         ) {
-                            Image(
-                                painter = painterResource(R.drawable.mapmaker),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
+                            // ✅ osmdroid MapView
+                            AndroidView(
+                                factory = { ctx ->
+                                    Configuration.getInstance().load(ctx, ctx.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
+                                    MapView(ctx).apply {
+                                        setMultiTouchControls(true)
+                                        setTileSource(TileSourceFactory.MAPNIK)
+                                        controller.setZoom(17.0)
+                                    }
+                                },
+                                update = { mapView ->
+                                    mapView.overlays.clear()
+
+                                    // 카메라 마커들
+                                    cameraPoints.forEach { (camId, point) ->
+                                        val marker = Marker(mapView)
+                                        marker.position = point
+                                        marker.title = camId
+                                        
+                                        val isSelected = (camId == selectedCamId)
+                                        val resId = when {
+                                            isDark && isSelected -> R.drawable.cctv_b_dark
+                                            isDark && !isSelected -> R.drawable.cctv_dark
+                                            !isDark && isSelected -> R.drawable.cctv_b
+                                            else -> R.drawable.cctv
+                                        }
+                                        marker.icon = ContextCompat.getDrawable(context, resId)
+                                        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                                        
+                                        marker.setOnMarkerClickListener { _, _ ->
+                                            selectedCamId = camId
+                                            true
+                                        }
+                                        mapView.overlays.add(marker)
+                                    }
+
+                                    // ✅ 지도 중심 설정: 현장 위치가 있으면 거기로, 없으면 선택된 카메라로
+                                    if (workplacePoint != null) {
+                                        mapView.controller.setCenter(workplacePoint)
+                                    } else {
+                                        val centerPoint = cameraPoints[selectedCamId] ?: cameraPoints.values.firstOrNull()
+                                        if (centerPoint != null) {
+                                            mapView.controller.setCenter(centerPoint)
+                                        }
+                                    }
+
+                                    mapView.invalidate()
+                                },
                                 modifier = Modifier.fillMaxSize()
                             )
-
-                            markers.forEach { m ->
-                                val isSelectedMarker = m.camId == selectedCamId
-                                val w = if (isSelectedMarker) selW else baseW
-                                val h = if (isSelectedMarker) selH else baseH
-
-                                // ✅ Icon에서 쓸 리소스를 먼저 결정 (문법 오류 해결)
-                                val markerRes = when {
-                                    isDark && isSelectedMarker -> R.drawable.cctv_b_dark
-                                    isDark && !isSelectedMarker -> R.drawable.cctv_dark
-                                    !isDark && isSelectedMarker -> R.drawable.cctv_b      // 라이트 리소스가 없으면 dark로 임시 대체 가능
-                                    else -> R.drawable.cctv                               // 라이트 리소스가 없으면 dark로 임시 대체 가능
-                                }
-
-                                Icon(
-                                    painter = painterResource(id = markerRes),
-                                    contentDescription = null,
-                                    tint = Color.Unspecified,
-                                    modifier = Modifier
-                                        .offset(
-                                            x = if (isSelectedMarker) m.x - dx else m.x,
-                                            y = if (isSelectedMarker) m.y - dy else m.y
-                                        )
-                                        .size(width = w, height = h)
-                                        .clickable { selectedCamId = m.camId }
-                                )
-                            }
 
                         }
 
                         /* ---------- 정보 카드 (선택된 카메라 정보 표시) ---------- */
                         if (selected != null) {
-                        Card(
-                            shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = infoBg),
-                            border = BorderStroke(1.dp, c.border),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            // ✅ 선택된 카메라의 주소 정보 찾기 (cctvList 활용)
+                            val selectedCctv = cctvList.find { normalizeCamId(it.name) == normalizeCamId(selected.camId) }
+                            val addressToShow = selectedCctv?.installationAddress ?: selected.location
+
+                            Card(
+                                shape = RoundedCornerShape(14.dp),
+                                colors = CardDefaults.cardColors(containerColor = infoBg),
+                                border = BorderStroke(1.dp, c.border),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                InfoRow(
-                                    left = "카메라 번호",
-                                    right = selected.camId, // ✅ [수정] 포맷팅 오류 방지를 위해 원본 ID 그대로 표시
-                                    leftColor = infoLabel,
-                                    rightColor = infoValue // ✅ 다크: 흰색
-                                )
-
-                                InfoRow(
-                                    left = "발생위치",
-                                    right = "${selected.location} ${selected.place}",
-                                    leftColor = infoLabel,
-                                    rightColor = infoValue // ✅ 다크: 흰색
-                                )
-
-                                Text(
-                                    text = "탐지모델",
-                                    color = infoLabel,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-
-                                FlowRow(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    selected.tags.forEach { tag ->
-                                        TagPillCompact(
-                                            text = tag,
-                                            isRisk = isDark
-                                        )
-                                    }
-
-                                }
-
-                                Button(
-                                    onClick = { onMoveCamera(selected.camId) }, // ✅ 선택된 CAM 전달
+                                Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .height(56.dp),
-                                    shape = RoundedCornerShape(14.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color(0xFFFF7A00)
-                                    )
+                                        .padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
+                                    InfoRow(
+                                        left = "카메라 번호",
+                                        right = selected.camId,
+                                        leftColor = infoLabel,
+                                        rightColor = infoValue
+                                    )
+                                    InfoRow(
+                                        left = "설치 장소",
+                                        right = selected.place,
+                                        leftColor = infoLabel,
+                                        rightColor = infoValue
+                                    )
+                                    InfoRow(
+                                        left = "주소",
+                                        right = addressToShow,
+                                        leftColor = infoLabel,
+                                        rightColor = infoValue
+                                    )
+
+                                    Button(
+                                        onClick = { onMoveCamera(selected.camId) }, // ✅ 선택된 CAM 전달
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(56.dp),
+                                        shape = RoundedCornerShape(14.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFFFF7A00)
+                                        )
                                     ) {
-                                        Text(
-                                            text = "카메라 바로가기",
-                                            color = actionColor,
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontFamily = Pretendard,
-                                            fontSize = 18.sp
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.camera),
-                                            contentDescription = null,
-                                            tint = actionColor,
-                                            modifier = Modifier.size(20.dp)
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Text(
+                                                text = "카메라 바로가기",
+                                                color = actionColor,
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontFamily = Pretendard,
+                                                fontSize = 18.sp
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.camera),
+                                                contentDescription = null,
+                                                tint = actionColor,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
                                     }
                                 }
-
                             }
-                        }
                         }
                     }
 

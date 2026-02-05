@@ -51,6 +51,7 @@ import com.example.smart_safety_management.ui.theme.TextDark
 import com.example.smart_safety_management.UserSession
 import com.example.smart_safety_management.RetrofitClient
 import com.example.smart_safety_management.GetCCTVListResponse
+import com.example.smart_safety_management.CCTVItemResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -74,6 +75,7 @@ private fun RealTimeNavigation() {
     var selectedItem by remember { mutableStateOf<LiveCardItem?>(null) }
     var showMap by remember { mutableStateOf(false) }
     var allCards by remember { mutableStateOf<List<LiveCardItem>>(emptyList()) }
+    var cctvDataList by remember { mutableStateOf<List<CCTVItemResponse>>(emptyList()) }
 
     // ✅ 서버에서 카메라 리스트 가져오기
     LaunchedEffect(Unit) {
@@ -83,6 +85,7 @@ private fun RealTimeNavigation() {
                 override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
                     if (response.isSuccessful) {
                         val list = response.body()?.cctvList ?: emptyList()
+                        cctvDataList = list // 원본 데이터 저장 (주소 정보 포함)
                         allCards = list.map { dto ->
                             // 리소스 이름으로 ID 찾기 (없으면 기본값)
                             val resId = context.resources.getIdentifier(dto.imageResName, "drawable", context.packageName)
@@ -212,11 +215,12 @@ private fun RealTimeNavigation() {
         if (showMap) {
             MapDialog(
                 cams = allCards, // ✅ 실제 데이터 전달
+                cctvList = cctvDataList, // ✅ 주소 정보가 포함된 원본 리스트 전달
                 item = selectedItem,
                 onDismiss = { showMap = false },
                 onMoveCamera = { camId ->
                     val targetId = normalizeCamId(camId)
-                    val target = allCards.firstOrNull { it.camId == targetId }
+                    val target = allCards.firstOrNull { normalizeCamId(it.camId) == targetId }
 
                     if (target != null) {
                         selectedItem = target

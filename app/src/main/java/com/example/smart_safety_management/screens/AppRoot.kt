@@ -20,6 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.smart_safety_management.CCTVItemResponse
 import com.example.smart_safety_management.GetCCTVListResponse
 import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
@@ -53,6 +54,7 @@ fun AppRoot() {
 
     // ✅ 서버 데이터 상태 관리
     var allCards by remember { mutableStateOf<List<LiveCardItem>>(emptyList()) }
+    var cctvDataList by remember { mutableStateOf<List<CCTVItemResponse>>(emptyList()) }
     val context = LocalContext.current
 
     // ✅ 서버에서 카메라 리스트 가져오기
@@ -63,6 +65,7 @@ fun AppRoot() {
                 override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
                     if (response.isSuccessful) {
                         val list = response.body()?.cctvList ?: emptyList()
+                        cctvDataList = list // ✅ 원본 데이터 저장 (주소 정보 포함)
                         allCards = list.map { dto ->
                             val resId = context.resources.getIdentifier(dto.imageResName, "drawable", context.packageName)
                                 .let { if (it == 0) R.drawable.thumb_site else it }
@@ -223,12 +226,13 @@ fun AppRoot() {
                 if (showMap) {
                     MapDialog(
                         cams = allCards, // ✅ 데이터 전달
+                        cctvList = cctvDataList, // ✅ 주소 정보가 포함된 원본 리스트 전달
                         item = selectedItem,
                         onDismiss = { showMap = false },
                         onMoveCamera = { camId ->
                             // ✅ 카메라 이동 로직 구현
                             val targetId = normalizeCamId(camId)
-                            val target = allCards.firstOrNull { it.camId == targetId }
+                            val target = allCards.firstOrNull { normalizeCamId(it.camId) == targetId }
                             if (target != null) {
                                 selectedItem = target
                             }

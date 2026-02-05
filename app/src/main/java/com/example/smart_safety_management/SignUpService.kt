@@ -146,7 +146,8 @@ data class CCTVItemResponse(
     @SerializedName("install_area") val location: String,
     @SerializedName("image_res_name") val imageResName: String?,
     val events: List<String>,
-    @SerializedName("environment_type") val environmentType: String?
+    @SerializedName("environment_type") val environmentType: String?,
+    @SerializedName("installation_address") val installationAddress: String?
 )
 
 data class GetCCTVListResponse(
@@ -421,6 +422,11 @@ data class CancelInviteResponse(
     val message: String
 )
 
+data class WorkplaceLocationResponse(
+    val address: String?,
+    @SerializedName("road_address") val roadAddress: String?
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -594,4 +600,7 @@ interface SignUpService {
 
     @POST("/cancel_invite")
     fun cancelInvite(@Body request: CancelInviteRequest): Call<CancelInviteResponse>
+
+    @GET("/get_workplace_location")
+    fun getWorkplaceLocation(@Query("user_id") userId: String): Call<WorkplaceLocationResponse>
 }
