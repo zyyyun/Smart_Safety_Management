@@ -3,7 +3,7 @@ const router = express.Router();
 const pool = require('./db');
 
 router.post('/invite_members', async (req, res) => {
-    const { sender_id, contacts } = req.body;
+    const { sender_id, contacts, role } = req.body;
 
     // 필수 데이터 검증
     if (!sender_id || !contacts || !Array.isArray(contacts) || contacts.length === 0) {
@@ -63,9 +63,9 @@ router.post('/invite_members', async (req, res) => {
                 // PENDING 상태로 추가
                 await client.query(
                     `INSERT INTO group_members 
-                    (group_id, user_id, phone_number, member_status, joined_at, invite_code, invitee_name) 
-                    VALUES ($1, $2, $3, 'PENDING', NOW(), $4, $5)`,
-                    [groupId, sender_id, cleanPhone, inviteCode, inviteeName]
+                    (group_id, user_id, phone_number, member_status, joined_at, invite_code, invitee_name, invited_role) 
+                    VALUES ($1, $2, $3, 'PENDING', NOW(), $4, $5, $6)`,
+                    [groupId, sender_id, cleanPhone, inviteCode, inviteeName, role]
                 );
             }
         }

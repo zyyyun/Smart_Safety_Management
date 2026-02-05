@@ -413,6 +413,7 @@ class HomeWorkerActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         UserSession.isInviteChecked = true
                         UserSession.groupId = response.body()?.groupId
+                        UserSession.inviteCode = inputCode // ✅ 입력한 초대코드를 세션에 저장
                         UserSession.saveSession(this@HomeWorkerActivity)
                         ToastUtil.showShort(this@HomeWorkerActivity, "그룹에 참여되었습니다.")
                         inviteDialog?.dismiss()

@@ -56,6 +56,7 @@ class SettingInviteCodeActivity : AppCompatActivity() {
                         // 성공: 세션 업데이트 (isInviteChecked, groupId)
                         UserSession.isInviteChecked = true
                         UserSession.groupId = response.body()?.groupId
+                        UserSession.inviteCode = inputCode // ✅ 입력한 초대코드를 세션에 저장
                         UserSession.saveSession(this@SettingInviteCodeActivity)
 
                         ToastUtil.showShort(this@SettingInviteCodeActivity, "그룹에 성공적으로 참여했습니다.")

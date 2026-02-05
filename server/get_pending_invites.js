@@ -22,7 +22,7 @@ router.get('/get_pending_invites', async (req, res) => {
             SELECT 
                 gm.phone_number, 
                 COALESCE(u.name, gm.invitee_name, '이름 없음') as name,
-                u.user_role
+                gm.invited_role as user_role
             FROM group_members gm
             LEFT JOIN users u ON gm.phone_number = REGEXP_REPLACE(u.phone_num, '[^0-9]', '', 'g')
             WHERE gm.group_id = $1 AND gm.member_status = 'PENDING'

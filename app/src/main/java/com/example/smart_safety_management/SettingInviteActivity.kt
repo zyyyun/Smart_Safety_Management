@@ -252,8 +252,11 @@ class SettingInviteActivity : AppCompatActivity() {
         }
         val phoneNumbersStr = inviteContacts.joinToString(";") { it.phoneNumber }
 
+        // 현재 탭에 따라 역할 설정 (관리자 탭이면 manager, 아니면 worker)
+        val role = if (isManagerTab) "manager" else "worker"
+
         // 서버에 초대 멤버 등록 요청
-        val request = InviteMembersRequest(senderId, inviteContacts)
+        val request = InviteMembersRequest(senderId, inviteContacts, role)
         RetrofitClient.instance.inviteMembers(request).enqueue(object : Callback<InviteMembersResponse> {
             override fun onResponse(call: Call<InviteMembersResponse>, response: Response<InviteMembersResponse>) {
                 if (response.isSuccessful) {

@@ -393,7 +393,8 @@ data class InviteContactDTO(
 
 data class InviteMembersRequest(
     @SerializedName("sender_id") val senderId: String,
-    @SerializedName("contacts") val contacts: List<InviteContactDTO>
+    @SerializedName("contacts") val contacts: List<InviteContactDTO>,
+    @SerializedName("role") val role: String
 )
 
 data class InviteMembersResponse(

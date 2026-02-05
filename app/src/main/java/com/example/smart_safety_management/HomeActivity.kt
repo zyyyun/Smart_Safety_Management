@@ -386,6 +386,11 @@ class HomeActivity : AppCompatActivity() {
                             inviteDialog?.dismiss()
                             isInviteDialogShowing = false
                         }
+                        
+                        // ✅ 추가: 서버 확인 결과 초대코드가 미입력 상태라면 팝업 표시
+                        if (!UserSession.isInviteChecked && !isInviteDialogShowing) {
+                            showInviteCodeDialog()
+                        }
                         updateProfile()
                     }
                 }
@@ -653,6 +658,7 @@ class HomeActivity : AppCompatActivity() {
                     if (response.isSuccessful) {
                         UserSession.isInviteChecked = true
                         UserSession.groupId = response.body()?.groupId
+                        UserSession.inviteCode = inputCode // ✅ 입력한 초대코드를 세션에 저장
                         UserSession.saveSession(this@HomeActivity)
                         ToastUtil.showShort(this@HomeActivity, "그룹에 참여되었습니다.")
                         inviteDialog?.dismiss()

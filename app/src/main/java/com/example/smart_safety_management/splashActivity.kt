@@ -50,6 +50,8 @@ class SplashActivity : AppCompatActivity() {
                                 val currentUser = users?.find { it.userId == userId }
                                 if (currentUser != null) {
                                     UserSession.isInviteChecked = currentUser.isInviteChecked
+                                    UserSession.groupId = currentUser.groupId
+                                    UserSession.inviteCode = currentUser.inviteCode
                                     UserSession.saveSession(this@SplashActivity)
                                 }
                                 moveToHome()
