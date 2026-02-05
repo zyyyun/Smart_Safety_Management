@@ -285,4 +285,25 @@ class SettingInviteActivity : AppCompatActivity() {
             }
         })
     }
+
+    // 초대 취소 API 호출 함수
+    private fun deleteInvite(contact: InviteContactItem) {
+        val senderId = UserSession.userId ?: return
+        val request = CancelInviteRequest(senderId, contact.phoneNumber)
+
+        RetrofitClient.instance.cancelInvite(request).enqueue(object : Callback<CancelInviteResponse> {
+            override fun onResponse(call: Call<CancelInviteResponse>, response: Response<CancelInviteResponse>) {
+                if (response.isSuccessful) {
+                    ToastUtil.showShort(this@SettingInviteActivity, "초대가 취소되었습니다.")
+                    // 목록 갱신
+                    loadPendingInvites()
+                } else {
+                    ToastUtil.showShort(this@SettingInviteActivity, "초대 취소 실패")
+                }
+            }
+            override fun onFailure(call: Call<CancelInviteResponse>, t: Throwable) {
+                ToastUtil.showShort(this@SettingInviteActivity, "네트워크 오류")
+            }
+        })
+    }
 }

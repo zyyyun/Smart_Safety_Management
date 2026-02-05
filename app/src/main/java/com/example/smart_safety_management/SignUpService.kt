@@ -410,6 +410,16 @@ data class GetPendingInvitesResponse(
     @SerializedName("pending_invites") val pendingInvites: List<PendingInviteDTO>
 )
 
+data class CancelInviteRequest(
+    @SerializedName("sender_id") val senderId: String,
+    @SerializedName("phone_number") val phoneNumber: String? = null,
+    @SerializedName("phone_numbers") val phoneNumbers: List<String>? = null
+)
+
+data class CancelInviteResponse(
+    val message: String
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -580,4 +590,7 @@ interface SignUpService {
 
     @GET("/get_pending_invites")
     fun getPendingInvites(@Query("user_id") userId: String): Call<GetPendingInvitesResponse>
+
+    @POST("/cancel_invite")
+    fun cancelInvite(@Body request: CancelInviteRequest): Call<CancelInviteResponse>
 }
