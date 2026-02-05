@@ -1,5 +1,9 @@
 package com.example.smart_safety_management.screens.detail
 
+import android.util.Log
+import android.net.Uri
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
+import android.widget.FrameLayout
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,11 +23,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import com.example.smart_safety_management.LiveCardItem
+import com.example.smart_safety_management.RetrofitClient
+import com.example.smart_safety_management.CCTVStreamInfoResponse
 import com.example.smart_safety_management.R
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
@@ -32,6 +45,9 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 /**
  * ✅ 지금은 CCTV/시그널링이 없으니:
@@ -49,6 +65,9 @@ import androidx.compose.animation.core.tween
 @Composable
 fun InternalDetailScreen(
     item: LiveCardItem,
+    cameraId: Int,
+    overviewUrl: String? = null,
+    siteUrl: String? = null,
     onBack: () -> Unit,
     onMapClick: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -69,6 +88,28 @@ fun InternalDetailScreen(
     // 지금 당장은 null로 두면 "연결대기" UI로 보임
     val overviewStreamId: String? = (item as? HasCctvStreamIds)?.overviewStreamId
     val siteStreamId: String? = (item as? HasCctvStreamIds)?.siteStreamId
+
+    // ✅ API를 통해 가져온 최신 URL 상태 관리
+    var finalOverviewUrl by remember { mutableStateOf(overviewUrl) }
+    var finalSiteUrl by remember { mutableStateOf(siteUrl) }
+
+    // ✅ 화면 진입 시 상세 정보(URL 등) 다시 조회
+    LaunchedEffect(cameraId) {
+        if (cameraId != 0) {
+            Log.d("InternalDetail", "CCTV 스트림 정보 요청: ID=$cameraId")
+            RetrofitClient.instance.getCCTVStreamInfo(cameraId.toString()).enqueue(object : Callback<CCTVStreamInfoResponse> {
+                override fun onResponse(call: Call<CCTVStreamInfoResponse>, response: Response<CCTVStreamInfoResponse>) {
+                    if (response.isSuccessful) {
+                        val body = response.body()
+                        Log.d("InternalDetail", "URL 수신: 전경=${body?.liveUrl}, 현장=${body?.liveUrlDetail}")
+                        finalOverviewUrl = body?.liveUrl
+                        finalSiteUrl = body?.liveUrlDetail
+                    }
+                }
+                override fun onFailure(call: Call<CCTVStreamInfoResponse>, t: Throwable) {}
+            })
+        }
+    }
 
     Scaffold(
         containerColor = bg,
@@ -190,6 +231,7 @@ fun InternalDetailScreen(
                     .padding(horizontal = side)
                     .fillMaxWidth(),
                 isLive = true,
+                imageUrl = finalOverviewUrl,
                 streamId = overviewStreamId,
                 label = "전경"
             )
@@ -216,6 +258,7 @@ fun InternalDetailScreen(
                     .padding(horizontal = side)
                     .fillMaxWidth(),
                 isLive = true,
+                imageUrl = finalSiteUrl,
                 streamId = siteStreamId,
                 label = "현장"
             )
@@ -279,6 +322,7 @@ private fun SmartPreviewCard(
     border: Color,
     modifier: Modifier = Modifier,
     isLive: Boolean = true,
+    imageUrl: String? = null,
     streamId: String?,
     label: String
 ) {
@@ -292,13 +336,32 @@ private fun SmartPreviewCard(
             .border(1.dp, border, RoundedCornerShape(14.dp))
             .background(bg)
     ) {
-        // ✅ 기본은 이미지
-        Image(
-            painter = painterResource(id = imageRes),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
+        // ✅ 이미지 (URL이 있으면 URL 사용, 없으면 리소스 사용)
+        if (!imageUrl.isNullOrBlank()) {
+            // ✅ .m3u8 또는 .mp4 인 경우 동영상 플레이어(ExoPlayer) 사용
+            if (imageUrl.contains(".m3u8") || imageUrl.contains(".mp4")) {
+                VideoPlayer(url = imageUrl, modifier = Modifier.fillMaxSize())
+            } else {
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(imageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    placeholder = painterResource(id = imageRes),
+                    error = painterResource(id = imageRes),
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        } else {
+            Image(
+                painter = painterResource(id = imageRes),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
 
         if (streamId.isNullOrBlank()) {
             // ✅ CCTV 아직 없음: 연결대기 UI
@@ -422,4 +485,35 @@ fun LiveBadge(modifier: Modifier = Modifier) {
 interface HasCctvStreamIds {
     val overviewStreamId: String?
     val siteStreamId: String?
+}
+
+// ✅ ExoPlayer를 이용한 간단한 비디오 플레이어
+@Composable
+fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+
+    val exoPlayer = remember {
+        ExoPlayer.Builder(context).build().apply {
+            setMediaItem(MediaItem.fromUri(Uri.parse(url)))
+            prepare()
+            playWhenReady = true
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            exoPlayer.release()
+        }
+    }
+
+    AndroidView(
+        factory = {
+            PlayerView(context).apply {
+                player = exoPlayer
+                useController = false
+                layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+            }
+        },
+        modifier = modifier
+    )
 }

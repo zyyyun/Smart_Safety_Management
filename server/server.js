@@ -27,6 +27,7 @@ const removeFromGroupRouter = require('./remove_from_group');
 const getCCTVListRouter = require('./get_cctv_list');
 const uploadImageRouter = require('./upload_image');
 const getCCTVDetailRouter = require('./get_cctv_detail');
+const getCCTVStreamInfoRouter = require('./get_cctv_stream_info'); // ✅ 추가
 const getDeviceStatusRouter = require('./get_device_status');
 const getWorkerDeviceStatusRouter = require('./get_worker_device_status');
 const getDetectionEventsRouter = require('./get_detection_events');
@@ -73,6 +74,7 @@ app.use('/', removeFromGroupRouter);
 app.use('/', getCCTVListRouter);
 app.use('/', uploadImageRouter);
 app.use('/', getCCTVDetailRouter);
+app.use('/', getCCTVStreamInfoRouter); // ✅ 추가
 app.use('/', getDeviceStatusRouter);
 app.use('/', getWorkerDeviceStatusRouter);
 app.use('/', getDetectionEventsRouter);

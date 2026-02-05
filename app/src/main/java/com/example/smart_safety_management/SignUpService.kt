@@ -147,7 +147,9 @@ data class CCTVItemResponse(
     @SerializedName("image_res_name") val imageResName: String?,
     val events: List<String>,
     @SerializedName("environment_type") val environmentType: String?,
-    @SerializedName("installation_address") val installationAddress: String?
+    @SerializedName("installation_address") val installationAddress: String?,
+    @SerializedName("live_url") val liveUrl: String?,
+    @SerializedName("live_url_detail") val liveUrlDetail: String?
 )
 
 data class GetCCTVListResponse(
@@ -174,6 +176,15 @@ data class CCTVDetailResponse(
     @SerializedName("operating_hours") val operatingHours: String?,
     val events: List<String>,
     @SerializedName("live_url") val liveUrl: String?,
+    @SerializedName("installation_address") val installationAddress: String?,
+    @SerializedName("live_url_detail") val liveUrlDetail: String?
+)
+
+data class CCTVStreamInfoResponse(
+    @SerializedName("camera_id") val id: Int,
+    @SerializedName("live_url") val liveUrl: String?,
+    @SerializedName("live_url_detail") val liveUrlDetail: String?,
+    @SerializedName("install_area") val installArea: String?,
     @SerializedName("installation_address") val installationAddress: String?
 )
 
@@ -474,6 +485,9 @@ interface SignUpService {
 
     @GET("/get_cctv_detail")
     fun getCCTVDetail(@Query("camera_id") cameraId: String): Call<CCTVDetailResponse>
+
+    @GET("/get_cctv_stream_info")
+    fun getCCTVStreamInfo(@Query("camera_id") cameraId: String): Call<CCTVStreamInfoResponse>
 
     @GET("/get_device_status")
     fun getDeviceStatus(@Query("user_id") userId: String): Call<GetDeviceStatusResponse>

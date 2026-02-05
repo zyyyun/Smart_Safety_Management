@@ -216,8 +216,13 @@ fun AppRoot() {
                         )
                     }
                 } else {
+                    // ✅ 선택된 아이템에 해당하는 상세 데이터 찾기
+                    val selectedCctvData = cctvDataList.find { it.name == selectedItem?.camId }
                     InternalDetailScreen(
                         item = selectedItem!!,
+                        cameraId = selectedCctvData?.id ?: 0,
+                        overviewUrl = selectedCctvData?.liveUrl,
+                        siteUrl = selectedCctvData?.liveUrlDetail,
                         onBack = { selectedItem = null },
                         onMapClick = { showMap = true }
                     )

@@ -204,8 +204,12 @@ private fun RealTimeNavigation() {
                 onMapClick = { showMap = true }
             )
         } else {
+            val selectedCctvData = cctvDataList.find { it.name == selectedItem?.camId }
             InternalDetailScreen(
                 item = selectedItem!!,
+                cameraId = selectedCctvData?.id ?: 0,
+                overviewUrl = selectedCctvData?.liveUrl,
+                siteUrl = selectedCctvData?.liveUrlDetail,
                 onBack = { selectedItem = null },
                 onMapClick = { showMap = true },
                 modifier = Modifier.padding(contentPadding)
