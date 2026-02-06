@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.SurfaceTexture
 import android.location.Geocoder
+import android.net.Uri
 import android.preference.PreferenceManager
 import android.util.Log
 import android.widget.Toast
@@ -72,6 +73,11 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.util.Locale
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalGlideComposeApi::class)
 @Composable
@@ -94,6 +100,7 @@ fun ActionDetailWorkerScreen(
     var actionType by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
+    var attachedPhotos by remember { mutableStateOf<List<String>>(emptyList()) }
     
     // 작성 완료 다이얼로그 상태
     var showActionCompletedDialog by remember { mutableStateOf(false) }
@@ -112,6 +119,18 @@ fun ActionDetailWorkerScreen(
         skipHalfExpanded = true
     )
     val coroutineScope = rememberCoroutineScope()
+
+    // 사진 선택 Launcher
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.size > 5) {
+            ToastUtil.showShort(context, "사진은 최대 5장까지 첨부 가능합니다.")
+            attachedPhotos = uris.take(5).map { it.toString() }
+        } else {
+            attachedPhotos = uris.map { it.toString() }
+        }
+    }
 
     // 주소를 좌표로 변환 (Geocoding)
     LaunchedEffect(eventDetail) {
@@ -676,6 +695,80 @@ fun ActionDetailWorkerScreen(
                             )
                         )
 
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        Text(
+                            text = "사진 첨부",
+                            fontWeight = FontWeight.Medium,
+                            color = CategoryColor,
+                            fontFamily = Pretendard,
+                            fontSize = 16.sp,
+                            modifier = Modifier.offset(x = 8.dp)
+                        )
+                        Spacer(modifier = Modifier.height(15.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // 사진 추가 버튼
+                            Box(
+                                modifier = Modifier
+                                    .size(120.dp)
+                                    .background(btnBackColor, shape = RoundedCornerShape(8.dp))
+                                    .clickable {
+                                        launcher.launch("image/*")
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    val pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
+                                    drawRoundRect(
+                                        color = borderColor,
+                                        style = Stroke(width = 1.dp.toPx(), pathEffect = pathEffect),
+                                        cornerRadius = CornerRadius(8.dp.toPx())
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.camera_icon),
+                                        contentDescription = "사진첨부",
+                                        tint = if (isLight) Color.Unspecified else TextGray30
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "사진첨부",
+                                        color = photoColor,
+                                        fontSize = 18.sp,
+                                        fontFamily = Pretendard
+                                    )
+                                }
+                            }
+
+                            // 첨부된 사진들 표시 영역
+                            attachedPhotos.forEach { photoUri ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(120.dp)
+                                        .background(btnBackColor, shape = RoundedCornerShape(8.dp))
+                                        .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    GlideImage(
+                                        model = photoUri,
+                                        contentDescription = "Attached Photo",
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(8.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
+                        }
+
                         if (!eventDetail?.actionImages.isNullOrEmpty()) {
                             Spacer(modifier = Modifier.height(32.dp))
                             Text(
@@ -746,8 +839,24 @@ fun ActionDetailWorkerScreen(
                 onConfirm = {
                     val userId = UserSession.userId
                     if (!userId.isNullOrEmpty()) {
-                        val request = CompleteActionRequest(eventId = eventId, workerId = userId)
-                        RetrofitClient.instance.completeAction(request).enqueue(object : Callback<Void> {
+                        // ✅ Multipart 요청 준비
+                        val eventIdBody = RequestBody.create("text/plain".toMediaTypeOrNull(), eventId.toString())
+                        val workerIdBody = RequestBody.create("text/plain".toMediaTypeOrNull(), userId)
+                        val typeBody = RequestBody.create("text/plain".toMediaTypeOrNull(), actionType)
+                        val titleBody = RequestBody.create("text/plain".toMediaTypeOrNull(), title)
+                        val detailsBody = RequestBody.create("text/plain".toMediaTypeOrNull(), content)
+
+                        val imageParts = attachedPhotos.mapNotNull { uriString ->
+                            val uri = Uri.parse(uriString)
+                            uriToFile(context, uri)?.let { file ->
+                                val requestFile = RequestBody.create("image/*".toMediaTypeOrNull(), file)
+                                MultipartBody.Part.createFormData("images", file.name, requestFile)
+                            }
+                        }
+
+                        RetrofitClient.instance.completeAction(
+                            eventIdBody, workerIdBody, typeBody, titleBody, detailsBody, imageParts
+                        ).enqueue(object : Callback<Void> {
                             override fun onResponse(call: Call<Void>, response: Response<Void>) {
                                 if (response.isSuccessful) {
                                     ToastUtil.showShort(context, "조치 완료 처리되었습니다.")

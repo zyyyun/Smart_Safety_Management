@@ -270,10 +270,6 @@ data class UpdateEventStatusRequest(
     @SerializedName("status") val status: String
 )
 
-data class CompleteActionRequest(
-    @SerializedName("event_id") val eventId: Int,
-    @SerializedName("worker_id") val workerId: String
-)
 
 data class HandleFalsePositiveRequest(
     @SerializedName("event_id") val eventId: Int,
@@ -532,8 +528,16 @@ interface SignUpService {
     @POST("/update_event_status")
     fun updateEventStatus(@Body request: UpdateEventStatusRequest): Call<Void>
 
+    @Multipart
     @POST("/complete_action")
-    fun completeAction(@Body request: CompleteActionRequest): Call<Void>
+    fun completeAction(
+        @Part("event_id") eventId: RequestBody,
+        @Part("worker_id") workerId: RequestBody,
+        @Part("request_type") requestType: RequestBody,
+        @Part("request_title") requestTitle: RequestBody,
+        @Part("request_details") requestDetails: RequestBody,
+        @Part images: List<MultipartBody.Part>
+    ): Call<Void>
 
     @POST("/handle_false_positive")
     fun handleFalsePositive(@Body request: HandleFalsePositiveRequest): Call<Void>
