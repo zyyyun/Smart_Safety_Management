@@ -460,9 +460,9 @@ class HomeWorkerActivity : AppCompatActivity() {
 
     private fun mapRiskLevel(level: String?): String {
         return when (level?.lowercase()) {
-            "high", "위험" -> "위험"
-            "medium", "경고" -> "경고"
-            "low", "주의" -> "주의"
+            "high", "위험", "danger" -> "위험"
+            "medium", "경고", "warning" -> "경고"
+            "low", "주의", "caution" -> "주의"
             else -> "기타"
         }
     }

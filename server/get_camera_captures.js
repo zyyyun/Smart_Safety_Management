@@ -15,6 +15,7 @@ router.get('/get_camera_captures', async (req, res) => {
             SELECT capture_id, image_url, to_char(captured_at, 'YYYY-MM-DD HH24:MI:SS') as captured_at
             FROM camera_captures
             WHERE camera_id = $1
+            AND event_type = 'PERIODIC'
             ORDER BY captured_at DESC
             LIMIT 3
         `;

@@ -47,10 +47,12 @@ const captureSnapshot = (camera) => {
                     const oldSnapshots = await pool.query(
                         `SELECT capture_id, image_url FROM camera_captures
                          WHERE camera_id = $1
+                         AND event_type = 'PERIODIC'
                          AND capture_id NOT IN (
                              SELECT capture_id
                              FROM camera_captures
                              WHERE camera_id = $1
+                             AND event_type = 'PERIODIC'
                              ORDER BY captured_at DESC
                              LIMIT 5
                          )`,

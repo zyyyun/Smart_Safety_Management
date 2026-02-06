@@ -32,6 +32,7 @@ import com.example.smart_safety_management.ui.theme.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
@@ -41,6 +42,8 @@ import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration as OsmConfiguration
@@ -70,10 +73,8 @@ fun AIEventDetailScreen(
     var pos by remember { mutableStateOf(0.5f) }
     var playing by remember { mutableStateOf(true) }
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    // 스냅샷 비트맵 상태
-    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var videoTextureView by remember { mutableStateOf<TextureView?>(null) }
 
     // 지도 좌표 상태
     var mapCenter by remember { mutableStateOf<GeoPoint?>(null) }
@@ -114,18 +115,26 @@ fun AIEventDetailScreen(
             }
         }
 
-        // 서버에서 데이터 불러오기
-        LaunchedEffect(eventId) {
-            RetrofitClient.instance.getDetectionEventDetail(eventId).enqueue(object : Callback<DetectionEventDetailResponse> {
-                override fun onResponse(call: Call<DetectionEventDetailResponse>, response: Response<DetectionEventDetailResponse>) {
-                    if (response.isSuccessful) {
-                        eventDetail = response.body()
-                    }
+        // ✅ [수정] 화면이 다시 보일 때(ON_RESUME) 데이터 갱신 (조치요청 후 복귀 시 상태 업데이트)
+        DisposableEffect(lifecycleOwner, eventId) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    RetrofitClient.instance.getDetectionEventDetail(eventId).enqueue(object : Callback<DetectionEventDetailResponse> {
+                        override fun onResponse(call: Call<DetectionEventDetailResponse>, response: Response<DetectionEventDetailResponse>) {
+                            if (response.isSuccessful) {
+                                eventDetail = response.body()
+                            }
+                        }
+                        override fun onFailure(call: Call<DetectionEventDetailResponse>, t: Throwable) {
+                            // 에러 처리
+                        }
+                    })
                 }
-                override fun onFailure(call: Call<DetectionEventDetailResponse>, t: Throwable) {
-                    // 에러 처리
-                }
-            })
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+            }
         }
 
         if (eventDetail == null) {
@@ -378,25 +387,15 @@ fun AIEventDetailScreen(
 
                         Spacer(modifier = Modifier.height(18.dp))
 
-                        if (capturedBitmap != null) {
-                            Image(
-                                bitmap = capturedBitmap!!.asImageBitmap(),
-                                contentDescription = "이벤트 캡처",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.FillWidth
-                            )
-                        } else {
-                            GlideImage(
-                                model = eventDetail?.captureImageUrl,
-                                contentDescription = "이벤트 캡처",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.FillWidth
-                            ) { it.error(R.drawable.event).placeholder(R.drawable.event) }
-                        }
+                        // ✅ [수정] 클라이언트 캡처 로직 제거 -> 서버 URL 사용
+                        GlideImage(
+                            model = eventDetail?.captureImageUrl,
+                            contentDescription = "이벤트 캡처",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.FillWidth
+                        ) { it.error(R.drawable.event).placeholder(R.drawable.event) }
 
                         Spacer(modifier = Modifier.height(48.dp))
 
@@ -475,17 +474,6 @@ fun AIEventDetailScreen(
                                 val exoPlayer = remember {
                                     ExoPlayer.Builder(context).build().apply {
                                         playWhenReady = true
-                                        addListener(object : Player.Listener {
-                                            override fun onRenderedFirstFrame() {
-                                                // 영상의 첫 프레임이 렌더링되었을 때 캡처 시도
-                                                videoTextureView?.let { view ->
-                                                    val bitmap = view.getBitmap()
-                                                    if (bitmap != null) {
-                                                        capturedBitmap = bitmap
-                                                    }
-                                                }
-                                            }
-                                        })
                                     }
                                 }
 
@@ -513,19 +501,10 @@ fun AIEventDetailScreen(
                                             surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                                                 override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
                                                     exoPlayer.setVideoTextureView(this@apply)
-                                                    videoTextureView = this@apply
                                                 }
                                                 override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
                                                 override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = false
-                                                override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
-                                                    if (capturedBitmap == null) {
-                                                        // onRenderedFirstFrame이 놓쳤을 경우를 대비한 백업 캡처
-                                                        val bitmap = this@apply.getBitmap()
-                                                        if (bitmap != null) {
-                                                            capturedBitmap = bitmap
-                                                        }
-                                                    }
-                                                }
+                                                override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
                                             }
                                         }
                                     },

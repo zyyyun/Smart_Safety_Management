@@ -87,8 +87,6 @@ fun ActionDetailWorkerScreen(
     var playing by remember { mutableStateOf(true) }
 
     val context = LocalContext.current
-    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
-    var videoTextureView by remember { mutableStateOf<TextureView?>(null) }
     var mapCenter by remember { mutableStateOf<GeoPoint?>(null) }
     var isGeocodingError by remember { mutableStateOf(false) }
 
@@ -231,27 +229,16 @@ fun ActionDetailWorkerScreen(
                         }
 
                         LabelText("이벤트 캡처")
-                        if (capturedBitmap != null) {
-                            Image(
-                                bitmap = capturedBitmap!!.asImageBitmap(),
-                                contentDescription = "이벤트 캡처",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.FillWidth
-                            )
-                        } else {
-                            GlideImage(
-                                model = eventDetail?.captureImageUrl,
-                                contentDescription = "이벤트 캡처",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(200.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.FillWidth
-                            ) { it.error(R.drawable.workeraction).placeholder(R.drawable.workeraction) }
-                        }
+                        // ✅ [수정] 클라이언트 캡처 로직 제거 -> 서버 URL 사용
+                        GlideImage(
+                            model = eventDetail?.captureImageUrl,
+                            contentDescription = "이벤트 캡처",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.FillWidth
+                        ) { it.error(R.drawable.workeraction).placeholder(R.drawable.workeraction) }
                         Spacer(modifier = Modifier.height(16.dp))
                         LabelText("발생 위치")
                         Box(
@@ -307,16 +294,6 @@ fun ActionDetailWorkerScreen(
                                 val exoPlayer = remember {
                                     ExoPlayer.Builder(context).build().apply {
                                         playWhenReady = true
-                                        addListener(object : Player.Listener {
-                                            override fun onRenderedFirstFrame() {
-                                                videoTextureView?.let { view ->
-                                                    val bitmap = view.getBitmap()
-                                                    if (bitmap != null) {
-                                                        capturedBitmap = bitmap
-                                                    }
-                                                }
-                                            }
-                                        })
                                     }
                                 }
 
@@ -344,18 +321,10 @@ fun ActionDetailWorkerScreen(
                                             surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                                                 override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
                                                     exoPlayer.setVideoTextureView(this@apply)
-                                                    videoTextureView = this@apply
                                                 }
                                                 override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
                                                 override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = false
-                                                override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {
-                                                    if (capturedBitmap == null) {
-                                                        val bitmap = this@apply.getBitmap()
-                                                        if (bitmap != null) {
-                                                            capturedBitmap = bitmap
-                                                        }
-                                                    }
-                                                }
+                                                override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
                                             }
                                         }
                                     },
