@@ -50,6 +50,8 @@ import androidx.compose.animation.core.tween
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import kotlinx.coroutines.delay
+import com.example.smart_safety_management.LivePlaybackController
 
 /**
  * ✅ 지금은 CCTV/시그널링이 없으니:
@@ -373,6 +375,8 @@ private fun SmartPreviewCard(
     val c = LocalSafeColors.current
     val bg = if (c.isDark) c.surface else Color.White
 
+    val isVideo = !imageUrl.isNullOrBlank() && (imageUrl.contains(".m3u8") || imageUrl.contains(".mp4"))
+
     Box(
         modifier = modifier
             .height(210.dp)
@@ -380,12 +384,12 @@ private fun SmartPreviewCard(
             .border(1.dp, border, RoundedCornerShape(14.dp))
             .background(bg)
     ) {
-        // ✅ 이미지 (URL이 있으면 URL 사용, 없으면 리소스 사용)
-        if (!imageUrl.isNullOrBlank()) {
-            // ✅ .m3u8 또는 .mp4 인 경우 동영상 플레이어(ExoPlayer) 사용
-            if (imageUrl.contains(".m3u8") || imageUrl.contains(".mp4")) {
-                VideoPlayer(url = imageUrl, modifier = Modifier.fillMaxSize())
-            } else {
+        if (isVideo) {
+            // ✅ 비디오인 경우 플레이어 + 재생바 표시 (연결대기 텍스트 숨김)
+            VideoPlayer(url = imageUrl!!, modifier = Modifier.fillMaxSize())
+        } else {
+            // ✅ 비디오가 아닌 경우 이미지 + 연결대기 텍스트 표시
+            if (!imageUrl.isNullOrBlank()) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(imageUrl)
@@ -397,46 +401,32 @@ private fun SmartPreviewCard(
                     error = painterResource(id = imageRes),
                     modifier = Modifier.fillMaxSize()
                 )
+            } else {
+                Image(
+                    painter = painterResource(id = imageRes),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
-        } else {
-            Image(
-                painter = painterResource(id = imageRes),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
 
-        if (streamId.isNullOrBlank()) {
-            // ✅ CCTV 아직 없음: 연결대기 UI
-            ConnectionPill(
-                text = "연결대기",
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(10.dp)
-            )
-        } else {
-            // ✅ CCTV/WebRTC 정보는 있음: "연결 준비됨" UI (지금은 placeholder)
-            ConnectionPill(
-                text = "$label 연결 준비됨",
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(10.dp)
-            )
-
-            // ==========================================================
-            // ✅✅✅ TODO (나중에 여기다가 "시그널링 + WebRTC 렌더러" 붙이면 됨)
-            //
-            // 1) signaling 연결 (WebSocket/REST/Firebase 등)
-            // 2) offer/answer/ice 교환
-            // 3) remote VideoTrack 받기
-            // 4) 아래처럼 WebRtcPreviewLayer(...)로 덮어씌우기
-            //
-            // 예시 구조:
-            // var remoteTrack by remember { mutableStateOf<VideoTrack?>(null) }
-            // DisposableEffect(streamId) { ...connect... onDispose{...} }
-            // WebRtcPreviewLayer(remoteTrack = remoteTrack)
-            // ==========================================================
+            if (streamId.isNullOrBlank()) {
+                // ✅ CCTV 아직 없음: 연결대기 UI
+                ConnectionPill(
+                    text = "연결대기",
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(10.dp)
+                )
+            } else {
+                // ✅ CCTV/WebRTC 정보는 있음: "연결 준비됨" UI (지금은 placeholder)
+                ConnectionPill(
+                    text = "$label 연결 준비됨",
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(10.dp)
+                )
+            }
         }
 
         // ✅ LIVE 배지
@@ -536,11 +526,26 @@ interface HasCctvStreamIds {
 fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
+    // UI State
+    var isPlaying by remember { mutableStateOf(true) }
+    var currentPosition by remember { mutableStateOf(0L) }
+    var duration by remember { mutableStateOf(0L) }
+
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(Uri.parse(url)))
             prepare()
             playWhenReady = true
+        }
+    }
+
+    // Progress update loop
+    LaunchedEffect(exoPlayer) {
+        while (true) {
+            currentPosition = exoPlayer.currentPosition
+            duration = exoPlayer.duration.coerceAtLeast(0L)
+            isPlaying = exoPlayer.isPlaying
+            delay(500)
         }
     }
 
@@ -550,14 +555,43 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
         }
     }
 
-    AndroidView(
-        factory = {
-            PlayerView(context).apply {
-                player = exoPlayer
-                useController = false
-                layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
-            }
-        },
-        modifier = modifier
-    )
+    Box(modifier = modifier) {
+        AndroidView(
+            factory = {
+                PlayerView(context).apply {
+                    player = exoPlayer
+                    useController = false // Hide default controller
+                    layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Custom Controller Overlay
+        val progress = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
+        val timeText = formatTime(currentPosition)
+
+        LivePlaybackController(
+            sliderPosition = progress,
+            onSliderValueChange = { newVal ->
+                val newPos = (newVal * duration).toLong()
+                exoPlayer.seekTo(newPos)
+                currentPosition = newPos // Immediate feedback
+            },
+            timeText = timeText,
+            isPlaying = isPlaying,
+            onPlayPauseClick = {
+                if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                isPlaying = !isPlaying // Immediate feedback
+            },
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
+    }
+}
+
+private fun formatTime(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format("%02d:%02d", minutes, seconds)
 }
