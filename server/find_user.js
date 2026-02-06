@@ -2,8 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pool = require('./db'); // pg pool 사용
 
-console.log("✅ find_user.js 라우터가 로드되었습니다.");
-
 // 1. 아이디 찾기 API
 router.post('/find_id', async (req, res) => {
     const name = req.body.name;

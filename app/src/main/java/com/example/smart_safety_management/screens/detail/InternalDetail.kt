@@ -37,6 +37,8 @@ import androidx.media3.ui.PlayerView
 import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.RetrofitClient
 import com.example.smart_safety_management.CCTVStreamInfoResponse
+import com.example.smart_safety_management.GetCameraCapturesResponse
+import com.example.smart_safety_management.CameraCaptureDTO
 import com.example.smart_safety_management.R
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
@@ -93,6 +95,9 @@ fun InternalDetailScreen(
     var finalOverviewUrl by remember { mutableStateOf(overviewUrl) }
     var finalSiteUrl by remember { mutableStateOf(siteUrl) }
 
+    // ✅ 서버에서 가져온 스냅샷 리스트 상태
+    var captureImages by remember { mutableStateOf<List<CameraCaptureDTO>>(emptyList()) }
+
     // ✅ 화면 진입 시 상세 정보(URL 등) 다시 조회
     LaunchedEffect(cameraId) {
         if (cameraId != 0) {
@@ -107,6 +112,20 @@ fun InternalDetailScreen(
                     }
                 }
                 override fun onFailure(call: Call<CCTVStreamInfoResponse>, t: Throwable) {}
+            })
+
+            // ✅ 추가: 최근 스냅샷 3개 조회
+            RetrofitClient.instance.getCameraCaptures(cameraId).enqueue(object : Callback<GetCameraCapturesResponse> {
+                override fun onResponse(call: Call<GetCameraCapturesResponse>, response: Response<GetCameraCapturesResponse>) {
+                    if (response.isSuccessful) {
+                        val body = response.body()
+                        captureImages = body?.captures ?: emptyList()
+                        Log.d("InternalDetail", "스냅샷 로드 완료: ${captureImages.size}개")
+                    }
+                }
+                override fun onFailure(call: Call<GetCameraCapturesResponse>, t: Throwable) {
+                    Log.e("InternalDetail", "스냅샷 로드 실패", t)
+                }
             })
         }
     }
@@ -283,21 +302,46 @@ fun InternalDetailScreen(
                 contentPadding = PaddingValues(start = side, end = 0.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(item.captureThumbs) { res ->
-                    Box(
-                        modifier = Modifier
-                            .size(140.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .border(1.dp, border, RoundedCornerShape(14.dp))
-                            .background(surface)
-                            .clickable { }
-                    ) {
-                        Image(
-                            painter = painterResource(id = res),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                // ✅ API로 가져온 이미지가 있으면 그것을 표시
+                if (captureImages.isNotEmpty()) {
+                    items(captureImages) { capture ->
+                        Box(
+                            modifier = Modifier
+                                .size(140.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .border(1.dp, border, RoundedCornerShape(14.dp))
+                                .background(surface)
+                                .clickable { }
+                        ) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(capture.imageUrl)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Snapshot ${capture.capturedAt}",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+                } else {
+                    // ✅ 없으면 기존 더미 데이터 표시 (혹은 빈 상태)
+                    items(item.captureThumbs) { res ->
+                        Box(
+                            modifier = Modifier
+                                .size(140.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .border(1.dp, border, RoundedCornerShape(14.dp))
+                                .background(surface)
+                                .clickable { }
+                        ) {
+                            Image(
+                                painter = painterResource(id = res),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
                     }
                 }
             }

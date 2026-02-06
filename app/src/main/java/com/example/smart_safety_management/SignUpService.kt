@@ -438,6 +438,16 @@ data class WorkplaceLocationResponse(
     @SerializedName("road_address") val roadAddress: String?
 )
 
+data class CameraCaptureDTO(
+    @SerializedName("capture_id") val captureId: Int,
+    @SerializedName("image_url") val imageUrl: String,
+    @SerializedName("captured_at") val capturedAt: String
+)
+
+data class GetCameraCapturesResponse(
+    val captures: List<CameraCaptureDTO>
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -617,4 +627,7 @@ interface SignUpService {
 
     @GET("/get_workplace_location")
     fun getWorkplaceLocation(@Query("user_id") userId: String): Call<WorkplaceLocationResponse>
+
+    @GET("/get_camera_captures")
+    fun getCameraCaptures(@Query("camera_id") cameraId: Int): Call<GetCameraCapturesResponse>
 }

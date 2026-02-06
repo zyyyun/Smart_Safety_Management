@@ -59,6 +59,8 @@ const checkInviteAvailabilityRouter = require('./check_invite_availability'); //
 const inviteMembersRouter = require('./invite_members'); // ✅ 추가: 멤버 초대 등록
 const getPendingInvitesRouter = require('./get_pending_invites'); // ✅ 추가: 대기중인 초대 목록 조회
 const cancelInviteRouter = require('./cancel_invite'); // ✅ 추가: 초대 취소
+const startCronJobs = require('./cron_scheduler'); // ✅ 추가: 스케줄러 모듈
+const getCameraCapturesRouter = require('./get_camera_captures'); // ✅ 추가: 카메라 캡처 조회
 
 // 라우터 등록
 app.use('/', signupRouter);
@@ -106,6 +108,7 @@ app.use('/', checkInviteAvailabilityRouter); // ✅ 추가
 app.use('/', inviteMembersRouter); // ✅ 추가
 app.use('/', getPendingInvitesRouter); // ✅ 추가
 app.use('/', cancelInviteRouter); // ✅ 추가
+app.use('/', getCameraCapturesRouter); // ✅ 추가
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
@@ -115,6 +118,9 @@ app.use((req, res, next) => {
     console.log(`⚠️ [404 Not Found] 요청된 경로: ${req.method} ${req.url}`);
     res.status(404).json({ message: `경로를 찾을 수 없습니다: ${req.method} ${req.url}` });
 });
+
+// ✅ 스케줄러 시작 (20분마다 스냅샷 촬영)
+startCronJobs();
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`서버가 ${PORT} 포트에서 실행 중입니다.`);
