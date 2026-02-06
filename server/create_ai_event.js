@@ -23,7 +23,7 @@ router.post('/create_ai_event', async (req, res) => {
     try {
         // Step 1: cameras 테이블에서 live_url_detail 조회
         const camRes = await client.query(
-            'SELECT live_url_detail, device_name, install_area, installation_address FROM cameras WHERE camera_id = $1',
+            'SELECT live_url_detail, device_name, install_area, installation_address, group_id FROM cameras WHERE camera_id = $1',
             [camera_id]
         );
 
@@ -98,6 +98,29 @@ router.post('/create_ai_event', async (req, res) => {
             camera_id, captureId, typeId, accuracy, risk_level,
             camera.device_name, camera.install_area, camera.installation_address, liveUrl
         ]);
+
+        // ✅ [추가] 해당 그룹의 관리자(manager)들에게 알림 생성
+        if (camera.group_id) {
+            const managersRes = await client.query(
+                "SELECT user_id FROM users WHERE group_id = $1 AND user_role = 'manager'",
+                [camera.group_id]
+            );
+
+            if (managersRes.rows.length > 0) {
+                const notiTitle = "AI 이벤트 감지";
+                // 예: "C구역 1열 쓰러짐 감지"
+                const notiContent = `${camera.install_area || ''} ${event_name} 감지`.trim();
+
+                const notificationPromises = managersRes.rows.map(manager => {
+                    return client.query(
+                        'INSERT INTO notifications (user_id, title, content, created_at, is_read) VALUES ($1, $2, $3, NOW(), false)',
+                        [manager.user_id, notiTitle, notiContent]
+                    );
+                });
+
+                await Promise.all(notificationPromises);
+            }
+        }
 
         await client.query('COMMIT');
 
