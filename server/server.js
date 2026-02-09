@@ -62,6 +62,7 @@ const cancelInviteRouter = require('./cancel_invite'); // ✅ 추가: 초대 취
 const startCronJobs = require('./cron_scheduler'); // ✅ 추가: 스케줄러 모듈
 const getCameraCapturesRouter = require('./get_camera_captures'); // ✅ 추가: 카메라 캡처 조회
 const createAiEventRouter = require('./create_ai_event'); // ✅ 추가: AI 이벤트 생성
+const getLocationRouter = require('./get_location'); // ✅ 추가: 작업자 위치 조회
 
 // 라우터 등록
 app.use('/', signupRouter);
@@ -111,6 +112,7 @@ app.use('/', getPendingInvitesRouter); // ✅ 추가
 app.use('/', cancelInviteRouter); // ✅ 추가
 app.use('/', getCameraCapturesRouter); // ✅ 추가
 app.use('/', createAiEventRouter); // ✅ 추가
+app.use('/', getLocationRouter); // ✅ 추가
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));

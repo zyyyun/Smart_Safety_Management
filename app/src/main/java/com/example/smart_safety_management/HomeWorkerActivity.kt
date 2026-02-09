@@ -50,12 +50,8 @@ class HomeWorkerActivity : AppCompatActivity() {
 
     private val detailLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
-            val day = result.data?.getIntExtra("day", -1) ?: -1
-            if (day != -1) {
-                updateDailyCheckList(day)
-            } else {
-                updateDailyCheckList(selectedDay)
-            }
+            // ✅ [수정] DB 변경 사항을 반영하기 위해 서버에서 데이터를 다시 가져옴
+            fetchDailyChecks()
         }
     }
 
@@ -100,9 +96,17 @@ class HomeWorkerActivity : AppCompatActivity() {
         dailyAdapter = DailyCheckAdapter(
             items = emptyList(),
             onOpenDetail = { day, item ->
-                val intent = Intent(this, DailyDetailActivity::class.java).apply {
+                val intent = Intent(this, DailyListActivity::class.java).apply {
+                    putExtra("screen", "detail")
                     putExtra("day", day)
                     putExtra("itemId", item.id)
+                    val dateStr = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, day)
+                    putExtra("date", dateStr)
+                    putExtra("location", item.title)
+                    putExtra("riskFactor", item.desc)
+                    putExtra("safetyMeasure", item.safetyMeasure)
+                    putExtra("status", item.status)
+                    putStringArrayListExtra("photoUris", ArrayList(item.photoUris))
                 }
                 detailLauncher.launch(intent)
             },

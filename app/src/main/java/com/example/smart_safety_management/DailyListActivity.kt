@@ -13,7 +13,7 @@ class DailyListActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             // 현재 화면 상태 관리
-            var currentScreen by remember { mutableStateOf("write") }
+            var currentScreen by remember { mutableStateOf(intent.getStringExtra("screen") ?: "write") }
             // Intent로부터 수정 모드 여부 확인
             var isEditMode by remember { mutableStateOf(intent.getBooleanExtra("editMode", false)) }
             
@@ -22,6 +22,7 @@ class DailyListActivity : ComponentActivity() {
             var detailLocation by remember { mutableStateOf(intent.getStringExtra("location") ?: "") }
             var detailRiskFactor by remember { mutableStateOf(intent.getStringExtra("riskFactor") ?: "") }
             var detailSafetyMeasure by remember { mutableStateOf(intent.getStringExtra("safetyMeasure") ?: "") }
+            var detailStatus by remember { mutableStateOf(intent.getStringExtra("status") ?: "") }
             var detailPhotoUris by remember { mutableStateOf(intent.getStringArrayListExtra("photoUris")?.toList() ?: emptyList()) }
             var detailItemId by remember { mutableStateOf(intent.getStringExtra("itemId") ?: "") }
             var detailDay by remember { mutableStateOf(intent.getIntExtra("day", 0)) }
@@ -89,22 +90,36 @@ class DailyListActivity : ComponentActivity() {
                             DailyListWorkerScreen(
                                 checkId = detailItemId.ifBlank { intent.getStringExtra("itemId") },
                                 onComplete = {
-                                    setResult(RESULT_OK)
+                                    val resultIntent = android.content.Intent().apply {
+                                        putExtra("day", detailDay)
+                                    }
+                                    setResult(RESULT_OK, resultIntent)
                                     finish()
                                 }
                             )
                         }
                         "detail" -> {
-                            DailyDetailScreen(
+                            DailyDetailWorkerScreen(
                                 date = detailDate,
                                 location = detailLocation,
                                 riskFactor = detailRiskFactor,
                                 safetyMeasure = detailSafetyMeasure,
-                                day = detailDay,
-                                itemId = detailItemId,
+                                status = detailStatus,
                                 photoUris = detailPhotoUris,
-                                onBackClick = { currentScreen = "write" },
-                                onEditClick = { }
+                                onBackClick = {
+                                    if (intent.getStringExtra("screen") == "detail") {
+                                        finish()
+                                    } else {
+                                        currentScreen = "write"
+                                    }
+                                },
+                                onEditClick = {
+                                    isEditMode = true
+                                    currentScreen = "write"
+                                },
+                                onReportClick = {
+                                    currentScreen = "write"
+                                }
                             )
                         }
                     }

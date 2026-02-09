@@ -460,6 +460,20 @@ data class RegisterLocationResponse(
     val message: String
 )
 
+data class WorkerLocationDTO(
+    @SerializedName("user_id") val userId: String,
+    val name: String,
+    val role: String,
+    val latitude: Double?,
+    val longitude: Double?,
+    @SerializedName("current_zone") val currentZone: String?,
+    @SerializedName("recorded_at") val recordedAt: String?
+)
+
+data class GetLocationResponse(
+    val locations: List<WorkerLocationDTO>
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -656,4 +670,7 @@ interface SignUpService {
 
     @POST("/register_workplace_location")
     fun registerWorkplaceLocation(@Body request: RegisterLocationRequest): Call<RegisterLocationResponse>
+
+    @GET("/get_location")
+    fun getLocation(@Query("user_id") userId: String): Call<GetLocationResponse>
 }

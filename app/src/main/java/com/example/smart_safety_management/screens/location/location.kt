@@ -45,7 +45,7 @@ import com.example.smart_safety_management.ui.theme.Pretendard
 import com.example.smart_safety_management.RetrofitClient
 import com.example.smart_safety_management.UserSession
 import com.example.smart_safety_management.GetCCTVListResponse
-import com.example.smart_safety_management.GetDeviceStatusResponse
+import com.example.smart_safety_management.GetLocationResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -60,6 +60,10 @@ import android.graphics.Paint
 import android.graphics.drawable.BitmapDrawable
 import android.content.Context
 import com.kakao.vectormap.LatLng
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 
 /* -------------------- data -------------------- */
 
@@ -233,52 +237,52 @@ fun LocationScreen(
         }
     }
 
-    // ✅ [추가] 서버에서 작업자 상태(DeviceStatus) 가져와서 리스트 및 핀 구성
+    // ✅ [수정] 서버에서 작업자 위치(Location) 가져와서 리스트 및 핀 구성 (실시간 갱신)
     LaunchedEffect(Unit) {
         val userId = UserSession.userId
         if (!userId.isNullOrEmpty()) {
-            RetrofitClient.instance.getDeviceStatus(userId).enqueue(object : Callback<GetDeviceStatusResponse> {
-                override fun onResponse(call: Call<GetDeviceStatusResponse>, response: Response<GetDeviceStatusResponse>) {
-                    if (response.isSuccessful) {
-                        val devices = response.body()?.deviceStatus ?: emptyList()
+            withContext(Dispatchers.IO) {
+                while (isActive) {
+                    try {
+                        val response = RetrofitClient.instance.getLocation(userId).execute()
+                        if (response.isSuccessful) {
+                            val locations = response.body()?.locations ?: emptyList()
 
-                        // ✅ [디버깅] 받아온 데이터 로그 출력 (Logcat에서 "LocationScreen" 태그로 확인 가능)
-                        android.util.Log.d("LocationScreen", "API 응답 전체 기기 수: ${devices.size}")
-                        devices.forEach { android.util.Log.d("LocationScreen", " - 이름: ${it.name}, 역할: ${it.role}, GPS: ${it.isGpsConnected}") }
+                            withContext(Dispatchers.Main) {
+                                // 1. 리스트 데이터(rows) 구성
+                                rows = locations.map { loc ->
+                                    WorkerRow(
+                                        id = loc.userId,
+                                        role = if (loc.role.equals("manager", true)) "관리자" else "근로자",
+                                        name = loc.name,
+                                        location = loc.currentZone ?: "위치 정보 없음",
+                                        statusText = "정상",
+                                        statusColor = Color(0xFF10B981)
+                                    )
+                                }
 
-                        // ✅ [수정] GPS 연결 여부와 상관없이 'worker' 역할인 모든 유저 표시
-                        val workers = devices.filter { it.role.equals("worker", ignoreCase = true) }
-
-                        // 1. 리스트 데이터(rows) 구성
-                        rows = workers.map { worker ->
-                            WorkerRow(
-                                id = worker.userId,
-                                role = "근로자",
-                                name = worker.name,
-                                location = "A구역", // ⚠️ 위치 정보 API 부재로 임시 고정
-                                statusText = if (worker.isGpsConnected) "정상" else "연결끊김",
-                                statusColor = if (worker.isGpsConnected) Color(0xFF10B981) else Color(0xFF9CA3AF)
-                            )
+                                // 2. 지도 핀(pins) 구성
+                                pins = locations.mapNotNull { loc ->
+                                    val lat = loc.latitude
+                                    val lng = loc.longitude
+                                    if (lat != null && lng != null) {
+                                        WorkerPin(
+                                            id = loc.userId,
+                                            area = loc.currentZone ?: "미지정",
+                                            lat = lat,
+                                            lng = lng,
+                                            status = WorkerStatus.NORMAL
+                                        )
+                                    } else null
+                                }
+                            }
                         }
-
-                        // 2. 지도 핀(pins) 구성
-                        // ⚠️ 실제 좌표 데이터가 없으므로, 지도 중심(center) 주변에 랜덤하게 뿌려줌
-                        pins = workers.map { worker ->
-                            val offsetLat = (Math.random() - 0.5) * 0.002
-                            val offsetLng = (Math.random() - 0.5) * 0.002
-
-                            WorkerPin(
-                                id = worker.userId,
-                                area = "A구역", // 임시 구역
-                                lat = 37.456 + offsetLat,
-                                lng = 126.705 + offsetLng,
-                                status = if (worker.isGpsConnected) WorkerStatus.NORMAL else WorkerStatus.FEVER // 연결 끊김은 붉은색(FEVER) 아이콘으로 임시 표시
-                            )
-                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
+                    delay(3000) // 3초마다 갱신
                 }
-                override fun onFailure(call: Call<GetDeviceStatusResponse>, t: Throwable) {}
-            })
+            }
         }
     }
 
