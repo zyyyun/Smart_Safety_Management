@@ -156,7 +156,7 @@ fun DailyDetailWorkerScreen(
                         elevation = ButtonDefaults.elevation(0.dp, 0.dp)
                     ) {
                         Text(
-                            text = "점검 보고하기",
+                            text = "점검결과 보고하기",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.SemiBold,
                             fontFamily = Pretendard,
