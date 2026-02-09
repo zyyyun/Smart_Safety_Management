@@ -76,6 +76,7 @@ fun KakaoMapView(
     pins: List<KakaoMapPin> = emptyList(),
     selectedId: String? = null,
     centerOnSelectedPin: Boolean = false,
+    dimUnselectedPins: Boolean = true,
     onPinClick: (pinId: String) -> Unit = {},
     onMapReady: (KakaoMap) -> Unit = {},
     onCenterChanged: (centerLat: Double, centerLon: Double) -> Unit = { _, _ -> },
@@ -212,7 +213,13 @@ fun KakaoMapView(
 
             val isSelected = p.id == selectedId
             val scale = if (isSelected) 1.3f else 1.0f
-            val alpha = if (selectedId == null || isSelected) 1.0f else 0.4f
+            val alpha = when {
+                !dimUnselectedPins -> 1.0f
+                selectedId == null -> 1.0f
+                isSelected -> 1.0f
+                else -> 0.4f
+            }
+
 
             val width = (72 * scale).toInt()
             val height = (96 * scale).toInt()

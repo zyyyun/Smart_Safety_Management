@@ -27,9 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
 import com.example.smart_safety_management.CCTVItemResponse
 import com.example.smart_safety_management.LiveCardItem
 import com.example.smart_safety_management.R
@@ -40,23 +38,21 @@ import com.example.smart_safety_management.screens.realtime.TagPillCompact
 import com.example.smart_safety_management.screens.realtime.normalizeCamId
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
-import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import com.kakao.vectormap.LatLng
+import com.example.smart_safety_management.KakaoMapPin
+import com.example.smart_safety_management.KakaoMapView
 
 // 주소를 좌표로 변환하는 함수
-private suspend fun geocode(context: Context, address: String): GeoPoint? {
+private suspend fun geocode(context: Context, address: String): Pair<Double, Double>? {
     return withContext(Dispatchers.IO) {
         try {
             val geocoder = Geocoder(context, Locale.KOREA)
             val addresses = geocoder.getFromLocationName(address, 1)
             if (!addresses.isNullOrEmpty()) {
-                GeoPoint(addresses[0].latitude, addresses[0].longitude)
+                addresses[0].latitude to addresses[0].longitude
             } else null
         } catch (e: Exception) {
             e.printStackTrace()
@@ -64,6 +60,7 @@ private suspend fun geocode(context: Context, address: String): GeoPoint? {
         }
     }
 }
+
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -86,8 +83,9 @@ fun MapDialog(
     val selected = cams.firstOrNull { normalizeCamId(it.camId) == selectedCamId } ?: cams.firstOrNull()
 
     // 지도 상태
-    var cameraPoints by remember { mutableStateOf<Map<String, GeoPoint>>(emptyMap()) }
-    var workplacePoint by remember { mutableStateOf<GeoPoint?>(null) }
+    var cameraPoints by remember { mutableStateOf<Map<String, Pair<Double, Double>>>(emptyMap()) }
+    var workplacePoint by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+
 
     val infoBg = if (isDark) Color(0xFF1E2124) else Color.White
     val infoLabel = c.sub
@@ -128,7 +126,7 @@ fun MapDialog(
 
     // ✅ 2. 카메라 주소 지오코딩
     LaunchedEffect(cctvList) {
-        val points = mutableMapOf<String, GeoPoint>()
+        val points = mutableMapOf<String, Pair<Double, Double>>()
         cctvList.forEach { cctv ->
             val addr = cctv.installationAddress
             if (!addr.isNullOrBlank()) {
@@ -187,56 +185,47 @@ fun MapDialog(
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(Color(0xFFEAECEF))
                         ) {
-                            // ✅ osmdroid MapView
-                            AndroidView(
-                                factory = { ctx ->
-                                    Configuration.getInstance().load(ctx, ctx.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
-                                    MapView(ctx).apply {
-                                        setMultiTouchControls(true)
-                                        setTileSource(TileSourceFactory.MAPNIK)
-                                        controller.setZoom(17.0)
-                                    }
-                                },
-                                update = { mapView ->
-                                    mapView.overlays.clear()
+                            // ✅ KakaoMapView로 교체
 
-                                    // 카메라 마커들
-                                    cameraPoints.forEach { (camId, point) ->
-                                        val marker = Marker(mapView)
-                                        marker.position = point
-                                        marker.title = camId
-                                        
-                                        val isSelected = (camId == selectedCamId)
-                                        val resId = when {
-                                            isDark && isSelected -> R.drawable.cctv_b_dark
-                                            isDark && !isSelected -> R.drawable.cctv_dark
-                                            !isDark && isSelected -> R.drawable.cctv_b
-                                            else -> R.drawable.cctv
-                                        }
-                                        marker.icon = ContextCompat.getDrawable(context, resId)
-                                        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                                        
-                                        marker.setOnMarkerClickListener { _, _ ->
-                                            selectedCamId = camId
-                                            true
-                                        }
-                                        mapView.overlays.add(marker)
-                                    }
+                            val pins = cameraPoints.map { (camId, latLon) ->
+                                val (lat, lon) = latLon
+                                val isSelected = camId == selectedCamId
 
-                                    // ✅ 지도 중심 설정: 현장 위치가 있으면 거기로, 없으면 선택된 카메라로
-                                    if (workplacePoint != null) {
-                                        mapView.controller.setCenter(workplacePoint)
-                                    } else {
-                                        val centerPoint = cameraPoints[selectedCamId] ?: cameraPoints.values.firstOrNull()
-                                        if (centerPoint != null) {
-                                            mapView.controller.setCenter(centerPoint)
-                                        }
-                                    }
+                                val resId = when {
+                                    isDark && isSelected -> R.drawable.cctv_b_dark
+                                    isDark && !isSelected -> R.drawable.cctv_dark
+                                    !isDark && isSelected -> R.drawable.cctv_b
+                                    else -> R.drawable.cctv
+                                }
 
-                                    mapView.invalidate()
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            )
+                                KakaoMapPin(
+                                    id = camId,
+                                    lat = lat,
+                                    lon = lon,
+                                    iconRes = resId
+                                )
+                            }
+
+// ✅ 중심점: workplace 있으면 workplace, 없으면 선택 카메라, 없으면 첫 카메라
+                            val centerLatLng: LatLng? = run {
+                                workplacePoint?.let { (lat, lon) -> LatLng.from(lat, lon) }
+                                    ?: cameraPoints[selectedCamId]?.let { (lat, lon) -> LatLng.from(lat, lon) }
+                                    ?: cameraPoints.values.firstOrNull()?.let { (lat, lon) -> LatLng.from(lat, lon) }
+                            }
+
+                            if (centerLatLng != null) {
+                                KakaoMapView(
+                                    modifier = Modifier.fillMaxSize(),
+                                    targetLatLng = centerLatLng,
+                                    dimUnselectedPins = false,
+                                    pins = pins,
+                                    selectedId = selectedCamId,
+                                    onPinClick = { clickedId ->
+                                        selectedCamId = clickedId
+                                    },
+                                    centerOnSelectedPin = (workplacePoint == null) // workplace 없으면 선택 핀 중앙 유지
+                                )
+                            }
 
                         }
 
