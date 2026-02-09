@@ -2,7 +2,6 @@ package com.example.smart_safety_management
 
 import android.content.res.Configuration
 import android.location.Geocoder
-import android.preference.PreferenceManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -35,15 +34,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.osmdroid.config.Configuration as OsmConfiguration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.util.Locale
+import com.kakao.vectormap.LatLng
 
 enum class EventType(val label: String) {
     HELMET_NOT_WEARING("안전모 미착용"),
@@ -96,8 +91,10 @@ fun CamDetailScreen(
         val selectedHours = remember { mutableStateListOf<String>() }
         
         // 지도 좌표 상태
-        var mapCenter by remember { mutableStateOf<GeoPoint?>(null) }
+        var mapLat by remember { mutableStateOf<Double?>(null) }
+        var mapLon by remember { mutableStateOf<Double?>(null) }
         var isGeocodingError by remember { mutableStateOf(false) }
+
 
         // 주소를 좌표로 변환 (Geocoding)
         LaunchedEffect(camInfo) {
@@ -110,11 +107,13 @@ fun CamDetailScreen(
                             @Suppress("DEPRECATION")
                             val addresses = geocoder.getFromLocationName(info.installationAddress, 1)
                             if (!addresses.isNullOrEmpty()) {
-                                mapCenter = GeoPoint(addresses[0].latitude, addresses[0].longitude)
+                                mapLat = addresses[0].latitude
+                                mapLon = addresses[0].longitude
                                 isGeocodingError = false
                             } else {
                                 isGeocodingError = true
                             }
+
                         } catch (e: Exception) {
                             e.printStackTrace()
                             isGeocodingError = true
@@ -362,44 +361,45 @@ fun CamDetailScreen(
                         .clip(RoundedCornerShape(12.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (mapCenter != null) {
-                        AndroidView(
-                            factory = { ctx ->
-                                OsmConfiguration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))
-                                MapView(ctx).apply {
-                                    setTileSource(TileSourceFactory.MAPNIK)
-                                    setMultiTouchControls(true)
-                                    controller.setZoom(17.0)
-                                }
-                            },
-                            update = { mapView ->
-                                mapView.controller.setCenter(mapCenter)
-                                mapView.overlays.clear()
-                                val marker = Marker(mapView)
-                                marker.position = mapCenter
-                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                val iconRes = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark
-                                marker.icon = ContextCompat.getDrawable(context, iconRes)
-                                mapView.overlays.add(marker)
-                                mapView.invalidate()
-                            },
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        // 로딩 중이거나 주소를 찾을 수 없을 때 표시할 대체 UI (기존 이미지 유지 또는 로딩 표시)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(if (isLight) Color.LightGray else Color.DarkGray),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isGeocodingError) {
-                                Text("위치를 찾을 수 없습니다.", color = Color.White)
-                            } else {
-                                Text("위치 정보를 불러오는 중...", color = Color.White)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (mapLat != null && mapLon != null) {
+                            val iconRes = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark
+
+                            KakaoMapView(
+                                modifier = Modifier.fillMaxSize(),
+                                targetLatLng = LatLng.from(mapLat!!, mapLon!!),
+                                pins = listOf(
+                                    KakaoMapPin(
+                                        id = "camera",
+                                        lat = mapLat!!,
+                                        lon = mapLon!!,
+                                        iconRes = iconRes
+                                    )
+                                ),
+                                selectedId = "camera",
+                                centerOnSelectedPin = true
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(if (isLight) Color.LightGray else Color.DarkGray),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (isGeocodingError) "위치를 찾을 수 없습니다." else "위치 정보를 불러오는 중...",
+                                    color = Color.White
+                                )
                             }
                         }
                     }
+
                 }
             }
         }
