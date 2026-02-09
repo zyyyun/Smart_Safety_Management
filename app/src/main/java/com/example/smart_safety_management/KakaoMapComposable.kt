@@ -1,6 +1,7 @@
 package com.example.smart_safety_management
 
 import android.util.Log
+import androidx.annotation.DrawableRes
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -13,9 +14,58 @@ import com.kakao.vectormap.LatLng
 import com.kakao.vectormap.MapLifeCycleCallback
 import com.kakao.vectormap.MapView
 import com.kakao.vectormap.camera.CameraUpdateFactory
+import com.kakao.vectormap.label.Label
+import com.kakao.vectormap.label.LabelLayer
+import com.kakao.vectormap.label.LabelOptions
+import com.kakao.vectormap.label.LabelStyle
+import com.kakao.vectormap.label.LabelStyles
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlin.math.abs
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
+import androidx.core.content.ContextCompat
+
+@Immutable
+data class KakaoMapPin(
+    val id: String,
+    val lat: Double,
+    val lon: Double,
+    @DrawableRes val iconRes: Int,
+    val alpha: Int = 255,
+)
+fun resizeBitmap(
+    context: Context,
+    @DrawableRes resId: Int,
+    width: Int,
+    height: Int
+): Bitmap {
+    val bitmap = BitmapFactory.decodeResource(context.resources, resId)
+    return Bitmap.createScaledBitmap(bitmap, width, height, true)
+}
+
+fun resizeBitmapWithAlpha(
+    context: Context,
+    @DrawableRes resId: Int,
+    width: Int,
+    height: Int,
+    alpha: Float
+): Bitmap {
+    val drawable = ContextCompat.getDrawable(context, resId)!!
+    val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bmp)
+
+    drawable.setBounds(0, 0, width, height)
+    drawable.alpha = (alpha * 255).toInt()
+    drawable.draw(canvas)
+
+    return bmp
+}
+
+
 
 @Composable
 fun KakaoMapView(
@@ -23,30 +73,30 @@ fun KakaoMapView(
     lon: Double = 126.7052,
     modifier: Modifier = Modifier,
     targetLatLng: LatLng? = null,
+    pins: List<KakaoMapPin> = emptyList(),
+    selectedId: String? = null,
+    onPinClick: (pinId: String) -> Unit = {},
     onMapReady: (KakaoMap) -> Unit = {},
-    onCenterChanged: (centerLat: Double, centerLon: Double) -> Unit = { _, _ -> }
+    onCenterChanged: (centerLat: Double, centerLon: Double) -> Unit = { _, _ -> },
 ) {
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // MapView/KakaoMap은 recomposition에도 유지
     val mapViewState = remember { mutableStateOf<MapView?>(null) }
     val kakaoMapState = remember { mutableStateOf<KakaoMap?>(null) }
+    val labelLayerState = remember { mutableStateOf<LabelLayer?>(null) }
 
-    // ✅ 초기 moveCamera를 딱 1번만 하게 만드는 플래그
     val didInit = remember { mutableStateOf(false) }
+    val lastRenderKey = remember { mutableStateOf("") }
 
     AndroidView(
         modifier = modifier,
-        factory = { context ->
-            MapView(context).apply {
+        factory = { ctx ->
+            MapView(ctx).apply {
                 mapViewState.value = this
 
                 start(
                     object : MapLifeCycleCallback() {
-                        override fun onMapDestroy() {
-                            Log.d("KakaoMapView", "onMapDestroy")
-                        }
-
+                        override fun onMapDestroy() {}
                         override fun onMapError(exception: Exception) {
                             Log.e("KakaoMapView", "onMapError", exception)
                         }
@@ -55,15 +105,35 @@ fun KakaoMapView(
                         override fun onMapReady(kakaoMap: KakaoMap) {
                             kakaoMapState.value = kakaoMap
 
-                            // ✅ 초기 카메라는 '한 번만' 실행
+                            val labelManager = kakaoMap.getLabelManager()
+                            Log.d("KakaoPin", "labelManager=$labelManager")
+
+                            val layer = labelManager?.getLayer()
+                            Log.d("KakaoPin", "layer=$layer")
+                            labelLayerState.value = layer
+
+                            layer?.setClickable(true)
+                            layer?.setZOrder(5000)
+
+                            kakaoMap.setOnLabelClickListener(object : KakaoMap.OnLabelClickListener {
+                                override fun onLabelClicked(
+                                    kakaoMap: KakaoMap,
+                                    layer: LabelLayer,
+                                    label: Label
+                                ): Boolean {
+                                    val id = label.tag?.toString()
+                                    if (!id.isNullOrBlank()) {
+                                        onPinClick(id)
+                                        return true
+                                    }
+                                    return false
+                                }
+                            })
+
                             if (!didInit.value) {
                                 didInit.value = true
                                 val initial = LatLng.from(lat, lon)
-                                kakaoMap.moveCamera(
-                                    CameraUpdateFactory.newCenterPosition(initial)
-                                )
-                                // 라벨(마커) 시도 — 실패해도 앱 안 죽게
-                                tryAddLabelByReflection(kakaoMap, initial)
+                                kakaoMap.moveCamera(CameraUpdateFactory.newCenterPosition(initial))
                             }
 
                             onMapReady(kakaoMap)
@@ -71,22 +141,17 @@ fun KakaoMapView(
                     }
                 )
             }
-        },
-
-        // ✅ 핵심: update에서는 moveCamera 하지 마라 (초기 위치로 튐 원인)
-        update = {
-            // 아무것도 하지 않음
         }
     )
 
-    /** ✅ 라이프사이클 연결 (resume/pause/finish 우선 호출, 없으면 fallback) */
+    // lifecycle
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             val mv = mapViewState.value ?: return@LifecycleEventObserver
             when (event) {
-                Lifecycle.Event.ON_RESUME -> mv.safeResume()
-                Lifecycle.Event.ON_PAUSE -> mv.safePause()
-                Lifecycle.Event.ON_DESTROY -> mv.safeFinish()
+                Lifecycle.Event.ON_RESUME -> runCatching { mv.resume() }
+                Lifecycle.Event.ON_PAUSE -> runCatching { mv.pause() }
+                Lifecycle.Event.ON_DESTROY -> runCatching { mv.finish() }
                 else -> Unit
             }
         }
@@ -94,27 +159,88 @@ fun KakaoMapView(
 
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
-            mapViewState.value?.safePause()
-            mapViewState.value?.safeFinish()
+            runCatching { mapViewState.value?.pause() }
+            runCatching { mapViewState.value?.finish() }
             mapViewState.value = null
             kakaoMapState.value = null
+            labelLayerState.value = null
         }
     }
 
-    /** ✅ 외부 targetLatLng가 바뀌면 카메라 이동 (여기서만 이동!) */
+    // targetLatLng move
     LaunchedEffect(targetLatLng?.latitude, targetLatLng?.longitude) {
         val km = kakaoMapState.value ?: return@LaunchedEffect
         val t = targetLatLng ?: return@LaunchedEffect
-
         km.moveCamera(CameraUpdateFactory.newCenterPosition(t))
-        // 라벨이 계속 쌓이면 아래 줄은 주석처리해도 됨
-        tryAddLabelByReflection(km, t)
     }
 
-    /**
-     * ✅ 중심 변화 감지 (폴링)
-     * - isActive로 안전하게 종료
-     */
+    // ✅ 핀 그리기
+    LaunchedEffect(pins, selectedId, labelLayerState.value) {
+        Log.d("KakaoPin", "render pins size=${pins.size}, layer=${labelLayerState.value}")
+
+        val layer = labelLayerState.value ?: return@LaunchedEffect
+
+        val key = buildString {
+            append(pins.size)
+            append('|')
+            append(selectedId ?: "")
+            pins.forEach { p ->
+                append('|')
+                append(p.id)
+                append('@')
+                append(p.lat)
+                append(',')
+                append(p.lon)
+                append('#')
+                append(p.iconRes)
+            }
+        }
+        if (lastRenderKey.value == key) return@LaunchedEffect
+        lastRenderKey.value = key
+
+        // ✅ 여기서 딱 1번만 지우기
+        layer.removeAll()
+
+        // ✅ (확인용) 카메라 중심 위치 로그
+        val centerPos = try { kakaoMapState.value?.cameraPosition?.position } catch (_: Exception) { null }
+        Log.d("KakaoPin", "camera center=$centerPos")
+
+        pins.forEach { p ->
+            val pos = LatLng.from(p.lat, p.lon)
+
+            val isSelected = p.id == selectedId
+            val scale = if (isSelected) 1.3f else 1.0f
+            val alpha = if (selectedId == null || isSelected) 1.0f else 0.4f
+
+            val width = (72 * scale).toInt()
+            val height = (96 * scale).toInt()
+
+            val bitmap = resizeBitmapWithAlpha(
+                mapViewState.value!!.context,
+                p.iconRes,
+                width,
+                height,
+                alpha
+            )
+
+            val style = LabelStyle.from(bitmap)
+            val styles = LabelStyles.from(style)
+
+            val opt = LabelOptions.from(pos).apply {
+                setTag(p.id)
+                setClickable(true)
+                setStyles(styles)
+            }
+
+            layer.addLabel(opt)
+        }
+
+
+
+    }
+
+
+    // center polling
     LaunchedEffect(kakaoMapState.value) {
         val km = kakaoMapState.value ?: return@LaunchedEffect
 
@@ -122,109 +248,41 @@ fun KakaoMapView(
         var lastLon = Double.NaN
 
         while (isActive) {
-            val center = readCenterByReflection(km)
-            if (center != null) {
-                val (clat, clon) = center
-
-                val changed =
-                    lastLat.isNaN() || lastLon.isNaN() ||
-                            abs(clat - lastLat) > 0.00003 ||
-                            abs(clon - lastLon) > 0.00003
-
-                if (changed) {
-                    lastLat = clat
-                    lastLon = clon
-                    onCenterChanged(clat, clon)
-                }
+            val cam = km.cameraPosition
+            if (cam == null) {
+                delay(400)
+                continue
             }
+
+            val pos = try { cam.position } catch (_: Exception) { null }
+            if (pos == null) {
+                delay(400)
+                continue
+            }
+
+            val clat = pos.latitude
+            val clon = pos.longitude
+
+            val changed =
+                lastLat.isNaN() || lastLon.isNaN() ||
+                        abs(clat - lastLat) > 0.00003 ||
+                        abs(clon - lastLon) > 0.00003
+
+            if (changed) {
+                lastLat = clat
+                lastLon = clon
+                onCenterChanged(clat, clon)
+            }
+
             delay(400)
         }
     }
 }
 
-/* ---------- MapView 라이프사이클 안전 호출 ---------- */
-
-private fun MapView.safeResume() {
+private fun tryInvokeSetText(options: Any, text: String) {
     try {
-        val m = this.javaClass.methods.firstOrNull { it.name == "resume" && it.parameterTypes.isEmpty() }
-        if (m != null) {
-            m.invoke(this); return
-        }
-        safeCall("onResume")
+        val m = options.javaClass.methods.firstOrNull { it.name == "setText" && it.parameterTypes.size == 1 }
+        m?.invoke(options, text)
     } catch (_: Exception) {}
 }
 
-private fun MapView.safePause() {
-    try {
-        val m = this.javaClass.methods.firstOrNull { it.name == "pause" && it.parameterTypes.isEmpty() }
-        if (m != null) {
-            m.invoke(this); return
-        }
-        safeCall("onPause")
-    } catch (_: Exception) {}
-}
-
-private fun MapView.safeFinish() {
-    try {
-        val m = this.javaClass.methods.firstOrNull { it.name == "finish" && it.parameterTypes.isEmpty() }
-        if (m != null) {
-            m.invoke(this); return
-        }
-        safeCall("onDestroy")
-    } catch (_: Exception) {}
-}
-
-private fun Any.safeCall(methodName: String) {
-    try {
-        val m = this.javaClass.methods.firstOrNull { it.name == methodName && it.parameterTypes.isEmpty() }
-        m?.invoke(this)
-    } catch (_: Exception) {}
-}
-
-/* ---------- 리플렉션 유틸(라벨/중심) ---------- */
-
-private fun tryAddLabelByReflection(kakaoMap: KakaoMap, pos: LatLng) {
-    try {
-        val labelManager = kakaoMap.javaClass.methods
-            .firstOrNull { it.name == "getLabelManager" && it.parameterTypes.isEmpty() }
-            ?.invoke(kakaoMap) ?: return
-
-        val layer = labelManager.javaClass.methods
-            .firstOrNull { it.name == "getLayer" && it.parameterTypes.isEmpty() }
-            ?.invoke(labelManager)
-            ?: labelManager.javaClass.fields.firstOrNull { it.name == "layer" }?.get(labelManager)
-            ?: return
-
-        val labelOptionsCls = Class.forName("com.kakao.vectormap.label.LabelOptions")
-        val fromMethod = labelOptionsCls.methods
-            .firstOrNull { it.name == "from" && it.parameterTypes.size == 1 } ?: return
-
-        val options = fromMethod.invoke(null, pos) ?: return
-
-        val addLabel = layer.javaClass.methods
-            .firstOrNull { it.name == "addLabel" && it.parameterTypes.size == 1 } ?: return
-
-        addLabel.invoke(layer, options)
-    } catch (e: Exception) {
-        Log.d("KakaoMapView", "label add skipped: ${e.message}")
-    }
-}
-
-private fun readCenterByReflection(kakaoMap: KakaoMap): Pair<Double, Double>? {
-    return try {
-        val camPos = kakaoMap.javaClass.methods
-            .firstOrNull { it.name == "getCameraPosition" && it.parameterTypes.isEmpty() }
-            ?.invoke(kakaoMap) ?: return null
-
-        val target = camPos.javaClass.methods.firstOrNull { it.name == "getTarget" }?.invoke(camPos)
-            ?: camPos.javaClass.methods.firstOrNull { it.name == "getPosition" }?.invoke(camPos)
-            ?: return null
-
-        val lat = target.javaClass.methods.firstOrNull { it.name == "getLatitude" }?.invoke(target) as? Double
-        val lon = target.javaClass.methods.firstOrNull { it.name == "getLongitude" }?.invoke(target) as? Double
-
-        if (lat != null && lon != null) lat to lon else null
-    } catch (_: Exception) {
-        null
-    }
-}

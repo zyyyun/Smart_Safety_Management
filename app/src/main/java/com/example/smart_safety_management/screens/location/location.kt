@@ -1,6 +1,5 @@
 package com.example.smart_safety_management.screens.location
 
-import android.graphics.drawable.Drawable
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,7 +27,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -38,25 +36,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.example.smart_safety_management.KakaoMapPin
+import com.example.smart_safety_management.KakaoMapView
 import com.example.smart_safety_management.R
 import com.example.smart_safety_management.ui.theme.ClipartKorea
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
-import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.drawable.BitmapDrawable
-import android.content.Context
+import com.kakao.vectormap.LatLng
 
 /* -------------------- data -------------------- */
 
@@ -98,91 +84,6 @@ private fun iconFor(status: WorkerStatus, isDark: Boolean): Int {
     }
 }
 
-private fun ContextCompatDrawable(context: android.content.Context, @DrawableRes resId: Int): Drawable? {
-    return ContextCompat.getDrawable(context, resId)
-}
-
-/* -------------------- map helpers -------------------- */
-
-@Composable
-private fun rememberOsmdroidMapView(
-    center: GeoPoint,
-    zoom: Double = 18.0
-): MapView {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    val mapView = remember {
-        // 타일 다운로드 정책상 UA 설정 권장
-        Configuration.getInstance().userAgentValue = context.packageName
-
-        MapView(context).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
-            setMultiTouchControls(true)
-            controller.setZoom(zoom)
-            controller.setCenter(center)
-        }
-    }
-
-    // MapView lifecycle 연결 (메모리/타일 스레드 안정화)
-    DisposableEffect(lifecycleOwner, mapView) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
-                else -> Unit
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            mapView.onPause()
-        }
-    }
-
-    return mapView
-}
-
-private fun MapView.replaceWorkerMarkers(
-    pins: List<WorkerPin>,
-    selectedId: String?,
-    context: Context,
-    isDark: Boolean,
-    onClick: (workerId: String) -> Unit
-) {
-    overlays.removeAll { it is Marker }
-
-    val dimAlpha = 110  // 👈 더 연하게: 70~130 추천
-    val fullAlpha = 255
-
-    pins.forEach { p ->
-        val hasSelection = selectedId != null
-        val isSelected = selectedId == p.id
-
-        val alpha = when {
-            !hasSelection -> fullAlpha
-            isSelected -> fullAlpha
-            else -> dimAlpha
-        }
-
-        val icon = drawableWithAlpha(context, iconFor(p.status, isDark), alpha)
-
-        val m = Marker(this).apply {
-            position = GeoPoint(p.lat, p.lng)
-            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-            this.icon = icon
-            setOnMarkerClickListener { _, _ ->
-                onClick(p.id)
-                true
-            }
-        }
-        overlays.add(m)
-    }
-
-    invalidate()
-}
-
-
 /* -------------------- screen -------------------- */
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -197,11 +98,9 @@ fun LocationScreen(
     val dark = isDark
 
     val sheetBg = if (dark) Color(0xFF000000) else c.surface
-
     val textPrimary = c.text
     val dividerStrong = c.divider
     val dividerLight = c.divider.copy(alpha = 0.7f)
-    val pillBg = if (dark) Color(0xFF131416) else c.surface
     val pillBorder = c.border
 
     val tableTextColor = Color(0xFF33363D)
@@ -213,6 +112,7 @@ fun LocationScreen(
     var showCamDialog by remember { mutableStateOf(false) }
     var camTargetRow by remember { mutableStateOf<WorkerRow?>(null) }
 
+    // ✅ 리스트 데이터 (너가 실제 데이터로 교체)
     val rows = remember {
         listOf(
             WorkerRow("w1", "근로자", "손흥민", "A구역 1열", "정상", Color(0xFF10B981)),
@@ -222,8 +122,7 @@ fun LocationScreen(
         )
     }
 
-    // ✅ (중요) 핀을 x/y가 아니라 lat/lng로!
-    // 아래 좌표는 예시야. 너 현장 좌표로 교체하면 됨.
+    // ✅ 핀 좌표 (너 현장 좌표로 교체)
     val pins = remember {
         listOf(
             WorkerPin("w1", "A구역", 37.45650, 126.70510, WorkerStatus.NORMAL),
@@ -251,12 +150,38 @@ fun LocationScreen(
         byArea.filter { it.id in visibleIds }
     }
 
-    // ✅ 선택되면 마커도 그 사람만 보이게(“흐리게” 효과 대신 간단/확실하게)
-    val displayPins = remember(filteredPins, selectedWorkerId) {
-        if (selectedWorkerId == null) filteredPins else filteredPins.filter { it.id == selectedWorkerId }
+    // ✅ 선택된 작업자 -> 카메라 이동 타겟
+    val pinById = remember(pins) { pins.associateBy { it.id } }
+    val targetLatLng: LatLng? = remember(selectedWorkerId, pinById) {
+        selectedWorkerId
+            ?.let { id -> pinById[id] }
+            ?.let { p -> LatLng.from(p.lat, p.lng) }
     }
 
-    val sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    // ✅ 카카오맵 핀(선택 시 강조 / 나머지 dim)
+    val kakaoPins: List<KakaoMapPin> = remember(filteredPins, selectedWorkerId, dark) {
+        val hasSelection = selectedWorkerId != null
+        val dimAlpha = 110
+        val fullAlpha = 255
+
+        filteredPins.map { p ->
+            val isSelected = selectedWorkerId == p.id
+            val alpha = when {
+                !hasSelection -> fullAlpha
+                isSelected -> fullAlpha
+                else -> dimAlpha
+            }
+            KakaoMapPin(
+                id = p.id,
+                lat = p.lat,
+                lon = p.lng,
+                iconRes = iconFor(p.status, dark),
+                alpha = alpha
+            )
+        }
+    }
+
+    /* -------------------- bottom sheet height -------------------- */
 
     val density = LocalDensity.current
     fun Dp.toPxSafe(): Float = with(density) { toPx() }
@@ -265,7 +190,6 @@ fun LocationScreen(
     val rowH = 48.dp
     val baseH = 160.dp
     val estimatedMax = baseH + (rowH * displayRows.size)
-
     val maxSheetHeight = estimatedMax.coerceIn(260.dp, 460.dp)
     val minSheetHeight: Dp = 42.dp
     val initialSheetHeight = maxSheetHeight.coerceAtMost(260.dp)
@@ -288,62 +212,34 @@ fun LocationScreen(
 
     /* -------------------- UI -------------------- */
 
-    val context = LocalContext.current
+    Box(modifier = modifier.fillMaxSize()) {
 
-    // 지도 중심(현장 중심 좌표로 바꿔도 됨)
-    val center = remember { GeoPoint(37.456, 126.705) }
-    val mapView = rememberOsmdroidMapView(center = center, zoom = 18.0)
-
-    val pinById = remember(pins) {
-        pins.associateBy { it.id }
-    }
-
-// 작업자 선택 시 해당 위치로 지도 이동
-    LaunchedEffect(selectedWorkerId) {
-        selectedWorkerId?.let { id ->
-            pinById[id]?.let { p ->
-                mapView.controller.animateTo(GeoPoint(p.lat, p.lng))
-                // 필요하면 줌 고정
-                // mapView.controller.setZoom(18.0)
-            }
-        }
-    }
-    // ✅ pins/선택/필터가 바뀔 때마다 지도 마커 갱신
-    LaunchedEffect(displayPins, dark) {
-        mapView.replaceWorkerMarkers(
-            pins = filteredPins,
+        // ✅ 카카오맵 + 핀 + 핀 클릭
+        KakaoMapView(
+            lat = 37.456, // 초기 중심
+            lon = 126.705,
+            modifier = Modifier.fillMaxSize(),
+            targetLatLng = targetLatLng,
+            pins = kakaoPins,
             selectedId = selectedWorkerId,
-            context = context,
-            isDark = dark,
-            onClick = { clickedId ->
+            onPinClick = { clickedId ->
                 selectedWorkerId = if (selectedWorkerId == clickedId) null else clickedId
             }
         )
-    }
 
-    Box(modifier = modifier.fillMaxSize()) {
-
-        // ✅ 지도 (여기엔 pointerInput 붙이지 말기)
-        AndroidView(
-            modifier = Modifier.fillMaxSize(),
-            factory = { mapView }
-        )
-
-        // ✅ 작업자 선택된 상태면 "빈공간 탭"으로 선택 해제
+        // ✅ 선택된 상태에서 지도 빈 곳 탭하면 선택 해제
         if (selectedWorkerId != null) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .zIndex(1f) // 지도 위
+                    .zIndex(1f)
                     .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { selectedWorkerId = null }
-                        )
+                        detectTapGestures(onTap = { selectedWorkerId = null })
                     }
             )
         }
 
-        // 상단 어두운 그라데이션
+        // 상단 그라데이션
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -358,6 +254,7 @@ fun LocationScreen(
                     )
                 )
         )
+
         // 상단 타이틀 + 구역 칩
         Column(
             modifier = Modifier
@@ -428,8 +325,8 @@ fun LocationScreen(
 
         // 바텀시트
         Surface(
-            color = sheetBg,
-            shape = sheetShape,
+            color = if (dark) Color(0xFF000000) else sheetBg,
+            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
             tonalElevation = 0.dp,
             shadowElevation = 0.dp,
             modifier = Modifier
@@ -471,7 +368,9 @@ fun LocationScreen(
                             row = row,
                             isSelected = (row.id == selectedWorkerId),
                             hasSelection = (selectedWorkerId != null),
-                            onRowClick = { selectedWorkerId = row.id },
+                            onRowClick = {
+                                selectedWorkerId = if (selectedWorkerId == row.id) null else row.id
+                            },
                             onCamClick = {
                                 camTargetRow = it
                                 showCamDialog = true
@@ -646,15 +545,11 @@ private fun TableRowItem(
     iconTint: Color,
     divider: Color
 ) {
-    val darkText = LocalSafeColors.current.isDark
-
     val rowAlpha = when {
         !hasSelection -> 1f
         isSelected -> 1f
         else -> 0.35f
     }
-
-    val bodyTextColor = if (darkText) Color(0xFF9CA3AF) else textPrimary
 
     Row(
         modifier = Modifier
@@ -664,9 +559,9 @@ private fun TableRowItem(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BodyCell(row.role, 0.18f, bodyTextColor)
-        BodyCell(row.name, 0.22f, bodyTextColor)
-        BodyCell(row.location, 0.30f, bodyTextColor)
+        BodyCell(row.role, 0.18f, textPrimary)
+        BodyCell(row.name, 0.22f, textPrimary)
+        BodyCell(row.location, 0.30f, textPrimary)
         BodyCell(row.statusText, 0.18f, row.statusColor)
 
         Box(
@@ -820,30 +715,4 @@ private fun CamDialog(
             }
         }
     }
-}
-
-private fun drawableWithAlpha(
-    context: Context,
-    @DrawableRes resId: Int,
-    alpha: Int
-): BitmapDrawable? {
-    val d = ContextCompat.getDrawable(context, resId) ?: return null
-
-    val w = if (d.intrinsicWidth > 0) d.intrinsicWidth else 96
-    val h = if (d.intrinsicHeight > 0) d.intrinsicHeight else 96
-
-    val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bmp)
-
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        this.alpha = alpha // 0~255
-    }
-
-    // drawable을 비트맵에 그리되 paint 알파 적용
-    d.setBounds(0, 0, w, h)
-    canvas.saveLayerAlpha(0f, 0f, w.toFloat(), h.toFloat(), alpha)
-    d.draw(canvas)
-    canvas.restore()
-
-    return BitmapDrawable(context.resources, bmp)
 }
