@@ -75,6 +75,7 @@ fun KakaoMapView(
     targetLatLng: LatLng? = null,
     pins: List<KakaoMapPin> = emptyList(),
     selectedId: String? = null,
+    centerOnSelectedPin: Boolean = false,
     onPinClick: (pinId: String) -> Unit = {},
     onMapReady: (KakaoMap) -> Unit = {},
     onCenterChanged: (centerLat: Double, centerLon: Double) -> Unit = { _, _ -> },
@@ -167,12 +168,13 @@ fun KakaoMapView(
         }
     }
 
-    // targetLatLng move
-    LaunchedEffect(targetLatLng?.latitude, targetLatLng?.longitude) {
+    LaunchedEffect(targetLatLng?.latitude, targetLatLng?.longitude, centerOnSelectedPin) {
+        if (centerOnSelectedPin) return@LaunchedEffect  // ✅ AIEventDetail은 핀 기준으로만 이동
         val km = kakaoMapState.value ?: return@LaunchedEffect
         val t = targetLatLng ?: return@LaunchedEffect
         km.moveCamera(CameraUpdateFactory.newCenterPosition(t))
     }
+
 
     // ✅ 핀 그리기
     LaunchedEffect(pins, selectedId, labelLayerState.value) {
@@ -224,7 +226,10 @@ fun KakaoMapView(
             )
 
             val style = LabelStyle.from(bitmap)
+                .setAnchorPoint(0.5f, 1.0f)   // ✅ 핀 아래 꼭지가 좌표에 찍힘
+
             val styles = LabelStyles.from(style)
+
 
             val opt = LabelOptions.from(pos).apply {
                 setTag(p.id)
@@ -235,8 +240,17 @@ fun KakaoMapView(
             layer.addLabel(opt)
         }
 
+    }
+// ✅ (옵션) 선택 핀을 항상 화면 정중앙으로 (AIEventDetail에서만 켜기)
+    LaunchedEffect(pins, selectedId, centerOnSelectedPin, kakaoMapState.value) {
+        if (!centerOnSelectedPin) return@LaunchedEffect
+        val km = kakaoMapState.value ?: return@LaunchedEffect
 
-
+        val centerPin = pins.firstOrNull { it.id == selectedId } ?: pins.firstOrNull()
+        if (centerPin != null) {
+            val ll = LatLng.from(centerPin.lat, centerPin.lon)
+            km.moveCamera(CameraUpdateFactory.newCenterPosition(ll))
+        }
     }
 
 

@@ -2,7 +2,6 @@ package com.example.smart_safety_management
 
 import android.content.res.Configuration
 import android.location.Geocoder
-import android.preference.PreferenceManager
 import android.graphics.Bitmap
 import android.widget.Toast
 import android.graphics.SurfaceTexture
@@ -46,16 +45,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.osmdroid.config.Configuration as OsmConfiguration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import com.google.gson.annotations.SerializedName
 import java.util.Locale
+import com.kakao.vectormap.LatLng
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
@@ -77,8 +72,10 @@ fun AIEventDetailScreen(
 
 
     // 지도 좌표 상태
-    var mapCenter by remember { mutableStateOf<GeoPoint?>(null) }
+    var mapLat by remember { mutableStateOf<Double?>(null) }
+    var mapLon by remember { mutableStateOf<Double?>(null) }
     var isGeocodingError by remember { mutableStateOf(false) }
+
 
     Smart_Safety_ManagementTheme {
 
@@ -100,11 +97,13 @@ fun AIEventDetailScreen(
                         @Suppress("DEPRECATION")
                         val addresses = geocoder.getFromLocationName(address, 1)
                         if (!addresses.isNullOrEmpty()) {
-                            mapCenter = GeoPoint(addresses[0].latitude, addresses[0].longitude)
+                            mapLat = addresses[0].latitude
+                            mapLon = addresses[0].longitude
                             isGeocodingError = false
                         } else {
                             isGeocodingError = true
                         }
+
                     } catch (e: Exception) {
                         e.printStackTrace()
                         isGeocodingError = true
@@ -416,32 +415,29 @@ fun AIEventDetailScreen(
                                 .clip(RoundedCornerShape(12.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (mapCenter != null) {
-                                AndroidView(
-                                    factory = { ctx ->
-                                        OsmConfiguration.getInstance().load(ctx, PreferenceManager.getDefaultSharedPreferences(ctx))
-                                        MapView(ctx).apply {
-                                            setTileSource(TileSourceFactory.MAPNIK)
-                                            setMultiTouchControls(true)
-                                            controller.setZoom(17.0)
-                                        }
-                                    },
-                                    update = { mapView ->
-                                        mapView.controller.setCenter(mapCenter)
-                                        mapView.overlays.clear()
-                                        val marker = Marker(mapView)
-                                        marker.position = mapCenter
-                                        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                        val iconRes = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark
-                                        marker.icon = ContextCompat.getDrawable(context, iconRes)
-                                        mapView.overlays.add(marker)
-                                        mapView.invalidate()
-                                    },
-                                    modifier = Modifier.fillMaxSize()
+                            if (mapLat != null && mapLon != null) {
+                                val iconRes = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark
+
+                                KakaoMapView(
+                                    modifier = Modifier.fillMaxSize(),
+                                    targetLatLng = LatLng.from(mapLat!!, mapLon!!),
+                                    pins = listOf(
+                                        KakaoMapPin(
+                                            id = "event",
+                                            lat = mapLat!!,
+                                            lon = mapLon!!,
+                                            iconRes = iconRes
+                                        )
+                                    ),
+                                    selectedId = "event",
+                                    centerOnSelectedPin = true
+
                                 )
                             } else {
                                 Box(
-                                    modifier = Modifier.fillMaxSize().background(if (isLight) Color.LightGray else Color.DarkGray),
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(if (isLight) Color.LightGray else Color.DarkGray),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -450,6 +446,7 @@ fun AIEventDetailScreen(
                                     )
                                 }
                             }
+
                         }
 
                         Spacer(modifier = Modifier.height(48.dp))
