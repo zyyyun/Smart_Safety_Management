@@ -50,6 +50,8 @@ import retrofit2.Response
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.ui.zIndex
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES, name = "Dark")
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_NO, name = "Light")
@@ -297,8 +299,13 @@ fun DailyListScreen(
                         }
                     }
 
-                    attachedPhotos.reversed().forEach { photoUri ->
+                    // 역순으로 보여주되, 삭제를 위해 원본 index를 들고 있음
+                    attachedPhotos.asReversed().forEachIndexed { reversedIndex, photoUri ->
+                        // asReversed()에서의 reversedIndex를 원본 index로 변환
+                        val originalIndex = attachedPhotos.lastIndex - reversedIndex
+
                         Spacer(modifier = Modifier.width(8.dp))
+
                         Box(
                             modifier = Modifier
                                 .size(120.dp)
@@ -310,10 +317,33 @@ fun DailyListScreen(
                                 model = Uri.parse(photoUri),
                                 contentDescription = "Attached Photo",
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp))
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(RoundedCornerShape(8.dp))
                             )
+
+                            // ✅ 우측 상단 X 버튼
+                            IconButton(
+                                onClick = {
+                                    attachedPhotos = attachedPhotos.toMutableList().also { it.removeAt(originalIndex) }
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
+                                    .size(28.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(Color.Black.copy(alpha = 0.45f))
+                                    .zIndex(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Delete photo",
+                                    tint = Color.White
+                                )
+                            }
                         }
                     }
+
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
