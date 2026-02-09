@@ -432,7 +432,9 @@ data class CancelInviteResponse(
 
 data class WorkplaceLocationResponse(
     val address: String?,
-    @SerializedName("road_address") val roadAddress: String?
+    @SerializedName("road_address") val roadAddress: String?,
+    val latitude: Double?,
+    val longitude: Double?
 )
 
 data class CameraCaptureDTO(
@@ -443,6 +445,19 @@ data class CameraCaptureDTO(
 
 data class GetCameraCapturesResponse(
     val captures: List<CameraCaptureDTO>
+)
+
+data class RegisterLocationRequest(
+    @SerializedName("user_id") val userId: String,
+    val address: String,
+    @SerializedName("road_address") val roadAddress: String,
+    val zipcode: String,
+    val latitude: Double,
+    val longitude: Double
+)
+
+data class RegisterLocationResponse(
+    val message: String
 )
 
 interface SignUpService {
@@ -469,6 +484,9 @@ interface SignUpService {
 
     @POST("/delete_workplace")
     fun deleteWorkplace(@Body request: DeleteWorkplaceRequest): Call<DeleteWorkplaceResponse>
+
+    @POST("/reset_workplace_location")
+    fun resetWorkplaceLocation(@Body request: DeleteWorkplaceRequest): Call<DeleteWorkplaceResponse>
 
     @POST("/check_registered_contacts")
     fun checkRegisteredContacts(@Body request: CheckRegisteredContactsRequest): Call<CheckRegisteredContactsResponse>
@@ -635,4 +653,7 @@ interface SignUpService {
 
     @GET("/get_camera_captures")
     fun getCameraCaptures(@Query("camera_id") cameraId: Int): Call<GetCameraCapturesResponse>
+
+    @POST("/register_workplace_location")
+    fun registerWorkplaceLocation(@Body request: RegisterLocationRequest): Call<RegisterLocationResponse>
 }

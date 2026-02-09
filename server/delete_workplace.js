@@ -30,4 +30,26 @@ router.post('/delete_workplace', async (req, res) => {
     }
 });
 
+router.post('/reset_workplace_location', async (req, res) => {
+    const { place_name, admin_id } = req.body;
+
+    try {
+        // 행은 유지하고 주소 및 좌표 정보만 NULL로 초기화
+        const result = await pool.query(
+            'UPDATE workplace SET address = NULL, road_address = NULL, latitude = NULL, longitude = NULL WHERE admin_id = $1',
+            [admin_id]
+        );
+
+        if (result.rowCount > 0) {
+            res.status(200).json({ message: "현장 위치 초기화 성공" });
+        } else {
+            // [수정] 데이터가 없으면 이미 초기화된 상태이므로 성공으로 처리 (Idempotent)
+            res.status(200).json({ message: "현장 위치 초기화 성공 (데이터 없음)" });
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "서버 오류 발생" });
+    }
+});
+
 module.exports = router;

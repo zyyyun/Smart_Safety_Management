@@ -12,7 +12,7 @@ router.get('/get_workplace_location', async (req, res) => {
     try {
         // workplace 테이블에서 해당 유저(관리자)의 현장 위치 조회
         const result = await pool.query(
-            'SELECT address, road_address FROM workplace WHERE admin_id = $1',
+            'SELECT address, road_address, latitude, longitude FROM workplace WHERE admin_id = $1',
             [user_id]
         );
 

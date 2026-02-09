@@ -232,7 +232,11 @@ fun ContactListItem(contact: Contact) {
         }.apply {
             data = Uri.parse("tel:${contact.phoneNumber.replace("-", "")}")
         }
-        context.startActivity(intent)
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // 전화 기능이 없는 기기 등 예외 처리
+        }
     }
 
     val phNumColor = TextMedium
@@ -257,7 +261,11 @@ fun ContactListItem(contact: Contact) {
                 val intent = Intent(Intent.ACTION_CALL).apply {
                     data = Uri.parse("tel:${contact.phoneNumber.replace("-", "")}")
                 }
-                context.startActivity(intent)
+                try {
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    // 전화 기능이 없는 기기 등 예외 처리
+                }
             } else {
                 launcher.launch(Manifest.permission.CALL_PHONE)
             }

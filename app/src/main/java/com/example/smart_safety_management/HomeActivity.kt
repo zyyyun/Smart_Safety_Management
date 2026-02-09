@@ -54,6 +54,7 @@ class HomeActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("PHOTO_DEBUG", "HomeActivity onCreate called")
+
         setContentView(R.layout.main_home)
 
         initUI()

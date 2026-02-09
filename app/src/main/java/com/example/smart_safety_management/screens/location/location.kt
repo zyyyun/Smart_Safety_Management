@@ -42,6 +42,23 @@ import com.example.smart_safety_management.R
 import com.example.smart_safety_management.ui.theme.ClipartKorea
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
+import com.example.smart_safety_management.RetrofitClient
+import com.example.smart_safety_management.UserSession
+import com.example.smart_safety_management.GetCCTVListResponse
+import com.example.smart_safety_management.GetDeviceStatusResponse
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import org.osmdroid.config.Configuration
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.drawable.BitmapDrawable
+import android.content.Context
 import com.kakao.vectormap.LatLng
 
 /* -------------------- data -------------------- */
@@ -107,30 +124,15 @@ fun LocationScreen(
     val iconTint = tableTextColor
 
     var selectedWorkerId by remember { mutableStateOf<String?>(null) }
-    val areas = listOf("전체", "A구역", "B구역", "C구역", "D구역", "E구역")
+    var areas by remember { mutableStateOf(listOf("전체")) }
     var selectedArea by remember { mutableStateOf("전체") }
     var showCamDialog by remember { mutableStateOf(false) }
     var camTargetRow by remember { mutableStateOf<WorkerRow?>(null) }
 
+    // ✅ [수정] 서버 데이터로 교체하기 위해 상태 변수로 변경 (초기값 빈 리스트)
+    var rows by remember { mutableStateOf<List<WorkerRow>>(emptyList()) }
+    var pins by remember { mutableStateOf<List<WorkerPin>>(emptyList()) }
     // ✅ 리스트 데이터 (너가 실제 데이터로 교체)
-    val rows = remember {
-        listOf(
-            WorkerRow("w1", "근로자", "손흥민", "A구역 1열", "정상", Color(0xFF10B981)),
-            WorkerRow("w2", "근로자", "이강인", "B구역 2열", "고열", Color(0xFFEF4444)),
-            WorkerRow("w3", "근로자", "김민재", "C구역 3열", "정상", Color(0xFF10B981)),
-            WorkerRow("w4", "근로자", "황희찬", "D구역 4열", "쓰러짐", Color(0xFFF97316)),
-        )
-    }
-
-    // ✅ 핀 좌표 (너 현장 좌표로 교체)
-    val pins = remember {
-        listOf(
-            WorkerPin("w1", "A구역", 37.45650, 126.70510, WorkerStatus.NORMAL),
-            WorkerPin("w2", "B구역", 37.45680, 126.70610, WorkerStatus.FEVER),
-            WorkerPin("w3", "C구역", 37.45610, 126.70570, WorkerStatus.NORMAL),
-            WorkerPin("w4", "D구역", 37.45580, 126.70640, WorkerStatus.FALL),
-        )
-    }
 
     fun rowArea(row: WorkerRow) = row.location.split(" ").first()
 
@@ -208,6 +210,76 @@ fun LocationScreen(
         val targetPx = revealHeight.toPxSafe()
             .coerceIn(minSheetHeight.toPxSafe(), maxSheetHeight.toPxSafe())
         if (sheetHeightPx < targetPx) sheetHeightPx = targetPx
+    }
+
+    // ✅ 서버에서 CCTV 리스트를 가져와 구역 필터 동적 생성
+    LaunchedEffect(Unit) {
+        val userId = UserSession.userId
+        if (!userId.isNullOrEmpty()) {
+            RetrofitClient.instance.getCCTVList(null, null, userId).enqueue(object : Callback<GetCCTVListResponse> {
+                override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
+                    if (response.isSuccessful) {
+                        val list = response.body()?.cctvList ?: emptyList()
+                        // install_area 예: "A구역 1열" -> "A구역" 추출
+                        val dynamicAreas = list.mapNotNull { it.location }
+                            .map { it.split(" ").first() }
+                            .distinct()
+                            .sorted()
+                        areas = listOf("전체") + dynamicAreas
+                    }
+                }
+                override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {}
+            })
+        }
+    }
+
+    // ✅ [추가] 서버에서 작업자 상태(DeviceStatus) 가져와서 리스트 및 핀 구성
+    LaunchedEffect(Unit) {
+        val userId = UserSession.userId
+        if (!userId.isNullOrEmpty()) {
+            RetrofitClient.instance.getDeviceStatus(userId).enqueue(object : Callback<GetDeviceStatusResponse> {
+                override fun onResponse(call: Call<GetDeviceStatusResponse>, response: Response<GetDeviceStatusResponse>) {
+                    if (response.isSuccessful) {
+                        val devices = response.body()?.deviceStatus ?: emptyList()
+
+                        // ✅ [디버깅] 받아온 데이터 로그 출력 (Logcat에서 "LocationScreen" 태그로 확인 가능)
+                        android.util.Log.d("LocationScreen", "API 응답 전체 기기 수: ${devices.size}")
+                        devices.forEach { android.util.Log.d("LocationScreen", " - 이름: ${it.name}, 역할: ${it.role}, GPS: ${it.isGpsConnected}") }
+
+                        // ✅ [수정] GPS 연결 여부와 상관없이 'worker' 역할인 모든 유저 표시
+                        val workers = devices.filter { it.role.equals("worker", ignoreCase = true) }
+
+                        // 1. 리스트 데이터(rows) 구성
+                        rows = workers.map { worker ->
+                            WorkerRow(
+                                id = worker.userId,
+                                role = "근로자",
+                                name = worker.name,
+                                location = "A구역", // ⚠️ 위치 정보 API 부재로 임시 고정
+                                statusText = if (worker.isGpsConnected) "정상" else "연결끊김",
+                                statusColor = if (worker.isGpsConnected) Color(0xFF10B981) else Color(0xFF9CA3AF)
+                            )
+                        }
+
+                        // 2. 지도 핀(pins) 구성
+                        // ⚠️ 실제 좌표 데이터가 없으므로, 지도 중심(center) 주변에 랜덤하게 뿌려줌
+                        pins = workers.map { worker ->
+                            val offsetLat = (Math.random() - 0.5) * 0.002
+                            val offsetLng = (Math.random() - 0.5) * 0.002
+
+                            WorkerPin(
+                                id = worker.userId,
+                                area = "A구역", // 임시 구역
+                                lat = 37.456 + offsetLat,
+                                lng = 126.705 + offsetLng,
+                                status = if (worker.isGpsConnected) WorkerStatus.NORMAL else WorkerStatus.FEVER // 연결 끊김은 붉은색(FEVER) 아이콘으로 임시 표시
+                            )
+                        }
+                    }
+                }
+                override fun onFailure(call: Call<GetDeviceStatusResponse>, t: Throwable) {}
+            })
+        }
     }
 
     /* -------------------- UI -------------------- */
