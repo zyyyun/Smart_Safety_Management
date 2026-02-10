@@ -134,29 +134,31 @@ fun LocationScreen(
     val tableTextColor = Color(0xFF33363D)
     val iconTint = tableTextColor
 
-    val context = LocalContext.current
+    // ✅ 기존 상태들
+    var selectedWorkerId by remember { mutableStateOf<String?>(null) }
+    var areas by remember { mutableStateOf(listOf("전체")) }
+    var selectedArea by remember { mutableStateOf("전체") }
 
+    // ✅ CamDialog 관련 (권한 런처에서 쓰니까 먼저 선언해야 함)
+    var showCamDialog by remember { mutableStateOf(false) }
+    var camTargetRow by remember { mutableStateOf<WorkerRow?>(null) }
+
+    // ✅ 권한 관련
+    val context = LocalContext.current
     var pendingCamRow by remember { mutableStateOf<WorkerRow?>(null) }
 
     val audioPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            // 권한 허용되면, 저장해둔 row로 다이얼로그 열기
             camTargetRow = pendingCamRow
             showCamDialog = true
-        } else {
-            // 권한 거부 시: 일단 다이얼로그 안 열고 종료 (원하면 토스트/스낵바 추가 가능)
             pendingCamRow = null
+        } else {
+            pendingCamRow = null
+            // (선택) 토스트/스낵바 안내 가능
         }
     }
-
-
-    var selectedWorkerId by remember { mutableStateOf<String?>(null) }
-    var areas by remember { mutableStateOf(listOf("전체")) }
-    var selectedArea by remember { mutableStateOf("전체") }
-    var showCamDialog by remember { mutableStateOf(false) }
-    var camTargetRow by remember { mutableStateOf<WorkerRow?>(null) }
 
     // ✅ [수정] 서버 데이터로 교체하기 위해 상태 변수로 변경 (초기값 빈 리스트)
     var rows by remember { mutableStateOf<List<WorkerRow>>(emptyList()) }
@@ -211,6 +213,8 @@ fun LocationScreen(
             )
         }
     }
+
+
 
     /* -------------------- bottom sheet height -------------------- */
 
