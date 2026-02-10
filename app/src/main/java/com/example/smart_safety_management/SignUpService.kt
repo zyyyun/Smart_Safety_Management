@@ -465,7 +465,8 @@ data class RegisterLocationResponse(
 data class UpdateWorkerLocationRequest(
     @SerializedName("user_id") val userId: String,
     val latitude: Double,
-    val longitude: Double
+    val longitude: Double,
+    val status: String? = null // ✅ status 필드 추가
 )
 
 data class UpdateWorkerLocationResponse(
@@ -479,11 +480,22 @@ data class WorkerLocationDTO(
     val latitude: Double?,
     val longitude: Double?,
     @SerializedName("current_zone") val currentZone: String?,
-    @SerializedName("recorded_at") val recordedAt: String?
+    @SerializedName("recorded_at") val recordedAt: String?,
+    val status: String? // ✅ status 필드 추가
 )
 
 data class GetLocationResponse(
     val locations: List<WorkerLocationDTO>
+)
+
+data class UpdateWatchStatusRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("body_temp") val bodyTemp: Double
+)
+
+data class UpdateWatchStatusResponse(
+    val message: String,
+    val status: String
 )
 
 interface SignUpService {
@@ -688,4 +700,7 @@ interface SignUpService {
 
     @GET("/get_location")
     fun getLocation(@Query("user_id") userId: String): Call<GetLocationResponse>
+
+    @POST("/update_watch_status")
+    fun updateWatchStatus(@Body request: UpdateWatchStatusRequest): Call<UpdateWatchStatusResponse>
 }

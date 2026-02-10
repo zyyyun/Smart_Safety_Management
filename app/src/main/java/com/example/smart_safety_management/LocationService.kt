@@ -89,7 +89,7 @@ class LocationService : Service(), LocationListener {
         serviceScope.launch {
             val userId = UserSession.userId
             if (userId != null) {
-                val request = UpdateWorkerLocationRequest(userId, location.latitude, location.longitude)
+                val request = UpdateWorkerLocationRequest(userId, location.latitude, location.longitude, null)
                 RetrofitClient.instance.updateWorkerLocation(request).enqueue(object : Callback<UpdateWorkerLocationResponse> {
                     override fun onResponse(call: Call<UpdateWorkerLocationResponse>, response: Response<UpdateWorkerLocationResponse>) {}
                     override fun onFailure(call: Call<UpdateWorkerLocationResponse>, t: Throwable) {

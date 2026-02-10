@@ -20,7 +20,7 @@ function deg2rad(deg) {
 }
 
 router.post('/update_worker_location', async (req, res) => {
-    const { user_id, latitude, longitude } = req.body;
+    const { user_id, latitude, longitude, status } = req.body;
 
     if (!user_id || latitude === undefined || longitude === undefined) {
         return res.status(400).json({ message: "필수 정보가 누락되었습니다." });
@@ -60,9 +60,10 @@ router.post('/update_worker_location', async (req, res) => {
         if (checkRes.rows.length > 0) {
             // 기존 기록이 있다면 최신 기록 업데이트
             const logId = checkRes.rows[0].log_id;
+            // ✅ status가 제공되면 업데이트, 아니면 기존 값 유지 (COALESCE)
             await pool.query(
-                'UPDATE location_logs SET latitude = $1, longitude = $2, current_zone = $3, camera_id = $4, recorded_at = NOW() WHERE log_id = $5',
-                [latitude, longitude, currentZone, cameraId, logId]
+                'UPDATE location_logs SET latitude = $1, longitude = $2, current_zone = $3, camera_id = $4, status = COALESCE($5, status), recorded_at = NOW() WHERE log_id = $6',
+                [latitude, longitude, currentZone, cameraId, status, logId]
             );
 
             // 중복된 과거 데이터가 있다면 삭제 (데이터 정리)
@@ -72,9 +73,10 @@ router.post('/update_worker_location', async (req, res) => {
             }
         } else {
             // 기록이 없다면 신규 등록
+            // ✅ 신규 등록 시 status가 없으면 '정상'으로 기본값 설정
             await pool.query(
-                'INSERT INTO location_logs (user_id, latitude, longitude, current_zone, camera_id) VALUES ($1, $2, $3, $4, $5)',
-                [user_id, latitude, longitude, currentZone, cameraId]
+                'INSERT INTO location_logs (user_id, latitude, longitude, current_zone, camera_id, status) VALUES ($1, $2, $3, $4, $5, $6)',
+                [user_id, latitude, longitude, currentZone, cameraId, status || '정상']
             );
         }
 

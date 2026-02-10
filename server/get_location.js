@@ -27,6 +27,7 @@ router.get('/get_location', async (req, res) => {
                 l.latitude,
                 l.longitude,
                 l.current_zone,
+                l.status,
                 l.recorded_at
             FROM users u
             LEFT JOIN location_logs l ON u.user_id = l.user_id

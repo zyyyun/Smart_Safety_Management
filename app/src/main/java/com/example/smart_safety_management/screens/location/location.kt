@@ -311,13 +311,20 @@ fun LocationScreen(
                             withContext(Dispatchers.Main) {
                                 // 1. 리스트 데이터(rows) 구성
                                 rows = locations.map { loc ->
+                                    // ✅ DB status 값에 따른 상태 텍스트 및 색상 매핑
+                                    val (statusText, statusColor) = when (loc.status) {
+                                        "고열","위험", "추락", "FALL", "DANGER" -> "위험" to Color(0xFFFF5252) // Red
+                                        "경고", "FEVER", "WARNING" -> "경고" to Color(0xFFFF9800) // Orange
+                                        else -> "정상" to Color(0xFF10B981) // Green
+                                    }
+
                                     WorkerRow(
                                         id = loc.userId,
                                         role = if (loc.role.equals("manager", true)) "관리자" else "근로자",
                                         name = loc.name,
                                         location = loc.currentZone ?: "위치 정보 없음",
-                                        statusText = "정상",
-                                        statusColor = Color(0xFF10B981)
+                                        statusText = statusText,
+                                        statusColor = statusColor
                                     )
                                 }
 
@@ -325,13 +332,21 @@ fun LocationScreen(
                                 pins = locations.mapNotNull { loc ->
                                     val lat = loc.latitude
                                     val lng = loc.longitude
+                                    
+                                    // ✅ DB status 값에 따른 핀 아이콘 상태 매핑
+                                    val pinStatus = when (loc.status) {
+                                        "위험", "추락", "FALL", "DANGER" -> WorkerStatus.FALL
+                                        "경고", "고열", "FEVER", "WARNING" -> WorkerStatus.FEVER
+                                        else -> WorkerStatus.NORMAL
+                                    }
+
                                     if (lat != null && lng != null) {
                                         WorkerPin(
                                             id = loc.userId,
                                             area = loc.currentZone ?: "미지정",
                                             lat = lat,
                                             lng = lng,
-                                            status = WorkerStatus.NORMAL
+                                            status = pinStatus
                                         )
                                     } else null
                                 }
