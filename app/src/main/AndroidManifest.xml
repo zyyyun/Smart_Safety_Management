@@ -238,6 +238,7 @@
             android:name="com.kakao.vectormap.APP_KEY"
             android:value="ac06bf15c3f3dc080afb2a22bed9dfba" />
 
+
     </application>
 
 </manifest>

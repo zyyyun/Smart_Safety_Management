@@ -59,11 +59,18 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.drawable.BitmapDrawable
 import android.content.Context
+import com.example.smart_safety_management.CamPttViewModel
 import com.kakao.vectormap.LatLng
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.compose.ui.platform.LocalContext
 
 /* -------------------- data -------------------- */
 
@@ -126,6 +133,24 @@ fun LocationScreen(
 
     val tableTextColor = Color(0xFF33363D)
     val iconTint = tableTextColor
+
+    val context = LocalContext.current
+
+    var pendingCamRow by remember { mutableStateOf<WorkerRow?>(null) }
+
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            // 권한 허용되면, 저장해둔 row로 다이얼로그 열기
+            camTargetRow = pendingCamRow
+            showCamDialog = true
+        } else {
+            // 권한 거부 시: 일단 다이얼로그 안 열고 종료 (원하면 토스트/스낵바 추가 가능)
+            pendingCamRow = null
+        }
+    }
+
 
     var selectedWorkerId by remember { mutableStateOf<String?>(null) }
     var areas by remember { mutableStateOf(listOf("전체")) }
@@ -447,10 +472,21 @@ fun LocationScreen(
                             onRowClick = {
                                 selectedWorkerId = if (selectedWorkerId == row.id) null else row.id
                             },
-                            onCamClick = {
-                                camTargetRow = it
-                                showCamDialog = true
-                            },
+                            onCamClick = { row ->
+                                val granted = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.RECORD_AUDIO
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                if (granted) {
+                                    camTargetRow = row
+                                    showCamDialog = true
+                                } else {
+                                    pendingCamRow = row
+                                    audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                }
+                            }
+                            ,
                             textPrimary = textPrimary,
                             iconTint = iconTint,
                             divider = dividerLight
@@ -464,9 +500,10 @@ fun LocationScreen(
             CamDialog(
                 title = "안전모 CAM",
                 onDismiss = { showCamDialog = false },
-                onMicClick = { },
+                workerId = camTargetRow!!.id,   // ✅ 추가
                 isDark = dark
             )
+
         }
     }
 }
@@ -695,10 +732,13 @@ private fun RowScope.BodyCell(text: String, w: Float, color: Color) {
 private fun CamDialog(
     title: String,
     onDismiss: () -> Unit,
-    onMicClick: () -> Unit,
+    workerId: String,
     isDark: Boolean
 ) {
     val c = LocalSafeColors.current
+
+    val viewModel = remember { CamPttViewModel() }
+    val managerId = UserSession.userId ?: ""
 
     val bg = if (isDark) Color(0xFF1E2124) else Color.White
     val text = c.text
@@ -766,11 +806,36 @@ private fun CamDialog(
                 Spacer(Modifier.height(14.dp))
 
                 Button(
-                    onClick = onMicClick,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7A00)),
+                    onClick = {}, // 사용 안 함
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor =
+                            if (viewModel.isRecording)
+                                Color.Red
+                            else
+                                Color(0xFFFF7A00)
+                    ),
                     shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.size(width = 295.dp, height = 52.dp)
-                ) {
+                    modifier = Modifier
+                        .size(width = 295.dp, height = 52.dp)
+                        .pointerInput(Unit) {
+
+                            detectTapGestures(
+
+                                onPress = {
+
+                                    viewModel.startRecording()
+
+                                    tryAwaitRelease() // 👉 손 뗄 때까지 대기
+
+                                    viewModel.stopAndUpload(
+                                        managerId = managerId,
+                                        workerId = workerId
+                                    )
+                                }
+                            )
+                        }
+                )
+                {
                     Icon(
                         painter = painterResource(id = R.drawable.mic),
                         contentDescription = null,
@@ -781,7 +846,11 @@ private fun CamDialog(
                     Spacer(Modifier.width(4.dp))
 
                     Text(
-                        text = "눌러서 말하기",
+                        text =
+                            if(viewModel.isRecording)
+                                "녹음 중..."
+                            else
+                                "눌러서 말하기",
                         color = actionColor,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold,
