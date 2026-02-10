@@ -419,6 +419,8 @@ fun AIEventDetailScreen(
                                 val iconRes = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark
 
                                 KakaoMapView(
+                                    lat = mapLat!!,
+                                    lon = mapLon!!,
                                     modifier = Modifier.fillMaxSize(),
                                     targetLatLng = LatLng.from(mapLat!!, mapLon!!),
                                     pins = listOf(
@@ -431,20 +433,8 @@ fun AIEventDetailScreen(
                                     ),
                                     selectedId = "event",
                                     centerOnSelectedPin = true
-
                                 )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(if (isLight) Color.LightGray else Color.DarkGray),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = if (isGeocodingError) "위치를 찾을 수 없습니다." else "위치 정보를 불러오는 중...",
-                                        color = Color.White
-                                    )
-                                }
+
                             }
 
                         }

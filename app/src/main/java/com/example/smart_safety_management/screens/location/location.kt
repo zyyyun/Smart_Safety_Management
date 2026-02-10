@@ -155,6 +155,11 @@ fun LocationScreen(
 
     // ✅ 권한 관련
     val context = LocalContext.current
+
+    // ✅ 현장(등록된 workplace) 좌표로 초기 카메라 시작하기 위한 상태
+    var isLoadingWorkplace by remember { mutableStateOf(true) }
+    var workplaceLatLng by remember { mutableStateOf<LatLng?>(null) }
+
     var pendingCamRow by remember { mutableStateOf<WorkerRow?>(null) }
 
     val audioPermissionLauncher = rememberLauncherForActivityResult(
@@ -255,6 +260,36 @@ fun LocationScreen(
         if (sheetHeightPx < targetPx) sheetHeightPx = targetPx
     }
 
+    // ✅ [추가] 등록된 현장 위치(workplace)를 서버에서 가져와 지도 초기 중심으로 사용
+    LaunchedEffect(Unit) {
+        val userId = UserSession.userId
+
+        if (userId.isNullOrBlank()) {
+            isLoadingWorkplace = false
+            return@LaunchedEffect
+        }
+
+        try {
+            val res = withContext(Dispatchers.IO) {
+                RetrofitClient.instance.getWorkplaceLocation(userId).execute()
+            }
+
+            if (res.isSuccessful) {
+                val data = res.body()
+                val lat = data?.latitude
+                val lon = data?.longitude
+
+                if (lat != null && lon != null && lat != 0.0 && lon != 0.0) {
+                    workplaceLatLng = LatLng.from(lat, lon)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            isLoadingWorkplace = false
+        }
+    }
+
     // ✅ 서버에서 CCTV 리스트를 가져와 구역 필터 동적 생성
     LaunchedEffect(Unit) {
         val userId = UserSession.userId
@@ -345,17 +380,33 @@ fun LocationScreen(
     Box(modifier = modifier.fillMaxSize()) {
 
         // ✅ 카카오맵 + 핀 + 핀 클릭
-        KakaoMapView(
-            lat = 37.456, // 초기 중심
-            lon = 126.705,
-            modifier = Modifier.fillMaxSize(),
-            targetLatLng = targetLatLng,
-            pins = kakaoPins,
-            selectedId = selectedWorkerId,
-            onPinClick = { clickedId ->
-                selectedWorkerId = if (selectedWorkerId == clickedId) null else clickedId
-            }
-        )
+        // ✅ 카카오맵 + 핀 + 핀 클릭
+        if (isLoadingWorkplace) {
+            // 로딩 중에는 지도 대신 빈 배경(깜빡임 방지)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFFE5E7EB))
+            )
+        } else {
+            val start = workplaceLatLng ?: LatLng.from(37.456, 126.705) // 등록 없으면 fallback
+
+            KakaoMapView(
+                lat = start.latitude,
+                lon = start.longitude,
+                modifier = Modifier.fillMaxSize(),
+
+                // ✅ 작업자 선택이 있으면 그쪽으로 이동, 없으면 현장 등록 위치로 시작
+                targetLatLng = targetLatLng ?: workplaceLatLng,
+
+                pins = kakaoPins,
+                selectedId = selectedWorkerId,
+                onPinClick = { clickedId ->
+                    selectedWorkerId = if (selectedWorkerId == clickedId) null else clickedId
+                }
+            )
+        }
+
 
         // ✅ 선택된 상태에서 지도 빈 곳 탭하면 선택 해제
         if (selectedWorkerId != null) {

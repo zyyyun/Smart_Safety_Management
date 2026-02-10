@@ -215,16 +215,17 @@ fun MapDialog(
 
                             if (centerLatLng != null) {
                                 KakaoMapView(
+                                    lat = centerLatLng.latitude,
+                                    lon = centerLatLng.longitude,
                                     modifier = Modifier.fillMaxSize(),
                                     targetLatLng = centerLatLng,
                                     dimUnselectedPins = false,
                                     pins = pins,
                                     selectedId = selectedCamId,
-                                    onPinClick = { clickedId ->
-                                        selectedCamId = clickedId
-                                    },
-                                    centerOnSelectedPin = (workplacePoint == null) // workplace 없으면 선택 핀 중앙 유지
+                                    onPinClick = { clickedId -> selectedCamId = clickedId },
+                                    centerOnSelectedPin = (workplacePoint == null)
                                 )
+
                             }
 
                         }

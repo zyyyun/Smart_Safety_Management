@@ -168,32 +168,53 @@ fun SettingWorkplaceLocationScreen(
     // ✅ 서버에서 가져온 초기 좌표
     var serverLatLng by remember { mutableStateOf<com.kakao.vectormap.LatLng?>(null) }
 
-    // ✅ 위치 권한 요청 Launcher
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
+
+        // ✅ 등록된 위치(서버 좌표)가 있으면 GPS로 덮어쓰지 않음
+        if (isRegistered || serverLatLng != null) {
+            return@rememberLauncherForActivityResult
+        }
+
         val isFine = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true
         val isCoarse = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
 
         @SuppressLint("MissingPermission")
         if (isFine || isCoarse) {
-            val locationManager = context.getSystemService(android.content.Context.LOCATION_SERVICE) as android.location.LocationManager
-            try {
-                // ✅ var loc 대신 val을 사용하여 스마트 캐스트 문제 해결
-                val gpsLoc = if (isFine && ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                    locationManager.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
-                } else null
+            val locationManager =
+                context.getSystemService(android.content.Context.LOCATION_SERVICE)
+                        as android.location.LocationManager
 
-                val finalLoc = gpsLoc ?: if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                    locationManager.getLastKnownLocation(android.location.LocationManager.NETWORK_PROVIDER)
+            try {
+                val gpsLoc =
+                    if (isFine && ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.ACCESS_FINE_LOCATION
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        locationManager.getLastKnownLocation(
+                            android.location.LocationManager.GPS_PROVIDER
+                        )
+                    } else null
+
+                val finalLoc = gpsLoc ?: if (
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    locationManager.getLastKnownLocation(
+                        android.location.LocationManager.NETWORK_PROVIDER
+                    )
                 } else null
 
                 if (finalLoc != null) {
                     centerLat = finalLoc.latitude
                     centerLon = finalLoc.longitude
-                    targetLatLng = com.kakao.vectormap.LatLng.from(finalLoc.latitude, finalLoc.longitude)
-                    
-                    // ✅ GPS로 이동했으므로 주소 업데이트 허용
+                    targetLatLng =
+                        com.kakao.vectormap.LatLng.from(finalLoc.latitude, finalLoc.longitude)
+
                     isServerMoving = false
                 }
             } catch (e: SecurityException) {
@@ -201,6 +222,7 @@ fun SettingWorkplaceLocationScreen(
             }
         }
     }
+
 
     // PlaceSearchViewModel 내부에서 사용하는 Retrofit은 Kakao API용이므로 유지하거나
     // ViewModel 내부 구현에 따라 다르겠지만, 여기서는 Activity 내의 불필요한 Retrofit 빌더만 제거합니다.
@@ -305,12 +327,13 @@ fun SettingWorkplaceLocationScreen(
                                 // ✅ 상태 변수를 즉시 업데이트하여 지도가 처음부터 해당 위치를 바라보게 함
                                 // targetLatLng를 설정하면 지도가 이동하고, 그 후 onCenterChanged에서 centerLat/Lon이 자연스럽게 업데이트됨
                                 serverLatLng = com.kakao.vectormap.LatLng.from(sLat, sLon)
-                                
+
                                 // ✅ [추가] 서버 이동 시작 플래그 설정
                                 isServerMoving = true
                                 serverLatLng = com.kakao.vectormap.LatLng.from(sLat, sLon)
                                 targetLatLng = serverLatLng          // ✅ 추가: 즉시 카메라 이동 타겟 세팅
                                 isServerMoving = true
+
 
                             }
                         } else if (!savedAddr.isNullOrBlank()) {
@@ -430,67 +453,50 @@ fun SettingWorkplaceLocationScreen(
                             })
                         }
                 )
-            } else // ✅ 지도
-                if (isPreview) {
+            } else {
+                if (isLoading) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(if (c.isDark) Color(0xFF0B0F14) else Color(0xFFE5E7EB))
-                            .pointerInput(Unit) {
-                                detectTapGestures(onTap = {
-                                    dropdownExpanded = false
-                                    focusManager.clearFocus()
-                                })
-                            }
                     )
                 } else {
+                    KakaoMapView(
+                        lat = centerLat,
+                        lon = centerLon,
+                        targetLatLng = targetLatLng,
+                        onMapReady = { map -> kakaoMapObj = map },
+                        onCenterChanged = { clat, clon ->
+                            centerLat = clat
+                            centerLon = clon
 
-                    // ✅ [추가] 서버/DB 조회 완료 전에는 지도 렌더링 자체를 안 함 (0,0 깜빡임 제거)
-                    if (isLoading) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(if (c.isDark) Color(0xFF0B0F14) else Color(0xFFE5E7EB))
-                        )
-                    } else {
-                        KakaoMapView(
-                            lat = centerLat,
-                            lon = centerLon,
-                            targetLatLng = targetLatLng,
-                            onMapReady = { map -> kakaoMapObj = map },
-                            onCenterChanged = { clat, clon ->
-                                centerLat = clat
-                                centerLon = clon
+                            if (clat == 0.0 && clon == 0.0) return@KakaoMapView
+                            if (isServerMoving) return@KakaoMapView
 
-                                if (clat == 0.0 && clon == 0.0) return@KakaoMapView
-                                if (isServerMoving) return@KakaoMapView  // ✅ isLoading 체크는 이제 불필요(이미 로딩 끝나야 지도 뜸)
-
-                                geocodeJob?.cancel()
-                                geocodeJob = scope.launch {
-                                    delay(400)
-                                    if (isServerMoving) return@launch
-
-                                    val (addr, post, roadAddr) = reverseGeocodeKorea(context, clat, clon)
-                                    if (isServerMoving) return@launch
-
-                                    if (addr.isNotBlank()) {
-                                        address = addr
-                                        zipcode = post
-                                        road = roadAddr
-                                    }
+                            geocodeJob?.cancel()
+                            geocodeJob = scope.launch {
+                                delay(400)
+                                if (isServerMoving) return@launch
+                                val (addr, post, roadAddr) = reverseGeocodeKorea(context, clat, clon)
+                                if (isServerMoving) return@launch
+                                if (addr.isNotBlank()) {
+                                    address = addr
+                                    zipcode = post
+                                    road = roadAddr
                                 }
-                            },
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .pointerInput(Unit) {
-                                    detectTapGestures {
-                                        dropdownExpanded = false
-                                        focusManager.clearFocus()
-                                    }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .pointerInput(Unit) {
+                                detectTapGestures {
+                                    dropdownExpanded = false
+                                    focusManager.clearFocus()
                                 }
-                        )
-                    }
+                            }
+                    )
                 }
+            }
 
 
             // ✅ 검색창 + 드롭다운
