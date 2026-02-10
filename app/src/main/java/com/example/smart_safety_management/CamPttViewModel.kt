@@ -1,147 +1,212 @@
 package com.example.smart_safety_management
 
-import android.media.*
+import android.media.MediaRecorder
+import android.os.Build
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.ByteArrayOutputStream
+import java.io.File
 
 class CamPttViewModel(
     private val api: PttApi = RetrofitClient.pttApi
 ) : ViewModel() {
 
+    companion object {
+        private const val TAG = "PTT"
+    }
+
     var isRecording by mutableStateOf(false)
         private set
 
-    private var audioRecord: AudioRecord? = null
-    private val pcmStream = ByteArrayOutputStream()
+    var isUploading by mutableStateOf(false)
+        private set
 
-    private val sampleRate = 16000
+    var statusText by mutableStateOf("대기")
+        private set
 
-    // 🎤 녹음 시작
-    fun startRecording() {
+    var lastError by mutableStateOf<String?>(null)
+        private set
 
-        val bufferSize = AudioRecord.getMinBufferSize(
-            sampleRate,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT
-        )
+    private var recorder: MediaRecorder? = null
+    private var outFile: File? = null
+    private var startMs: Long = 0L
 
-        audioRecord = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            sampleRate,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
-            bufferSize
-        )
+    /**
+     * context 필요: cacheDir에 임시 파일 생성하려고
+     */
 
-        pcmStream.reset()
+    private fun canOpenMic(): Boolean {
+        return try {
+            val sampleRate = 44100
+            val channel = android.media.AudioFormat.CHANNEL_IN_MONO
+            val format = android.media.AudioFormat.ENCODING_PCM_16BIT
+            val minBuf = android.media.AudioRecord.getMinBufferSize(sampleRate, channel, format)
+            if (minBuf <= 0) return false
 
-        isRecording = true
-        audioRecord?.startRecording()
-
-        Thread {
-            val buffer = ByteArray(bufferSize)
-
-            while (isRecording) {
-                val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
-                if (read > 0) {
-                    pcmStream.write(buffer, 0, read)
-                }
-            }
-        }.start()
+            val ar = android.media.AudioRecord(
+                android.media.MediaRecorder.AudioSource.MIC,
+                sampleRate,
+                channel,
+                format,
+                minBuf
+            )
+            ar.startRecording()
+            val ok = ar.recordingState == android.media.AudioRecord.RECORDSTATE_RECORDING
+            ar.stop()
+            ar.release()
+            ok
+        } catch (_: Exception) {
+            false
+        }
     }
 
-    // 🛑 녹음 종료 + 업로드
+    fun startRecording(context: android.content.Context) {
+        if (isRecording || isUploading) return
+
+        if (!canOpenMic()) {
+            fail("마이크 입력을 열 수 없어요(시스템 마이크 차단/점유 가능)")
+            return
+        }
+
+        // 혹시 남아있는 recorder가 있으면 정리
+        safeRelease()
+
+        lastError = null
+        statusText = "녹음 시작 중..."
+
+        val file = File(context.cacheDir, "ptt_${System.currentTimeMillis()}.m4a")
+        outFile = file
+
+        var r: MediaRecorder? = null
+        try {
+            r = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(context)
+            } else {
+                MediaRecorder()
+            }
+
+            // ✅ 최소 설정 (Pixel에서 가장 잘 됨)
+            r.setAudioSource(MediaRecorder.AudioSource.MIC)
+            r.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            r.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+
+            // ❌ 아래는 일단 전부 빼고 테스트
+            // r.setAudioSamplingRate(...)
+            // r.setAudioChannels(...)
+            // r.setAudioEncodingBitRate(...)
+
+            r.setOutputFile(file.absolutePath)
+            r.prepare()
+            r.start()
+
+            recorder = r
+            isRecording = true
+            startMs = System.currentTimeMillis()
+            statusText = "녹음 중... (손을 떼면 전송)"
+
+        } catch (e: Exception) {
+            val msg = "녹음 시작 실패: ${e.javaClass.simpleName}: ${e.message}"
+            lastError = msg
+            statusText = msg
+            Log.e(TAG, msg, e)
+
+            try { r?.reset() } catch (_: Exception) {}
+            try { r?.release() } catch (_: Exception) {}
+            recorder = null
+            outFile = null
+            isRecording = false
+        }
+    }
+
+
     fun stopAndUpload(managerId: String, workerId: String) {
+        if (!isRecording) return
 
         isRecording = false
+        statusText = "녹음 종료 중..."
 
-        audioRecord?.stop()
-        audioRecord?.release()
-        audioRecord = null
+        val durationMs = (System.currentTimeMillis() - startMs).coerceAtLeast(0L)
 
-        val pcmData = pcmStream.toByteArray()
-        val wavData = pcmToWav(pcmData)
+        try {
+            recorder?.apply {
+                try { stop() } catch (e: Exception) {
+                    // stop()은 짧게 녹음하면 예외가 날 수 있음
+                    Log.w(TAG, "stop() failed", e)
+                }
+                try { release() } catch (_: Exception) {}
+            }
+        } finally {
+            recorder = null
+        }
 
-        uploadVoice(managerId, workerId, wavData)
-    }
+        val file = outFile
+        outFile = null
 
-    private fun uploadVoice(
-        managerId: String,
-        workerId: String,
-        wavData: ByteArray
-    ) {
-        viewModelScope.launch {
+        if (file == null || !file.exists() || file.length() <= 0) {
+            fail("녹음 파일이 없어요(너무 짧게 눌렀거나 녹음 실패)")
+            return
+        }
 
+        statusText = "전송 중..."
+        isUploading = true
+
+        viewModelScope.launch(Dispatchers.IO) {
             try {
+                val bytes = file.readBytes()
+                Log.d(TAG, "file bytes=${bytes.size}, durationMs=$durationMs")
 
-                val audioBody = wavData.toRequestBody("audio/wav".toMediaType())
-
+                val body = bytes.toRequestBody("audio/mp4".toMediaType())
                 val audioPart = MultipartBody.Part.createFormData(
-                    "audio",
-                    "voice.wav",
-                    audioBody
+                    name = "audio",
+                    filename = file.name,
+                    body = body
                 )
 
-                val response = api.uploadVoice(
+                val res = api.uploadVoice(
                     managerId = managerId.toRequestBody("text/plain".toMediaType()),
                     workerId = workerId.toRequestBody("text/plain".toMediaType()),
-                    durationMs = "0".toRequestBody("text/plain".toMediaType()),
+                    durationMs = durationMs.toString().toRequestBody("text/plain".toMediaType()),
                     audio = audioPart
                 )
 
-                println("🔥 업로드 성공: ${response.voiceId}")
+                Log.d(TAG, "Upload success voiceId=${res.voiceId}")
+                statusText = "전송 완료"
+                lastError = null
 
             } catch (e: Exception) {
-                e.printStackTrace()
-                println("🔥 업로드 실패")
+                fail("전송 실패: ${e.message}")
+                Log.e(TAG, "upload failed", e)
+            } finally {
+                isUploading = false
+                // 임시 파일 삭제
+                try { file.delete() } catch (_: Exception) {}
             }
         }
     }
 
-    // PCM → WAV 변환
-    private fun pcmToWav(pcmData: ByteArray): ByteArray {
+    private fun fail(msg: String) {
+        lastError = msg
+        statusText = msg
+        Log.e(TAG, msg)
+    }
 
-        val header = ByteArray(44)
+    private fun safeRelease() {
+        try { recorder?.release() } catch (_: Exception) {}
+        recorder = null
+        outFile = null
+        isRecording = false
+    }
 
-        val totalDataLen = pcmData.size + 36
-        val byteRate = sampleRate * 2
-
-        fun writeInt(offset: Int, value: Int) {
-            header[offset] = (value and 0xff).toByte()
-            header[offset + 1] = ((value shr 8) and 0xff).toByte()
-            header[offset + 2] = ((value shr 16) and 0xff).toByte()
-            header[offset + 3] = ((value shr 24) and 0xff).toByte()
-        }
-
-        fun writeShort(offset: Int, value: Int) {
-            header[offset] = (value and 0xff).toByte()
-            header[offset + 1] = ((value shr 8) and 0xff).toByte()
-        }
-
-        "RIFF".toByteArray().copyInto(header, 0)
-        writeInt(4, totalDataLen)
-        "WAVE".toByteArray().copyInto(header, 8)
-        "fmt ".toByteArray().copyInto(header, 12)
-
-        writeInt(16, 16)
-        writeShort(20, 1)
-        writeShort(22, 1)
-        writeInt(24, sampleRate)
-        writeInt(28, byteRate)
-        writeShort(32, 2)
-        writeShort(34, 16)
-
-        "data".toByteArray().copyInto(header, 36)
-        writeInt(40, pcmData.size)
-
-        return header + pcmData
+    override fun onCleared() {
+        super.onCleared()
+        safeRelease()
     }
 }

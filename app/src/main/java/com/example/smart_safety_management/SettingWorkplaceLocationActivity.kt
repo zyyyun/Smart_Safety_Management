@@ -162,6 +162,12 @@ fun SettingWorkplaceLocationScreen(
     var centerLon by remember { mutableStateOf(0.0) }
     var targetLatLng by remember { mutableStateOf<com.kakao.vectormap.LatLng?>(null) }
 
+    var dropdownExpanded by remember { mutableStateOf(false) }
+    var isRegistered by remember { mutableStateOf(false) }
+
+    // ✅ 서버에서 가져온 초기 좌표
+    var serverLatLng by remember { mutableStateOf<com.kakao.vectormap.LatLng?>(null) }
+
     // ✅ 위치 권한 요청 Launcher
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -223,9 +229,6 @@ fun SettingWorkplaceLocationScreen(
     val suggestions by placeVm.items.collectAsState()
     val loading by placeVm.loading.collectAsState()
 
-    var dropdownExpanded by remember { mutableStateOf(false) }
-    var isRegistered by remember { mutableStateOf(false) }
-
     // ✅ 하단 시트 높이(측정값)
     var sheetHeightDp by remember { mutableStateOf(252.dp) }
 
@@ -244,8 +247,6 @@ fun SettingWorkplaceLocationScreen(
     // ✅ 카카오맵 객체
     var kakaoMapObj by remember { mutableStateOf<com.kakao.vectormap.KakaoMap?>(null) }
 
-    // ✅ 서버에서 가져온 초기 좌표
-    var serverLatLng by remember { mutableStateOf<com.kakao.vectormap.LatLng?>(null) }
 
     var didServerMove by remember { mutableStateOf(false) }
 
@@ -307,6 +308,10 @@ fun SettingWorkplaceLocationScreen(
                                 
                                 // ✅ [추가] 서버 이동 시작 플래그 설정
                                 isServerMoving = true
+                                serverLatLng = com.kakao.vectormap.LatLng.from(sLat, sLon)
+                                targetLatLng = serverLatLng          // ✅ 추가: 즉시 카메라 이동 타겟 세팅
+                                isServerMoving = true
+
                             }
                         } else if (!savedAddr.isNullOrBlank()) {
                             val latLon = geocodeToLatLon(context, savedAddr)
@@ -327,6 +332,7 @@ fun SettingWorkplaceLocationScreen(
 
                                     // ✅ 서버 주소 -> 좌표로 카메라 이동 준비
                                     serverLatLng = com.kakao.vectormap.LatLng.from(latLon.first, latLon.second)
+                                    targetLatLng = serverLatLng
                                     isServerMoving = true
                                     
                                 }
@@ -424,54 +430,68 @@ fun SettingWorkplaceLocationScreen(
                             })
                         }
                 )
-            } else {
-                KakaoMapView(
-                    lat = centerLat,
-                    lon = centerLon,
-                    targetLatLng = targetLatLng,
-                    onMapReady = { map -> kakaoMapObj = map },
-                    onCenterChanged = { clat, clon ->
-                        centerLat = clat
-                        centerLon = clon
-
-                        // ✅ [수정] 초기값(0.0)일 때는 주소 업데이트 원천 차단
-                        if (clat == 0.0 && clon == 0.0) return@KakaoMapView
-
-                        // ✅ [수정] 서버에 의해 이동 중일 때는 주소 업데이트(역지오코딩) 스킵
-                        if (isLoading || isServerMoving) return@KakaoMapView
-
-                        geocodeJob?.cancel()
-                        geocodeJob = scope.launch {
-                            delay(400)
-                            
-                            // ✅ [추가] 딜레이 후에도 서버 이동 중이면 작업 중단 (주소 덮어쓰기 방지)
-                            if (isServerMoving) return@launch
-
-                            val (addr, post, roadAddr) =
-                                reverseGeocodeKorea(context, clat, clon)
-
-                            // ✅ [추가] 역지오코딩 완료 후에도 서버 이동 중인지 다시 체크 (비동기 결과 무시)
-                            if (isServerMoving) return@launch
-
-                            if (addr.isNotBlank()) {
-                                address = addr
-                                zipcode = post
-                                road = roadAddr
+            } else // ✅ 지도
+                if (isPreview) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(if (c.isDark) Color(0xFF0B0F14) else Color(0xFFE5E7EB))
+                            .pointerInput(Unit) {
+                                detectTapGestures(onTap = {
+                                    dropdownExpanded = false
+                                    focusManager.clearFocus()
+                                })
                             }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(Unit) {
+                    )
+                } else {
 
-                        detectTapGestures {
-                                dropdownExpanded = false
-                                focusManager.clearFocus()
-                            }
-                        }
-                )
+                    // ✅ [추가] 서버/DB 조회 완료 전에는 지도 렌더링 자체를 안 함 (0,0 깜빡임 제거)
+                    if (isLoading) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(if (c.isDark) Color(0xFF0B0F14) else Color(0xFFE5E7EB))
+                        )
+                    } else {
+                        KakaoMapView(
+                            lat = centerLat,
+                            lon = centerLon,
+                            targetLatLng = targetLatLng,
+                            onMapReady = { map -> kakaoMapObj = map },
+                            onCenterChanged = { clat, clon ->
+                                centerLat = clat
+                                centerLon = clon
 
-            }
+                                if (clat == 0.0 && clon == 0.0) return@KakaoMapView
+                                if (isServerMoving) return@KakaoMapView  // ✅ isLoading 체크는 이제 불필요(이미 로딩 끝나야 지도 뜸)
+
+                                geocodeJob?.cancel()
+                                geocodeJob = scope.launch {
+                                    delay(400)
+                                    if (isServerMoving) return@launch
+
+                                    val (addr, post, roadAddr) = reverseGeocodeKorea(context, clat, clon)
+                                    if (isServerMoving) return@launch
+
+                                    if (addr.isNotBlank()) {
+                                        address = addr
+                                        zipcode = post
+                                        road = roadAddr
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .pointerInput(Unit) {
+                                    detectTapGestures {
+                                        dropdownExpanded = false
+                                        focusManager.clearFocus()
+                                    }
+                                }
+                        )
+                    }
+                }
+
 
             // ✅ 검색창 + 드롭다운
             SearchBarOverlay(

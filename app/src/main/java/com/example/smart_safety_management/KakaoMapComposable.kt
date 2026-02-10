@@ -69,8 +69,8 @@ fun resizeBitmapWithAlpha(
 
 @Composable
 fun KakaoMapView(
-    lat: Double = 37.4563,
-    lon: Double = 126.7052,
+    lat: Double,
+    lon: Double,
     modifier: Modifier = Modifier,
     targetLatLng: LatLng? = null,
     pins: List<KakaoMapPin> = emptyList(),
@@ -134,9 +134,10 @@ fun KakaoMapView(
 
                             if (!didInit.value) {
                                 didInit.value = true
-                                val initial = LatLng.from(lat, lon)
+                                val initial = targetLatLng ?: LatLng.from(lat, lon)  // ✅ 핵심: target 우선
                                 kakaoMap.moveCamera(CameraUpdateFactory.newCenterPosition(initial))
                             }
+
 
                             onMapReady(kakaoMap)
                         }

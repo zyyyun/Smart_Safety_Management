@@ -67,10 +67,12 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 /* -------------------- data -------------------- */
 
@@ -111,7 +113,6 @@ private fun iconFor(status: WorkerStatus, isDark: Boolean): Int {
         }
     }
 }
-
 data class MapCircle(
     val centerLat: Double,
     val centerLng: Double,
@@ -119,6 +120,7 @@ data class MapCircle(
     val strokeColor: Color = Color(0xFFFF0000),
     val fillColor: Color = Color(0x33FF0000)
 )
+
 
 /* -------------------- screen -------------------- */
 
@@ -171,7 +173,6 @@ fun LocationScreen(
     // ✅ [수정] 서버 데이터로 교체하기 위해 상태 변수로 변경 (초기값 빈 리스트)
     var rows by remember { mutableStateOf<List<WorkerRow>>(emptyList()) }
     var pins by remember { mutableStateOf<List<WorkerPin>>(emptyList()) }
-    var cameraCircles by remember { mutableStateOf<List<MapCircle>>(emptyList()) }
     // ✅ 리스트 데이터 (너가 실제 데이터로 교체)
 
     fun rowArea(row: WorkerRow) = row.location.split(" ").first()
@@ -188,9 +189,8 @@ fun LocationScreen(
     val visibleIds = remember(filteredRows) { filteredRows.map { it.id }.toSet() }
 
     val filteredPins = remember(selectedArea, pins, visibleIds) {
-        // [수정] visibleIds는 이미 구역 필터링이 적용된 목록이므로, ID만 비교하면 됩니다.
-        // 기존 코드(it.area == selectedArea)는 "A구역 1열" vs "A구역" 비교 실패로 핀이 사라지는 원인이었습니다.
-        if (selectedArea == "전체") pins else pins.filter { it.id in visibleIds }
+        val byArea = if (selectedArea == "전체") pins else pins.filter { it.area == selectedArea }
+        byArea.filter { it.id in visibleIds }
     }
 
     // ✅ 선택된 작업자 -> 카메라 이동 타겟
@@ -263,36 +263,15 @@ fun LocationScreen(
                 override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
                     if (response.isSuccessful) {
                         val list = response.body()?.cctvList ?: emptyList()
-
-                        // [DEBUG] CCTV 좌표 데이터 확인 로그
-                        android.util.Log.d("LocationScreen", "Fetched CCTV Count: ${list.size}")
-                        list.forEach { 
-                            android.util.Log.d("LocationScreen", "CCTV Loc: ${it.location}, Lat: ${it.latitude}, Lon: ${it.longitude}")
-                        }
-
                         // install_area 예: "A구역 1열" -> "A구역" 추출
                         val dynamicAreas = list.mapNotNull { it.location }
                             .map { it.split(" ").first() }
                             .distinct()
                             .sorted()
                         areas = listOf("전체") + dynamicAreas
-
-                        // ✅ 카메라 위치 기반 50m 지오펜싱 영역 생성
-                        cameraCircles = list.mapNotNull { cctv ->
-                            if (cctv.latitude != null && cctv.longitude != null) {
-                                MapCircle(
-                                    centerLat = cctv.latitude,
-                                    centerLng = cctv.longitude
-                                )
-                            } else null
-                        }
-                    } else {
-                        android.util.Log.e("LocationScreen", "CCTV Request Failed: ${response.code()}")
                     }
                 }
-                override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {
-                    android.util.Log.e("LocationScreen", "CCTV Request Error", t)
-                }
+                override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {}
             })
         }
     }
@@ -355,7 +334,7 @@ fun LocationScreen(
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-                    delay(5000) // 5초마다 갱신
+                    delay(3000) // 3초마다 갱신
                 }
             }
         }
@@ -373,7 +352,6 @@ fun LocationScreen(
             targetLatLng = targetLatLng,
             pins = kakaoPins,
             selectedId = selectedWorkerId,
-            circles = cameraCircles,
             onPinClick = { clickedId ->
                 selectedWorkerId = if (selectedWorkerId == clickedId) null else clickedId
             }
@@ -787,8 +765,9 @@ private fun CamDialog(
     isDark: Boolean
 ) {
     val c = LocalSafeColors.current
+    val context = LocalContext.current
 
-    val viewModel = remember { CamPttViewModel() }
+    val viewModel: CamPttViewModel = viewModel(key = "ptt_$workerId")
     val managerId = UserSession.userId ?: ""
 
     val bg = if (isDark) Color(0xFF1E2124) else Color.White
@@ -856,58 +835,57 @@ private fun CamDialog(
 
                 Spacer(Modifier.height(14.dp))
 
-                Button(
-                    onClick = {}, // 사용 안 함
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor =
-                            if (viewModel.isRecording)
-                                Color.Red
-                            else
-                                Color(0xFFFF7A00)
-                    ),
-                    shape = RoundedCornerShape(10.dp),
+                Box(
                     modifier = Modifier
                         .size(width = 295.dp, height = 52.dp)
                         .pointerInput(Unit) {
-
                             detectTapGestures(
-
                                 onPress = {
-
-                                    viewModel.startRecording()
-
-                                    tryAwaitRelease() // 👉 손 뗄 때까지 대기
-
-                                    viewModel.stopAndUpload(
-                                        managerId = managerId,
-                                        workerId = workerId
-                                    )
+                                    viewModel.startRecording(context)
+                                    tryAwaitRelease()
+                                    if (viewModel.isRecording) {
+                                        viewModel.stopAndUpload(managerId, workerId)
+                                    }
                                 }
                             )
                         }
-                )
-                {
-                    Icon(
-                        painter = painterResource(id = R.drawable.mic),
-                        contentDescription = null,
-                        tint = actionColor,
-                        modifier = Modifier.size(24.dp)
-                    )
 
-                    Spacer(Modifier.width(4.dp))
+                ) {
+                    Surface(
+                        color = if (viewModel.isRecording) Color.Red else Color(0xFFFF7A00),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.mic),
+                                contentDescription = null,
+                                tint = actionColor,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text(
+                                text = if (viewModel.isRecording) "녹음 중..." else "눌러서 말하기",
+                                color = actionColor,
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                fontFamily = Pretendard
+                            )
 
-                    Text(
-                        text =
-                            if(viewModel.isRecording)
-                                "녹음 중..."
-                            else
-                                "눌러서 말하기",
-                        color = actionColor,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = Pretendard
-                    )
+                        }
+                    }
                 }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = viewModel.statusText,
+                    color = c.sub,
+                    fontSize = 13.sp,
+                    fontFamily = Pretendard
+                )
             }
         }
     }
