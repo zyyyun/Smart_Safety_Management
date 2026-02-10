@@ -258,6 +258,7 @@ fun LocationScreen(
 
         if (userId.isNullOrBlank()) {
             isLoadingWorkplace = false
+            
             return@LaunchedEffect
         }
 
