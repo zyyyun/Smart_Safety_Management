@@ -1,15 +1,18 @@
 package com.example.smart_safety_management
 
-import android.R
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.BitmapFactory
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.example.smart_safety_management.screens.location.MapCircle
 import com.kakao.vectormap.*
 import com.kakao.vectormap.camera.CameraUpdateFactory
@@ -30,6 +33,8 @@ fun KakaoMapView(
     onPinClick: (String) -> Unit
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var mapViewState by remember { mutableStateOf<MapView?>(null) }
     var kakaoMap by remember { mutableStateOf<KakaoMap?>(null) }
     var labelLayer by remember { mutableStateOf<LabelLayer?>(null) }
     var shapeLayer by remember { mutableStateOf<ShapeLayer?>(null) }
@@ -39,6 +44,7 @@ fun KakaoMapView(
         modifier = modifier,
         factory = { ctx ->
             MapView(ctx).apply {
+                mapViewState = this
                 start(object : MapLifeCycleCallback() {
                     override fun onMapDestroy() {}
                     override fun onMapError(e: Exception?) {}
@@ -57,24 +63,51 @@ fun KakaoMapView(
         }
     )
 
+    // ✅ Lifecycle 처리 (지도가 백그라운드에서 멈추거나 메모리 누수 방지)
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> mapViewState?.resume()
+                Lifecycle.Event.ON_PAUSE -> mapViewState?.pause()
+                Lifecycle.Event.ON_DESTROY -> mapViewState?.finish()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     // 1. 핀(Label) 업데이트 로직
-    LaunchedEffect(kakaoMap, pins) {
+    LaunchedEffect(kakaoMap, pins, selectedId) {
         val map = kakaoMap ?: return@LaunchedEffect
         val layer = labelLayer ?: return@LaunchedEffect
         
         layer.removeAll()
         
         pins.forEach { pin ->
-            val styles = map.labelManager?.addLabelStyles(
-                LabelStyles.from(
-                    LabelStyle.from(bitmapFromVector(context, pin.iconRes, pin.alpha))
-                )
-            )
+            // ✅ 선택된 핀은 1.3배 확대
+            val isSelected = pin.id == selectedId
+            val scale = if (isSelected) 1.3f else 1.0f
+            
+            // 핀 크기 설정 (기본 72x96)
+            val width = (72 * scale).toInt()
+            val height = (96 * scale).toInt()
+
+            // ✅ 비트맵 리사이징 및 알파값 적용 (KakaoMapComposable의 로직 적용)
+            val bitmap = resizeBitmapWithAlpha(context, pin.iconRes, width, height, pin.alpha / 255f)
+            
+            // ✅ 앵커 포인트 설정 (0.5f, 1.0f) -> 핀의 뾰족한 아래쪽이 좌표에 위치함
+            val style = LabelStyle.from(bitmap).setAnchorPoint(0.5f, 1.0f)
+
+            val styles = map.labelManager?.addLabelStyles(LabelStyles.from(style))
             
             layer.addLabel(
                 LabelOptions.from(LatLng.from(pin.lat, pin.lon))
                     .setStyles(styles)
                     .setTag(pin.id)
+                    .setClickable(true)
             )
         }
     }
@@ -132,16 +165,7 @@ fun KakaoMapView(
     }
 }
 
-// 벡터 드로어블 -> 비트맵 변환 함수
-fun bitmapFromVector(context: Context, vectorResId: Int, alpha: Int = 255): Bitmap {
-    val drawable = ContextCompat.getDrawable(context, vectorResId) ?: return Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
-    drawable.alpha = alpha
-    val bitmap = Bitmap.createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(bitmap)
-    drawable.setBounds(0, 0, canvas.width, canvas.height)
-    drawable.draw(canvas)
-    return bitmap
-}
+// ✅ 비트맵 리사이징 및 알파 적용 함수 (KakaoMapComposable.kt에서 가져옴)
 
 // 원형 좌표 생성 함수
 fun createCirclePoints(centerLat: Double, centerLng: Double, radiusMeters: Double): List<LatLng> {
