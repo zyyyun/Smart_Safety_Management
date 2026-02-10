@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('./db');
+const { sendStatusAlarm } = require('./send_status_alarm'); // ✅ 알림 함수 가져오기
 
 router.post('/update_watch_status', async (req, res) => {
     const { user_id, body_temp } = req.body;
@@ -58,6 +59,9 @@ router.post('/update_watch_status', async (req, res) => {
                 [newStatus, logId]
             );
         }
+
+        // ✅ 5. 상태가 정상이 아니면 관리자에게 알림 전송 (current_zone은 내부에서 조회됨)
+        await sendStatusAlarm(client, user_id, newStatus, null);
 
         await client.query('COMMIT');
         res.status(200).json({ message: "체온 및 상태가 업데이트되었습니다.", status: newStatus });

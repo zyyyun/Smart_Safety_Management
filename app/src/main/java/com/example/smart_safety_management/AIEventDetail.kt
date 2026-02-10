@@ -433,8 +433,8 @@ fun AIEventDetailScreen(
                                     ),
                                     selectedId = "event",
                                     centerOnSelectedPin = true
-                                )
 
+                                )
                             }
 
                         }

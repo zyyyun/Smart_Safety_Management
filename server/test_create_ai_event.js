@@ -3,12 +3,16 @@
 
 const http = require('http');
 
+// 명령줄 인수로 user_id 받기 (예: node test_create_ai_event.js user1)
+const targetUserId = process.argv[2] || null;
+
 // 👇 테스트할 데이터 (DB에 존재하는 실제 camera_id로 변경 필요)
 const postData = JSON.stringify({
     camera_id: 1,         // ⚠️ 실제 존재하는 카메라 ID 입력
     accuracy: 88.5,
     risk_level: 'danger', // danger, warning, caution
-    event_name: '쓰러짐'    // fire, fall, intrusion 등
+    event_name: '쓰러짐',   // fire, fall, intrusion 등
+    user_id: targetUserId // ✅ 추가: 상태를 변경할 작업자 ID
 });
 
 const options = {

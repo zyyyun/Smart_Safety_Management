@@ -113,14 +113,6 @@ private fun iconFor(status: WorkerStatus, isDark: Boolean): Int {
         }
     }
 }
-data class MapCircle(
-    val centerLat: Double,
-    val centerLng: Double,
-    val radius: Int = 50, // 50m 반경
-    val strokeColor: Color = Color(0xFFFF0000),
-    val fillColor: Color = Color(0x33FF0000)
-)
-
 
 /* -------------------- screen -------------------- */
 
@@ -155,12 +147,12 @@ fun LocationScreen(
 
     // ✅ 권한 관련
     val context = LocalContext.current
+    var pendingCamRow by remember { mutableStateOf<WorkerRow?>(null) }
 
     // ✅ 현장(등록된 workplace) 좌표로 초기 카메라 시작하기 위한 상태
     var isLoadingWorkplace by remember { mutableStateOf(true) }
     var workplaceLatLng by remember { mutableStateOf<LatLng?>(null) }
 
-    var pendingCamRow by remember { mutableStateOf<WorkerRow?>(null) }
 
     val audioPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -194,8 +186,7 @@ fun LocationScreen(
     val visibleIds = remember(filteredRows) { filteredRows.map { it.id }.toSet() }
 
     val filteredPins = remember(selectedArea, pins, visibleIds) {
-        val byArea = if (selectedArea == "전체") pins else pins.filter { it.area == selectedArea }
-        byArea.filter { it.id in visibleIds }
+        pins.filter { it.id in visibleIds }
     }
 
     // ✅ 선택된 작업자 -> 카메라 이동 타겟
@@ -260,6 +251,7 @@ fun LocationScreen(
         if (sheetHeightPx < targetPx) sheetHeightPx = targetPx
     }
 
+
     // ✅ [추가] 등록된 현장 위치(workplace)를 서버에서 가져와 지도 초기 중심으로 사용
     LaunchedEffect(Unit) {
         val userId = UserSession.userId
@@ -304,6 +296,8 @@ fun LocationScreen(
                             .distinct()
                             .sorted()
                         areas = listOf("전체") + dynamicAreas
+                    } else {
+                        android.util.Log.e("LocationScreen", "CCTV Request Failed: ${response.code()}")
                     }
                 }
                 override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {}
@@ -369,7 +363,7 @@ fun LocationScreen(
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-                    delay(3000) // 3초마다 갱신
+                    delay(5000) // 5초마다 갱신
                 }
             }
         }
@@ -379,7 +373,6 @@ fun LocationScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
 
-        // ✅ 카카오맵 + 핀 + 핀 클릭
         // ✅ 카카오맵 + 핀 + 핀 클릭
         if (isLoadingWorkplace) {
             // 로딩 중에는 지도 대신 빈 배경(깜빡임 방지)
@@ -406,7 +399,6 @@ fun LocationScreen(
                 }
             )
         }
-
 
         // ✅ 선택된 상태에서 지도 빈 곳 탭하면 선택 해제
         if (selectedWorkerId != null) {
@@ -817,6 +809,7 @@ private fun CamDialog(
 ) {
     val c = LocalSafeColors.current
     val context = LocalContext.current
+
 
     val viewModel: CamPttViewModel = viewModel(key = "ptt_$workerId")
     val managerId = UserSession.userId ?: ""

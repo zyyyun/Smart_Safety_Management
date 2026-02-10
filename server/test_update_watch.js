@@ -15,7 +15,7 @@ const options = {
 // 실행 예: node test_update_watch.js user123 38.2
 // 기본값: user_id='test_user', body_temp=38.5
 const userId = process.argv[2] || 'asdf123';
-const bodyTemp = parseFloat(process.argv[3]) || 38.5;
+const bodyTemp = parseFloat(process.argv[3]) || 39;
 
 const postData = JSON.stringify({
     user_id: userId,

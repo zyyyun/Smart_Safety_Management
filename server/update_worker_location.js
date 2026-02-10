@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('./db');
+const { sendStatusAlarm } = require('./send_status_alarm'); // ✅ 알림 함수 가져오기
 
 // 하버사인 공식을 이용한 거리 계산 (단위: 미터)
 function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
@@ -79,6 +80,9 @@ router.post('/update_worker_location', async (req, res) => {
                 [user_id, latitude, longitude, currentZone, cameraId, status || '정상']
             );
         }
+
+        // ✅ 5. 상태가 정상이 아니면 관리자에게 알림 전송
+        await sendStatusAlarm(pool, user_id, status, currentZone);
 
         res.status(200).json({ message: "위치 정보가 갱신되었습니다." });
 

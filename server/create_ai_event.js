@@ -4,6 +4,7 @@ const pool = require('./db');
 const ffmpeg = require('fluent-ffmpeg');
 const path = require('path');
 const fs = require('fs');
+const { sendStatusAlarm } = require('./send_status_alarm'); // ✅ 알림 함수 가져오기
 
 // 업로드 디렉토리 설정
 const uploadDir = path.join(__dirname, 'public', 'uploads');
@@ -12,7 +13,7 @@ if (!fs.existsSync(uploadDir)) {
 }
 
 router.post('/create_ai_event', async (req, res) => {
-    const { camera_id, accuracy, risk_level, event_name } = req.body;
+    const { camera_id, accuracy, risk_level, event_name, user_id } = req.body;
 
     if (!camera_id || !event_name) {
         return res.status(400).json({ message: "camera_id와 event_name은 필수입니다." });
@@ -119,6 +120,31 @@ router.post('/create_ai_event', async (req, res) => {
                 });
 
                 await Promise.all(notificationPromises);
+            }
+        }
+
+        // ✅ [추가] 테스트용: user_id가 전달된 경우 해당 작업자의 상태를 강제로 변경
+        if (user_id) {
+            // 이벤트 이름에 따라 상태 결정 (쓰러짐 -> 추락, 그 외 -> 위험)
+            let newStatus = '위험';
+            if (event_name.includes('쓰러짐') || event_name.toLowerCase().includes('fall')) {
+                newStatus = '추락';
+            }
+
+            // 해당 유저의 가장 최신 위치 로그 조회
+            const logRes = await client.query(
+                "SELECT log_id FROM location_logs WHERE user_id = $1 ORDER BY recorded_at DESC LIMIT 1",
+                [user_id]
+            );
+
+            if (logRes.rows.length > 0) {
+                await client.query(
+                    "UPDATE location_logs SET status = $1 WHERE log_id = $2",
+                    [newStatus, logRes.rows[0].log_id]
+                );
+
+                // ✅ 상태 변경 알림 전송 (current_zone은 내부에서 조회됨)
+                await sendStatusAlarm(client, user_id, newStatus, null);
             }
         }
 
