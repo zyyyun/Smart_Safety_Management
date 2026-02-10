@@ -149,7 +149,9 @@ data class CCTVItemResponse(
     @SerializedName("environment_type") val environmentType: String?,
     @SerializedName("installation_address") val installationAddress: String?,
     @SerializedName("live_url") val liveUrl: String?,
-    @SerializedName("live_url_detail") val liveUrlDetail: String?
+    @SerializedName("live_url_detail") val liveUrlDetail: String?,
+    @SerializedName("latitude") val latitude: Double?,
+    @SerializedName("longitude") val longitude: Double?
 )
 
 data class GetCCTVListResponse(
@@ -460,6 +462,16 @@ data class RegisterLocationResponse(
     val message: String
 )
 
+data class UpdateWorkerLocationRequest(
+    @SerializedName("user_id") val userId: String,
+    val latitude: Double,
+    val longitude: Double
+)
+
+data class UpdateWorkerLocationResponse(
+    val message: String
+)
+
 data class WorkerLocationDTO(
     @SerializedName("user_id") val userId: String,
     val name: String,
@@ -670,6 +682,9 @@ interface SignUpService {
 
     @POST("/register_workplace_location")
     fun registerWorkplaceLocation(@Body request: RegisterLocationRequest): Call<RegisterLocationResponse>
+
+    @POST("/update_worker_location")
+    fun updateWorkerLocation(@Body request: UpdateWorkerLocationRequest): Call<UpdateWorkerLocationResponse>
 
     @GET("/get_location")
     fun getLocation(@Query("user_id") userId: String): Call<GetLocationResponse>

@@ -35,6 +35,8 @@ router.get('/get_cctv_list', async (req, res) => {
                 c.installation_address,
                 c.live_url,
                 c.live_url_detail,
+                c.latitude,
+                c.longitude,
                 (
                     SELECT COALESCE(json_agg(et.event_name), '[]')
                     FROM camera_events ce

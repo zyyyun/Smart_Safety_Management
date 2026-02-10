@@ -112,6 +112,14 @@ private fun iconFor(status: WorkerStatus, isDark: Boolean): Int {
     }
 }
 
+data class MapCircle(
+    val centerLat: Double,
+    val centerLng: Double,
+    val radius: Int = 50, // 50m 반경
+    val strokeColor: Color = Color(0xFFFF0000),
+    val fillColor: Color = Color(0x33FF0000)
+)
+
 /* -------------------- screen -------------------- */
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -163,6 +171,7 @@ fun LocationScreen(
     // ✅ [수정] 서버 데이터로 교체하기 위해 상태 변수로 변경 (초기값 빈 리스트)
     var rows by remember { mutableStateOf<List<WorkerRow>>(emptyList()) }
     var pins by remember { mutableStateOf<List<WorkerPin>>(emptyList()) }
+    var cameraCircles by remember { mutableStateOf<List<MapCircle>>(emptyList()) }
     // ✅ 리스트 데이터 (너가 실제 데이터로 교체)
 
     fun rowArea(row: WorkerRow) = row.location.split(" ").first()
@@ -179,8 +188,9 @@ fun LocationScreen(
     val visibleIds = remember(filteredRows) { filteredRows.map { it.id }.toSet() }
 
     val filteredPins = remember(selectedArea, pins, visibleIds) {
-        val byArea = if (selectedArea == "전체") pins else pins.filter { it.area == selectedArea }
-        byArea.filter { it.id in visibleIds }
+        // [수정] visibleIds는 이미 구역 필터링이 적용된 목록이므로, ID만 비교하면 됩니다.
+        // 기존 코드(it.area == selectedArea)는 "A구역 1열" vs "A구역" 비교 실패로 핀이 사라지는 원인이었습니다.
+        if (selectedArea == "전체") pins else pins.filter { it.id in visibleIds }
     }
 
     // ✅ 선택된 작업자 -> 카메라 이동 타겟
@@ -253,15 +263,36 @@ fun LocationScreen(
                 override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
                     if (response.isSuccessful) {
                         val list = response.body()?.cctvList ?: emptyList()
+
+                        // [DEBUG] CCTV 좌표 데이터 확인 로그
+                        android.util.Log.d("LocationScreen", "Fetched CCTV Count: ${list.size}")
+                        list.forEach { 
+                            android.util.Log.d("LocationScreen", "CCTV Loc: ${it.location}, Lat: ${it.latitude}, Lon: ${it.longitude}")
+                        }
+
                         // install_area 예: "A구역 1열" -> "A구역" 추출
                         val dynamicAreas = list.mapNotNull { it.location }
                             .map { it.split(" ").first() }
                             .distinct()
                             .sorted()
                         areas = listOf("전체") + dynamicAreas
+
+                        // ✅ 카메라 위치 기반 50m 지오펜싱 영역 생성
+                        cameraCircles = list.mapNotNull { cctv ->
+                            if (cctv.latitude != null && cctv.longitude != null) {
+                                MapCircle(
+                                    centerLat = cctv.latitude,
+                                    centerLng = cctv.longitude
+                                )
+                            } else null
+                        }
+                    } else {
+                        android.util.Log.e("LocationScreen", "CCTV Request Failed: ${response.code()}")
                     }
                 }
-                override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {}
+                override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {
+                    android.util.Log.e("LocationScreen", "CCTV Request Error", t)
+                }
             })
         }
     }
@@ -309,7 +340,7 @@ fun LocationScreen(
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-                    delay(3000) // 3초마다 갱신
+                    delay(5000) // 5초마다 갱신
                 }
             }
         }
@@ -327,6 +358,7 @@ fun LocationScreen(
             targetLatLng = targetLatLng,
             pins = kakaoPins,
             selectedId = selectedWorkerId,
+            circles = cameraCircles,
             onPinClick = { clickedId ->
                 selectedWorkerId = if (selectedWorkerId == clickedId) null else clickedId
             }

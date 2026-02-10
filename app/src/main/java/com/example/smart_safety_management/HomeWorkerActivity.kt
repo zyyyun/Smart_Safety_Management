@@ -35,6 +35,15 @@ import retrofit2.Callback
 import retrofit2.Response
 import com.google.firebase.messaging.FirebaseMessaging
 import android.util.Log
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
+import android.location.LocationManager
+import android.content.Context
 
 
 class HomeWorkerActivity : AppCompatActivity() {
@@ -55,12 +64,25 @@ class HomeWorkerActivity : AppCompatActivity() {
         }
     }
 
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val isLocGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                        permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (isLocGranted) {
+            startLocationService()
+        } else {
+            Toast.makeText(this, "원활한 기능 사용을 위해 위치 권한이 필요합니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         subscribeWorkerTopic()
         setContentView(R.layout.main_home_worker)
 
         initUI()
+        checkLocationPermission()
     }
 
     private fun initUI() {
@@ -599,6 +621,36 @@ class HomeWorkerActivity : AppCompatActivity() {
         return GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(color)
+        }
+    }
+
+    private fun checkLocationPermission() {
+        val permissions = mutableListOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+        // Android 13(Tiramisu) 이상은 알림 권한 필요
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        val notGranted = permissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (notGranted.isNotEmpty()) {
+            locationPermissionLauncher.launch(permissions.toTypedArray())
+        } else {
+            startLocationService()
+        }
+    }
+
+    private fun startLocationService() {
+        val intent = Intent(this, LocationService::class.java)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
         }
     }
 }
