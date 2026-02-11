@@ -11,5 +11,6 @@ data class LiveCardItem(
     @DrawableRes val overviewThumb: Int,
     @DrawableRes val siteThumb: Int,
     val captureThumbs: List<Int>,
-    val isLive: Boolean
+    val isLive: Boolean,
+    val imageUrl: String? = null
 )

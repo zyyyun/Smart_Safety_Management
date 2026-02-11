@@ -39,6 +39,8 @@ import com.example.smart_safety_management.ui.theme.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 
 // ✅ 데이터 모델
 data class CCTVCameraData(
@@ -46,7 +48,8 @@ data class CCTVCameraData(
     val name: String,
     val location: String,
     val events: List<String>,
-    val image: Int
+    val image: Int,
+    val imageUrl: String? = null
 )
 
 // ✅ 카테고리 Enum
@@ -105,19 +108,16 @@ fun CCTVManagementScreen(
                         if (response.isSuccessful) {
                             val items = response.body()?.cctvList ?: emptyList()
                             cctvList = items.map { item ->
-                                // DB의 이미지 리소스 이름(String)을 안드로이드 리소스 ID(Int)로 변환
-                                val imageResId = if (!item.imageResName.isNullOrEmpty()) {
-                                    context.resources.getIdentifier(item.imageResName, "drawable", context.packageName)
-                                } else {
-                                    0 // 기본 이미지 또는 에러 처리
-                                }
+                                val baseUrl = "http://10.0.2.2:3000"
+                                val fullUrl = if (!item.imageUrl.isNullOrEmpty()) baseUrl + item.imageUrl else null
                                 
                                 CCTVCameraData(
                                     id = item.id.toString(),
                                     name = item.name,
                                     location = item.location,
                                     events = item.events,
-                                    image = if (imageResId != 0) imageResId else R.drawable.cctvcam // 기본값 설정
+                                    image = R.drawable.cctvcam, // 기본 플레이스홀더
+                                    imageUrl = fullUrl
                                 )
                             }
                         }
@@ -341,7 +341,17 @@ fun CamFrame(
                 .clickable { if (isEditMode) onSelect(!isSelected) else onCameraClick() }
         ) {
             Row(modifier = Modifier.fillMaxWidth().graphicsLayer(clip = false) ) {
-                Image(painter = painterResource(id = camera.image), contentDescription = null, modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(camera.imageUrl)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = null,
+                    placeholder = painterResource(id = camera.image),
+                    error = painterResource(id = camera.image),
+                    modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp)),
+                    contentScale = ContentScale.Crop
+                )
                 Column(
                     modifier = Modifier
                         .weight(1f)

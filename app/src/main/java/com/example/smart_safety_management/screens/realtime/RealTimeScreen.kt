@@ -54,6 +54,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.navigation.NavController
 
+import coil.compose.AsyncImage
 
 
 /* -------------------- Popup Position Provider -------------------- */
@@ -693,10 +694,12 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
                     .fillMaxWidth()
                     .height(120.dp)
             ) {
-                Image(
-                    painter = painterResource(id = item.thumbRes),
+                AsyncImage(
+                    model = item.imageUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
+                    placeholder = painterResource(id = item.thumbRes),
+                    error = painterResource(id = item.thumbRes),
                     modifier = Modifier.fillMaxSize()
                 )
 
@@ -762,10 +765,12 @@ fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
                     .fillMaxWidth()
                     .aspectRatio(16f / 9f)
             ) {
-                Image(
-                    painter = painterResource(id = item.thumbRes),
+                AsyncImage(
+                    model = item.imageUrl,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
+                    placeholder = painterResource(id = item.thumbRes),
+                    error = painterResource(id = item.thumbRes),
                     modifier = Modifier.fillMaxSize()
                 )
                 if (item.isLive) {

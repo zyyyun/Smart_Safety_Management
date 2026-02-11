@@ -80,7 +80,7 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
                 val userId = UserSession.userId
                 if (userId != null) {
                     // 이벤트 목록 조회
-                    RetrofitClient.instance.getDetectionEvents(userId).enqueue(object : Callback<GetDetectionEventsResponse> {
+                    RetrofitClient.instance.getRecentDetectionEvents(userId).enqueue(object : Callback<GetDetectionEventsResponse> {
                         override fun onResponse(call: Call<GetDetectionEventsResponse>, response: Response<GetDetectionEventsResponse>) {
                             if (response.isSuccessful) {
                                 rawEvents = response.body()?.events ?: emptyList()

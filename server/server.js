@@ -31,6 +31,7 @@ const getCCTVStreamInfoRouter = require('./get_cctv_stream_info'); // ✅ 추가
 const getDeviceStatusRouter = require('./get_device_status');
 const getWorkerDeviceStatusRouter = require('./get_worker_device_status');
 const getDetectionEventsRouter = require('./get_detection_events');
+const getRecentDetectionEventsRouter = require('./get_recent_detection_events'); // ✅ 추가
 const getDetectionEventDetailRouter = require('./get_detection_event_detail');
 const getWorkplaceRouter = require('./get_workplace');
 const deleteAccountRouter = require('./delete_account');
@@ -85,6 +86,7 @@ app.use('/', getCCTVStreamInfoRouter); // ✅ 추가
 app.use('/', getDeviceStatusRouter);
 app.use('/', getWorkerDeviceStatusRouter);
 app.use('/', getDetectionEventsRouter);
+app.use('/', getRecentDetectionEventsRouter); // ✅ 추가
 app.use('/', getDetectionEventDetailRouter);
 app.use('/', getWorkplaceRouter);
 app.use('/', deleteAccountRouter);

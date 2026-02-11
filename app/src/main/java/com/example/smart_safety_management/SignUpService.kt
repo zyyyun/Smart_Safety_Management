@@ -144,7 +144,7 @@ data class CCTVItemResponse(
     @SerializedName("camera_id") val id: Int,
     @SerializedName("device_name") val name: String,
     @SerializedName("install_area") val location: String,
-    @SerializedName("image_res_name") val imageResName: String?,
+    @SerializedName("image_res_name") val imageUrl: String?,
     val events: List<String>,
     @SerializedName("environment_type") val environmentType: String?,
     @SerializedName("installation_address") val installationAddress: String?,
@@ -560,6 +560,9 @@ interface SignUpService {
 
     @GET("/get_detection_events")
     fun getDetectionEvents(@Query("user_id") userId: String): Call<GetDetectionEventsResponse>
+
+    @GET("/get_recent_detection_events")
+    fun getRecentDetectionEvents(@Query("user_id") userId: String): Call<GetDetectionEventsResponse>
 
     @GET("/get_detection_event_detail")
     fun getDetectionEventDetail(@Query("event_id") eventId: Int): Call<DetectionEventDetailResponse>

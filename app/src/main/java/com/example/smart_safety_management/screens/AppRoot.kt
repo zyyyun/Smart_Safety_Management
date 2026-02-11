@@ -67,14 +67,16 @@ fun AppRoot() {
                         val list = response.body()?.cctvList ?: emptyList()
                         cctvDataList = list // ✅ 원본 데이터 저장 (주소 정보 포함)
                         allCards = list.map { dto ->
-                            val resId = context.resources.getIdentifier(dto.imageResName, "drawable", context.packageName)
-                                .let { if (it == 0) R.drawable.thumb_site else it }
+                            val resId = R.drawable.thumb_site
+                            val baseUrl = "http://10.0.2.2:3000" // 서버 주소 (필요시 수정)
+                            val fullUrl = if (!dto.imageUrl.isNullOrEmpty()) baseUrl + dto.imageUrl else null
 
                             LiveCardItem(
                                 camId = dto.name,
                                 place = dto.environmentType ?: "내부",
                                 tags = dto.events,
                                 thumbRes = resId,
+                                imageUrl = fullUrl,
                                 location = dto.location,
                                 overviewThumb = resId,
                                 siteThumb = resId,
