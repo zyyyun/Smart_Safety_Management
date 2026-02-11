@@ -128,7 +128,7 @@ router.post('/create_ai_event', async (req, res) => {
             // 이벤트 이름에 따라 상태 결정 (쓰러짐 -> 추락, 그 외 -> 위험)
             let newStatus = '위험';
             if (event_name.includes('쓰러짐') || event_name.toLowerCase().includes('fall')) {
-                newStatus = '추락';
+                newStatus = '쓰러짐';
             }
 
             // 해당 유저의 가장 최신 위치 로그 조회

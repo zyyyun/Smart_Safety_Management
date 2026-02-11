@@ -323,7 +323,7 @@ fun LocationScreen(
                                     // ✅ DB status 값에 따른 상태 텍스트 및 색상 매핑
                                     val (statusText, statusColor) = when (loc.status) {
                                         "고열","위험", "추락", "FALL", "DANGER" -> "위험" to Color(0xFFFF5252) // Red
-                                        "경고", "FEVER", "WARNING" -> "경고" to Color(0xFFFF9800) // Orange
+                                        "쓰러짐", "경고","WARNING" -> "경고" to Color(0xFFFF9800) // Orange
                                         else -> "정상" to Color(0xFF10B981) // Green
                                     }
 
@@ -331,7 +331,7 @@ fun LocationScreen(
                                         id = loc.userId,
                                         role = if (loc.role.equals("manager", true)) "관리자" else "근로자",
                                         name = loc.name,
-                                        location = loc.currentZone ?: "위치 정보 없음",
+                                        location = loc.currentZone ?: "카메라 외부 지역 ",
                                         statusText = statusText,
                                         statusColor = statusColor
                                     )
@@ -344,8 +344,8 @@ fun LocationScreen(
                                     
                                     // ✅ DB status 값에 따른 핀 아이콘 상태 매핑
                                     val pinStatus = when (loc.status) {
-                                        "위험", "추락", "FALL", "DANGER" -> WorkerStatus.FALL
-                                        "경고", "고열", "FEVER", "WARNING" -> WorkerStatus.FEVER
+                                        "고열","위험","추락", "FALL","DANGER" -> WorkerStatus.FEVER
+                                        "쓰러짐","경고","WARNING" -> WorkerStatus.FALL
                                         else -> WorkerStatus.NORMAL
                                     }
 
