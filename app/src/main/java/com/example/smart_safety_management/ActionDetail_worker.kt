@@ -72,6 +72,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import com.kakao.vectormap.LatLng
+import com.example.smart_safety_management.screens.realtime.LiveBadge
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalGlideComposeApi::class)
 @Composable
@@ -350,9 +351,7 @@ fun ActionDetailWorkerScreen(
                             }
 
                             // 3. 상단 LIVE 인디케이터 배치
-                            LiveIndicator(
-                                isLive = true,
-                                modifier = Modifier
+                            LiveBadge(modifier = Modifier
                                     .align(Alignment.TopEnd) // 왼쪽 상단에 배치
                                     .padding(12.dp)            // 이미지 안쪽 여백
                             )

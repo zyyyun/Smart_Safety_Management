@@ -51,6 +51,7 @@ import retrofit2.Response
 import com.google.gson.annotations.SerializedName
 import java.util.Locale
 import com.kakao.vectormap.LatLng
+import com.example.smart_safety_management.screens.realtime.LiveBadge
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
@@ -512,8 +513,7 @@ fun AIEventDetailScreen(
                             }
 
                             // 3. 상단 LIVE 인디케이터 배치
-                            LiveIndicator(
-                                isLive = true,
+                            LiveBadge(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd) // 왼쪽 상단에 배치
                                     .padding(12.dp)            // 이미지 안쪽 여백
