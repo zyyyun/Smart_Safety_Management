@@ -89,7 +89,8 @@ private fun RealTimeNavigation() {
                         allCards = list.map { dto ->
                             // URL 기반 이미지 로드 (기본값은 thumb_site)
                             val resId = R.drawable.thumb_site
-                            val baseUrl = "http://10.0.2.2:3000" // 서버 주소 (필요시 수정)
+                            // ✅ RetrofitClient의 공용 주소(ngrok) 사용
+                            val baseUrl = RetrofitClient.BASE_URL.removeSuffix("/")
                             val fullUrl = if (!dto.imageUrl.isNullOrEmpty()) baseUrl + dto.imageUrl else null
 
                             LiveCardItem(

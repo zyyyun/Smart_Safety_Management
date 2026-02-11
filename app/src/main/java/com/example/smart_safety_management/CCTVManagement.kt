@@ -108,7 +108,7 @@ fun CCTVManagementScreen(
                         if (response.isSuccessful) {
                             val items = response.body()?.cctvList ?: emptyList()
                             cctvList = items.map { item ->
-                                val baseUrl = "http://10.0.2.2:3000"
+                                val baseUrl = RetrofitClient.BASE_URL.removeSuffix("/")
                                 val fullUrl = if (!item.imageUrl.isNullOrEmpty()) baseUrl + item.imageUrl else null
                                 
                                 CCTVCameraData(

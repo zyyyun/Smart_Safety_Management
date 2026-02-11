@@ -315,9 +315,12 @@ fun InternalDetailScreen(
                                 .background(surface)
                                 .clickable { }
                         ) {
+                            val baseUrl = RetrofitClient.BASE_URL.removeSuffix("/")
+                            val fullUrl = if (capture.imageUrl.startsWith("/")) baseUrl + capture.imageUrl else capture.imageUrl
+
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
-                                    .data(capture.imageUrl)
+                                    .data(fullUrl)
                                     .crossfade(true)
                                     .build(),
                                 contentDescription = "Snapshot ${capture.capturedAt}",

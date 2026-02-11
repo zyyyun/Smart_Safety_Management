@@ -68,7 +68,7 @@ fun AppRoot() {
                         cctvDataList = list // ✅ 원본 데이터 저장 (주소 정보 포함)
                         allCards = list.map { dto ->
                             val resId = R.drawable.thumb_site
-                            val baseUrl = "http://10.0.2.2:3000" // 서버 주소 (필요시 수정)
+                            val baseUrl = RetrofitClient.BASE_URL.removeSuffix("/")
                             val fullUrl = if (!dto.imageUrl.isNullOrEmpty()) baseUrl + dto.imageUrl else null
 
                             LiveCardItem(
