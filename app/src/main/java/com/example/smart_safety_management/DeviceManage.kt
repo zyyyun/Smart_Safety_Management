@@ -275,9 +275,17 @@ fun BatteryItem(data: DeviceBatteryData, onAlarmClick: () -> Unit) {
     val isHelmetLow = data.battery < 30
     val isWatchLow = data.watchBattery < 30
     val helmetColor = if (isHelmetLow) StatusRed else MainOrange
-    val helmetTextColor = if (isHelmetLow) StatusRed else mainTextColor
+    val helmetTextColor = when {
+        data.battery <= 20 -> StatusRed
+        data.battery < 50 -> MainOrange
+        else -> mainTextColor
+    }
     val watchColor = if (isWatchLow) StatusRed else StatusBlue
-    val watchTextColor = if (isWatchLow) StatusRed else mainTextColor
+    val watchTextColor = when {
+        data.watchBattery <= 20 -> StatusRed
+        data.watchBattery < 50 -> MainOrange
+        else -> mainTextColor
+    }
 
     Box(modifier = Modifier.height(160.dp).background(color = bgColor, shape = RoundedCornerShape(12.dp)).border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(12.dp)).padding(16.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {

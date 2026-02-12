@@ -10,7 +10,7 @@ const targetUserId = process.argv[2] || null;
 const postData = JSON.stringify({
     camera_id: 1,         // ⚠️ 실제 존재하는 카메라 ID 입력
     accuracy: 88.5,
-    risk_level: 'danger', // danger, warning, caution
+    risk_level: 'warning', // danger, warning, caution
     event_name: '쓰러짐',   // fire, fall, intrusion 등
     user_id: targetUserId // ✅ 추가: 상태를 변경할 작업자 ID
 });
