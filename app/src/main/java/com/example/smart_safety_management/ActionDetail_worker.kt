@@ -208,169 +208,15 @@ fun ActionDetailWorkerScreen(
             sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
             sheetBackgroundColor = MaterialTheme.colors.onPrimary,
             sheetContent = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(712.dp)
-                        .padding(start = 24.dp, end = 16.dp, top = 16.dp, bottom = 24.dp)
-                ) {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                        horizontalAlignment = Alignment.Start, 
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(sheetScrollState) 
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "상세 보기",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                fontFamily = Pretendard,
-                                color = textColor
-                            )
-                            IconButton(onClick = {
-                                coroutineScope.launch {
-                                    sheetState.hide()
-                                }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Close",
-                                    tint = Color(0xFF6D7882)
-                                )
-                            }
-                        }
-
-                        LabelText("이벤트 캡처")
-                        // ✅ [수정] 클라이언트 캡처 로직 제거 -> 서버 URL 사용
-                        GlideImage(
-                            model = eventDetail?.captureImageUrl,
-                            contentDescription = "이벤트 캡처",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.FillWidth
-                        ) { it.error(R.drawable.workeraction).placeholder(R.drawable.workeraction) }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        LabelText("발생 위치")
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                                .clip(RoundedCornerShape(12.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (mapLat != null && mapLon != null) {
-                                val iconRes = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark
-
-                                KakaoMapView(
-                                    lat = mapLat!!,
-                                    lon = mapLon!!,
-                                    modifier = Modifier.fillMaxSize(),
-                                    targetLatLng = LatLng.from(mapLat!!, mapLon!!),
-                                    pins = listOf(
-                                        KakaoMapPin(
-                                            id = "event",
-                                            lat = mapLat!!,
-                                            lon = mapLon!!,
-                                            iconRes = iconRes
-                                        )
-                                    ),
-                                    selectedId = "event",
-                                    centerOnSelectedPin = true
-                                )
-
-                            }
-
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        LabelText("실시간 화면")
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                        ) {
-                            val liveUrl = eventDetail?.liveUrl
-                            if (!liveUrl.isNullOrBlank()) {
-                                val exoPlayer = remember {
-                                    ExoPlayer.Builder(context).build().apply {
-                                        playWhenReady = true
-                                    }
-                                }
-
-                                DisposableEffect(Unit) {
-                                    onDispose { exoPlayer.release() }
-                                }
-
-                                LaunchedEffect(liveUrl) {
-                                    val mediaItem = MediaItem.fromUri(liveUrl)
-                                    exoPlayer.setMediaItem(mediaItem)
-                                    exoPlayer.prepare()
-                                }
-
-                                LaunchedEffect(playing) {
-                                    if (playing) exoPlayer.play() else exoPlayer.pause()
-                                }
-
-                                AndroidView(
-                                    factory = { ctx ->
-                                        TextureView(ctx).apply {
-                                            layoutParams = ViewGroup.LayoutParams(
-                                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                                ViewGroup.LayoutParams.MATCH_PARENT
-                                            )
-                                            surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-                                                override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
-                                                    exoPlayer.setVideoTextureView(this@apply)
-                                                }
-                                                override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
-                                                override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = false
-                                                override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .aspectRatio(16f / 9f)
-                                        .clip(RoundedCornerShape(8.dp))
-                                )
-                            } else {
-                                GlideImage(
-                                    model = eventDetail?.captureImageUrl,
-                                    contentDescription = "실시간 화면",
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp)),
-                                    contentScale = ContentScale.FillWidth
-                                ) { it.error(R.drawable.event).placeholder(R.drawable.event) }
-                            }
-
-                            // 3. 상단 LIVE 인디케이터 배치
-                            LiveBadge(modifier = Modifier
-                                    .align(Alignment.TopEnd) // 왼쪽 상단에 배치
-                                    .padding(12.dp)            // 이미지 안쪽 여백
-                            )
-
-                            // 4. 하단 재생바 및 컨트롤러 배치
-                            LivePlaybackController(
-                                sliderPosition = pos,
-                                onSliderValueChange = { pos = it },
-                                timeText = "05:20",
-                                isPlaying = playing,
-                                onPlayPauseClick = { playing = !playing },
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter) // 하단 중앙에 배치
-                                    .clip(RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp)) // 이미지 모서리에 맞춰 하단 깎기
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(20.dp))
-                    }
-                }
+                EventDetailBottomSheetContent(
+                    eventDetail = eventDetail,
+                    mapLat = mapLat,
+                    mapLon = mapLon,
+                    isLight = isLight,
+                    textColor = textColor,
+                    sheetScrollState = sheetScrollState,
+                    onClose = { coroutineScope.launch { sheetState.hide() } }
+                )
             }
         ) {
             Scaffold(
@@ -416,377 +262,55 @@ fun ActionDetailWorkerScreen(
                     ) {
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Text(
-                            text = "이벤트 내용",
-                            fontWeight = FontWeight.Medium,
-                            color = CategoryColor,
-                            fontFamily = Pretendard,
-                            fontSize = 16.sp,
-                            modifier = Modifier.offset(x = 8.dp)
-                        )
-
+                        SectionTitle(text = "이벤트 내용", color = CategoryColor)
                         Spacer(modifier = Modifier.height(15.dp))
 
-                        Box(
-                            modifier = Modifier
-                                .padding(horizontal = 8.dp)
-                                .fillMaxWidth()
-                                .wrapContentHeight()
-                                .background(MaterialTheme.colors.onPrimary, shape = RoundedCornerShape(12.dp))
-                                .border(1.dp, borderColor, shape = RoundedCornerShape(12.dp))
-                        ) {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = eventIconRes), // 변수 적용
-                                        contentDescription = "이벤트 아이콘",
-                                        modifier = Modifier
-                                            .padding(end = 8.dp)
-                                            .offset(x = (-5).dp, y = 5.dp),
-                                        tint = Color.Unspecified
-                                    )
-                                    Column(horizontalAlignment = Alignment.Start) {
-                                        Text(
-                                            text = eventDetail?.installArea ?: "-",
-                                            color = textColor,
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 16.sp,
-                                            fontFamily = Pretendard
-                                        )
-                                        Text(
-                                            text = "${eventDetail?.eventName ?: "이벤트"}가 감지되었습니다.",
-                                            color = CategoryColor,
-                                            fontSize = 14.sp,
-                                            fontFamily = Pretendard,
-                                            fontWeight = FontWeight.Normal,
-                                            modifier = Modifier.offset(y = (4).dp)
-                                        )
-                                    }
-                                }
-
-                                Divider(
-                                    color = if (isLight) TextGray5 else Color.White.copy(alpha = 0.05f),
-                                    thickness = 1.dp,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                val detailItems = listOf(
-                                    "감지 이벤트" to (eventDetail?.eventName ?: "-"),
-                                    "발생 시간" to (eventDetail?.detectedAt ?: "-"),
-                                    "장치명" to (eventDetail?.deviceName ?: "-"),
-                                    "발생위치" to (eventDetail?.installArea ?: "-")
-                                )
-
-                                detailItems.forEach { (label, value) ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(
-                                            text = label,
-                                            color = labelColor,
-                                            fontSize = 16.sp,
-                                            fontFamily = Pretendard,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        
-                                        // "감지 이벤트" 라벨일 경우에만 전용 색상 적용
-                                        val displayColor = if (label == "감지 이벤트") eventValueColor else textColor
-
-                                        Text(
-                                            text = value,
-                                            color = displayColor,
-                                            fontSize = 16.sp,
-                                            fontFamily = Pretendard,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-                                }
-                                Button(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            sheetState.show()
-                                        }
-                                    },
-                                    modifier = Modifier.padding(top = 8.dp,bottom = 16.dp,start = 16.dp,end = 16.dp)
-                                        .fillMaxWidth()
-                                        .height(52.dp)
-                                        ,
-                                    shape = RoundedCornerShape(8.dp),
-                                    elevation = ButtonDefaults.elevation(0.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        backgroundColor = detailBtnColor
-                                    )
-                                ) {
-                                    Text(
-                                        text = "상세보기",
-                                        fontFamily = Pretendard,
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = inputTextColor
-                                    )
-                                }
-                            }
-                        }
+                        EventInfoCard(
+                            eventDetail = eventDetail,
+                            eventIconRes = eventIconRes,
+                            eventValueColor = eventValueColor,
+                            isLight = isLight,
+                            textColor = textColor,
+                            CategoryColor = CategoryColor,
+                            labelColor = labelColor,
+                            borderColor = borderColor,
+                            detailBtnColor = detailBtnColor,
+                            inputTextColor = inputTextColor,
+                            onDetailClick = { coroutineScope.launch { sheetState.show() } }
+                        )
 
                         Spacer(modifier = Modifier.height(48.dp))
 
-                        Text(
-                            text = "조치 유형",
-                            fontWeight = FontWeight.Medium,
-                            color = CategoryColor,
-                            fontFamily = Pretendard,
-                            fontSize = 16.sp,
-                            modifier = Modifier.offset(x = 8.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
-                            OutlinedTextField(
-                                value = if (actionType.isEmpty()) "조치 유형 선택" else actionType,
-                                onValueChange = { },
-                                readOnly = true,
-                                modifier = Modifier.fillMaxWidth().height(59.dp),
-                                textStyle = TextStyle(
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    fontFamily = Pretendard,
-                                    color = inputTextColor
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                trailingIcon = {
-                                    Box(
-                                        modifier = Modifier.fillMaxHeight(),
-                                        contentAlignment = Alignment.CenterEnd
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(end = 12.dp)
-                                        ) {
-                                            // ✅ 선택된 아이콘 제거 완료
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.dropbox),
-                                                contentDescription = null,
-                                                tint = Color.Unspecified
-                                            )
-                                        }
-                                    }
-                                },
-                                colors = TextFieldDefaults.outlinedTextFieldColors(
-                                    unfocusedBorderColor = borderColor,
-                                    focusedBorderColor = MainOrange,
-                                    textColor = inputTextColor,
-                                    backgroundColor = btnBackColor
-                                )
-                            )
-                            
-                            DropdownMenu(
-                                expanded = dropdownExpanded,
-                                onDismissRequest = { dropdownExpanded = false },
-                                modifier = Modifier
-                                    .width(this@BoxWithConstraints.maxWidth)
-                                    .background(btnBackColor)
-                            ) {
-                                options.forEach { option ->
-                                    DropdownMenuItem(
-                                        onClick = {
-                                            actionType = option
-                                            dropdownExpanded = false
-                                        }
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Text(
-                                                text = option,
-                                                fontFamily = Pretendard,
-                                                fontSize = 18.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = inputTextColor
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .matchParentSize()
-                                    .clickable { dropdownExpanded = true }
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        Text(
-                            text = "제목",
-                            fontWeight = FontWeight.Medium,
-                            color = CategoryColor,
-                            fontFamily = Pretendard,
-                            fontSize = 16.sp,
-                            modifier = Modifier.offset(x = 8.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        OutlinedTextField(
-                            value = title,
-                            onValueChange = { title = it },
-                            modifier = Modifier.fillMaxWidth()
-                                .padding(horizontal = 8.dp)
-                                .height(59.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            textStyle = TextStyle(fontSize = 18.sp, fontFamily = Pretendard, color = inputTextColor),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                unfocusedBorderColor = borderColor,
-                                focusedBorderColor = MainOrange,
-                                backgroundColor = btnBackColor
-                            )
+                        ActionInputSection(
+                            actionType = actionType,
+                            onActionTypeChange = { actionType = it },
+                            title = title,
+                            onTitleChange = { title = it },
+                            content = content,
+                            onContentChange = { content = it },
+                            dropdownExpanded = dropdownExpanded,
+                            onDropdownExpandedChange = { dropdownExpanded = it },
+                            options = options,
+                            CategoryColor = CategoryColor,
+                            inputTextColor = inputTextColor,
+                            borderColor = borderColor,
+                            btnBackColor = btnBackColor
                         )
 
                         Spacer(modifier = Modifier.height(32.dp))
 
-                        Text(
-                            text = "내용",
-                            fontWeight = FontWeight.Medium,
-                            color = CategoryColor,
-                            fontFamily = Pretendard,
-                            fontSize = 16.sp,
-                            modifier = Modifier.offset(x = 8.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        OutlinedTextField(
-                            value = content,
-                            onValueChange = { content = it },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp)
-                                .padding(horizontal = 8.dp),
-                            shape = RoundedCornerShape(8.dp),
-                            textStyle = TextStyle(fontSize = 18.sp, fontFamily = Pretendard, color = inputTextColor),
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                unfocusedBorderColor = borderColor,
-                                focusedBorderColor = MainOrange,
-                                backgroundColor = btnBackColor
-                            )
-                        )
-
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        Text(
-                            text = "사진 첨부",
-                            fontWeight = FontWeight.Medium,
-                            color = CategoryColor,
-                            fontFamily = Pretendard,
-                            fontSize = 16.sp,
-                            modifier = Modifier.offset(x = 8.dp)
-                        )
+                        SectionTitle(text = "사진 첨부", color = CategoryColor)
                         Spacer(modifier = Modifier.height(15.dp))
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp)
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            // 사진 추가 버튼
-                            Box(
-                                modifier = Modifier
-                                    .size(120.dp)
-                                    .background(btnBackColor, shape = RoundedCornerShape(8.dp))
-                                    .clickable {
-                                        launcher.launch("image/*")
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Canvas(modifier = Modifier.fillMaxSize()) {
-                                    val pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
-                                    drawRoundRect(
-                                        color = borderColor,
-                                        style = Stroke(width = 1.dp.toPx(), pathEffect = pathEffect),
-                                        cornerRadius = CornerRadius(8.dp.toPx())
-                                    )
-                                }
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.camera_icon),
-                                        contentDescription = "사진첨부",
-                                        tint = if (isLight) Color.Unspecified else TextGray30
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "사진첨부",
-                                        color = photoColor,
-                                        fontSize = 18.sp,
-                                        fontFamily = Pretendard
-                                    )
-                                }
-                            }
-
-                            // 첨부된 사진들 표시 영역
-                            attachedPhotos.forEach { photoUri ->
-                                Box(
-                                    modifier = Modifier
-                                        .size(120.dp)
-                                        .background(btnBackColor, shape = RoundedCornerShape(8.dp))
-                                        .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    GlideImage(
-                                        model = photoUri,
-                                        contentDescription = "Attached Photo",
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(8.dp)),
-                                        contentScale = ContentScale.Crop
-                                    )
-                                }
-                            }
-                        }
-
-                        if (!eventDetail?.actionImages.isNullOrEmpty()) {
-                            Spacer(modifier = Modifier.height(32.dp))
-                            Text(
-                                text = "첨부 사진",
-                                fontWeight = FontWeight.Medium,
-                                color = CategoryColor,
-                                fontFamily = Pretendard,
-                                fontSize = 16.sp,
-                                modifier = Modifier.offset(x = 8.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState())
-                                    .padding(horizontal = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                eventDetail?.actionImages?.forEach { imageUrl ->
-                                    if (imageUrl != null) {
-                                        val fullUrl = if (imageUrl.startsWith("http")) imageUrl else "${RetrofitClient.BASE_URL}${imageUrl.removePrefix("/")}"
-                                        GlideImage(
-                                            model = fullUrl,
-                                            contentDescription = "Attached Image",
-                                            modifier = Modifier
-                                                .size(100.dp)
-                                                .clip(RoundedCornerShape(8.dp)),
-                                            contentScale = ContentScale.Crop
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        PhotoAttachmentSection(
+                            attachedPhotos = attachedPhotos,
+                            serverImages = eventDetail?.actionImages,
+                            onAddPhoto = { launcher.launch("image/*") },
+                            isLight = isLight,
+                            borderColor = borderColor,
+                            btnBackColor = btnBackColor,
+                            photoColor = photoColor
+                        )
 
                         Spacer(modifier = Modifier.height(48.dp))
 
@@ -958,6 +482,551 @@ fun ActionCompletedDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
                             color = MaterialTheme.colors.onPrimary
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String, color: Color) {
+    Text(
+        text = text,
+        fontWeight = FontWeight.Medium,
+        color = color,
+        fontFamily = Pretendard,
+        fontSize = 16.sp,
+        modifier = Modifier.offset(x = 8.dp)
+    )
+}
+
+@Composable
+private fun LabelText(text: String) {
+    val isLight = MaterialTheme.colors.isLight
+    val color = if (isLight) TextGray60 else TextGray
+    Text(
+        text = text,
+        fontWeight = FontWeight.Medium,
+        color = color,
+        fontFamily = Pretendard,
+        fontSize = 16.sp
+    )
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+private fun EventDetailBottomSheetContent(
+    eventDetail: DetectionEventDetailResponse?,
+    mapLat: Double?,
+    mapLon: Double?,
+    isLight: Boolean,
+    textColor: Color,
+    sheetScrollState: ScrollState,
+    onClose: () -> Unit
+) {
+    val context = LocalContext.current
+    var pos by remember { mutableStateOf(0.5f) }
+    var playing by remember { mutableStateOf(true) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(712.dp)
+            .padding(start = 24.dp, end = 16.dp, top = 16.dp, bottom = 24.dp)
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.Start,
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(sheetScrollState)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "상세 보기",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = Pretendard,
+                    color = textColor
+                )
+                IconButton(onClick = onClose) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = Color(0xFF6D7882)
+                    )
+                }
+            }
+
+            LabelText("이벤트 캡처")
+            GlideImage(
+                model = eventDetail?.captureImageUrl,
+                contentDescription = "이벤트 캡처",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.FillWidth
+            ) { it.error(R.drawable.workeraction).placeholder(R.drawable.workeraction) }
+            Spacer(modifier = Modifier.height(16.dp))
+            LabelText("발생 위치")
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (mapLat != null && mapLon != null) {
+                    val iconRes = if (isLight) R.drawable.worker_orange else R.drawable.worker_orange_dark
+
+                    KakaoMapView(
+                        lat = mapLat,
+                        lon = mapLon,
+                        modifier = Modifier.fillMaxSize(),
+                        targetLatLng = LatLng.from(mapLat, mapLon),
+                        pins = listOf(
+                            KakaoMapPin(
+                                id = "event",
+                                lat = mapLat,
+                                lon = mapLon,
+                                iconRes = iconRes
+                            )
+                        ),
+                        selectedId = "event",
+                        centerOnSelectedPin = true
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            LabelText("실시간 화면")
+            Box(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val liveUrl = eventDetail?.liveUrl
+                if (!liveUrl.isNullOrBlank()) {
+                    val exoPlayer = remember {
+                        ExoPlayer.Builder(context).build().apply {
+                            playWhenReady = true
+                        }
+                    }
+
+                    DisposableEffect(Unit) {
+                        onDispose { exoPlayer.release() }
+                    }
+
+                    LaunchedEffect(liveUrl) {
+                        val mediaItem = MediaItem.fromUri(liveUrl)
+                        exoPlayer.setMediaItem(mediaItem)
+                        exoPlayer.prepare()
+                    }
+
+                    LaunchedEffect(playing) {
+                        if (playing) exoPlayer.play() else exoPlayer.pause()
+                    }
+
+                    AndroidView(
+                        factory = { ctx ->
+                            TextureView(ctx).apply {
+                                layoutParams = ViewGroup.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.MATCH_PARENT
+                                )
+                                surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                                    override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+                                        exoPlayer.setVideoTextureView(this@apply)
+                                    }
+                                    override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
+                                    override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = false
+                                    override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .clip(RoundedCornerShape(8.dp))
+                    )
+                } else {
+                    GlideImage(
+                        model = eventDetail?.captureImageUrl,
+                        contentDescription = "실시간 화면",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.FillWidth
+                    ) { it.error(R.drawable.event).placeholder(R.drawable.event) }
+                }
+
+                LiveBadge(modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp)
+                )
+
+                LivePlaybackController(
+                    sliderPosition = pos,
+                    onSliderValueChange = { pos = it },
+                    timeText = "05:20",
+                    isPlaying = playing,
+                    onPlayPauseClick = { playing = !playing },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .clip(RoundedCornerShape(bottomStart = 8.dp, bottomEnd = 8.dp))
+                )
+            }
+            Spacer(modifier = Modifier.height(20.dp))
+        }
+    }
+}
+
+@Composable
+private fun EventInfoCard(
+    eventDetail: DetectionEventDetailResponse?,
+    eventIconRes: Int,
+    eventValueColor: Color,
+    isLight: Boolean,
+    textColor: Color,
+    CategoryColor: Color,
+    labelColor: Color,
+    borderColor: Color,
+    detailBtnColor: Color,
+    inputTextColor: Color,
+    onDetailClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 8.dp)
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .background(MaterialTheme.colors.onPrimary, shape = RoundedCornerShape(12.dp))
+            .border(1.dp, borderColor, shape = RoundedCornerShape(12.dp))
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(id = eventIconRes),
+                    contentDescription = "이벤트 아이콘",
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .offset(x = (-5).dp, y = 5.dp),
+                    tint = Color.Unspecified
+                )
+                Column(horizontalAlignment = Alignment.Start) {
+                    Text(
+                        text = eventDetail?.installArea ?: "-",
+                        color = textColor,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                        fontFamily = Pretendard
+                    )
+                    Text(
+                        text = "${eventDetail?.eventName ?: "이벤트"}가 감지되었습니다.",
+                        color = CategoryColor,
+                        fontSize = 14.sp,
+                        fontFamily = Pretendard,
+                        fontWeight = FontWeight.Normal,
+                        modifier = Modifier.offset(y = (4).dp)
+                    )
+                }
+            }
+
+            Divider(
+                color = if (isLight) TextGray5 else Color.White.copy(alpha = 0.05f),
+                thickness = 1.dp,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val detailItems = listOf(
+                "감지 이벤트" to (eventDetail?.eventName ?: "-"),
+                "발생 시간" to (eventDetail?.detectedAt ?: "-"),
+                "장치명" to (eventDetail?.deviceName ?: "-"),
+                "발생위치" to (eventDetail?.installArea ?: "-")
+            )
+
+            detailItems.forEach { (label, value) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = label,
+                        color = labelColor,
+                        fontSize = 16.sp,
+                        fontFamily = Pretendard,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    val displayColor = if (label == "감지 이벤트") eventValueColor else textColor
+
+                    Text(
+                        text = value,
+                        color = displayColor,
+                        fontSize = 16.sp,
+                        fontFamily = Pretendard,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+            Button(
+                onClick = onDetailClick,
+                modifier = Modifier.padding(top = 8.dp,bottom = 16.dp,start = 16.dp,end = 16.dp)
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(8.dp),
+                elevation = ButtonDefaults.elevation(0.dp),
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = detailBtnColor
+                )
+            ) {
+                Text(
+                    text = "상세보기",
+                    fontFamily = Pretendard,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = inputTextColor
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionInputSection(
+    actionType: String,
+    onActionTypeChange: (String) -> Unit,
+    title: String,
+    onTitleChange: (String) -> Unit,
+    content: String,
+    onContentChange: (String) -> Unit,
+    dropdownExpanded: Boolean,
+    onDropdownExpandedChange: (Boolean) -> Unit,
+    options: List<String>,
+    CategoryColor: Color,
+    inputTextColor: Color,
+    borderColor: Color,
+    btnBackColor: Color
+) {
+    SectionTitle(text = "조치 유형", color = CategoryColor)
+    Spacer(modifier = Modifier.height(16.dp))
+
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+        OutlinedTextField(
+            value = if (actionType.isEmpty()) "조치 유형 선택" else actionType,
+            onValueChange = { },
+            readOnly = true,
+            modifier = Modifier.fillMaxWidth().height(59.dp),
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = Pretendard,
+                color = inputTextColor
+            ),
+            shape = RoundedCornerShape(8.dp),
+            trailingIcon = {
+                Box(
+                    modifier = Modifier.fillMaxHeight(),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(end = 12.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.dropbox),
+                            contentDescription = null,
+                            tint = Color.Unspecified
+                        )
+                    }
+                }
+            },
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                unfocusedBorderColor = borderColor,
+                focusedBorderColor = MainOrange,
+                textColor = inputTextColor,
+                backgroundColor = btnBackColor
+            )
+        )
+
+        DropdownMenu(
+            expanded = dropdownExpanded,
+            onDismissRequest = { onDropdownExpandedChange(false) },
+            modifier = Modifier
+                .width(this@BoxWithConstraints.maxWidth)
+                .background(btnBackColor)
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    onClick = {
+                        onActionTypeChange(option)
+                        onDropdownExpandedChange(false)
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = option,
+                            fontFamily = Pretendard,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = inputTextColor
+                        )
+                    }
+                }
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clickable { onDropdownExpandedChange(true) }
+        )
+    }
+
+    Spacer(modifier = Modifier.height(32.dp))
+
+    SectionTitle(text = "제목", color = CategoryColor)
+    Spacer(modifier = Modifier.height(16.dp))
+    OutlinedTextField(
+        value = title,
+        onValueChange = onTitleChange,
+        modifier = Modifier.fillMaxWidth()
+            .padding(horizontal = 8.dp)
+            .height(59.dp),
+        shape = RoundedCornerShape(8.dp),
+        textStyle = TextStyle(fontSize = 18.sp, fontFamily = Pretendard, color = inputTextColor),
+        colors = TextFieldDefaults.outlinedTextFieldColors(
+            unfocusedBorderColor = borderColor,
+            focusedBorderColor = MainOrange,
+            backgroundColor = btnBackColor
+        )
+    )
+
+    Spacer(modifier = Modifier.height(32.dp))
+
+    SectionTitle(text = "내용", color = CategoryColor)
+    Spacer(modifier = Modifier.height(16.dp))
+    OutlinedTextField(
+        value = content,
+        onValueChange = onContentChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .padding(horizontal = 8.dp),
+        shape = RoundedCornerShape(8.dp),
+        textStyle = TextStyle(fontSize = 18.sp, fontFamily = Pretendard, color = inputTextColor),
+        colors = TextFieldDefaults.outlinedTextFieldColors(
+            unfocusedBorderColor = borderColor,
+            focusedBorderColor = MainOrange,
+            backgroundColor = btnBackColor
+        )
+    )
+}
+
+@OptIn(ExperimentalGlideComposeApi::class)
+@Composable
+private fun PhotoAttachmentSection(
+    attachedPhotos: List<String>,
+    serverImages: List<String?>? = null,
+    onAddPhoto: () -> Unit,
+    isLight: Boolean,
+    borderColor: Color,
+    btnBackColor: Color,
+    photoColor: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // 사진 추가 버튼
+        Box(
+            modifier = Modifier
+                .size(120.dp)
+                .background(btnBackColor, shape = RoundedCornerShape(8.dp))
+                .clickable { onAddPhoto() },
+            contentAlignment = Alignment.Center
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val pathEffect = PathEffect.dashPathEffect(floatArrayOf(20f, 10f), 0f)
+                drawRoundRect(
+                    color = borderColor,
+                    style = Stroke(width = 1.dp.toPx(), pathEffect = pathEffect),
+                    cornerRadius = CornerRadius(8.dp.toPx())
+                )
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    painter = painterResource(id = R.drawable.camera_icon),
+                    contentDescription = "사진첨부",
+                    tint = if (isLight) Color.Unspecified else TextGray30
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "사진첨부",
+                    color = photoColor,
+                    fontSize = 18.sp,
+                    fontFamily = Pretendard
+                )
+            }
+        }
+
+        // 첨부된 사진들 표시 영역
+        attachedPhotos.forEach { photoUri ->
+            Box(
+                modifier = Modifier
+                    .size(120.dp)
+                    .background(btnBackColor, shape = RoundedCornerShape(8.dp))
+                    .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                GlideImage(
+                    model = photoUri,
+                    contentDescription = "Attached Photo",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+
+        // 서버 이미지 표시 영역
+        serverImages?.forEach { imageUrl ->
+            if (!imageUrl.isNullOrBlank()) {
+                val fullUrl = if (imageUrl.startsWith("http")) imageUrl else "${RetrofitClient.BASE_URL}${imageUrl.removePrefix("/")}"
+                Box(
+                    modifier = Modifier
+                        .size(120.dp)
+                        .background(btnBackColor, shape = RoundedCornerShape(8.dp))
+                        .border(1.dp, borderColor, RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    GlideImage(
+                        model = fullUrl,
+                        contentDescription = "Server Attached Photo",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop
+                    )
                 }
             }
         }
