@@ -243,6 +243,8 @@ data class DetectionEventDetailResponse(
     @SerializedName("status") val status: String?,
     @SerializedName("installation_address") val installationAddress: String?,
     @SerializedName("live_url") val liveUrl: String?,
+    @SerializedName("latitude") val latitude: Double?,
+    @SerializedName("longitude") val longitude: Double?,
     @SerializedName("capture_image_url") val captureImageUrl: String?,
     @SerializedName("capture_id") val captureId: Int?, // ✅ 추가
     @SerializedName("request_type") val requestType: String?,

@@ -2,14 +2,13 @@ package com.example.smart_safety_management
 
 import android.content.Intent
 import android.content.res.Configuration
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,8 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import com.example.smart_safety_management.ui.theme.ClipartKorea
-import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.ui.theme.*
 import retrofit2.Call
 import retrofit2.Callback
@@ -37,6 +34,8 @@ import retrofit2.Response
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 // --- 1. 데이터 모델 및 Enum ---
 
@@ -56,10 +55,11 @@ data class EventData(
     val accuracy: String = ""
 )
 
-data class BottomNavItem(
-    val title: String, 
-    @DrawableRes val iconResId: Int, 
-    val screenRoute: String
+data class ProcessedEventData(
+    val pending: List<EventData> = emptyList(),
+    val completed: List<EventData> = emptyList(),
+    val falseDetection: List<EventData> = emptyList(),
+    val counts: Map<String, Int> = mapOf("전체" to 0, "위험" to 0, "경고" to 0, "주의" to 0)
 )
 
 // --- 2. 메인 화면 ---
@@ -72,66 +72,103 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
     var rawEvents by remember { mutableStateOf<List<DetectionEventDTO>>(emptyList()) }
     var hasUnreadNotifications by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
+    var processedData by remember { mutableStateOf(ProcessedEventData()) }
+
+    // ✅ [수정] 데이터 로드 로직을 함수로 분리 (재사용 및 즉시 호출용)
+    val fetchData = remember {
+        {
+            val userId = UserSession.userId
+            if (userId != null) {
+                // 이벤트 목록 조회
+                RetrofitClient.instance.getRecentDetectionEvents(userId).enqueue(object : Callback<GetDetectionEventsResponse> {
+                    override fun onResponse(call: Call<GetDetectionEventsResponse>, response: Response<GetDetectionEventsResponse>) {
+                        if (response.isSuccessful) {
+                            rawEvents = response.body()?.events ?: emptyList()
+                        }
+                    }
+                    override fun onFailure(call: Call<GetDetectionEventsResponse>, t: Throwable) {}
+                })
+
+                // 알림 상태 조회
+                RetrofitClient.instance.getNotifications(userId).enqueue(object : Callback<GetNotificationsResponse> {
+                    override fun onResponse(call: Call<GetNotificationsResponse>, response: Response<GetNotificationsResponse>) {
+                        if (response.isSuccessful) {
+                            val notifications = response.body()?.notifications ?: emptyList()
+                            hasUnreadNotifications = notifications.any { !it.isRead }
+                        }
+                    }
+                    override fun onFailure(call: Call<GetNotificationsResponse>, t: Throwable) {}
+                })
+            }
+        }
+    }
 
     // ✅ 서버에서 데이터 불러오기 (onResume 시점마다 갱신)
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                val userId = UserSession.userId
-                if (userId != null) {
-                    // 이벤트 목록 조회
-                    RetrofitClient.instance.getRecentDetectionEvents(userId).enqueue(object : Callback<GetDetectionEventsResponse> {
-                        override fun onResponse(call: Call<GetDetectionEventsResponse>, response: Response<GetDetectionEventsResponse>) {
-                            if (response.isSuccessful) {
-                                rawEvents = response.body()?.events ?: emptyList()
-                            }
-                        }
-                        override fun onFailure(call: Call<GetDetectionEventsResponse>, t: Throwable) {}
-                    })
-
-                    // 알림 상태 조회
-                    RetrofitClient.instance.getNotifications(userId).enqueue(object : Callback<GetNotificationsResponse> {
-                        override fun onResponse(call: Call<GetNotificationsResponse>, response: Response<GetNotificationsResponse>) {
-                            if (response.isSuccessful) {
-                                val notifications = response.body()?.notifications ?: emptyList()
-                                hasUnreadNotifications = notifications.any { !it.isRead }
-                            }
-                        }
-                        override fun onFailure(call: Call<GetNotificationsResponse>, t: Throwable) {}
-                    })
-                }
+                fetchData()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
+
+        // ✅ [핵심 수정] 이미 RESUMED 상태인 경우 즉시 로드 (Navigation 복귀 시 이벤트 놓침 방지)
+        if (lifecycleOwner.lifecycle.currentState == Lifecycle.State.RESUMED) {
+            fetchData()
+        }
+
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
-    // ✅ DTO -> EventData 변환 및 분류
-    val allPendingEvents = rawEvents
-        .filter { it.status.equals("PENDING", ignoreCase = true) || it.status.equals("REQUESTED", ignoreCase = true) }
-        .map { it.toEventData() }
+    // ✅ [최적화] 데이터 가공 로직을 백그라운드 스레드로 이동 (UI 버벅임 방지)
+    LaunchedEffect(rawEvents) {
+        withContext(Dispatchers.Default) {
+            val pending = mutableListOf<EventData>()
+            val completed = mutableListOf<EventData>()
+            val falseDetection = mutableListOf<EventData>()
 
-    val allCompletedEvents = rawEvents
-        .filter { it.status.equals("COMPLETED", ignoreCase = true) }
-        .map { it.toEventData() }
+            var countDanger = 0
+            var countWarning = 0
+            var countCaution = 0
 
-    val allFalseDetectionEvents = rawEvents
-        .filter { it.status.equals("FALSE_POSITIVE", ignoreCase = true) }
-        .map { it.toEventData() }
+            // SimpleDateFormat 재사용을 위한 인스턴스 생성 (반복문 밖에서 1회 생성)
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
-    val allEvents = allPendingEvents + allCompletedEvents + allFalseDetectionEvents
-    val counts = mapOf(
-        "전체" to allEvents.size,
-        "위험" to allEvents.count { it.accidentType == "위험" },
-        "경고" to allEvents.count { it.accidentType == "경고" },
-        "주의" to allEvents.count { it.accidentType == "주의" }
-    )
+            rawEvents.forEach { dto ->
+                val eventData = dto.toEventData(dateFormat)
 
-    val filteredPendingEvents = if (selectedFilter == "전체") allPendingEvents else allPendingEvents.filter { it.accidentType == selectedFilter }
-    val filteredCompletedEvents = if (selectedFilter == "전체") allCompletedEvents else allCompletedEvents.filter { it.accidentType == selectedFilter }
-    val filteredFalseDetectionEvents = if (selectedFilter == "전체") allFalseDetectionEvents else allFalseDetectionEvents.filter { it.accidentType == selectedFilter }
+                // 위험도 카운트 집계
+                when (eventData.accidentType) {
+                    "위험" -> countDanger++
+                    "경고" -> countWarning++
+                    "주의" -> countCaution++
+                }
+
+                // 상태별 분류
+                if (dto.status.equals("PENDING", ignoreCase = true) || dto.status.equals("REQUESTED", ignoreCase = true)) {
+                    pending.add(eventData)
+                } else if (dto.status.equals("COMPLETED", ignoreCase = true)) {
+                    completed.add(eventData)
+                } else if (dto.status.equals("FALSE_POSITIVE", ignoreCase = true)) {
+                    falseDetection.add(eventData)
+                }
+            }
+
+            val newCounts = mapOf(
+                "전체" to rawEvents.size,
+                "위험" to countDanger,
+                "경고" to countWarning,
+                "주의" to countCaution
+            )
+            processedData = ProcessedEventData(pending, completed, falseDetection, newCounts)
+        }
+    }
+
+    val filteredPendingEvents = if (selectedFilter == "전체") processedData.pending else processedData.pending.filter { it.accidentType == selectedFilter }
+    val filteredCompletedEvents = if (selectedFilter == "전체") processedData.completed else processedData.completed.filter { it.accidentType == selectedFilter }
+    val filteredFalseDetectionEvents = if (selectedFilter == "전체") processedData.falseDetection else processedData.falseDetection.filter { it.accidentType == selectedFilter }
 
     Smart_Safety_ManagementTheme {
         val topBarBackgroundColor = if (MaterialTheme.colors.isLight) MainOrange else GrayBackground
@@ -146,7 +183,7 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
             // 상단바 영역
             Column {
                 MyTopAppBar(Color.Transparent, hasUnreadNotifications)
-                MySecondaryTopAppBar(selectedFilter, counts, Color.Transparent) { newFilter ->
+                MySecondaryTopAppBar(selectedFilter, processedData.counts, Color.Transparent) { newFilter ->
                     selectedFilter = newFilter
                 }
             }
@@ -159,46 +196,55 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
                 color = MaterialTheme.colors.onPrimary,
                 shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
             ) {
-                Column(
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp)
-                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    CurrentDateText()
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    // 상단 여백과 날짜 (기존 레이아웃 유지 위해 그룹화)
+                    item {
+                        Column {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            CurrentDateText()
+                        }
+                    }
+
+                    item {
                         Text(text = "조치대기", fontWeight = FontWeight.Medium, color = subTextColor, modifier = Modifier.padding(8.dp))
-                        if (filteredPendingEvents.isEmpty()) {
-                            NoEventText()
-                        } else {
-                            filteredPendingEvents.forEach { event ->
-                                EventItem(event, EventStatus.PENDING, onEventClick)
-                            }
+                    }
+                    if (filteredPendingEvents.isEmpty()) {
+                        item { NoEventText() }
+                    } else {
+                        items(filteredPendingEvents, key = { it.id }) { event ->
+                            EventItem(event, EventStatus.PENDING, onEventClick)
                         }
+                    }
 
+                    item {
                         Text(text = "조치완료", fontWeight = FontWeight.Medium, color = subTextColor, modifier = Modifier.padding(8.dp))
-                        if (filteredCompletedEvents.isEmpty()) {
-                            NoEventText()
-                        } else {
-                            filteredCompletedEvents.forEach { event ->
-                                EventItem(event, EventStatus.COMPLETED, onEventClick)
-                            }
+                    }
+                    if (filteredCompletedEvents.isEmpty()) {
+                        item { NoEventText() }
+                    } else {
+                        items(filteredCompletedEvents, key = { it.id }) { event ->
+                            EventItem(event, EventStatus.COMPLETED, onEventClick)
                         }
+                    }
 
+                    item {
                         Text(text = "오탐처리", fontWeight = FontWeight.Medium, color = subTextColor, modifier = Modifier.padding(8.dp))
-                        if (filteredFalseDetectionEvents.isEmpty()) {
-                            NoEventText()
-                        } else {
-                            filteredFalseDetectionEvents.forEach { event ->
-                                EventItem(event, EventStatus.FALSE_DETECTION, onEventClick)
-                            }
+                    }
+                    if (filteredFalseDetectionEvents.isEmpty()) {
+                        item { NoEventText() }
+                    } else {
+                        items(filteredFalseDetectionEvents, key = { it.id }) { event ->
+                            EventItem(event, EventStatus.FALSE_DETECTION, onEventClick)
                         }
-                        
-                        // 리스트 끝 추가 여백
+                    }
+
+                    // 리스트 끝 추가 여백
+                    item {
                         Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
@@ -398,13 +444,13 @@ fun MySecondaryTopAppBar(selectedFilter: String, counts: Map<String, Int>, backg
 }
 
 // ✅ 헬퍼 함수: DTO -> EventData 변환
-fun DetectionEventDTO.toEventData(): EventData {
+fun DetectionEventDTO.toEventData(formatter: SimpleDateFormat? = null): EventData {
     return EventData(
         id = this.eventId,
         accidentType = mapRiskLevel(this.riskLevel),
         location = this.installArea ?: "알 수 없음",
         content = "${this.eventName ?: "알 수 없는 이벤트"}가 감지되었습니다.",
-        occurrenceTime = calculateTimeAgo(this.detectedAt),
+        occurrenceTime = calculateTimeAgo(this.detectedAt, formatter),
         deviceName = this.deviceName ?: "",
         accuracy = "${this.accuracy ?: 0}%"
     )
@@ -421,11 +467,11 @@ fun mapRiskLevel(level: String?): String {
 }
 
 // ✅ 헬퍼 함수: 시간 계산
-fun calculateTimeAgo(dateString: String): String {
+fun calculateTimeAgo(dateString: String, formatter: SimpleDateFormat? = null): String {
     try {
-        val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val format = formatter ?: SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val date = format.parse(dateString) ?: return ""
-        val diff = Date().time - date.time
+        val diff = System.currentTimeMillis() - date.time
         val minutes = diff / (1000 * 60)
         val hours = minutes / 60
         val days = hours / 24

@@ -40,7 +40,6 @@ class AIEventActivity : ComponentActivity() {
 @Composable
 fun AIEventNavigation() {
     val navController = rememberNavController()
-    val context = LocalContext.current
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route

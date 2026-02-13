@@ -22,6 +22,8 @@ router.get('/get_detection_event_detail', async (req, res) => {
                 et.event_name,
                 c.installation_address, 
                 c.live_url,
+                c.latitude,
+                c.longitude,
                 ar.request_type, 
                 ar.request_title, 
                 ar.request_details,

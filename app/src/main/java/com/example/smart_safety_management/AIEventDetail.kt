@@ -2,12 +2,9 @@ package com.example.smart_safety_management
 
 import android.content.res.Configuration
 import android.location.Geocoder
-import android.graphics.Bitmap
-import android.widget.Toast
 import android.graphics.SurfaceTexture
 import android.view.TextureView
 import android.view.ViewGroup
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -29,18 +26,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.smart_safety_management.ui.theme.*
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
 import com.bumptech.glide.integration.compose.ExperimentalGlideComposeApi
 import com.bumptech.glide.integration.compose.GlideImage
 import androidx.media3.common.MediaItem
-import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +40,6 @@ import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import com.google.gson.annotations.SerializedName
 import java.util.Locale
 import com.kakao.vectormap.LatLng
 import com.example.smart_safety_management.screens.realtime.LiveBadge
@@ -70,12 +61,12 @@ fun AIEventDetailScreen(
     var playing by remember { mutableStateOf(true) }
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    var isFirstLoad by remember { mutableStateOf(true) }
 
 
     // 지도 좌표 상태
     var mapLat by remember { mutableStateOf<Double?>(null) }
     var mapLon by remember { mutableStateOf<Double?>(null) }
-    var isGeocodingError by remember { mutableStateOf(false) }
 
 
     Smart_Safety_ManagementTheme {
@@ -88,47 +79,61 @@ fun AIEventDetailScreen(
         val buttonBackground = if (isLight) Lightgray else GrayBackground
         val borderColor = if (isLight) GrayBorder else TextDark
 
-        // 주소를 좌표로 변환 (Geocoding)
-        LaunchedEffect(eventDetail) {
-            val address = eventDetail?.installationAddress
-            if (!address.isNullOrBlank()) {
-                withContext(Dispatchers.IO) {
-                    try {
-                        val geocoder = Geocoder(context, Locale.KOREA)
-                        @Suppress("DEPRECATION")
-                        val addresses = geocoder.getFromLocationName(address, 1)
-                        if (!addresses.isNullOrEmpty()) {
-                            mapLat = addresses[0].latitude
-                            mapLon = addresses[0].longitude
-                            isGeocodingError = false
-                        } else {
-                            isGeocodingError = true
-                        }
+        // 좌표 설정 (서버 좌표 우선 사용, 없으면 Geocoding Fallback)
+        // ✅ [최적화] eventDetail 전체가 아닌 위치 정보가 변경될 때만 실행하여 불필요한 연산 방지
+        val serverLat = eventDetail?.latitude
+        val serverLon = eventDetail?.longitude
+        val address = eventDetail?.installationAddress
 
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        isGeocodingError = true
+        LaunchedEffect(serverLat, serverLon, address) {
+            // 1. 서버에서 받은 좌표가 있으면 우선 사용
+            if (serverLat != null && serverLon != null) {
+                mapLat = serverLat
+                mapLon = serverLon
+            } else {
+                // 2. 좌표가 없으면 주소로 변환 (Fallback)
+                if (!address.isNullOrBlank()) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val geocoder = Geocoder(context, Locale.KOREA)
+                            @Suppress("DEPRECATION")
+                            val addresses = geocoder.getFromLocationName(address, 1)
+                            if (!addresses.isNullOrEmpty()) {
+                                mapLat = addresses[0].latitude
+                                mapLon = addresses[0].longitude
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
-            } else if (eventDetail != null) {
-                isGeocodingError = true
             }
         }
 
-        // ✅ [수정] 화면이 다시 보일 때(ON_RESUME) 데이터 갱신 (조치요청 후 복귀 시 상태 업데이트)
+        val fetchEventDetail = {
+            RetrofitClient.instance.getDetectionEventDetail(eventId).enqueue(object : Callback<DetectionEventDetailResponse> {
+                override fun onResponse(call: Call<DetectionEventDetailResponse>, response: Response<DetectionEventDetailResponse>) {
+                    if (response.isSuccessful) {
+                        eventDetail = response.body()
+                    }
+                }
+                override fun onFailure(call: Call<DetectionEventDetailResponse>, t: Throwable) {
+                    // 에러 처리
+                }
+            })
+        }
+
+        LaunchedEffect(eventId) {
+            fetchEventDetail()
+        }
+
         DisposableEffect(lifecycleOwner, eventId) {
             val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) {
-                    RetrofitClient.instance.getDetectionEventDetail(eventId).enqueue(object : Callback<DetectionEventDetailResponse> {
-                        override fun onResponse(call: Call<DetectionEventDetailResponse>, response: Response<DetectionEventDetailResponse>) {
-                            if (response.isSuccessful) {
-                                eventDetail = response.body()
-                            }
-                        }
-                        override fun onFailure(call: Call<DetectionEventDetailResponse>, t: Throwable) {
-                            // 에러 처리
-                        }
-                    })
+                if (event == Lifecycle.Event.ON_START) {
+                    if (!isFirstLoad) {
+                        fetchEventDetail()
+                    }
+                    isFirstLoad = false
                 }
             }
             lifecycleOwner.lifecycle.addObserver(observer)
@@ -459,14 +464,27 @@ fun AIEventDetailScreen(
                         ) {
                             val liveUrl = eventDetail?.liveUrl
                             if (!liveUrl.isNullOrBlank()) {
-                                val exoPlayer = remember {
+                                // ✅ [최적화] Context가 변경되지 않는 한 재사용
+                                val exoPlayer = remember(context) {
                                     ExoPlayer.Builder(context).build().apply {
                                         playWhenReady = true
                                     }
                                 }
 
-                                DisposableEffect(Unit) {
-                                    onDispose { exoPlayer.release() }
+                                // ✅ [최적화] Lifecycle 관리를 통해 백그라운드 진입 시 리소스 절약
+                                DisposableEffect(lifecycleOwner, exoPlayer) {
+                                    val observer = LifecycleEventObserver { _, event ->
+                                        if (event == Lifecycle.Event.ON_PAUSE) {
+                                            exoPlayer.pause()
+                                        } else if (event == Lifecycle.Event.ON_RESUME) {
+                                            if (playing) exoPlayer.play()
+                                        }
+                                    }
+                                    lifecycleOwner.lifecycle.addObserver(observer)
+                                    onDispose {
+                                        lifecycleOwner.lifecycle.removeObserver(observer)
+                                        exoPlayer.release()
+                                    }
                                 }
 
                                 LaunchedEffect(liveUrl) {
