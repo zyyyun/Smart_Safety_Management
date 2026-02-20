@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView
 
 class PeopleAdapter(
     private var items: List<PeopleItem>,
+    private val isManager: Boolean,
     private val onDelete: (PeopleItem) -> Unit
 ) : RecyclerView.Adapter<PeopleAdapter.ViewHolder>() {
 
@@ -44,6 +45,14 @@ class PeopleAdapter(
         holder.txtPhone.text = item.phone
         holder.txtStatus.text = item.role
         holder.checkbox.isChecked = item.isChecked
+
+        if (isManager) {
+            holder.checkbox.visibility = View.VISIBLE
+            holder.btnDelete.visibility = View.VISIBLE
+        } else {
+            holder.checkbox.visibility = View.GONE
+            holder.btnDelete.visibility = View.GONE
+        }
 
         if (item.role == "관리자") {
             holder.txtStatus.setBackgroundResource(R.drawable.bg_badge_blue_outline)

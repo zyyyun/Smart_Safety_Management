@@ -27,6 +27,7 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
     private var allPeople = mutableListOf<PeopleItem>()
     private var currentFilter = "전체"
     private var currentSearch = ""
+    private var isManager = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,34 +47,7 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
         allPeople = mutableListOf()
 
         // 어댑터 설정 (삭제 콜백 전달)
-        adapter = PeopleAdapter(allPeople) { deletedItem ->
-            val request = RemoveFromGroupRequest(userId = deletedItem.userId)
-            RetrofitClient.instance.removeFromGroup(request).enqueue(object: Callback<RemoveFromGroupResponse> {
-                override fun onResponse(
-                    call: Call<RemoveFromGroupResponse>,
-                    response: Response<RemoveFromGroupResponse>
-                ) {
-                    if (response.isSuccessful) {
-                        ToastUtil.showShort(this@SettingPeopleManagementActivity, "${deletedItem.name} 님을 그룹에서 제외했습니다.")
-                        allPeople.remove(deletedItem)
-                        applyFilterAndSearch()
-                    } else {
-                        // 서버에서 보낸 구체적인 에러 메시지 표시
-                        val errorBody = response.errorBody()?.string()
-                        val errorMessage = try {
-                            val json = org.json.JSONObject(errorBody)
-                            json.getString("message")
-                        } catch (e: Exception) {
-                            "제거에 실패했습니다." // 파싱 실패 시 기본 메시지
-                        }
-                        ToastUtil.showShort(this@SettingPeopleManagementActivity, errorMessage)
-                    }
-                }
-                override fun onFailure(call: Call<RemoveFromGroupResponse>, t: Throwable) {
-                    ToastUtil.showShort(this@SettingPeopleManagementActivity, "네트워크 오류: ${t.message}")
-                }
-            })
-        }
+        adapter = PeopleAdapter(allPeople, isManager) { deletedItem -> deleteUser(deletedItem) }
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
@@ -149,6 +123,11 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
             override fun onResponse(call: Call<GetUsersResponse>, response: Response<GetUsersResponse>) {
                 if (response.isSuccessful) {
                     val users = response.body()?.users ?: emptyList()
+
+                    // 현재 접속한 유저의 권한 확인
+                    val currentUser = users.find { it.userId == userId }
+                    isManager = currentUser?.userRole == "manager"
+
                     allPeople.clear()
                     users.forEach { user ->
                         val uId = user.userId ?: return@forEach
@@ -163,6 +142,10 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
                         // PeopleItem 생성 (id는 userId의 해시코드 사용)
                         allPeople.add(PeopleItem(uId, user.name, formattedPhone, roleName))
                     }
+
+                    // 권한 정보가 업데이트 되었으므로 어댑터 재설정
+                    adapter = PeopleAdapter(allPeople, isManager) { deletedItem -> deleteUser(deletedItem) }
+                    findViewById<RecyclerView>(R.id.recyclerView).adapter = adapter
                     applyFilterAndSearch()
                 } else {
                     ToastUtil.showShort(this@SettingPeopleManagementActivity, "사용자 목록을 불러오지 못했습니다.")
@@ -170,6 +153,40 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
             }
 
             override fun onFailure(call: Call<GetUsersResponse>, t: Throwable) {
+                ToastUtil.showShort(this@SettingPeopleManagementActivity, "네트워크 오류: ${t.message}")
+            }
+        })
+    }
+
+    private fun deleteUser(deletedItem: PeopleItem) {
+        if (!isManager) {
+            ToastUtil.showShort(this, "관리자만 삭제할 수 있습니다.")
+            return
+        }
+
+        val request = RemoveFromGroupRequest(userId = deletedItem.userId)
+        RetrofitClient.instance.removeFromGroup(request).enqueue(object: Callback<RemoveFromGroupResponse> {
+            override fun onResponse(
+                call: Call<RemoveFromGroupResponse>,
+                response: Response<RemoveFromGroupResponse>
+            ) {
+                if (response.isSuccessful) {
+                    ToastUtil.showShort(this@SettingPeopleManagementActivity, "${deletedItem.name} 님을 그룹에서 제외했습니다.")
+                    allPeople.remove(deletedItem)
+                    applyFilterAndSearch()
+                } else {
+                    // 서버에서 보낸 구체적인 에러 메시지 표시
+                    val errorBody = response.errorBody()?.string()
+                    val errorMessage = try {
+                        val json = org.json.JSONObject(errorBody)
+                        json.getString("message")
+                    } catch (e: Exception) {
+                        "제거에 실패했습니다." // 파싱 실패 시 기본 메시지
+                    }
+                    ToastUtil.showShort(this@SettingPeopleManagementActivity, errorMessage)
+                }
+            }
+            override fun onFailure(call: Call<RemoveFromGroupResponse>, t: Throwable) {
                 ToastUtil.showShort(this@SettingPeopleManagementActivity, "네트워크 오류: ${t.message}")
             }
         })

@@ -3,7 +3,6 @@ package com.example.smart_safety_management
 import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
-import androidx.annotation.DrawableRes
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -14,6 +13,8 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -28,7 +29,6 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
@@ -104,31 +104,33 @@ fun HistoryScreen(bottomBar: @Composable () -> Unit = {}) {
     }
 
     // 필터링 및 정렬 로직
-    val filteredEvents = events.filter { event ->
-        // 1. 탭 필터링
-        val tabCondition = when (selectedTab) {
-            "AI감지" -> true // 모든 데이터 표시
-            "오탐이력" -> event.status.equals("FALSE_POSITIVE", ignoreCase = true)
-            else -> false
-        }
-        // 2. 검색 필터링
-        val searchCondition = if (searchQuery.isNotEmpty()) {
-            (event.eventName?.contains(searchQuery, ignoreCase = true) == true) ||
-            (event.installArea?.contains(searchQuery, ignoreCase = true) == true)
-        } else true
-        // 3. 상세 필터링
-        val statusCondition = when (filterStatus) {
-            "미조치" -> event.status == "DETECTED" || event.status == "REQUESTED"
-            "조치완료" -> event.status == "COMPLETED" || event.status == "FALSE_POSITIVE"
-            else -> true // "전체"
-        }
-        val riskCondition = if (filterRisk == "전체") true else mapRiskLevel(event.riskLevel) == filterRisk
-        val areaCondition = if (filterArea == "전체") true else event.installArea == filterArea
-        val workerCondition = if (filterWorker == "전체") true else event.workerName == filterWorker
-        val eventCondition = if (filterEvent == "전체") true else event.eventName == filterEvent
+    val filteredEvents = remember(events, selectedTab, searchQuery, filterStatus, filterRisk, filterArea, filterWorker, filterEvent, isAscending) {
+        events.filter { event ->
+            // 1. 탭 필터링
+            val tabCondition = when (selectedTab) {
+                "AI감지" -> true // 모든 데이터 표시
+                "오탐이력" -> event.status.equals("FALSE_POSITIVE", ignoreCase = true)
+                else -> false
+            }
+            // 2. 검색 필터링
+            val searchCondition = if (searchQuery.isNotEmpty()) {
+                (event.eventName?.contains(searchQuery, ignoreCase = true) == true) ||
+                        (event.installArea?.contains(searchQuery, ignoreCase = true) == true)
+            } else true
+            // 3. 상세 필터링
+            val statusCondition = when (filterStatus) {
+                "미조치" -> event.status == "DETECTED" || event.status == "REQUESTED"
+                "조치완료" -> event.status == "COMPLETED" || event.status == "FALSE_POSITIVE"
+                else -> true // "전체"
+            }
+            val riskCondition = if (filterRisk == "전체") true else mapRiskLevel(event.riskLevel) == filterRisk
+            val areaCondition = if (filterArea == "전체") true else event.installArea == filterArea
+            val workerCondition = if (filterWorker == "전체") true else event.workerName == filterWorker
+            val eventCondition = if (filterEvent == "전체") true else event.eventName == filterEvent
 
-        tabCondition && searchCondition && statusCondition && riskCondition && areaCondition && workerCondition && eventCondition
-    }.sortedWith(if (isAscending) compareBy { it.detectedAt } else compareByDescending { it.detectedAt })
+            tabCondition && searchCondition && statusCondition && riskCondition && areaCondition && workerCondition && eventCondition
+        }.sortedWith(if (isAscending) compareBy { it.detectedAt } else compareByDescending { it.detectedAt })
+    }
 
     Smart_Safety_ManagementTheme {
         val isLight = MaterialTheme.colors.isLight
@@ -151,14 +153,17 @@ fun HistoryScreen(bottomBar: @Composable () -> Unit = {}) {
                     initialArea = filterArea,
                     initialWorker = filterWorker,
                     initialEvent = filterEvent,
-                    onApply = { s, r, a, w, e ->
-                        filterStatus = s; filterRisk = r; filterArea = a; filterWorker = w; filterEvent = e
+                    onApply = { status, risk, area, worker, event ->
+                        filterStatus = status
+                        filterRisk = risk
+                        filterArea = area
+                        filterWorker = worker
+                        filterEvent = event
                         coroutineScope.launch { sheetState.hide() }
                     }
                 )
             }
         ) {
-            // ✅ [핵심] Scaffold 제거: Activity의 Scaffold와 중복되지 않도록 Column으로 레이아웃 구성
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
@@ -201,15 +206,15 @@ fun HistoryScreen(bottomBar: @Composable () -> Unit = {}) {
                         color = MaterialTheme.colors.onPrimary,
                         shape = RectangleShape
                     ) {
-                        Column(
+                        // ✅ [최적화] LazyColumn을 사용하여 대량의 데이터도 효율적으로 렌더링
+                        LazyColumn(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp)
-                                .verticalScroll(rememberScrollState()),
+                                .fillMaxSize(),
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp), // 하단 바 공간 확보
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(20.dp)
                         ) {
-                            filteredEvents.forEach { dto ->
+                            items(filteredEvents) { dto ->
                                 val historyData = HistoryEventData(
                                     accidentType = mapRiskLevel(dto.riskLevel),
                                     location = dto.installArea ?: "위치 정보 없음",
@@ -220,8 +225,6 @@ fun HistoryScreen(bottomBar: @Composable () -> Unit = {}) {
                                 )
                                 HistoryItemFrame(historyData)
                             }
-                            // 리스트 끝 여백
-                            Spacer(modifier = Modifier.height(80.dp))
                         }
                     }
                 }

@@ -466,7 +466,11 @@ fun SettingWorkplaceLocationScreen(
                         lat = centerLat,
                         lon = centerLon,
                         targetLatLng = targetLatLng,
-                        onMapReady = { map -> kakaoMapObj = map },
+                        onMapReady = { map -> 
+                            kakaoMapObj = map
+                            // ✅ 맵 로드 시 줌 레벨 설정 (숫자가 클수록 확대됨, 예: 17)
+                            map.moveCamera(com.kakao.vectormap.camera.CameraUpdateFactory.zoomTo(18))
+                        },
                         onCenterChanged = { clat, clon ->
                             centerLat = clat
                             centerLon = clon

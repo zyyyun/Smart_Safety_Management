@@ -1,14 +1,22 @@
 # Smart_Safety_Management
- 
-사용 언어 : Kotlin, JavaScripts
-기술 스택 : Express, Node.js
-DB : PostgreSQL
 
-실행방법 : docker-compose up -d로 컨테이너 실행 후
+frontend: Kotlin(Android)
+backend: Express, Node.js
+database: PostgreSQL
+
+실행방법
+
+-도커 컨테이너 실행
+docker-compose up -d
+
+-서버 실행
 cd server
-nodemon server.js
+npm install
+node server.js
 
+-ngrok 실행
 ngrok http 3000
+
 
 진행사항
 1. 시안에 맞춰 진행해서 구현되어있지않은 페이지가 존재.

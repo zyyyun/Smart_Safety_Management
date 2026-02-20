@@ -10,11 +10,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.smart_safety_management.screens.location.LocationActivity
 import com.example.smart_safety_management.screens.realtime.RealTimeActivity
@@ -34,25 +31,21 @@ class HistoryActivity : ComponentActivity() {
 
 @Composable
 fun HistoryNavigationWrapper() {
-    val isLight = MaterialTheme.colors.isLight
     // 배경색 설정
-    val totalBackgroundColor = if (isLight) MainOrange else GrayBackground
+    val totalBackgroundColor = if (MaterialTheme.colors.isLight) MainOrange else GrayBackground
 
-    // 1. Column 대신 Box를 사용하여 레이아웃을 겹칩니다.
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .background(totalBackgroundColor)) {
-
-        // 2. 스크린 콘텐츠를 전체 화면(fillMaxSize)으로 깔아줍니다.
-        // 하단바에 가려지지 않도록 HistoryScreen 내부 리스트 하단에 패딩만 주면 됩니다.
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(totalBackgroundColor)
+    ) {
         HistoryScreen(bottomBar = { HistoryBottomBar() })
     }
 }
 
 @Composable
 fun HistoryBottomBar() {
-    val isLight = MaterialTheme.colors.isLight
-    val navBgColor = if (isLight) TextGray5.toArgb() else TextGray20.toArgb()
+    val navBgColor = if (MaterialTheme.colors.isLight) TextGray5.toArgb() else TextGray20.toArgb()
 
     AndroidView(
         factory = { context ->
