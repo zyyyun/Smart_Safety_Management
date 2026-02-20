@@ -75,6 +75,14 @@ class SettingActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        // 화재 예방 장치 관리 아이템 클릭 시 화면 이동
+        findViewById<LinearLayout>(R.id.fire_prevention_device_management).setOnClickListener {
+            // TODO: 추후 화재 예방 장치 관리 액티비티(예: SettingFirePreventionActivity) 생성 후 연결 필요
+            // val intent = Intent(this, SettingFirePreventionActivity::class.java)
+            // startActivity(intent)
+            android.widget.Toast.makeText(this, "준비 중인 기능입니다.", android.widget.Toast.LENGTH_SHORT).show()
+        }
+
         // 초대코드 입력 여부 확인 및 UI 처리
         checkInviteCodeVisibility()
     }
