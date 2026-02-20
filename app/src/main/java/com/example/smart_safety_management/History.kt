@@ -119,7 +119,7 @@ fun HistoryScreen(bottomBar: @Composable () -> Unit = {}) {
             } else true
             // 3. 상세 필터링
             val statusCondition = when (filterStatus) {
-                "미조치" -> event.status == "DETECTED" || event.status == "REQUESTED"
+                "미조치" -> event.status == "PENDING" || event.status == "REQUESTED"
                 "조치완료" -> event.status == "COMPLETED" || event.status == "FALSE_POSITIVE"
                 else -> true // "전체"
             }
@@ -378,8 +378,8 @@ fun FilterBottomSheetContent(
     initialEvent: String,
     onApply: (String, String, String, String, String) -> Unit
 ) {
-    var selectedStatus by remember(initialStatus) { mutableStateOf(if (initialStatus == "전체") "미조치" else initialStatus) }
-    var selectedRisk by remember(initialRisk) { mutableStateOf(if (initialRisk == "전체") "주의" else initialRisk) }
+    var selectedStatus by remember(initialStatus) { mutableStateOf(initialStatus) }
+    var selectedRisk by remember(initialRisk) { mutableStateOf(initialRisk) }
     var selectedEvent by remember(initialEvent) { mutableStateOf(initialEvent) }
     var isEventDropDownExpanded by remember { mutableStateOf(false) }
     var selectedArea by remember(initialArea) { mutableStateOf(initialArea) }
@@ -467,8 +467,8 @@ fun FilterBottomSheetContent(
         ) {
             Text(text = "필터 설정", fontFamily = Pretendard, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = toptextColor, modifier = Modifier.padding(horizontal = 24.dp))
             IconButton(onClick = { 
-                selectedStatus = "미조치"
-                selectedRisk = "주의"
+                selectedStatus = "전체"
+                selectedRisk = "전체"
                 selectedEvent = "전체"
                 selectedArea = "전체"
                 selectedActionByName = "전체"
@@ -476,7 +476,7 @@ fun FilterBottomSheetContent(
                 Icon(painter = painterResource(id = R.drawable.reset), contentDescription = "Reset", tint = Color.Unspecified)
             }
             Text(text = "초기화", modifier = Modifier.align(Alignment.CenterEnd).padding(end = 24.dp).clickable { 
-                selectedStatus = "미조치"; selectedRisk = "주의"; selectedEvent = "전체"; selectedArea = "전체"; selectedActionByName = "전체"
+                selectedStatus = "전체"; selectedRisk = "전체"; selectedEvent = "전체"; selectedArea = "전체"; selectedActionByName = "전체"
             }, fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = MainOrange)
         }
 
@@ -513,7 +513,7 @@ fun FilterBottomSheetContent(
         Text(text = "상태", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = CategoryColor, modifier = Modifier.padding(horizontal = 24.dp))
         Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val statusOptions = listOf("미조치", "조치완료")
+            val statusOptions = listOf("전체", "미조치", "조치완료")
             statusOptions.forEach { option ->
                 val isSelected = selectedStatus == option
                 Button(onClick = { selectedStatus = option }, modifier = Modifier.height(37.dp).weight(1f), colors = ButtonDefaults.buttonColors(backgroundColor = if (isSelected) MainOrange.copy(alphavalue) else bgColor), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), border = BorderStroke(1.dp, if (isSelected) MainOrange else borderColor)) {
@@ -523,7 +523,7 @@ fun FilterBottomSheetContent(
         }
         Spacer(modifier = Modifier.height(28.dp)); Text(text = "위험도", fontFamily = Pretendard, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = CategoryColor, modifier = Modifier.padding(horizontal = 24.dp)); Spacer(modifier = Modifier.height(16.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val riskOptions = listOf("주의", "경고", "위험")
+            val riskOptions = listOf("전체", "주의", "경고", "위험")
             riskOptions.forEach { option ->
                 val isSelected = selectedRisk == option
                 Button(onClick = { selectedRisk = option }, modifier = Modifier.height(40.dp).weight(1f), colors = ButtonDefaults.buttonColors(backgroundColor = if (isSelected) MainOrange.copy(alphavalue) else bgColor), shape = RoundedCornerShape(8.dp), elevation = ButtonDefaults.elevation(0.dp, 0.dp), border = BorderStroke(1.dp, if (isSelected) MainOrange else borderColor)) {
