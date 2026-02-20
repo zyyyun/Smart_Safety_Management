@@ -77,7 +77,6 @@ private fun RealTimeNavigation() {
     var allCards by remember { mutableStateOf<List<LiveCardItem>>(emptyList()) }
     var cctvDataList by remember { mutableStateOf<List<CCTVItemResponse>>(emptyList()) }
 
-    // ✅ 서버에서 카메라 리스트 가져오기
     LaunchedEffect(Unit) {
         val userId = UserSession.userId
         if (userId != null) {
@@ -87,9 +86,7 @@ private fun RealTimeNavigation() {
                         val list = response.body()?.cctvList ?: emptyList()
                         cctvDataList = list // 원본 데이터 저장 (주소 정보 포함)
                         allCards = list.map { dto ->
-                            // URL 기반 이미지 로드 (기본값은 thumb_site)
                             val resId = R.drawable.thumb_site
-                            // ✅ RetrofitClient의 공용 주소(ngrok) 사용
                             val baseUrl = RetrofitClient.BASE_URL.removeSuffix("/")
                             val fullUrl = if (!dto.imageUrl.isNullOrEmpty()) baseUrl + dto.imageUrl else null
 
@@ -115,8 +112,6 @@ private fun RealTimeNavigation() {
 
     val c = LocalSafeColors.current
     val bottomBg = c.bottomBar
-
-    // ✅ 시스템 네비게이션 바(제스처 영역) 색도 동일하게
     val view = LocalView.current
     SideEffect {
         (view.context as? Activity)?.window?.navigationBarColor = bottomBg.toArgb()
@@ -125,7 +120,6 @@ private fun RealTimeNavigation() {
     Scaffold(
         backgroundColor = bottomBg,
         bottomBar = {
-            // ✅ 상세 화면에서는 BottomBar 숨김
             if (selectedItem == null) {
                 BottomNavigation(
                     modifier = Modifier.navigationBarsPadding(),
@@ -195,7 +189,6 @@ private fun RealTimeNavigation() {
         }
     ) { paddingValues ->
 
-        // ✅ 리스트 화면일 때만 Scaffold padding 적용 (상세 화면은 바텀바 없으니 여백도 제거)
         val contentPadding =
             if (selectedItem == null) paddingValues else PaddingValues()
 
@@ -221,8 +214,8 @@ private fun RealTimeNavigation() {
 
         if (showMap) {
             MapDialog(
-                cams = allCards, // ✅ 실제 데이터 전달
-                cctvList = cctvDataList, // ✅ 주소 정보가 포함된 원본 리스트 전달
+                cams = allCards, // 실제 데이터 전달
+                cctvList = cctvDataList, // 주소 정보가 포함된 원본 리스트 전달
                 item = selectedItem,
                 onDismiss = { showMap = false },
                 onMoveCamera = { camId ->

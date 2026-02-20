@@ -346,6 +346,7 @@ fun SettingWorkplaceLocationScreen(
                                     road = data.roadAddress ?: ""
                                     isRegistered = true
 
+
                                     // ✅ [중요] 서버 데이터 적용 시작
                                     geocodeJob?.cancel()
 

@@ -960,6 +960,7 @@ fun TagPill(text: String, isRisk: Boolean = false) {
             fontFamily = Pretendard
         )
     }
+
 }
 
 

@@ -163,14 +163,12 @@ fun LocationScreen(
             pendingCamRow = null
         } else {
             pendingCamRow = null
-            // (선택) 토스트/스낵바 안내 가능
         }
     }
 
     // ✅ [수정] 서버 데이터로 교체하기 위해 상태 변수로 변경 (초기값 빈 리스트)
     var rows by remember { mutableStateOf<List<WorkerRow>>(emptyList()) }
     var pins by remember { mutableStateOf<List<WorkerPin>>(emptyList()) }
-    // ✅ 리스트 데이터 (너가 실제 데이터로 교체)
 
     fun rowArea(row: WorkerRow) = row.location.split(" ").first()
 
@@ -189,7 +187,6 @@ fun LocationScreen(
         pins.filter { it.id in visibleIds }
     }
 
-    // ✅ 선택된 작업자 -> 카메라 이동 타겟
     val pinById = remember(pins) { pins.associateBy { it.id } }
     val targetLatLng: LatLng? = remember(selectedWorkerId, pinById) {
         selectedWorkerId
@@ -197,7 +194,6 @@ fun LocationScreen(
             ?.let { p -> LatLng.from(p.lat, p.lng) }
     }
 
-    // ✅ 카카오맵 핀(선택 시 강조 / 나머지 dim)
     val kakaoPins: List<KakaoMapPin> = remember(filteredPins, selectedWorkerId, dark) {
         val hasSelection = selectedWorkerId != null
         val dimAlpha = 110
@@ -252,7 +248,7 @@ fun LocationScreen(
     }
 
 
-    // ✅ [추가] 등록된 현장 위치(workplace)를 서버에서 가져와 지도 초기 중심으로 사용
+    // 등록된 현장 위치(workplace)를 서버에서 가져와 지도 초기 중심으로 사용
     LaunchedEffect(Unit) {
         val userId = UserSession.userId
 
@@ -283,7 +279,7 @@ fun LocationScreen(
         }
     }
 
-    // ✅ 서버에서 CCTV 리스트를 가져와 구역 필터 동적 생성
+    // 서버에서 CCTV 리스트를 가져와 구역 필터 동적 생성
     LaunchedEffect(Unit) {
         val userId = UserSession.userId
         if (!userId.isNullOrEmpty()) {
@@ -306,7 +302,7 @@ fun LocationScreen(
         }
     }
 
-    // ✅ [수정] 서버에서 작업자 위치(Location) 가져와서 리스트 및 핀 구성 (실시간 갱신)
+    // 서버에서 작업자 위치(Location) 가져와서 리스트 및 핀 구성 (실시간 갱신)
     LaunchedEffect(Unit) {
         val userId = UserSession.userId
         if (!userId.isNullOrEmpty()) {
@@ -320,7 +316,7 @@ fun LocationScreen(
                             withContext(Dispatchers.Main) {
                                 // 1. 리스트 데이터(rows) 구성
                                 rows = locations.map { loc ->
-                                    // ✅ DB status 값에 따른 상태 텍스트 및 색상 매핑
+                                    // DB status 값에 따른 상태 텍스트 및 색상 매핑
                                     val (statusText, statusColor) = when (loc.status) {
                                         "고열","위험", "추락", "FALL", "DANGER" -> "위험" to Color(0xFFFF5252) // Red
                                         "쓰러짐", "경고","WARNING" -> "경고" to Color(0xFFFF9800) // Orange
@@ -337,12 +333,11 @@ fun LocationScreen(
                                     )
                                 }
 
-                                // 2. 지도 핀(pins) 구성
                                 pins = locations.mapNotNull { loc ->
                                     val lat = loc.latitude
                                     val lng = loc.longitude
                                     
-                                    // ✅ DB status 값에 따른 핀 아이콘 상태 매핑
+                                    // DB status 값에 따른 핀 아이콘 상태 매핑
                                     val pinStatus = when (loc.status) {
                                         "고열","위험","추락", "FALL","DANGER" -> WorkerStatus.FEVER
                                         "쓰러짐","경고","WARNING" -> WorkerStatus.FALL
@@ -374,9 +369,7 @@ fun LocationScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
 
-        // ✅ 카카오맵 + 핀 + 핀 클릭
         if (isLoadingWorkplace) {
-            // 로딩 중에는 지도 대신 빈 배경(깜빡임 방지)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -390,7 +383,6 @@ fun LocationScreen(
                 lon = start.longitude,
                 modifier = Modifier.fillMaxSize(),
 
-                // ✅ 작업자 선택이 있으면 그쪽으로 이동, 없으면 현장 등록 위치로 시작
                 targetLatLng = targetLatLng ?: workplaceLatLng,
 
                 pins = kakaoPins,
@@ -401,7 +393,7 @@ fun LocationScreen(
             )
         }
 
-        // ✅ 선택된 상태에서 지도 빈 곳 탭하면 선택 해제
+        // 선택된 상태에서 지도 빈 곳 탭하면 선택 해제
         if (selectedWorkerId != null) {
             Box(
                 modifier = Modifier
@@ -412,8 +404,6 @@ fun LocationScreen(
                     }
             )
         }
-
-        // 상단 그라데이션
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -428,8 +418,6 @@ fun LocationScreen(
                     )
                 )
         )
-
-        // 상단 타이틀 + 구역 칩
         Column(
             modifier = Modifier
                 .statusBarsPadding()
@@ -456,13 +444,11 @@ fun LocationScreen(
                         dark -> Color.Black
                         else -> if (isSelected) Color(0xFFFF7A00) else Color.White
                     }
-
                     val chipBorder = when {
                         dark -> Color(0xFF2A2F37)
                         isSelected -> Color(0xFFFF7A00)
                         else -> Color(0xFFE5E7EB)
                     }
-
                     val chipTextColor = when {
                         dark && isSelected -> Color.White
                         dark -> Color(0xFF58616A)
@@ -497,7 +483,6 @@ fun LocationScreen(
             }
         }
 
-        // 바텀시트
         Surface(
             color = if (dark) Color(0xFF000000) else sheetBg,
             shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
@@ -517,7 +502,6 @@ fun LocationScreen(
                     handleColor = if (dark) Color(0xFF2A3646) else Color(0xFFE5E7EB),
                     modifier = Modifier.draggable(state = dragState, orientation = Orientation.Vertical)
                 )
-
                 SheetSummary(
                     count = filteredRows.size,
                     hasSelection = selectedWorkerId != null,
@@ -532,7 +516,6 @@ fun LocationScreen(
                     divider = dividerStrong,
                     dark = dark
                 )
-
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
                     contentPadding = PaddingValues(bottom = bottomBarHeight + 12.dp)
@@ -580,9 +563,7 @@ fun LocationScreen(
         }
     }
 }
-
 /* -------------------- bottom sheet parts -------------------- */
-
 @Composable
 private fun SheetHandle(
     handleColor: Color,

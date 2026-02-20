@@ -86,21 +86,20 @@ fun InternalDetailScreen(
     val sub = c.sub
 
     val side = 24.dp
-    val sectionTitleColor = Color(0xFF676F76) // 피그마 기준
+    val sectionTitleColor = Color(0xFF676F76)
 
-    // ✅ 나중에 LiveCardItem에 필드 추가하면 이 2줄만 살아남음
     // 지금 당장은 null로 두면 "연결대기" UI로 보임
     val overviewStreamId: String? = (item as? HasCctvStreamIds)?.overviewStreamId
     val siteStreamId: String? = (item as? HasCctvStreamIds)?.siteStreamId
 
-    // ✅ API를 통해 가져온 최신 URL 상태 관리
+    // API를 통해 가져온 최신 URL 상태 관리
     var finalOverviewUrl by remember { mutableStateOf(overviewUrl) }
     var finalSiteUrl by remember { mutableStateOf(siteUrl) }
 
-    // ✅ 서버에서 가져온 스냅샷 리스트 상태
+    // 서버에서 가져온 스냅샷 리스트 상태
     var captureImages by remember { mutableStateOf<List<CameraCaptureDTO>>(emptyList()) }
 
-    // ✅ 화면 진입 시 상세 정보(URL 등) 다시 조회
+    // 화면 진입 시 상세 정보(URL 등) 다시 조회
     LaunchedEffect(cameraId) {
         if (cameraId != 0) {
             Log.d("InternalDetail", "CCTV 스트림 정보 요청: ID=$cameraId")
@@ -116,7 +115,7 @@ fun InternalDetailScreen(
                 override fun onFailure(call: Call<CCTVStreamInfoResponse>, t: Throwable) {}
             })
 
-            // ✅ 추가: 최근 스냅샷 3개 조회
+            // 최근 스냅샷 3개 조회
             RetrofitClient.instance.getCameraCaptures(cameraId).enqueue(object : Callback<GetCameraCapturesResponse> {
                 override fun onResponse(call: Call<GetCameraCapturesResponse>, response: Response<GetCameraCapturesResponse>) {
                     if (response.isSuccessful) {
@@ -232,9 +231,6 @@ fun InternalDetailScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // -------------------------
-            // ✅ 전경
-            // -------------------------
             Text(
                 text = "전경",
                 fontSize = 18.sp,
@@ -259,9 +255,6 @@ fun InternalDetailScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // -------------------------
-            // ✅ 현장
-            // -------------------------
             Text(
                 text = "현장",
                 fontSize = 18.sp,
@@ -286,9 +279,6 @@ fun InternalDetailScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // -------------------------
-            // ✅ 현장캡쳐(이미지)
-            // -------------------------
             Text(
                 text = "현장캡쳐",
                 fontSize = 18.sp,
@@ -304,7 +294,6 @@ fun InternalDetailScreen(
                 contentPadding = PaddingValues(start = side, end = 0.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // ✅ API로 가져온 이미지가 있으면 그것을 표시
                 if (captureImages.isNotEmpty()) {
                     items(captureImages) { capture ->
                         Box(
@@ -330,7 +319,6 @@ fun InternalDetailScreen(
                         }
                     }
                 } else {
-                    // ✅ 없으면 기존 더미 데이터 표시 (혹은 빈 상태)
                     items(item.captureThumbs) { res ->
                         Box(
                             modifier = Modifier
@@ -388,10 +376,8 @@ private fun SmartPreviewCard(
             .background(bg)
     ) {
         if (isVideo) {
-            // ✅ 비디오인 경우 플레이어 + 재생바 표시 (연결대기 텍스트 숨김)
             VideoPlayer(url = imageUrl!!, modifier = Modifier.fillMaxSize())
         } else {
-            // ✅ 비디오가 아닌 경우 이미지 + 연결대기 텍스트 표시
             if (!imageUrl.isNullOrBlank()) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
@@ -414,7 +400,7 @@ private fun SmartPreviewCard(
             }
 
             if (streamId.isNullOrBlank()) {
-                // ✅ CCTV 아직 없음: 연결대기 UI
+                // CCTV 아직 없음: 연결대기 UI
                 ConnectionPill(
                     text = "연결대기",
                     modifier = Modifier
@@ -422,7 +408,7 @@ private fun SmartPreviewCard(
                         .padding(10.dp)
                 )
             } else {
-                // ✅ CCTV/WebRTC 정보는 있음: "연결 준비됨" UI (지금은 placeholder)
+                // CCTV/WebRTC 정보는 있음: "연결 준비됨" UI (지금은 placeholder)
                 ConnectionPill(
                     text = "$label 연결 준비됨",
                     modifier = Modifier
@@ -432,7 +418,7 @@ private fun SmartPreviewCard(
             }
         }
 
-        // ✅ LIVE 배지
+        // LIVE 배지
         if (isLive) {
             LiveBadge(
                 modifier = Modifier
@@ -513,18 +499,12 @@ fun LiveBadge(modifier: Modifier = Modifier) {
         }
     }
 }
-
-/**
- * ✅ (선택) LiveCardItem에 streamId를 붙여두면 캐스팅 없이 바로 쓰면 됨.
- * 지금 당장 수정하기 싫으면 이 인터페이스는 그냥 놔두고,
- * LiveCardItem에 필드 추가하는 순간 이 인터페이스는 필요 없어져.
- */
 interface HasCctvStreamIds {
     val overviewStreamId: String?
     val siteStreamId: String?
 }
 
-// ✅ ExoPlayer를 이용한 간단한 비디오 플레이어
+//  ExoPlayer를 이용한 간단한 비디오 플레이어
 @Composable
 fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current

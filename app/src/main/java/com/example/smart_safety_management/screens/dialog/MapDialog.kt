@@ -45,7 +45,6 @@ import com.kakao.vectormap.LatLng
 import com.example.smart_safety_management.KakaoMapPin
 import com.example.smart_safety_management.KakaoMapView
 
-// 주소를 좌표로 변환하는 함수
 private suspend fun geocode(context: Context, address: String): Pair<Double, Double>? {
     return withContext(Dispatchers.IO) {
         try {
@@ -75,10 +74,10 @@ fun MapDialog(
     val isDark = c.isDark
     val context = LocalContext.current
 
-    // ✅ 전달받은 item의 ID를 그대로 사용 (없으면 첫 번째 카메라)
+    // 전달받은 item의 ID를 그대로 사용 (없으면 첫 번째 카메라)
     val initialCamId = item?.camId ?: cams.firstOrNull()?.camId ?: "CAM 00"
 
-    // ✅ [수정] 마커 ID(CAM 01)와 서버 데이터 ID(CAM 1) 매칭을 위해 normalize 적용
+    // 마커 ID(CAM 01)와 서버 데이터 ID(CAM 1) 매칭을 위해 normalize 적용
     var selectedCamId by remember(cams) { mutableStateOf(normalizeCamId(initialCamId)) }
     val selected = cams.firstOrNull { normalizeCamId(it.camId) == selectedCamId } ?: cams.firstOrNull()
 
@@ -86,23 +85,19 @@ fun MapDialog(
     var cameraPoints by remember { mutableStateOf<Map<String, Pair<Double, Double>>>(emptyMap()) }
     var workplacePoint by remember { mutableStateOf<Pair<Double, Double>?>(null) }
 
-
     val infoBg = if (isDark) Color(0xFF1E2124) else Color.White
     val infoLabel = c.sub
 
-    // ✅ 요청 반영: 다크일 때 값(오른쪽) 흰색, 버튼 텍스트/아이콘 검정
     val infoValue = if (isDark) Color.White else c.sub
     val actionColor = if (isDark) Color.Black else Color.White
     val dialogBg = if (isDark) Color(0xFF1E2124) else Color.White
 
-
-    // 사이즈(확대 버전)
+    // 사이즈
     val dialogW = 348.dp
     val dialogH = 660.dp
     val mapW = 316.dp
     val mapH = 340.dp
 
-    // ✅ 1. 현장 위치(Workplace) 가져오기 (마커 X, 중심점 O)
     LaunchedEffect(Unit) {
         val userId = UserSession.userId ?: return@LaunchedEffect
         withContext(Dispatchers.IO) {
@@ -124,7 +119,6 @@ fun MapDialog(
         }
     }
 
-    // ✅ 2. 카메라 주소 지오코딩
     LaunchedEffect(cctvList) {
         val points = mutableMapOf<String, Pair<Double, Double>>()
         cctvList.forEach { cctv ->
@@ -185,8 +179,6 @@ fun MapDialog(
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(Color(0xFFEAECEF))
                         ) {
-                            // ✅ KakaoMapView로 교체
-
                             val pins = cameraPoints.map { (camId, latLon) ->
                                 val (lat, lon) = latLon
                                 val isSelected = camId == selectedCamId
@@ -206,7 +198,7 @@ fun MapDialog(
                                 )
                             }
 
-// ✅ 중심점: workplace 있으면 workplace, 없으면 선택 카메라, 없으면 첫 카메라
+                            // 중심점: workplace 있으면 workplace, 없으면 선택 카메라, 없으면 첫 카메라
                             val centerLatLng: LatLng? = run {
                                 workplacePoint?.let { (lat, lon) -> LatLng.from(lat, lon) }
                                     ?: cameraPoints[selectedCamId]?.let { (lat, lon) -> LatLng.from(lat, lon) }
@@ -256,7 +248,6 @@ fun MapDialog(
                                         leftColor = infoLabel,
                                         rightColor = infoValue
                                     )
-                                    // ✅ [수정] 탐지모델을 버튼 형태의 태그로 표시
                                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                         Text(
                                             text = "탐지모델",
@@ -280,7 +271,7 @@ fun MapDialog(
                                     }
 
                                     Button(
-                                        onClick = { onMoveCamera(selected.camId) }, // ✅ 선택된 CAM 전달
+                                        onClick = { onMoveCamera(selected.camId) },
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(56.dp),
@@ -349,18 +340,18 @@ private fun InfoRow(
         Text(
             text = left,
             color = leftColor,
-            fontSize = 16.sp,                 // ✅ 16
+            fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
-            fontFamily = Pretendard,          // ✅ Pretendard Medium
+            fontFamily = Pretendard,
             letterSpacing = (-0.2).sp
         )
 
         Text(
             text = right,
             color = rightColor,
-            fontSize = 16.sp,                 // ✅ 16
+            fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
-            fontFamily = Pretendard,          // ✅ Pretendard Medium
+            fontFamily = Pretendard,
             letterSpacing = (-0.1).sp
         )
     }
