@@ -69,6 +69,25 @@ class LogInActivity : AppCompatActivity() {
                             // 3. 세션 저장
                             UserSession.saveSession(this@LogInActivity)
 
+                            // ✅ [추가] 로그인 성공 시 FCM 토큰 가져와서 서버로 전송
+                            com.google.firebase.messaging.FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    val token = task.result
+                                    val userId = UserSession.userId
+                                    if (userId != null && token != null) {
+                                        val tokenRequest = UpdateFcmTokenRequest(userId, token)
+                                        RetrofitClient.instance.updateFcmToken(tokenRequest).enqueue(object : Callback<Void> {
+                                            override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                                                android.util.Log.d("FCM", "FCM 토큰 서버 전송 성공")
+                                            }
+                                            override fun onFailure(call: Call<Void>, t: Throwable) {
+                                                android.util.Log.e("FCM", "FCM 토큰 서버 전송 실패", t)
+                                            }
+                                        })
+                                    }
+                                }
+                            }
+
                             // 4. 화면 이동
                             val intent = if (UserSession.userRole == UserRole.MANAGER) {
                                 Intent(this@LogInActivity, HomeActivity::class.java)

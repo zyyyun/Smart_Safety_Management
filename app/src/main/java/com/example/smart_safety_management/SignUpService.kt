@@ -500,6 +500,11 @@ data class UpdateWatchStatusResponse(
     val status: String
 )
 
+data class UpdateFcmTokenRequest(
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("fcm_token") val fcmToken: String
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -708,4 +713,7 @@ interface SignUpService {
 
     @POST("/update_watch_status")
     fun updateWatchStatus(@Body request: UpdateWatchStatusRequest): Call<UpdateWatchStatusResponse>
+
+    @POST("/update_fcm_token")
+    fun updateFcmToken(@Body request: UpdateFcmTokenRequest): Call<Void>
 }

@@ -5,6 +5,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const path = require('path');
 const fs = require('fs');
 const { sendStatusAlarm } = require('./send_status_alarm'); // ✅ 알림 함수 가져오기
+const admin = require('./firebase_config'); // ✅ Firebase 설정 가져오기
 
 // 업로드 디렉토리 설정
 const uploadDir = path.join(__dirname, 'public', 'uploads');
@@ -103,7 +104,7 @@ router.post('/create_ai_event', async (req, res) => {
         // ✅ [추가] 해당 그룹의 관리자(manager)들에게 알림 생성
         if (camera.group_id) {
             const managersRes = await client.query(
-                "SELECT user_id FROM users WHERE group_id = $1 AND user_role = 'manager'",
+                "SELECT user_id, fcm_token FROM users WHERE group_id = $1 AND user_role = 'manager'",
                 [camera.group_id]
             );
 
@@ -120,6 +121,27 @@ router.post('/create_ai_event', async (req, res) => {
                 });
 
                 await Promise.all(notificationPromises);
+
+                // ✅ [추가] FCM 푸시 알림 전송 로직
+                const tokens = managersRes.rows
+                    .map(manager => manager.fcm_token)
+                    .filter(token => token); // 토큰이 존재하는 경우만 필터링
+
+                if (tokens.length > 0) {
+                    try {
+                        const message = {
+                            notification: {
+                                title: notiTitle,
+                                body: notiContent,
+                            },
+                            tokens: tokens,
+                        };
+                        const response = await admin.messaging().sendEachForMulticast(message);
+                        console.log(`FCM 전송 성공: ${response.successCount}건, 실패: ${response.failureCount}건`);
+                    } catch (fcmError) {
+                        console.error("FCM 전송 중 오류 발생:", fcmError);
+                    }
+                }
             }
         }
 

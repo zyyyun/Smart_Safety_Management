@@ -24,3 +24,7 @@ server/npm-debug.log*
 server/.env
 server/postgres_data/
 server/public/uploads/*
+server/serviceAccountKey.json
+
+
+app/google-services.json

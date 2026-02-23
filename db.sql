@@ -254,6 +254,7 @@ CREATE TABLE IF NOT EXISTS public.users
     profile_image_url character varying(255) COLLATE pg_catalog."default", --프로필 이미지 url
     is_invite_checked boolean DEFAULT false, --그룹 초대 여부
     invite_code character varying(13) COLLATE pg_catalog."default", --초대코드(계정마다 랜덤하게 생성)
+    fcm_token text COLLATE pg_catalog."default", -- FCM 기기 토큰
     CONSTRAINT users_pkey PRIMARY KEY (user_key),
     CONSTRAINT users_invite_code_key UNIQUE (invite_code),
     CONSTRAINT users_user_id_key UNIQUE (user_id),
@@ -343,8 +344,3 @@ CREATE TABLE IF NOT EXISTS public.workplace 설정->현장 생성 및 현장 위
         ON UPDATE NO ACTION
         ON DELETE CASCADE
 )
-
-
-
-
-
