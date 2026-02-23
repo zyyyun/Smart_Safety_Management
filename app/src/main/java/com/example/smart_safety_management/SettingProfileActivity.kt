@@ -112,7 +112,7 @@ class SettingProfileActivity : AppCompatActivity() {
                     val currentUser = userList.find { it.userId == userId }
                     
                     currentUser?.let { user ->
-                        val role = if (user.userRole == "manager") UserRole.MANAGER else UserRole.WORKER
+                        val role = if (user.userRole == "manager" || user.userRole == "general_manager") UserRole.MANAGER else UserRole.WORKER
                         
                         // UI 업데이트
                         updateUI(user.name, role, user.userId, user.phoneNum, user.email, user.profileImageUri)

@@ -54,7 +54,7 @@ router.get('/get_device_status', async (req, res) => {
             return {
                 user_id: row.user_id,
                 name: row.name,
-                role: row.user_role === 'manager' ? '관리자' : '근로자',
+                role: (row.user_role === 'manager' || row.user_role === 'general_manager') ? '관리자' : '근로자',
                 isGpsConnected: isGpsConnected,
                 battery: helmet ? (helmet.battery_level || 0) : 0,
                 watchBattery: watch ? (watch.battery_level || 0) : 0

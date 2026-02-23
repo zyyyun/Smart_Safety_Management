@@ -29,7 +29,7 @@ router.get('/get_users', async (req, res) => {
             `SELECT user_id, name, phone_num, user_role, email, is_invite_checked 
              FROM users 
              WHERE group_id = $1 
-             ORDER BY CASE WHEN user_role = 'manager' THEN 0 ELSE 1 END, name ASC`,
+             ORDER BY CASE WHEN user_role IN ('manager', 'general_manager') THEN 0 ELSE 1 END, name ASC`,
             [groupId]
         );
         res.status(200).json({ users: result.rows });

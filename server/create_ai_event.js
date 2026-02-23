@@ -103,10 +103,14 @@ router.post('/create_ai_event', async (req, res) => {
 
         // ✅ [추가] 해당 그룹의 관리자(manager)들에게 알림 생성
         if (camera.group_id) {
-            const managersRes = await client.query(
-                "SELECT user_id, fcm_token FROM users WHERE group_id = $1 AND user_role = 'manager'",
-                [camera.group_id]
-            );
+            let query = "SELECT user_id, fcm_token FROM users WHERE group_id = $1 AND user_role = 'manager'";
+
+            // risk_level이 DANGER(위험)인 경우 general_manager에게도 알림 발송
+            if (risk_level && risk_level.toUpperCase() === 'DANGER') {
+                query = "SELECT user_id, fcm_token FROM users WHERE group_id = $1 AND user_role IN ('manager', 'general_manager')";
+            }
+
+            const managersRes = await client.query(query, [camera.group_id]);
 
             if (managersRes.rows.length > 0) {
                 const notiTitle = "AI 이벤트 감지";

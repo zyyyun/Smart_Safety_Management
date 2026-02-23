@@ -60,7 +60,7 @@ class LogInActivity : AppCompatActivity() {
                             UserSession.isInviteChecked = body.user.isInviteChecked // DB 값으로 동기화
 
                             // 2. 역할 설정
-                            if (body.user.userRole == "manager") {
+                            if (body.user.userRole == "manager" || body.user.userRole == "general_manager") {
                                 UserSession.userRole = UserRole.MANAGER
                             } else {
                                 UserSession.userRole = UserRole.WORKER
