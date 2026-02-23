@@ -31,6 +31,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
+import com.example.smart_safety_management.RetrofitClient
+import com.example.smart_safety_management.GetArcBreakersResponse
+import com.example.smart_safety_management.UserSession
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 private val CriticalColor = Color(0xFFF97316)
 private val OnBg = Color(0x3306D6A0) // green bg
@@ -83,8 +91,62 @@ class FakeArcBreakerRepository : ArcBreakerRepository {
     }
 }
 
+class RealArcBreakerRepository : ArcBreakerRepository {
+    override suspend fun fetchState(): ArcBreakerUiState {
+        return suspendCoroutine { cont ->
+            val userId = UserSession.userId
+            if (userId == null) {
+                cont.resume(ArcBreakerUiState(isLoading = false, errorMessage = "로그인 정보가 없습니다."))
+                return@suspendCoroutine
+            }
+
+            RetrofitClient.instance.getArcBreakers(userId).enqueue(object : Callback<GetArcBreakersResponse> {
+                override fun onResponse(
+                    call: Call<GetArcBreakersResponse>,
+                    response: Response<GetArcBreakersResponse>
+                ) {
+                    if (response.isSuccessful) {
+                        val list = response.body()?.arcBreakers ?: emptyList()
+                        val devices = list.map { dto ->
+                            // 서버 상태값 매핑
+                            val statusEnum = when {
+                                !dto.isConnected -> AfciStatus.DISCONNECTED
+                                dto.status.uppercase() in listOf("DANGER", "CRITICAL", "위험") -> AfciStatus.CRITICAL
+                                dto.status.uppercase() in listOf("WARNING", "ALERT", "ALTER", "경고", "주의") -> AfciStatus.ALERT
+                                else -> AfciStatus.NORMAL
+                            }
+
+                            AfciDevice(
+                                id = dto.breakerId.toString(),
+                                name = dto.breakerName,
+                                status = statusEnum,
+                                statusText = dto.statusMsg,
+                                isCritical = statusEnum == AfciStatus.CRITICAL
+                            )
+                        }
+
+                        val total = devices.size
+                        val normal = devices.count { it.status == AfciStatus.NORMAL }
+                        val event = devices.count { it.status == AfciStatus.CRITICAL || it.status == AfciStatus.ALERT || it.status == AfciStatus.DISCONNECTED }
+
+                        cont.resume(
+                            ArcBreakerUiState(isLoading = false, devices = devices, totalCount = total, normalCount = normal, eventCount = event)
+                        )
+                    } else {
+                        cont.resume(ArcBreakerUiState(isLoading = false, errorMessage = "서버 오류: ${response.code()}"))
+                    }
+                }
+
+                override fun onFailure(call: Call<GetArcBreakersResponse>, t: Throwable) {
+                    cont.resume(ArcBreakerUiState(isLoading = false, errorMessage = "네트워크 오류: ${t.message}"))
+                }
+            })
+        }
+    }
+}
+
 class ArcBreakerViewModel(
-    private val repo: ArcBreakerRepository = FakeArcBreakerRepository()
+    private val repo: ArcBreakerRepository = RealArcBreakerRepository()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ArcBreakerUiState(isLoading = true))
@@ -316,8 +378,8 @@ private fun ArcBreakerDeviceCard(device: AfciDevice) {
     }
 
     val border = when (device.status) {
-        AfciStatus.CRITICAL -> BorderStroke(1.dp, CriticalColor)
-        else -> BorderStroke(1.dp, Color(0xFFE8E8E8))
+        AfciStatus.NORMAL -> BorderStroke(1.dp, Color(0xFFE8E8E8))
+        else -> BorderStroke(1.dp, CriticalColor)
     }
 
     Surface(
@@ -379,9 +441,8 @@ private fun ArcBreakerDeviceCard(device: AfciDevice) {
 private fun StatusPill(status: AfciStatus) {
     val (text, bg, fg) = when (status) {
         AfciStatus.NORMAL -> Triple("정상", OnBg, OnFg)
-        AfciStatus.CRITICAL -> Triple(
-            "CRITICAL", Color(0xFFF97316), Color.White)
-        AfciStatus.ALERT -> Triple("ALERT", Color(0xFFFFEEDB), Color(0xFFF59E0B))
+        AfciStatus.CRITICAL -> Triple("위험", Color(0xFFF97316), Color.White)
+        AfciStatus.ALERT -> Triple("경고", Color(0xFFFFEEDB), Color(0xFFF59E0B))
         AfciStatus.DISCONNECTED -> Triple("오류", Color(0xFFF3F4F6), Color(0xFF6B7280))
     }
 

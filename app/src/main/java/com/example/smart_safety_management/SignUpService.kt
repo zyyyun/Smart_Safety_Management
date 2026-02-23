@@ -505,6 +505,32 @@ data class UpdateFcmTokenRequest(
     @SerializedName("fcm_token") val fcmToken: String
 )
 
+data class FireDetectorDTO(
+    @SerializedName("detector_id") val detectorId: Int,
+    @SerializedName("detector_name") val detectorName: String,
+    @SerializedName("is_active") val isActive: Boolean,
+    val status: String,
+    @SerializedName("last_update") val lastUpdate: String?
+)
+
+data class GetFireDetectorsResponse(
+    @SerializedName("fire_detectors") val fireDetectors: List<FireDetectorDTO>
+)
+
+data class ArcBreakerDTO(
+    @SerializedName("breaker_id") val breakerId: Int,
+    @SerializedName("group_id") val groupId: Int,
+    @SerializedName("breaker_name") val breakerName: String,
+    val status: String,
+    @SerializedName("status_msg") val statusMsg: String,
+    @SerializedName("is_connected") val isConnected: Boolean,
+    @SerializedName("last_event_at") val lastEventAt: String?
+)
+
+data class GetArcBreakersResponse(
+    @SerializedName("arc_breakers") val arcBreakers: List<ArcBreakerDTO>
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -716,4 +742,10 @@ interface SignUpService {
 
     @POST("/update_fcm_token")
     fun updateFcmToken(@Body request: UpdateFcmTokenRequest): Call<Void>
+
+    @GET("/get_fire_detectors")
+    fun getFireDetectors(): Call<GetFireDetectorsResponse>
+
+    @GET("/get_arc_breakers")
+    fun getArcBreakers(@Query("user_id") userId: String): Call<GetArcBreakersResponse>
 }

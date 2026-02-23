@@ -344,3 +344,16 @@ CREATE TABLE IF NOT EXISTS public.workplace 설정->현장 생성 및 현장 위
         ON UPDATE NO ACTION
         ON DELETE CASCADE
 )
+
+9. 화재경보기와 아크차단기 관련 테이블
+--------------------------------
+
+CREATE TABLE IF NOT EXISTS public.fire_detectors 화재경보기 테이블
+(
+    detector_id integer NOT NULL DEFAULT nextval('fire_detectors_detector_id_seq'::regclass),
+    detector_name character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    is_active boolean DEFAULT true,
+    status character varying(20) COLLATE pg_catalog."default" DEFAULT '정상'::character varying,
+    last_update timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fire_detectors_pkey PRIMARY KEY (detector_id)
+)

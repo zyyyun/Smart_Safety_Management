@@ -32,6 +32,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
+import com.example.smart_safety_management.RetrofitClient
+import com.example.smart_safety_management.GetFireDetectorsResponse
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 private val CriticalColor = Color(0xFFF97316)
 // #06D6A033 (RGBA) -> ARGB 0x33 06 D6 A0
@@ -80,8 +88,48 @@ class FakeFireAlarmRepository : FireAlarmRepository {
     }
 }
 
+class RealFireAlarmRepository : FireAlarmRepository {
+    override suspend fun fetchDevices(): List<AlarmDevice> {
+        return suspendCoroutine { cont ->
+            RetrofitClient.instance.getFireDetectors().enqueue(object : Callback<GetFireDetectorsResponse> {
+                override fun onResponse(
+                    call: Call<GetFireDetectorsResponse>,
+                    response: Response<GetFireDetectorsResponse>
+                ) {
+                    if (response.isSuccessful) {
+                        val list = response.body()?.fireDetectors ?: emptyList()
+                        val devices = list.map { dto ->
+                            val isNormal = dto.status == "정상"
+                            AlarmDevice(
+                                id = dto.detectorId.toString(),
+                                name = dto.detectorName,
+                                status = if (isNormal) AlarmStatus.NORMAL else AlarmStatus.NEED_CHECK,
+                                statusText = if (isNormal) "정상 작동 중" else dto.status,
+                                isOn = dto.isActive,
+                                isCritical = !isNormal
+                            )
+                        }
+                        cont.resume(devices)
+                    } else {
+                        cont.resumeWithException(Exception("서버 오류: ${response.code()}"))
+                    }
+                }
+
+                override fun onFailure(call: Call<GetFireDetectorsResponse>, t: Throwable) {
+                    cont.resumeWithException(t)
+                }
+            })
+        }
+    }
+
+    override suspend fun setDevicePower(id: String, isOn: Boolean): Boolean {
+        // API 미구현: UI 반영을 위해 true 반환
+        return true
+    }
+}
+
 class FireAlarmViewModel(
-    private val repo: FireAlarmRepository = FakeFireAlarmRepository()
+    private val repo: FireAlarmRepository = RealFireAlarmRepository()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FireAlarmUiState(isLoading = true))
