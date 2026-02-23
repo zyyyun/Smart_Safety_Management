@@ -52,6 +52,14 @@ class SplashActivity : AppCompatActivity() {
                                     UserSession.isInviteChecked = currentUser.isInviteChecked
                                     UserSession.groupId = currentUser.groupId
                                     UserSession.inviteCode = currentUser.inviteCode
+
+                                    // 역할 정보 최신화 (general_manager 포함)
+                                    if (currentUser.userRole == "manager" || currentUser.userRole == "general_manager") {
+                                        UserSession.userRole = UserRole.MANAGER
+                                    } else {
+                                        UserSession.userRole = UserRole.WORKER
+                                    }
+
                                     UserSession.saveSession(this@SplashActivity)
                                 }
                                 moveToHome()

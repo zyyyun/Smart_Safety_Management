@@ -126,7 +126,7 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
 
                     // 현재 접속한 유저의 권한 확인
                     val currentUser = users.find { it.userId == userId }
-                    isManager = currentUser?.userRole == "manager"
+                    isManager = currentUser?.userRole == "manager" || currentUser?.userRole == "general_manager"
 
                     allPeople.clear()
                     users.forEach { user ->
@@ -135,7 +135,7 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
                         if (uId == userId) return@forEach
 
                         // DB의 role(manager/worker)을 한글로 변환
-                        val roleName = if (user.userRole == "manager") "관리자" else "근로자"
+                        val roleName = if (user.userRole == "manager" || user.userRole == "general_manager") "관리자" else "근로자"
                         // 전화번호 포맷팅
                         val formattedPhone = formatPhoneNumber(user.phoneNum ?: "")
                         

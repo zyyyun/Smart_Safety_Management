@@ -207,7 +207,7 @@ class SettingInviteActivity : AppCompatActivity() {
                         val contactItem = InviteContactItem(invite.name, formattedPhone)
                         
                         // 역할에 따라 리스트 분류 (역할이 없으면 기본적으로 근로자로 분류하거나, 이름 없음인 경우 근로자로 처리)
-                        if (invite.userRole == "manager") {
+                        if (invite.userRole == "manager" || invite.userRole == "general_manager") {
                             managerList.add(contactItem)
                         } else {
                             // userRole이 "worker"이거나 null(미가입자)인 경우 근로자 탭에 표시
