@@ -261,6 +261,7 @@
             </intent-filter>
         </service>
 
+        <activity android:name=".FireAlarmManageActivity" />
     </application>
 
 </manifest>
