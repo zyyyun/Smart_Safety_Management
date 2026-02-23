@@ -46,7 +46,11 @@ router.post('/create_device_event_log', async (req, res) => {
         if (device_type === 'fire_detector') {
             deviceTypeKr = '화재경보기';
             if (newStatus) {
-                await pool.query('UPDATE fire_detectors SET status = $1, last_update = NOW() WHERE detector_id = $2', [newStatus, device_id]);
+                if (newStatus === 'ERROR') {
+                    await pool.query('UPDATE fire_detectors SET status = $1, is_active = false, last_update = NOW() WHERE detector_id = $2', [newStatus, device_id]);
+                } else {
+                    await pool.query('UPDATE fire_detectors SET status = $1, last_update = NOW() WHERE detector_id = $2', [newStatus, device_id]);
+                }
             }
             const devRes = await pool.query('SELECT detector_name FROM fire_detectors WHERE detector_id = $1', [device_id]);
             if (devRes.rows.length > 0) deviceName = devRes.rows[0].detector_name;

@@ -106,7 +106,7 @@ class RealFireAlarmRepository : FireAlarmRepository {
                     if (response.isSuccessful) {
                         val list = response.body()?.fireDetectors ?: emptyList()
                         val devices = list.map { dto ->
-                            val isNormal = dto.status == "정상"
+                            val isNormal = dto.status == "NORMAL" || dto.status == "정상"
                             AlarmDevice(
                                 id = dto.detectorId.toString(),
                                 name = dto.detectorName,
