@@ -308,6 +308,47 @@
                     android:textSize="18sp" />
             </LinearLayout>
 
+            <!-- 현장구역 설정 아이템 -->
+            <LinearLayout
+                android:id="@+id/item_workplace_area_setting"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:clickable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    app:cardBackgroundColor="@android:color/transparent">
+
+                    <!-- 현장위치 설정 아이콘 -->
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_workplace_location_setting" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 텍스트 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="16dp"
+                    android:fontFamily="@font/pretendard_semibold"
+                    android:gravity="center_vertical"
+                    android:text="현장구역 설정"
+                    android:letterSpacing="0"
+                    android:textColor="@color/gray800_gray200"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
             <!-- 구분선 추가 -->
             <View
                 android:layout_width="match_parent"
@@ -530,9 +571,49 @@
                     android:textSize="18sp" />
             </LinearLayout>
 
-            <!-- 화재 예방 장치 아이템 -->
+            <!-- 화재경보기 아이템 -->
             <LinearLayout
                 android:id="@+id/fire_prevention_device_management"
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:layout_marginTop="16dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="24dp"
+                android:paddingEnd="24dp"
+                android:clickable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp"
+                    app:cardBackgroundColor="@android:color/transparent">
+
+                    <!-- 화재경보기 아이콘 (figma에 없어서 수정해야함) -->
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_machine_management" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 텍스트 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="16dp"
+                    android:fontFamily="@font/pretendard_semibold"
+                    android:gravity="center_vertical"
+                    android:text="화재경보기 관리"
+                    android:letterSpacing="0"
+                    android:textColor="@color/gray800_gray200"
+                    android:textSize="18sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/AFCI_management"
                 android:layout_width="match_parent"
                 android:layout_height="40dp"
                 android:layout_marginTop="16dp"
@@ -565,7 +646,7 @@
                     android:layout_marginStart="16dp"
                     android:fontFamily="@font/pretendard_semibold"
                     android:gravity="center_vertical"
-                    android:text="화재예방장치 관리"
+                    android:text="아크차단기 관리"
                     android:letterSpacing="0"
                     android:textColor="@color/gray800_gray200"
                     android:textSize="18sp" />
