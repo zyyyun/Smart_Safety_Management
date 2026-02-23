@@ -37,6 +37,7 @@ import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 import com.example.smart_safety_management.RetrofitClient
 import com.example.smart_safety_management.GetFireDetectorsResponse
+import com.example.smart_safety_management.UserSession
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -91,7 +92,13 @@ class FakeFireAlarmRepository : FireAlarmRepository {
 class RealFireAlarmRepository : FireAlarmRepository {
     override suspend fun fetchDevices(): List<AlarmDevice> {
         return suspendCoroutine { cont ->
-            RetrofitClient.instance.getFireDetectors().enqueue(object : Callback<GetFireDetectorsResponse> {
+            val userId = UserSession.userId
+            if (userId == null) {
+                cont.resumeWithException(Exception("로그인 정보가 없습니다."))
+                return@suspendCoroutine
+            }
+
+            RetrofitClient.instance.getFireDetectors(userId).enqueue(object : Callback<GetFireDetectorsResponse> {
                 override fun onResponse(
                     call: Call<GetFireDetectorsResponse>,
                     response: Response<GetFireDetectorsResponse>

@@ -744,7 +744,7 @@ interface SignUpService {
     fun updateFcmToken(@Body request: UpdateFcmTokenRequest): Call<Void>
 
     @GET("/get_fire_detectors")
-    fun getFireDetectors(): Call<GetFireDetectorsResponse>
+    fun getFireDetectors(@Query("user_id") userId: String): Call<GetFireDetectorsResponse>
 
     @GET("/get_arc_breakers")
     fun getArcBreakers(@Query("user_id") userId: String): Call<GetArcBreakersResponse>
