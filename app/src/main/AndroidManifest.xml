@@ -262,6 +262,7 @@
         </service>
 
         <activity android:name=".FireAlarmManageActivity" />
+        <activity android:name=".screens.afci.ArcBreakerManageActivity" />
     </application>
 
 </manifest>

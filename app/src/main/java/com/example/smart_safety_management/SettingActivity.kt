@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
+import com.example.smart_safety_management.screens.afci.ArcBreakerManageActivity
 
 class SettingActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,10 +90,8 @@ class SettingActivity : AppCompatActivity() {
         }
 
         findViewById<LinearLayout>(R.id.AFCI_management).setOnClickListener {
-            // TODO: 추후 아크차단기 관리 액티비티(예: SettingFirePreventionActivity) 생성 후 연결 필요
-            // val intent = Intent(this, SettingFirePreventionActivity::class.java)
-            // startActivity(intent)
-            android.widget.Toast.makeText(this, "준비 중인 기능입니다.", android.widget.Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, ArcBreakerManageActivity::class.java)
+            startActivity(intent)
         }
 
         // 초대코드 입력 여부 확인 및 UI 처리
