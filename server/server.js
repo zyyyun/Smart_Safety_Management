@@ -70,6 +70,7 @@ const sendStatusAlarmRouter = require('./send_status_alarm'); // ✅ 추가: 상
 const updateFcmTokenRouter = require('./update_fcm_token'); // ✅ 추가: FCM 토큰 업데이트
 const getFireDetectorsRouter = require('./get_fire_detectors'); // ✅ 추가: 화재 감지기 조회
 const getArcBreakersRouter = require('./get_arc_breakers'); // ✅ 추가: 아크 차단기 조회
+const createDeviceEventLogRouter = require('./create_device_event_log'); // ✅ 추가: 디바이스 이벤트 로그 생성
 
 // 라우터 등록
 app.use('/', signupRouter);
@@ -127,6 +128,7 @@ app.use('/', sendStatusAlarmRouter); // ✅ 추가
 app.use('/', updateFcmTokenRouter); // ✅ 추가
 app.use('/', getFireDetectorsRouter); // ✅ 추가
 app.use('/', getArcBreakersRouter); // ✅ 추가
+app.use('/', createDeviceEventLogRouter); // ✅ 추가
 
 // 업로드된 이미지를 정적 파일로 제공 (http://서버주소/uploads/파일명 으로 접근 가능)
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));

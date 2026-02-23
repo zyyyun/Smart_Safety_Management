@@ -357,3 +357,28 @@ CREATE TABLE IF NOT EXISTS public.fire_detectors 화재경보기 테이블
     last_update timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fire_detectors_pkey PRIMARY KEY (detector_id)
 )
+
+CREATE TABLE IF NOT EXISTS public.arc_breakers 아크차단기 테이블
+(
+    breaker_id integer NOT NULL DEFAULT nextval('arc_breakers_breaker_id_seq'::regclass),
+    group_id integer NOT NULL,
+    breaker_name character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    status character varying(20) COLLATE pg_catalog."default" DEFAULT 'NORMAL'::character varying,
+    --NORMAL / CRITICAL / ALTER / ERROR 4개
+
+    status_msg character varying(255) COLLATE pg_catalog."default" DEFAULT '정상 작동 중'::character varying,
+    is_connected boolean DEFAULT true,
+    last_event_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT arc_breakers_pkey PRIMARY KEY (breaker_id)
+)
+
+CREATE TABLE IF NOT EXISTS public.device_event_logs 이벤트 관련 로그 테이블
+(
+    log_id bigint NOT NULL DEFAULT nextval('device_event_logs_log_id_seq'::regclass),
+    device_type character varying(20) COLLATE pg_catalog."default" NOT NULL,
+    device_id integer NOT NULL,
+    group_id integer NOT NULL,
+    event_type character varying(30) COLLATE pg_catalog."default",
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT device_event_logs_pkey PRIMARY KEY (log_id)
+)
