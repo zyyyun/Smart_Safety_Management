@@ -263,6 +263,7 @@
 
         <activity android:name=".FireAlarmManageActivity" />
         <activity android:name=".screens.afci.ArcBreakerManageActivity" />
+        <activity android:name=".SettingWorkplaceAreaActivity" />
     </application>
 
 </manifest>

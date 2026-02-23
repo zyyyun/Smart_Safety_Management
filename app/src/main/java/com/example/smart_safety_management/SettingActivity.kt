@@ -52,10 +52,8 @@ class SettingActivity : AppCompatActivity() {
         }
 
         findViewById<LinearLayout>(R.id.item_workplace_area_setting).setOnClickListener {
-            // TODO: 추후 현장구역설정  액티비티(예: SettingFirePreventionActivity) 생성 후 연결 필요
-            // val intent = Intent(this, SettingFirePreventionActivity::class.java)
-            // startActivity(intent)
-            android.widget.Toast.makeText(this, "준비 중인 기능입니다.", android.widget.Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, SettingWorkplaceAreaActivity::class.java)
+            startActivity(intent)
         }
 
 
