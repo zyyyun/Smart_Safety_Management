@@ -566,6 +566,16 @@ data class DeleteGeofenceResponse(
     val message: String
 )
 
+data class UpdateGeofenceRequest(
+    @SerializedName("zone_id") val zoneId: Int,
+    @SerializedName("zone_name") val zoneName: String,
+    val points: List<GeofencePointDTO>
+)
+
+data class UpdateGeofenceResponse(
+    val message: String
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -792,4 +802,7 @@ interface SignUpService {
 
     @POST("/delete_geofence_zone")
     fun deleteGeofenceZone(@Body request: DeleteGeofenceRequest): Call<DeleteGeofenceResponse>
+
+    @POST("/update_geofence_zone")
+    fun updateGeofenceZone(@Body request: UpdateGeofenceRequest): Call<UpdateGeofenceResponse>
 }

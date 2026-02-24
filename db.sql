@@ -380,6 +380,8 @@ CREATE TABLE IF NOT EXISTS public.device_event_logs --이벤트 관련 로그 �
 
 CREATE EXTENSION IF NOT EXISTS postgis;
 
+--지오펜싱 테이블
+
 CREATE TABLE IF NOT EXISTS public.geofence_zones (
     zone_id SERIAL PRIMARY KEY,
     zone_name VARCHAR(100),

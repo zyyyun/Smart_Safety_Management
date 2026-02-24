@@ -10,7 +10,8 @@ class SettingWorkplaceAreaActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            SettingWorkplaceAreaScreen()
+            val userId = UserSession.userId ?: ""
+            SettingWorkplaceAreaScreen(userId = userId)
         }
     }
 }

@@ -47,6 +47,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.platform.LocalFocusManager
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 // -----------------------------
 // Theme constants
@@ -68,7 +71,7 @@ private enum class DrawMode { NONE, RECT_2TAP, POLYGON_TAP }
 private enum class UiState { IDLE, DRAWING_NEW, EDITING_SELECTED }
 
 private data class Zone(
-    val id: String,
+    val id: Int, // DB ID (Int)로 변경
     val name: String,
     val points: List<LatLng>
 )
@@ -81,6 +84,7 @@ private data class Zone(
 fun SettingWorkplaceAreaScreen(
     initialLat: Double = 37.5665,
     initialLon: Double = 126.9780,
+    userId: String // 유저 ID를 받아와서 그룹 ID 조회
 ) {
     val context = LocalContext.current
     var kakaoMap by remember { mutableStateOf<KakaoMap?>(null) }
@@ -112,7 +116,9 @@ fun SettingWorkplaceAreaScreen(
     // 기존 상태들
     // -----------------------------
     val zones = remember { mutableStateListOf<Zone>() }
-    var selectedZoneId by remember { mutableStateOf<String?>(null) }
+    var selectedZoneId by remember { mutableStateOf<Int?>(null) }
+    var currentGroupId by remember { mutableStateOf<Int?>(null) } // 서버에서 받아온 그룹 ID
+    var pendingCameraMove by remember { mutableStateOf<LatLng?>(null) } // 초기 위치 이동을 위한 상태
 
     var uiState by remember { mutableStateOf(UiState.IDLE) }
     var mode by remember { mutableStateOf(DrawMode.NONE) }
@@ -124,6 +130,88 @@ fun SettingWorkplaceAreaScreen(
 
     var statusText by remember {
         mutableStateOf("영역을 등록하려면 하단의 '영역 등록 시작'을 눌러주세요")
+    }
+    var inputZoneName by remember { mutableStateOf("") }
+
+    // -----------------------------
+    // ✅ 서버 통신 설정 (SignUpService)
+    // -----------------------------
+    val appRetrofit = remember {
+        Retrofit.Builder()
+            .baseUrl("http://10.0.2.2:3000/") // 에뮬레이터 로컬호스트
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+    val signUpService = remember { appRetrofit.create(SignUpService::class.java) }
+
+    // ✅ 1. 유저 정보 조회하여 Group ID 획득
+    LaunchedEffect(userId) {
+        signUpService.getUserInfo(userId).enqueue(object : Callback<GetUserInfoResponse> {
+            override fun onResponse(call: Call<GetUserInfoResponse>, response: Response<GetUserInfoResponse>) {
+                if (response.isSuccessful) {
+                    currentGroupId = response.body()?.groupId
+                    if (currentGroupId == null) {
+                        statusText = "그룹에 속해있지 않아 영역을 관리할 수 없습니다."
+                    }
+                }
+            }
+            override fun onFailure(call: Call<GetUserInfoResponse>, t: Throwable) {
+                statusText = "유저 정보 로드 실패: ${t.message}"
+            }
+        })
+    }
+
+    // ✅ 2. Group ID가 확보되면 구역 목록 로드
+    LaunchedEffect(currentGroupId) {
+        val gid = currentGroupId
+        if (gid != null) {
+            signUpService.getGeofenceZones(gid).enqueue(object : Callback<GetGeofenceZonesResponse> {
+                override fun onResponse(call: Call<GetGeofenceZonesResponse>, response: Response<GetGeofenceZonesResponse>) {
+                    if (response.isSuccessful) {
+                        val serverZones = response.body()?.zones ?: emptyList()
+                        zones.clear()
+                        zones.addAll(serverZones.map { dto ->
+                            Zone(
+                                id = dto.zoneId,
+                                name = dto.zoneName,
+                                points = dto.points.map { LatLng.from(it.latitude, it.longitude) }
+                            )
+                        })
+                        statusText = "서버에서 ${zones.size}개의 영역을 불러왔습니다."
+                    }
+                }
+                override fun onFailure(call: Call<GetGeofenceZonesResponse>, t: Throwable) {
+                    Log.e("SettingArea", "Failed to load zones", t)
+                    statusText = "영역 불러오기 실패: ${t.message}"
+                }
+            })
+        }
+    }
+
+    // ✅ 3. 현장 위치(Workplace) 조회 후 지도 이동
+    LaunchedEffect(userId) {
+        signUpService.getWorkplaceLocation(userId).enqueue(object : Callback<WorkplaceLocationResponse> {
+            override fun onResponse(call: Call<WorkplaceLocationResponse>, response: Response<WorkplaceLocationResponse>) {
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.latitude != null && body.longitude != null) {
+                        pendingCameraMove = LatLng.from(body.latitude, body.longitude)
+                    }
+                }
+            }
+            override fun onFailure(call: Call<WorkplaceLocationResponse>, t: Throwable) {
+                Log.e("SettingArea", "Failed to load workplace location", t)
+            }
+        })
+    }
+
+    // ✅ 4. 맵 로드 완료 & 위치 정보 수신 시 카메라 이동
+    LaunchedEffect(kakaoMap, pendingCameraMove) {
+        if (kakaoMap != null && pendingCameraMove != null) {
+            // 줌 레벨 17로 확대하여 이동 (숫자가 클수록 확대됨, 보통 15~18 사이 사용)
+            kakaoMap?.moveCamera(CameraUpdateFactory.newCenterPosition(pendingCameraMove, 17))
+            pendingCameraMove = null // 한 번 이동 후 초기화
+        }
     }
 
     val selectedZone: Zone? = zones.firstOrNull { it.id == selectedZoneId }
@@ -165,6 +253,8 @@ fun SettingWorkplaceAreaScreen(
                 selectedZone = selectedZone,
                 draftCount = draftPoints.size,
                 statusText = statusText,
+                inputZoneName = inputZoneName,
+                onZoneNameChange = { inputZoneName = it },
                 onStartRegister = {
                     selectedZoneId = null
                     uiState = UiState.DRAWING_NEW
@@ -172,25 +262,51 @@ fun SettingWorkplaceAreaScreen(
                     rectStart = null
                     draftPoints.clear()
                     statusText = "등록 모드: 지도를 눌러 영역을 만드세요 (기본: 사각형)"
+                    inputZoneName = "구역 ${zones.size + 1}"
                 },
                 onConfirmRegister = {
                     if (draftPoints.size < 3) {
                         statusText = "영역이 너무 작아요 (최소 3점 필요)"
                         return@BottomSheetContentCard
                     }
-                    val newZone = Zone(
-                        id = System.currentTimeMillis().toString(),
-                        name = "구역 ${zones.size + 1}",
-                        points = draftPoints.toList()
-                    )
-                    zones.add(newZone)
+                    
+                    val gid = currentGroupId
+                    if (gid == null) {
+                        statusText = "그룹 정보를 불러오지 못해 등록할 수 없습니다."
+                        return@BottomSheetContentCard
+                    }
 
-                    draftPoints.clear()
-                    rectStart = null
-                    uiState = UiState.IDLE
-                    selectedZoneId = newZone.id
-                    mode = DrawMode.NONE
-                    statusText = "등록 완료: ${newZone.name}"
+                    // ✅ 서버에 등록 요청
+                    val pointsDto = draftPoints.map { GeofencePointDTO(it.latitude, it.longitude) }
+                    val req = CreateGeofenceRequest(
+                        groupId = gid,
+                        zoneName = inputZoneName.ifBlank { "구역 ${zones.size + 1}" },
+                        points = pointsDto
+                    )
+
+                    signUpService.createGeofenceZone(req).enqueue(object : Callback<CreateGeofenceResponse> {
+                        override fun onResponse(call: Call<CreateGeofenceResponse>, response: Response<CreateGeofenceResponse>) {
+                            if (response.isSuccessful && response.body() != null) {
+                                val newId = response.body()!!.zoneId
+                                val newZone = Zone(
+                                    id = newId,
+                                    name = req.zoneName,
+                                    points = draftPoints.toList()
+                                )
+                                zones.add(newZone)
+
+                                draftPoints.clear()
+                                rectStart = null
+                                uiState = UiState.IDLE
+                                selectedZoneId = newZone.id
+                                mode = DrawMode.NONE
+                                statusText = "등록 완료: ${newZone.name}"
+                            }
+                        }
+                        override fun onFailure(call: Call<CreateGeofenceResponse>, t: Throwable) {
+                            statusText = "등록 실패: ${t.message}"
+                        }
+                    })
                 },
                 onCancel = {
                     draftPoints.clear()
@@ -207,6 +323,7 @@ fun SettingWorkplaceAreaScreen(
                     draftPoints.clear()
                     draftPoints.addAll(z.points)
                     statusText = "편집 모드: 점 추가 후 '편집 저장'을 누르세요"
+                    inputZoneName = z.name
                 },
                 onSaveEdit = {
                     val z = selectedZone ?: return@BottomSheetContentCard
@@ -214,25 +331,60 @@ fun SettingWorkplaceAreaScreen(
                         statusText = "영역이 너무 작아요 (최소 3점 필요)"
                         return@BottomSheetContentCard
                     }
-                    val idx = zones.indexOfFirst { it.id == z.id }
-                    if (idx >= 0) zones[idx] = z.copy(points = draftPoints.toList())
+                    
+                    val gid = currentGroupId
+                    if (gid == null) {
+                        statusText = "그룹 정보를 불러오지 못해 수정할 수 없습니다."
+                        return@BottomSheetContentCard
+                    }
 
-                    draftPoints.clear()
-                    rectStart = null
-                    mode = DrawMode.NONE
-                    uiState = UiState.IDLE
-                    statusText = "편집 저장 완료"
+                    // ✅ 수정 로직: Update API 호출 (ID 유지)
+                    val pointsDto = draftPoints.map { GeofencePointDTO(it.latitude, it.longitude) }
+                    val updateReq = UpdateGeofenceRequest(
+                        zoneId = z.id,
+                        zoneName = inputZoneName.ifBlank { z.name },
+                        points = pointsDto
+                    )
+
+                    signUpService.updateGeofenceZone(updateReq).enqueue(object : Callback<UpdateGeofenceResponse> {
+                        override fun onResponse(call: Call<UpdateGeofenceResponse>, response: Response<UpdateGeofenceResponse>) {
+                            if (response.isSuccessful) {
+                                // 로컬 리스트 갱신 (ID 변경 없이 내용만 업데이트)
+                                zones.removeAll { it.id == z.id }
+                                zones.add(z.copy(name = updateReq.zoneName, points = draftPoints.toList()))
+
+                                draftPoints.clear()
+                                rectStart = null
+                                mode = DrawMode.NONE
+                                uiState = UiState.IDLE
+                                statusText = "편집 저장 완료"
+                            }
+                        }
+                        override fun onFailure(call: Call<UpdateGeofenceResponse>, t: Throwable) {
+                            statusText = "수정 실패: ${t.message}"
+                        }
+                    })
                 },
                 onDeleteSelected = {
                     val id = selectedZoneId ?: return@BottomSheetContentCard
-                    zones.removeAll { it.id == id }
-
-                    selectedZoneId = null
-                    draftPoints.clear()
-                    rectStart = null
-                    mode = DrawMode.NONE
-                    uiState = UiState.IDLE
-                    statusText = "삭제 완료"
+                    
+                    // ✅ 서버 삭제 요청
+                    signUpService.deleteGeofenceZone(DeleteGeofenceRequest(id)).enqueue(object : Callback<DeleteGeofenceResponse> {
+                        override fun onResponse(call: Call<DeleteGeofenceResponse>, response: Response<DeleteGeofenceResponse>) {
+                            if (response.isSuccessful) {
+                                zones.removeAll { it.id == id }
+                                selectedZoneId = null
+                                draftPoints.clear()
+                                rectStart = null
+                                mode = DrawMode.NONE
+                                uiState = UiState.IDLE
+                                statusText = "삭제 완료"
+                            }
+                        }
+                        override fun onFailure(call: Call<DeleteGeofenceResponse>, t: Throwable) {
+                            statusText = "삭제 실패: ${t.message}"
+                        }
+                    })
                 }
             )
         }
@@ -258,8 +410,8 @@ fun SettingWorkplaceAreaScreen(
                 onMapReady = { km ->
                     kakaoMap = km
 
-
-                    attachMapTapListenerSafely(km) { latLng ->
+                    // ✅ [최적화] 리플렉션 제거 -> SDK 정식 리스너 사용
+                    km.setOnMapClickListener { _, latLng, _, _ ->
                         focusManager.clearFocus()
                         dropdownExpanded = false
                         when (uiState) {
@@ -303,6 +455,17 @@ fun SettingWorkplaceAreaScreen(
                 onCenterChanged = { _, _ -> mapTick++ }
             )
 
+            // Overlay
+            ZonesOverlay(
+                kakaoMap = kakaoMap,
+                zones = zones.toList(),
+                selectedZoneId = selectedZoneId,
+                draftPoints = draftPoints.toList(),
+                uiState = uiState,
+                tick = mapTick,
+                modifier = Modifier.fillMaxSize()
+            )
+
             // ✅ 상단 검색바 (좌우 여백 + 실제 검색 연결)
             SearchBarOverlay(
                 query = query,
@@ -323,26 +486,14 @@ fun SettingWorkplaceAreaScreen(
                     if (lat != null && lon != null) {
                         val ll = LatLng.from(lat, lon)
                         // ✅ 지도 이동
-                        kakaoMap?.moveCamera(CameraUpdateFactory.newCenterPosition(ll))
-                        // (원하면 확대도)
-                        // kakaoMap?.moveCamera(CameraUpdateFactory.zoomTo(18))
+                        // 검색된 위치로 이동하면서 줌 레벨 17로 확대
+                        kakaoMap?.moveCamera(CameraUpdateFactory.newCenterPosition(ll, 17))
                     }
                 },
                 isPreview = false,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = 12.dp, start = 20.dp, end = 20.dp) // ✅ 양옆 안 닿게
-            )
-
-            // Overlay
-            ZonesOverlay(
-                kakaoMap = kakaoMap,
-                zones = zones.toList(),
-                selectedZoneId = selectedZoneId,
-                draftPoints = draftPoints.toList(),
-                uiState = uiState,
-                tick = mapTick,
-                modifier = Modifier.fillMaxSize()
             )
 
             // 툴바
@@ -577,6 +728,8 @@ private fun BottomSheetContentCard(
     selectedZone: Zone?,
     draftCount: Int,
     statusText: String,
+    inputZoneName: String,
+    onZoneNameChange: (String) -> Unit,
     onStartRegister: () -> Unit,
     onConfirmRegister: () -> Unit,
     onCancel: () -> Unit,
@@ -603,8 +756,13 @@ private fun BottomSheetContentCard(
                 .background(Color(0xFFBFC5CC), RoundedCornerShape(999.dp))
         )
 
+        val displayTitle = when (uiState) {
+            UiState.DRAWING_NEW, UiState.EDITING_SELECTED -> inputZoneName.ifBlank { "이름을 입력하세요" }
+            else -> selectedZone?.name ?: "영역"
+        }
+
         Text(
-            text = selectedZone?.name ?: "영역",
+            text = displayTitle,
             fontSize = 20.sp,
             fontFamily = PretendardBold,
             fontWeight = FontWeight.Bold,
@@ -637,6 +795,17 @@ private fun BottomSheetContentCard(
         )
 
         Spacer(Modifier.height(16.dp))
+
+        if (uiState == UiState.DRAWING_NEW || uiState == UiState.EDITING_SELECTED) {
+            OutlinedTextField(
+                value = inputZoneName,
+                onValueChange = onZoneNameChange,
+                label = { Text("영역 이름", fontFamily = PretendardMedium) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(Modifier.height(16.dp))
+        }
 
         when (uiState) {
             UiState.DRAWING_NEW -> {
@@ -731,17 +900,20 @@ private fun BottomSheetContentCard(
 private fun ZonesOverlay(
     kakaoMap: KakaoMap?,
     zones: List<Zone>,
-    selectedZoneId: String?,
+    selectedZoneId: Int?,
     draftPoints: List<LatLng>,
     uiState: UiState,
     tick: Int,
     modifier: Modifier = Modifier,
 ) {
-    val conversionOk = remember(kakaoMap, tick, zones, draftPoints, selectedZoneId, uiState) {
+    // ✅ [수정] 최적화된 Projection Helper 생성 (메서드 캐싱)
+    val projection = remember(kakaoMap) { kakaoMap?.let { KakaoProjection(it) } }
+
+    val conversionOk = remember(projection, zones, draftPoints) {
         val km = kakaoMap ?: return@remember true
         val anyPts = (zones.firstOrNull()?.points ?: emptyList()) + draftPoints
         if (anyPts.isEmpty()) return@remember true
-        anyPts.take(1).all { latLngToScreenOffsetSafely(km, it) != null }
+        projection != null && anyPts.take(1).all { projection.toScreen(it) != null }
     }
 
     if (!conversionOk) {
@@ -764,16 +936,18 @@ private fun ZonesOverlay(
 
     Canvas(modifier = modifier) {
         val km = kakaoMap ?: return@Canvas
+        val proj = projection ?: return@Canvas
 
-        zones.forEach { z ->
+        // ✅ [수정] forEach 모호성 해결을 위해 for 루프 사용
+        for (z in zones) {
             val isSelected = z.id == selectedZoneId
             val pts = z.points
-            if (pts.size < 3) return@forEach
+            if (pts.size < 3) continue
 
             val screenPts = pts.mapNotNull { ll ->
-                latLngToScreenOffsetSafely(km, ll)?.let { (x, y) -> Offset(x, y) }
+                proj.toScreen(ll)
             }
-            if (screenPts.size < 3) return@forEach
+            if (screenPts.size < 3) continue
 
             val path = Path().apply {
                 moveTo(screenPts[0].x, screenPts[0].y)
@@ -794,7 +968,7 @@ private fun ZonesOverlay(
 
         if ((uiState == UiState.DRAWING_NEW || uiState == UiState.EDITING_SELECTED) && draftPoints.size >= 2) {
             val screenPts = draftPoints.mapNotNull { ll ->
-                latLngToScreenOffsetSafely(km, ll)?.let { (x, y) -> Offset(x, y) }
+                proj.toScreen(ll)
             }
             if (screenPts.size >= 2) {
                 val path = Path().apply {
@@ -817,42 +991,6 @@ private fun ZonesOverlay(
             }
         }
     }
-}
-
-// -----------------------------
-// Map Tap Listener (reflection)
-// -----------------------------
-private fun attachMapTapListenerSafely(
-    km: KakaoMap,
-    onTap: (LatLng) -> Unit
-) {
-    val method = km.javaClass.methods.firstOrNull { m ->
-        val n = m.name.lowercase()
-        (n.contains("setonmap") && n.contains("click")) ||
-                (n.contains("setonmap") && n.contains("tap")) ||
-                (n.contains("seton") && n.contains("map") && n.contains("click")) ||
-                (n.contains("seton") && n.contains("map") && n.contains("tap"))
-    } ?: run {
-        Log.e("ZONE", "❌ No tap/click listener setter found on KakaoMap")
-        return
-    }
-
-    val paramType = method.parameterTypes.firstOrNull() ?: return
-    if (!paramType.isInterface) return
-
-    val proxy = Proxy.newProxyInstance(
-        paramType.classLoader,
-        arrayOf(paramType)
-    ) { _, _, args ->
-        val ll = args?.firstOrNull { it is LatLng } as? LatLng
-        if (ll != null) {
-            onTap(ll)
-            true
-        } else false
-    }
-
-    runCatching { method.invoke(km, proxy) }
-        .onFailure { Log.e("ZONE", "❌ attach tap listener failed: ${method.name}", it) }
 }
 
 // -----------------------------
@@ -894,59 +1032,51 @@ private fun isPointInPolygon(p: LatLng, polygon: List<LatLng>): Boolean {
 }
 
 // -----------------------------
-// LatLng -> Screen offset (reflection, best-effort)
+// ✅ [추가] 최적화된 리플렉션 헬퍼 클래스
+// 메서드를 한 번만 찾아서 저장해두므로(캐싱), 매 프레임마다 검색하지 않아 빠릅니다.
 // -----------------------------
-private fun latLngToScreenOffsetSafely(
-    km: KakaoMap,
-    latLng: LatLng
-): Pair<Float, Float>? {
-    runCatching {
-        val direct = km.javaClass.methods.firstOrNull { m ->
-            val n = m.name.lowercase()
-            m.parameterTypes.size == 1 &&
-                    m.parameterTypes[0].name.contains("LatLng") &&
-                    (n.contains("toscreen") ||
-                            (n.contains("latlng") && n.contains("point")) ||
-                            (n.contains("screen") && n.contains("point")))
-        }
-        if (direct != null) {
-            val pt = direct.invoke(km, latLng) ?: return@runCatching
-            extractXY(pt)?.let { return it }
-        }
-    }
+private class KakaoProjection(private val km: KakaoMap) {
+    private var toScreenMethod: java.lang.reflect.Method? = null
+    private var xField: java.lang.reflect.Field? = null
+    private var yField: java.lang.reflect.Field? = null
+    private var xMethod: java.lang.reflect.Method? = null
+    private var yMethod: java.lang.reflect.Method? = null
+    private var initialized = false
 
-    val proj = runCatching {
-        km.javaClass.methods.firstOrNull { m ->
-            val n = m.name.lowercase()
-            n.contains("projection") || (m.returnType?.name?.lowercase()?.contains("projection") == true)
-        }?.invoke(km)
-    }.getOrNull()
+    fun toScreen(latLng: LatLng): Offset? {
+        if (!initialized) initialize()
+        
+        val method = toScreenMethod ?: return null
+        return try {
+            val pt = method.invoke(km, latLng) ?: return null
+            
+            // x, y 값 추출 (필드 또는 메서드)
+            val x = xField?.get(pt)?.toString()?.toFloatOrNull()
+                ?: xMethod?.invoke(pt)?.toString()?.toFloatOrNull()
+            val y = yField?.get(pt)?.toString()?.toFloatOrNull()
+                ?: yMethod?.invoke(pt)?.toString()?.toFloatOrNull()
 
-    if (proj != null) {
-        val toScreen = proj.javaClass.methods.firstOrNull { m ->
-            val n = m.name.lowercase()
-            m.parameterTypes.size == 1 &&
-                    m.parameterTypes[0].name.contains("LatLng") &&
-                    (n.contains("toscreen") || (n.contains("latlng") && n.contains("point")) || n.contains("topoint"))
-        }
-
-        if (toScreen != null) {
-            val pt = runCatching { toScreen.invoke(proj, latLng) }.getOrNull()
-            if (pt != null) extractXY(pt)?.let { return it }
+            if (x != null && y != null) Offset(x, y) else null
+        } catch (e: Exception) {
+            null
         }
     }
 
-    return null
-}
-
-private fun extractXY(pt: Any): Pair<Float, Float>? {
-    val x = runCatching { pt.javaClass.getField("x").get(pt).toString().toFloat() }.getOrNull()
-        ?: runCatching { pt.javaClass.getMethod("getX").invoke(pt).toString().toFloat() }.getOrNull()
-        ?: return null
-
-    val y = runCatching { pt.javaClass.getField("y").get(pt).toString().toFloat() }.getOrNull()
-        ?: runCatching { pt.javaClass.getMethod("getY").invoke(pt).toString().toFloat() }.getOrNull()
-        ?: return null
-
-    return x to y
+    private fun initialize() {
+        try {
+            // toScreenPoint 또는 유사한 메서드 검색
+            toScreenMethod = km.javaClass.methods.firstOrNull { m ->
+                val n = m.name.lowercase()
+                m.parameterTypes.size == 1 &&
+                        m.parameterTypes[0].name.contains("LatLng") &&
+                        (n.contains("toscreen") || n.contains("project") || (n.contains("latlng") && n.contains("point")))
+            }
+            val returnType = toScreenMethod?.returnType ?: return
+            xField = runCatching { returnType.getField("x") }.getOrNull()
+            yField = runCatching { returnType.getField("y") }.getOrNull()
+            xMethod = runCatching { returnType.getMethod("getX") }.getOrNull()
+            yMethod = runCatching { returnType.getMethod("getY") }.getOrNull()
+        } catch (_: Exception) { }
+        initialized = true
+    }
 }
