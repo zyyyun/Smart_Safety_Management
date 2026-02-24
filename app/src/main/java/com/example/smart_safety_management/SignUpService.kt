@@ -531,6 +531,41 @@ data class GetArcBreakersResponse(
     @SerializedName("arc_breakers") val arcBreakers: List<ArcBreakerDTO>
 )
 
+data class GeofencePointDTO(
+    val latitude: Double,
+    val longitude: Double
+)
+
+data class CreateGeofenceRequest(
+    @SerializedName("group_id") val groupId: Int,
+    @SerializedName("zone_name") val zoneName: String,
+    val points: List<GeofencePointDTO>
+)
+
+data class CreateGeofenceResponse(
+    val message: String,
+    @SerializedName("zone_id") val zoneId: Int
+)
+
+data class GeofenceZoneDTO(
+    @SerializedName("zone_id") val zoneId: Int,
+    @SerializedName("zone_name") val zoneName: String,
+    @SerializedName("group_id") val groupId: Int,
+    val points: List<GeofencePointDTO>
+)
+
+data class GetGeofenceZonesResponse(
+    val zones: List<GeofenceZoneDTO>
+)
+
+data class DeleteGeofenceRequest(
+    @SerializedName("zone_id") val zoneId: Int
+)
+
+data class DeleteGeofenceResponse(
+    val message: String
+)
+
 interface SignUpService {
     @POST("/send_verification_code")
     fun sendVerificationCode(@Body request: VerificationRequest): Call<VerificationResponse>
@@ -748,4 +783,13 @@ interface SignUpService {
 
     @GET("/get_arc_breakers")
     fun getArcBreakers(@Query("user_id") userId: String): Call<GetArcBreakersResponse>
+
+    @POST("/create_geofence_zone")
+    fun createGeofenceZone(@Body request: CreateGeofenceRequest): Call<CreateGeofenceResponse>
+
+    @GET("/get_geofence_zones")
+    fun getGeofenceZones(@Query("group_id") groupId: Int): Call<GetGeofenceZonesResponse>
+
+    @POST("/delete_geofence_zone")
+    fun deleteGeofenceZone(@Body request: DeleteGeofenceRequest): Call<DeleteGeofenceResponse>
 }
