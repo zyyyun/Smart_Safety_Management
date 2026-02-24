@@ -21,6 +21,7 @@ const updateProfileRouter = require('./update_profile');
 const changePasswordRouter = require('./change_password');
 const createWorkplaceRouter = require('./create_workplace');
 const deleteWorkplaceRouter = require('./delete_workplace');
+const updateWorkplaceRouter = require('./update_workplace'); // ✅ 추가
 const checkRegisteredContactsRouter = require('./check_registered_contacts');
 const getUsersRouter = require('./get_users');
 const removeFromGroupRouter = require('./remove_from_group');
@@ -84,6 +85,7 @@ app.use('/', updateProfileRouter);
 app.use('/', changePasswordRouter);
 app.use('/', createWorkplaceRouter);
 app.use('/', deleteWorkplaceRouter);
+app.use('/', updateWorkplaceRouter); // ✅ 추가
 app.use('/', checkRegisteredContactsRouter);
 app.use('/', getUsersRouter);
 app.use('/', removeFromGroupRouter);

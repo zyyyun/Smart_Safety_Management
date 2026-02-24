@@ -120,6 +120,16 @@ data class DeleteWorkplaceResponse(
     val message: String
 )
 
+data class UpdateWorkplaceRequest(
+    @SerializedName("old_place_name") val oldPlaceName: String,
+    @SerializedName("new_place_name") val newPlaceName: String,
+    @SerializedName("admin_id") val adminId: String
+)
+
+data class UpdateWorkplaceResponse(
+    val message: String
+)
+
 data class CheckRegisteredContactsRequest(
     @SerializedName("phone_numbers") val phoneNumbers: List<String>
 )
@@ -600,6 +610,9 @@ interface SignUpService {
 
     @POST("/delete_workplace")
     fun deleteWorkplace(@Body request: DeleteWorkplaceRequest): Call<DeleteWorkplaceResponse>
+
+    @POST("/update_workplace")
+    fun updateWorkplace(@Body request: UpdateWorkplaceRequest): Call<UpdateWorkplaceResponse>
 
     @POST("/reset_workplace_location")
     fun resetWorkplaceLocation(@Body request: DeleteWorkplaceRequest): Call<DeleteWorkplaceResponse>
