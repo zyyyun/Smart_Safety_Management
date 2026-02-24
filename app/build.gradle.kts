@@ -95,6 +95,7 @@ dependencies {
 
     // Play Services Auth
     implementation(libs.play.services.auth.api.phone)
+    implementation(libs.androidx.compose.foundation)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

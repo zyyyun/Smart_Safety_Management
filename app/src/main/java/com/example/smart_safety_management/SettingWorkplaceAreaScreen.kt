@@ -5,8 +5,12 @@ import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -14,6 +18,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -22,15 +27,26 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.LatLng
+import com.kakao.vectormap.camera.CameraUpdateFactory
 import java.lang.reflect.Proxy
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.platform.LocalFocusManager
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 // -----------------------------
 // Theme constants
@@ -69,23 +85,41 @@ fun SettingWorkplaceAreaScreen(
     val context = LocalContext.current
     var kakaoMap by remember { mutableStateOf<KakaoMap?>(null) }
 
-    // 등록된 영역들
-    val zones = remember { mutableStateListOf<Zone>() }
+    // -----------------------------
+    // ✅ Search VM 연결 (실제 검색 동작)
+    // -----------------------------
+    val kakaoRetrofit = remember {
+        Retrofit.Builder()
+            .baseUrl("https://dapi.kakao.com/")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+    val placeApi = remember { kakaoRetrofit.create(PlaceApi::class.java) }
 
-    // 선택된 영역
+    // TODO: 너가 쓰던 REST 키 그대로 넣어 (현장위치설정 화면에서 쓰던 값)
+    val REST_API_KEY = "549ef0580861ccd75dc20bc5858e349f"
+
+    val placeVm: PlaceSearchViewModel =
+        viewModel(factory = PlaceSearchVmFactory(placeApi, REST_API_KEY))
+
+    val query by placeVm.query.collectAsState()
+    val suggestions by placeVm.items.collectAsState()
+    val loading by placeVm.loading.collectAsState()
+    var dropdownExpanded by remember { mutableStateOf(false) }
+
+    val focusManager = LocalFocusManager.current
+    // -----------------------------
+    // 기존 상태들
+    // -----------------------------
+    val zones = remember { mutableStateListOf<Zone>() }
     var selectedZoneId by remember { mutableStateOf<String?>(null) }
 
-    // 현재 작업 상태
     var uiState by remember { mutableStateOf(UiState.IDLE) }
     var mode by remember { mutableStateOf(DrawMode.NONE) }
 
-    // 사각형 2탭 시작점
     var rectStart by remember { mutableStateOf<LatLng?>(null) }
-
-    // 임시(드래프트) 영역 점들: "새 등록" 또는 "편집 중"에 사용
     val draftPoints = remember { mutableStateListOf<LatLng>() }
 
-    // 지도 이동 트리거
     var mapTick by remember { mutableStateOf(0) }
 
     var statusText by remember {
@@ -94,34 +128,129 @@ fun SettingWorkplaceAreaScreen(
 
     val selectedZone: Zone? = zones.firstOrNull { it.id == selectedZoneId }
 
-    Scaffold(
+    // ✅ 바텀시트: 처음 높이(피크) 줄이기
+    val sheetPeek = 220.dp
+    val sheetState = rememberStandardBottomSheetState(
+        initialValue = SheetValue.PartiallyExpanded,
+        skipHiddenState = true
+    )
+    val scaffoldState = rememberBottomSheetScaffoldState(bottomSheetState = sheetState)
+
+    BottomSheetScaffold(
+        scaffoldState = scaffoldState,
+        sheetPeekHeight = sheetPeek,
+        sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        sheetContainerColor = Color.White,
+        sheetTonalElevation = 2.dp,
+        sheetShadowElevation = 8.dp,
+        sheetDragHandle = null, // ✅ 짝대기(드래그핸들) 위에 하나 더 생기는거 방지
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        text = "영역 설정",
-                        fontFamily = PretendardBold
-                    )
-                },
+                title = { Text(text = "영역 설정", fontFamily = PretendardBold) },
                 navigationIcon = {
                     IconButton(onClick = { (context as? Activity)?.finish() }) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back"
+                            painter = painterResource(id = R.drawable.backicon),
+                            contentDescription = "Back",
+                            tint = Color.Black,   // 원하면 BrandOrange로 바꿔도 됨
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
             )
         },
+        sheetContent = {
+            BottomSheetContentCard(
+                uiState = uiState,
+                selectedZone = selectedZone,
+                draftCount = draftPoints.size,
+                statusText = statusText,
+                onStartRegister = {
+                    selectedZoneId = null
+                    uiState = UiState.DRAWING_NEW
+                    mode = DrawMode.RECT_2TAP
+                    rectStart = null
+                    draftPoints.clear()
+                    statusText = "등록 모드: 지도를 눌러 영역을 만드세요 (기본: 사각형)"
+                },
+                onConfirmRegister = {
+                    if (draftPoints.size < 3) {
+                        statusText = "영역이 너무 작아요 (최소 3점 필요)"
+                        return@BottomSheetContentCard
+                    }
+                    val newZone = Zone(
+                        id = System.currentTimeMillis().toString(),
+                        name = "구역 ${zones.size + 1}",
+                        points = draftPoints.toList()
+                    )
+                    zones.add(newZone)
+
+                    draftPoints.clear()
+                    rectStart = null
+                    uiState = UiState.IDLE
+                    selectedZoneId = newZone.id
+                    mode = DrawMode.NONE
+                    statusText = "등록 완료: ${newZone.name}"
+                },
+                onCancel = {
+                    draftPoints.clear()
+                    rectStart = null
+                    mode = DrawMode.NONE
+                    uiState = UiState.IDLE
+                    statusText = "취소됨"
+                },
+                onEditSelected = {
+                    val z = selectedZone ?: return@BottomSheetContentCard
+                    uiState = UiState.EDITING_SELECTED
+                    mode = DrawMode.POLYGON_TAP
+                    rectStart = null
+                    draftPoints.clear()
+                    draftPoints.addAll(z.points)
+                    statusText = "편집 모드: 점 추가 후 '편집 저장'을 누르세요"
+                },
+                onSaveEdit = {
+                    val z = selectedZone ?: return@BottomSheetContentCard
+                    if (draftPoints.size < 3) {
+                        statusText = "영역이 너무 작아요 (최소 3점 필요)"
+                        return@BottomSheetContentCard
+                    }
+                    val idx = zones.indexOfFirst { it.id == z.id }
+                    if (idx >= 0) zones[idx] = z.copy(points = draftPoints.toList())
+
+                    draftPoints.clear()
+                    rectStart = null
+                    mode = DrawMode.NONE
+                    uiState = UiState.IDLE
+                    statusText = "편집 저장 완료"
+                },
+                onDeleteSelected = {
+                    val id = selectedZoneId ?: return@BottomSheetContentCard
+                    zones.removeAll { it.id == id }
+
+                    selectedZoneId = null
+                    draftPoints.clear()
+                    rectStart = null
+                    mode = DrawMode.NONE
+                    uiState = UiState.IDLE
+                    statusText = "삭제 완료"
+                }
+            )
+        }
     ) { padding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .clickable(
+                    indication = null,
+                    interactionSource = remember { MutableInteractionSource() }
+                ) {
+                    // ✅ 빈곳 터치하면 키보드 내리고 드롭다운 닫기
+                    focusManager.clearFocus()
+                    dropdownExpanded = false
+                }
         ) {
-            // -----------------------------
             // Map
-            // -----------------------------
             KakaoMapView(
                 lat = initialLat,
                 lon = initialLon,
@@ -129,11 +258,12 @@ fun SettingWorkplaceAreaScreen(
                 onMapReady = { km ->
                     kakaoMap = km
 
-                    // 지도 탭 처리
+
                     attachMapTapListenerSafely(km) { latLng ->
+                        focusManager.clearFocus()
+                        dropdownExpanded = false
                         when (uiState) {
                             UiState.DRAWING_NEW, UiState.EDITING_SELECTED -> {
-                                // "그리는 중"이면: draftPoints를 늘리거나 사각형 완성
                                 when (mode) {
                                     DrawMode.RECT_2TAP -> {
                                         val start = rectStart
@@ -158,7 +288,6 @@ fun SettingWorkplaceAreaScreen(
                             }
 
                             UiState.IDLE -> {
-                                // "대기 상태"면: 등록된 영역을 눌러 선택(히트 테스트)
                                 val hit = zones.lastOrNull { z -> isPointInPolygon(latLng, z.points) }
                                 if (hit != null) {
                                     selectedZoneId = hit.id
@@ -171,21 +300,41 @@ fun SettingWorkplaceAreaScreen(
                         }
                     }
                 },
-                onCenterChanged = { _, _ ->
-                    mapTick++
-                }
+                onCenterChanged = { _, _ -> mapTick++ }
             )
 
-            // 상단 검색바
+            // ✅ 상단 검색바 (좌우 여백 + 실제 검색 연결)
             SearchBarOverlay(
+                query = query,
+                onQueryChange = { text ->
+                    placeVm.setQuery(text)                 // ✅ 실제 검색
+                    dropdownExpanded = text.isNotBlank()
+                },
+                expanded = dropdownExpanded,
+                onExpandedChange = { dropdownExpanded = it },
+                items = suggestions,
+                loading = loading,
+                onSelectItem = { selected ->
+                    dropdownExpanded = false
+                    focusManager.clearFocus()
+
+                    val lat = selected.lat
+                    val lon = selected.lon
+                    if (lat != null && lon != null) {
+                        val ll = LatLng.from(lat, lon)
+                        // ✅ 지도 이동
+                        kakaoMap?.moveCamera(CameraUpdateFactory.newCenterPosition(ll))
+                        // (원하면 확대도)
+                        // kakaoMap?.moveCamera(CameraUpdateFactory.zoomTo(18))
+                    }
+                },
+                isPreview = false,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 12.dp)
+                    .padding(top = 12.dp, start = 20.dp, end = 20.dp) // ✅ 양옆 안 닿게
             )
 
-            // -----------------------------
-            // Overlay (registered zones + draft)
-            // -----------------------------
+            // Overlay
             ZonesOverlay(
                 kakaoMap = kakaoMap,
                 zones = zones.toList(),
@@ -196,9 +345,7 @@ fun SettingWorkplaceAreaScreen(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // -----------------------------
-            // 오른쪽 툴바 (그리기 모드)
-            // -----------------------------
+            // 툴바
             ToolBarOverlay(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
@@ -223,110 +370,158 @@ fun SettingWorkplaceAreaScreen(
                     statusText = "임시 영역이 초기화되었습니다"
                 }
             )
-
-            // -----------------------------
-            // 하단 액션 카드 (스샷 스타일)
-            // -----------------------------
-            BottomActionCard(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(12.dp),
-                uiState = uiState,
-                selectedZone = selectedZone,
-                draftCount = draftPoints.size,
-                statusText = statusText,
-                onStartRegister = {
-                    selectedZoneId = null
-                    uiState = UiState.DRAWING_NEW
-                    mode = DrawMode.RECT_2TAP
-                    rectStart = null
-                    draftPoints.clear()
-                    statusText = "등록 모드: 지도를 눌러 영역을 만드세요 (기본: 사각형)"
-                },
-                onConfirmRegister = {
-                    if (draftPoints.size < 3) {
-                        statusText = "영역이 너무 작아요 (최소 3점 필요)"
-                        return@BottomActionCard
-                    }
-                    val newZone = Zone(
-                        id = System.currentTimeMillis().toString(),
-                        name = "구역 ${zones.size + 1}",
-                        points = draftPoints.toList()
-                    )
-                    zones.add(newZone)
-
-                    draftPoints.clear()
-                    rectStart = null
-                    uiState = UiState.IDLE
-                    selectedZoneId = newZone.id
-                    mode = DrawMode.NONE
-                    statusText = "등록 완료: ${newZone.name}"
-                },
-                onCancel = {
-                    draftPoints.clear()
-                    rectStart = null
-                    mode = DrawMode.NONE
-                    uiState = UiState.IDLE
-                    statusText = "취소됨"
-                },
-                onEditSelected = {
-                    val z = selectedZone ?: return@BottomActionCard
-                    uiState = UiState.EDITING_SELECTED
-                    mode = DrawMode.POLYGON_TAP
-                    rectStart = null
-                    draftPoints.clear()
-                    draftPoints.addAll(z.points)
-                    statusText = "편집 모드: 점 추가 후 '편집 저장'을 누르세요"
-                },
-                onSaveEdit = {
-                    val z = selectedZone ?: return@BottomActionCard
-                    if (draftPoints.size < 3) {
-                        statusText = "영역이 너무 작아요 (최소 3점 필요)"
-                        return@BottomActionCard
-                    }
-                    val idx = zones.indexOfFirst { it.id == z.id }
-                    if (idx >= 0) zones[idx] = z.copy(points = draftPoints.toList())
-
-                    draftPoints.clear()
-                    rectStart = null
-                    mode = DrawMode.NONE
-                    uiState = UiState.IDLE
-                    statusText = "편집 저장 완료"
-                },
-                onDeleteSelected = {
-                    val id = selectedZoneId ?: return@BottomActionCard
-                    zones.removeAll { it.id == id }
-
-                    selectedZoneId = null
-                    draftPoints.clear()
-                    rectStart = null
-                    mode = DrawMode.NONE
-                    uiState = UiState.IDLE
-                    statusText = "삭제 완료"
-                }
-            )
         }
     }
 }
 
 // -----------------------------
-// UI Components
+// Search / ToolBar
 // -----------------------------
 @Composable
-private fun SearchBarOverlay(modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.fillMaxWidth(0.92f),
-        shape = RoundedCornerShape(12.dp),
-        tonalElevation = 2.dp,
-        shadowElevation = 2.dp
-    ) {
-        var q by remember { mutableStateOf("") }
-        TextField(
-            value = q,
-            onValueChange = { q = it },
-            placeholder = { Text("산업 단지 또는 주소 검색") },
-            singleLine = true
-        )
+private fun SearchBarOverlay(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    items: List<PlaceSuggestion>,
+    loading: Boolean,
+    onSelectItem: (PlaceSuggestion) -> Unit,
+    isPreview: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    var fieldWidthDp by remember { mutableStateOf(0.dp) }
+
+    val showDropdown =
+        expanded && query.trim().length >= 2 && (loading || items.isNotEmpty())
+
+    Column(modifier = modifier.fillMaxWidth()) {
+
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .onGloballyPositioned { coords ->
+                    fieldWidthDp = with(density) { coords.size.width.toDp() }
+                },
+            shape = RoundedCornerShape(14.dp),
+            color = Color.White,
+            tonalElevation = 2.dp,
+            shadowElevation = 6.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.search),
+                    contentDescription = "search",
+                    tint = Color(0xFF9CA3AF),
+                    modifier = Modifier.size(20.dp)
+                )
+
+
+                TextField(
+                    value = query,
+                    onValueChange = { newText ->
+                        onQueryChange(newText)
+                        onExpandedChange(newText.isNotBlank())
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text(
+                            text = "주소를 검색하세요",
+                            fontFamily = PretendardMedium,
+                            color = Color(0xFF9CA3AF)
+                        )
+                    },
+                    singleLine = true,
+                    textStyle = TextStyle(
+                        fontFamily = PretendardMedium,
+                        fontSize = 16.sp,
+                        color = Color.Black
+                    ),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    )
+                )
+            }
+        }
+
+        if (showDropdown) {
+            Surface(
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .fillMaxWidth()
+                    .heightIn(max = 320.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = Color.White,
+                tonalElevation = 6.dp,
+                shadowElevation = 6.dp
+            ) {
+                if (loading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        Text(
+                            text = "검색중...",
+                            fontFamily = PretendardMedium,
+                            fontSize = 14.sp,
+                            color = Color(0xFF6B7280)
+                        )
+                    }
+                } else {
+                    LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                        items(items.size) { idx ->
+                            val item = items[idx]
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onSelectItem(item)
+                                        onExpandedChange(false)
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                            ) {
+                                Text(
+                                    text = item.title,
+                                    fontFamily = PretendardMedium,
+                                    fontSize = 16.sp,
+                                    color = Color.Black,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (!item.address.isNullOrBlank()) {
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = item.address!!,
+                                        fontFamily = PretendardMedium,
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF6B7280),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+
+                            if (idx != items.lastIndex) {
+                                Divider(color = Color(0xFFE5E7EB))
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -366,22 +561,18 @@ private fun ToolBarOverlay(
                     DrawMode.POLYGON_TAP -> "POLY"
                     else -> "READY"
                 },
-                style = MaterialTheme.typography.labelSmall
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = PretendardMedium
             )
         }
     }
 }
 
-/**
- * ✅ BottomActionCard (스샷 스타일)
- * - 드래그 핸들
- * - 둥근 카드
- * - 큰 주황 버튼 스타일
- * - 카드 내부 텍스트 PretendardMedium
- */
+// -----------------------------
+// ✅ BottomSheet content (스크롤 가능 + PretendardMedium)
+// -----------------------------
 @Composable
-private fun BottomActionCard(
-    modifier: Modifier = Modifier,
+private fun BottomSheetContentCard(
     uiState: UiState,
     selectedZone: Zone?,
     draftCount: Int,
@@ -393,139 +584,143 @@ private fun BottomActionCard(
     onSaveEdit: () -> Unit,
     onDeleteSelected: () -> Unit,
 ) {
-    val buttonColors = ButtonDefaults.buttonColors(
-        containerColor = BrandOrange,
-        contentColor = Color.White
-    )
-    val outlinedColors = ButtonDefaults.outlinedButtonColors(
-        contentColor = BrandOrange
-    )
+    val scroll = rememberScrollState()
 
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        tonalElevation = 2.dp,
-        shadowElevation = 8.dp,
-        color = Color.White
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 170.dp)
+            .verticalScroll(scroll)
+            .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 24.dp)
     ) {
-        CompositionLocalProvider(
-            LocalTextStyle provides LocalTextStyle.current.merge(
-                TextStyle(fontFamily = PretendardMedium)
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp)
-            ) {
-                // drag handle
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .padding(top = 2.dp, bottom = 12.dp)
-                        .width(42.dp)
-                        .height(4.dp)
-                        .background(Color(0xFFE5E7EB), RoundedCornerShape(99.dp))
-                )
+        // drag handle (한 개만)
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(top = 6.dp, bottom = 16.dp)
+                .width(46.dp)
+                .height(6.dp)
+                .background(Color(0xFFBFC5CC), RoundedCornerShape(999.dp))
+        )
 
-                Text(
-                    text = selectedZone?.name ?: "영역",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFF111827)
-                )
+        Text(
+            text = selectedZone?.name ?: "영역",
+            fontSize = 20.sp,
+            fontFamily = PretendardBold,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF111827),
+            maxLines = 1
+        )
 
-                Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(10.dp))
 
-                Text(
-                    text = when (uiState) {
-                        UiState.DRAWING_NEW -> "등록 중 : 점 ${draftCount}개"
-                        UiState.EDITING_SELECTED -> "편집 중 : 점 ${draftCount}개"
-                        UiState.IDLE -> if (selectedZone == null) "버튼을 눌러 등록을 시작하세요"
-                        else "선택된 영역입니다. 편집/삭제를 선택하세요"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF374151)
-                )
+        Text(
+            text = when (uiState) {
+                UiState.DRAWING_NEW -> "등록 중 : 점 ${draftCount}개"
+                UiState.EDITING_SELECTED -> "편집 중 : 점 ${draftCount}개"
+                UiState.IDLE -> if (selectedZone == null) "버튼을 눌러 등록을 시작하세요"
+                else "선택된 영역입니다. 편집/삭제를 선택하세요"
+            },
+            fontSize = 16.sp,
+            fontFamily = PretendardMedium,
+            color = Color(0xFF374151)
+        )
 
-                Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(6.dp))
 
-                Text(
-                    text = statusText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF6B7280)
-                )
+        Text(
+            text = statusText,
+            fontSize = 14.sp,
+            fontFamily = PretendardMedium,
+            color = Color(0xFF6B7280),
+            lineHeight = 20.sp
+        )
 
-                Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(16.dp))
 
-                when (uiState) {
-                    UiState.DRAWING_NEW -> {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            OutlinedButton(
-                                onClick = onCancel,
-                                modifier = Modifier.weight(1f).height(48.dp),
-                                colors = outlinedColors,
-                                border = BorderStroke(1.dp, BrandOrange),
-                                shape = RoundedCornerShape(12.dp)
-                            ) { Text("취소") }
-
-                            Button(
-                                onClick = onConfirmRegister,
-                                modifier = Modifier.weight(1f).height(48.dp),
-                                colors = buttonColors,
-                                shape = RoundedCornerShape(12.dp)
-                            ) { Text("영역 등록") }
-                        }
+        when (uiState) {
+            UiState.DRAWING_NEW -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(
+                        onClick = onCancel,
+                        modifier = Modifier.weight(1f).height(54.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, BrandOrange),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandOrange)
+                    ) {
+                        Text("취소", fontFamily = PretendardMedium, fontSize = 18.sp)
                     }
 
-                    UiState.EDITING_SELECTED -> {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            OutlinedButton(
-                                onClick = onCancel,
-                                modifier = Modifier.weight(1f).height(48.dp),
-                                colors = outlinedColors,
-                                border = BorderStroke(1.dp, BrandOrange),
-                                shape = RoundedCornerShape(12.dp)
-                            ) { Text("취소") }
+                    Button(
+                        onClick = onConfirmRegister,
+                        modifier = Modifier.weight(1f).height(54.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandOrange)
+                    ) {
+                        Text("영역 등록", fontFamily = PretendardMedium, fontSize = 18.sp, color = Color.White)
+                    }
+                }
+            }
 
-                            Button(
-                                onClick = onSaveEdit,
-                                modifier = Modifier.weight(1f).height(48.dp),
-                                colors = buttonColors,
-                                shape = RoundedCornerShape(12.dp)
-                            ) { Text("편집 저장") }
-                        }
+            UiState.EDITING_SELECTED -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(
+                        onClick = onCancel,
+                        modifier = Modifier.weight(1f).height(54.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, BrandOrange),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = BrandOrange)
+                    ) {
+                        Text("취소", fontFamily = PretendardMedium, fontSize = 18.sp)
                     }
 
-                    UiState.IDLE -> {
-                        if (selectedZone == null) {
-                            Button(
-                                onClick = onStartRegister,
-                                modifier = Modifier.fillMaxWidth().height(52.dp),
-                                colors = buttonColors,
-                                shape = RoundedCornerShape(12.dp)
-                            ) { Text("영역 등록 시작") }
-                        } else {
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                OutlinedButton(
-                                    onClick = onDeleteSelected,
-                                    modifier = Modifier.weight(1f).height(48.dp),
-                                    colors = outlinedColors,
-                                    border = BorderStroke(1.dp, BrandOrange),
-                                    shape = RoundedCornerShape(12.dp)
-                                ) { Text("삭제") }
+                    Button(
+                        onClick = onSaveEdit,
+                        modifier = Modifier.weight(1f).height(54.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandOrange)
+                    ) {
+                        Text("편집 저장", fontFamily = PretendardMedium, fontSize = 18.sp, color = Color.White)
+                    }
+                }
+            }
 
-                                Button(
-                                    onClick = onEditSelected,
-                                    modifier = Modifier.weight(1f).height(48.dp),
-                                    colors = buttonColors,
-                                    shape = RoundedCornerShape(12.dp)
-                                ) { Text("영역 편집") }
-                            }
+            UiState.IDLE -> {
+                if (selectedZone == null) {
+                    Button(
+                        onClick = onStartRegister,
+                        modifier = Modifier.fillMaxWidth().height(54.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandOrange)
+                    ) {
+                        Text("영역 등록 시작", fontFamily = PretendardMedium, fontSize = 20.sp, color = Color.White)
+                    }
+                } else {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(
+                            onClick = onDeleteSelected,
+                            modifier = Modifier.weight(1f).height(54.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF58616A))
+                        ) {
+                            Text("삭제", fontFamily = PretendardMedium, fontSize = 18.sp)
+                        }
+
+                        Button(
+                            onClick = onEditSelected,
+                            modifier = Modifier.weight(1f).height(54.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6))
+                        ) {
+                            Text("영역 편집", fontFamily = PretendardMedium, fontSize = 18.sp, color = Color(0xFF58616A))
                         }
                     }
                 }
             }
         }
+
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -558,10 +753,11 @@ private fun ZonesOverlay(
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                text = "⚠️ 좌표→화면 변환 실패로 Canvas 오버레이가 보이지 않을 수 있어요. (다음 단계: 카카오 Shape/Polygon 레이어로 그리면 해결)",
+                text = "⚠️ 좌표→화면 변환 실패로 Canvas 오버레이가 보이지 않을 수 있어요.",
                 color = Color.White,
                 modifier = Modifier.padding(10.dp),
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = PretendardMedium
             )
         }
     }
