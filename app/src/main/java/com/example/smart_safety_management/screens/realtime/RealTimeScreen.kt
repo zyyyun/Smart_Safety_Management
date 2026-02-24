@@ -1104,7 +1104,7 @@ fun DeviceStatusDashboard(
             color = c.sub
         )
 
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(12.dp))
 
         Row(
             Modifier.fillMaxWidth(),
