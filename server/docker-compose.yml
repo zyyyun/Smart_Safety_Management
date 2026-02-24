@@ -4,7 +4,7 @@ services:
   # 1. PostgreSQL 데이터베이스 설정
   db:
     platform: linux/amd64  # 추가
-    image: postgres:15
+    image: postgis/postgis:15-3.3
     container_name: smart_safety_db
     restart: always
     environment:
@@ -15,6 +15,7 @@ services:
       - "5432:5432"                   # 로컬 포트 : 컨테이너 포트
     volumes:
       - ./postgres_data:/var/lib/postgresql/data # 데이터 유지 (컨테이너 삭제돼도 데이터 보존)
+      - ../db.sql:/docker-entrypoint-initdb.d/init.sql # 초기화 SQL 스크립트 마운트
 
   # 2. Redis 설정 (인증번호, 세션 등 임시 데이터 저장용)
   redis:
