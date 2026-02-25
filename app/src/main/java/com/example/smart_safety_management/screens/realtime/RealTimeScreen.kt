@@ -359,8 +359,19 @@ private fun RealTimeContent(
                     }
                 }
 
-                items(filteredCards, key = { it.camId }) { item ->
-                    LiveListCard(item = item, onClick = { onCardClick(item) })
+                itemsIndexed(
+                    items = filteredCards,
+                    key = { index, item -> item.camId }   
+                ) { index, item ->
+                    val isLast = index == filteredCards.lastIndex
+
+                    Box(
+                        modifier = Modifier.padding(
+                            bottom = if (isLast) 0.dp else itemSpacing
+                        )
+                    ) {
+                        LiveListCard(item = item, onClick = { onCardClick(item) })
+                    }
                 }
             }
         }
