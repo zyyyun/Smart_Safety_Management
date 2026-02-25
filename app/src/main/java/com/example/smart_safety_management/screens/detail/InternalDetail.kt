@@ -504,7 +504,6 @@ interface HasCctvStreamIds {
     val siteStreamId: String?
 }
 
-//  ExoPlayer를 이용한 간단한 비디오 플레이어
 @Composable
 fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -522,7 +521,6 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
         }
     }
 
-    // Progress update loop
     LaunchedEffect(exoPlayer) {
         while (true) {
             currentPosition = exoPlayer.currentPosition
@@ -550,7 +548,7 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxSize()
         )
 
-        // Custom Controller Overlay
+
         val progress = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
         val timeText = formatTime(currentPosition)
 

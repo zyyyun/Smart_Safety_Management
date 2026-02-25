@@ -49,15 +49,13 @@ fun AppRoot() {
 
     var showMap by remember { mutableStateOf(false) }
 
-    // ✅ 다크모드 토글
+
     var isDark by remember { mutableStateOf(false) }
 
-    // ✅ 서버 데이터 상태 관리
     var allCards by remember { mutableStateOf<List<LiveCardItem>>(emptyList()) }
     var cctvDataList by remember { mutableStateOf<List<CCTVItemResponse>>(emptyList()) }
     val context = LocalContext.current
 
-    // ✅ 서버에서 카메라 리스트 가져오기
     LaunchedEffect(Unit) {
         val userId = UserSession.userId
         if (userId != null) {
@@ -65,7 +63,7 @@ fun AppRoot() {
                 override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
                     if (response.isSuccessful) {
                         val list = response.body()?.cctvList ?: emptyList()
-                        cctvDataList = list // ✅ 원본 데이터 저장 (주소 정보 포함)
+                        cctvDataList = list
                         allCards = list.map { dto ->
                             val resId = R.drawable.thumb_site
                             val baseUrl = RetrofitClient.BASE_URL.removeSuffix("/")
@@ -94,8 +92,6 @@ fun AppRoot() {
     Smart_Safety_ManagementTheme(darkTheme = isDark) {
         val c = LocalSafeColors.current
 
-        // ✅ 핵심: 라이트 모드일 때 Scaffold 배경을 "완전 흰색"으로 고정
-        // (이걸 안 하면 c.bg(#F4F6F9 같은 회백색)이 위에 비쳐서 헤더가 탁해 보임)
         val scaffoldBg = if (c.isDark) c.bg else Color.White
 
         Scaffold(
@@ -106,17 +102,15 @@ fun AppRoot() {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color.White) // ✅ 상단 전체 순백 고정
+                            .background(Color.White)
                     ) {
-                        // ✅ 상태바 영역도 흰색
+
                         Spacer(
                             Modifier
                                 .windowInsetsTopHeight(WindowInsets.statusBars)
                                 .fillMaxWidth()
                                 .background(Color.White)
                         )
-
-                        // ✅ 상단 타이틀/버튼 영역
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -212,13 +206,12 @@ fun AppRoot() {
                         )
 
                         else -> RealTimeScreen(
-                            cards = allCards, // ✅ 데이터 전달
+                            cards = allCards,
                             onCardClick = { item -> selectedItem = item },
                             onMapClick = { showMap = true }
                         )
                     }
                 } else {
-                    // ✅ 선택된 아이템에 해당하는 상세 데이터 찾기
                     val selectedCctvData = cctvDataList.find { it.name == selectedItem?.camId }
                     InternalDetailScreen(
                         item = selectedItem!!,
@@ -232,8 +225,8 @@ fun AppRoot() {
 
                 if (showMap) {
                     MapDialog(
-                        cams = allCards, // ✅ 데이터 전달
-                        cctvList = cctvDataList, // ✅ 주소 정보가 포함된 원본 리스트 전달
+                        cams = allCards,
+                        cctvList = cctvDataList,
                         item = selectedItem,
                         onDismiss = { showMap = false },
                         onMoveCamera = { camId ->

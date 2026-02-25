@@ -66,7 +66,6 @@ class RealTimeActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
 private fun RealTimeNavigation() {
     val context = LocalContext.current

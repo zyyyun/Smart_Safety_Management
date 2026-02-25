@@ -94,7 +94,6 @@ fun DailyListScreen(
     var showDatePicker by remember { mutableStateOf(false) }
 
     Smart_Safety_ManagementTheme {
-        // 테마 블록 내부에서 색상 정의 (다크모드 인지 가능)
         val labelColor = if (MaterialTheme.colors.isLight) TextGray60 else TextGray
         val calendarIconTint = if (MaterialTheme.colors.isLight) Color.Unspecified else GrayBorder
         val fieldBgColor = if (MaterialTheme.colors.isLight) Color.White else TextGray20

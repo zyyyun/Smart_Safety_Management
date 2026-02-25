@@ -74,7 +74,6 @@ class SettingWorkplaceLocationActivity : ComponentActivity() {
     }
 }
 
-/** ✅ 지오코딩: 주소 -> (lat, lon) */
 private suspend fun geocodeToLatLon(
     context: android.content.Context,
     query: String
@@ -95,7 +94,6 @@ private suspend fun geocodeToLatLon(
     }.getOrNull()
 }
 
-/** ✅ 역지오코딩: (lat, lon) -> (전체주소, 우편번호, 도로명 비슷한 값) */
 private suspend fun reverseGeocodeKorea(
     context: android.content.Context,
     lat: Double,
@@ -111,10 +109,6 @@ private suspend fun reverseGeocodeKorea(
         val fullAddr = a.getAddressLine(0) ?: ""
         val postal = a.postalCode ?: ""
 
-        // ✅ 도로명만 만들기 (시/구/국가 제거)
-        // 1순위: 도로명(thoroughfare) + 번지(subThoroughfare)
-        // 2순위: 도로명(thoroughfare) + featureName(건물번호/번지)
-        // 3순위: 도로명(thoroughfare)만
         val roadOnly = when {
             !a.thoroughfare.isNullOrBlank() && !a.subThoroughfare.isNullOrBlank() ->
                 "${a.thoroughfare} ${a.subThoroughfare}".trim()
@@ -147,17 +141,12 @@ fun SettingWorkplaceLocationScreen(
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
 
-    // ✅ (중요) 디바운스용 Job 선언 (기존 코드에 없어서 컴파일 에러 나던 부분)
     var geocodeJob by remember { mutableStateOf<Job?>(null) }
 
-    // ✅ [위치 이동] 서버 데이터로 이동 중일 때 역지오코딩을 막기 위한 플래그 (Launcher보다 먼저 선언되어야 함)
     var isServerMoving by remember { mutableStateOf(true) }
 
-    // ✅ [추가] 초기 데이터 로딩 상태 (DB 조회 전 지도 렌더링 방지)
     var isLoading by remember { mutableStateOf(true) }
 
-    // ✅ "현재 중심좌표"를 직접 읽기 어려운 경우를 대비해서 상태로 관리
-    // (기본값=초기 카메라 위치)
     var centerLat by remember { mutableStateOf(0.0) }
     var centerLon by remember { mutableStateOf(0.0) }
     var targetLatLng by remember { mutableStateOf<com.kakao.vectormap.LatLng?>(null) }
@@ -165,14 +154,12 @@ fun SettingWorkplaceLocationScreen(
     var dropdownExpanded by remember { mutableStateOf(false) }
     var isRegistered by remember { mutableStateOf(false) }
 
-    // ✅ 서버에서 가져온 초기 좌표
     var serverLatLng by remember { mutableStateOf<com.kakao.vectormap.LatLng?>(null) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
 
-        // ✅ 등록된 위치(서버 좌표)가 있으면 GPS로 덮어쓰지 않음
         if (isRegistered || serverLatLng != null) {
             return@rememberLauncherForActivityResult
         }
@@ -223,18 +210,6 @@ fun SettingWorkplaceLocationScreen(
         }
     }
 
-
-    // PlaceSearchViewModel 내부에서 사용하는 Retrofit은 Kakao API용이므로 유지하거나
-    // ViewModel 내부 구현에 따라 다르겠지만, 여기서는 Activity 내의 불필요한 Retrofit 빌더만 제거합니다.
-    // (참고: PlaceSearchViewModel 팩토리 생성 부분은 기존 코드 유지)
-    // 다만, 아래 코드에서 placeApi, kakaoCoordApi를 생성하는 부분은 Kakao API용이므로
-    // 이 부분은 서버 연결(10.0.2.2)과 무관하지만, 질문의 의도인 "서버 요청 부분" 수정을 위해
-    // 로컬 서버 통신 부분 위주로 수정합니다.
-    // *주의*: 위에서 retrofit 변수를 지우면 placeApi 생성에서 에러가 날 수 있으므로
-    // Kakao API용 Retrofit은 남겨두거나 별도로 처리해야 합니다.
-    // 하지만 질문의 핵심인 '로컬 서버 접속 문제' 해결을 위해 아래 로직을 수정합니다.
-
-    // Kakao API용 Retrofit (기존 유지)
     val kakaoRetrofit = remember {
         retrofit2.Retrofit.Builder()
             .baseUrl("https://dapi.kakao.com/")
@@ -252,28 +227,23 @@ fun SettingWorkplaceLocationScreen(
     val suggestions by placeVm.items.collectAsState()
     val loading by placeVm.loading.collectAsState()
 
-    // ✅ 하단 시트 높이(측정값)
     var sheetHeightDp by remember { mutableStateOf(252.dp) }
 
-    // ✅ 표시되는 주소 정보
     var address by remember { mutableStateOf("") }
     var zipcode by remember { mutableStateOf("") }
     var road by remember { mutableStateOf("") }
 
     val orange = Color(0xFFFF7A00)
 
-    // ✅ 상태바/탑바 높이
     val statusTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val topBarH = 60.dp
     val searchTop = statusTop + topBarH + 16.dp
 
-    // ✅ 카카오맵 객체
     var kakaoMapObj by remember { mutableStateOf<com.kakao.vectormap.KakaoMap?>(null) }
 
 
     var didServerMove by remember { mutableStateOf(false) }
 
-    /** ✅ 좌표 기준으로 주소 업데이트 (MapView/osmdroid 제거) */
     fun requestAddressUpdateByLatLon(lat: Double, lon: Double) {
         geocodeJob?.cancel()
         geocodeJob = scope.launch {
@@ -287,7 +257,6 @@ fun SettingWorkplaceLocationScreen(
         }
     }
 
-    // ✅ 초기 진입 시 서버에서 위치 정보 가져오기
     LaunchedEffect(Unit) {
         val userId = UserSession.userId
         Log.d("WorkplaceLoc", "LaunchedEffect Start. userId: $userId")
@@ -296,7 +265,6 @@ fun SettingWorkplaceLocationScreen(
             withContext(Dispatchers.IO) {
                 try {
                     Log.d("WorkplaceLoc", "Requesting location...")
-                    // ✅ RetrofitClient.instance 사용 (동기 호출 execute)
                     val response = RetrofitClient.instance.getWorkplaceLocation(userId).execute()
                     Log.d("WorkplaceLoc", "Response Code: ${response.code()}")
 
@@ -307,7 +275,6 @@ fun SettingWorkplaceLocationScreen(
                         val savedAddr = data.address
                         Log.d("WorkplaceLoc", "Saved Address: $savedAddr")
 
-                        // ✅ [수정] 서버에서 위도/경도가 있으면 우선 사용
                         val sLat = data.latitude
                         val sLon = data.longitude
 
@@ -318,21 +285,16 @@ fun SettingWorkplaceLocationScreen(
                                 road = data.roadAddress ?: ""
                                 isRegistered = true
 
-                                // ✅ [수정] 지도 중심 좌표 상태도 함께 업데이트하여 리컴포지션 시 위치 유지
                                 centerLat = sLat
                                 centerLon = sLon
 
-                                // ✅ [중요] 서버 데이터 적용 시작: 진행 중인 역지오코딩 취소 및 플래그 설정
                                 geocodeJob?.cancel()
 
-                                // ✅ 상태 변수를 즉시 업데이트하여 지도가 처음부터 해당 위치를 바라보게 함
-                                // targetLatLng를 설정하면 지도가 이동하고, 그 후 onCenterChanged에서 centerLat/Lon이 자연스럽게 업데이트됨
                                 serverLatLng = com.kakao.vectormap.LatLng.from(sLat, sLon)
 
-                                // ✅ [추가] 서버 이동 시작 플래그 설정
                                 isServerMoving = true
                                 serverLatLng = com.kakao.vectormap.LatLng.from(sLat, sLon)
-                                targetLatLng = serverLatLng          // ✅ 추가: 즉시 카메라 이동 타겟 세팅
+                                targetLatLng = serverLatLng
                                 isServerMoving = true
 
 
@@ -348,14 +310,10 @@ fun SettingWorkplaceLocationScreen(
                                     isRegistered = true
 
 
-                                    // ✅ [중요] 서버 데이터 적용 시작
                                     geocodeJob?.cancel()
-
-                                    // ✅ [수정] 지도 중심 좌표 상태도 함께 업데이트
                                     centerLat = latLon.first
                                     centerLon = latLon.second
 
-                                    // ✅ 서버 주소 -> 좌표로 카메라 이동 준비
                                     serverLatLng = com.kakao.vectormap.LatLng.from(latLon.first, latLon.second)
                                     targetLatLng = serverLatLng
                                     isServerMoving = true
@@ -367,7 +325,6 @@ fun SettingWorkplaceLocationScreen(
                         Log.e("WorkplaceLoc", "Response failed or body is null")
                     }
 
-                    // ✅ DB에 위치 정보가 없으면 GPS 위치로 이동
                     if (!isDbLocationFound) {
                         withContext(Dispatchers.Main) {
                             @SuppressLint("MissingPermission")
@@ -375,8 +332,7 @@ fun SettingWorkplaceLocationScreen(
                                 ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
                             ) {
                                 val locationManager = context.getSystemService(android.content.Context.LOCATION_SERVICE) as android.location.LocationManager
-                                
-                                // ✅ var loc 대신 val을 사용하여 스마트 캐스트 문제 해결
+
                                 val gpsLoc = if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
                                     locationManager.getLastKnownLocation(android.location.LocationManager.GPS_PROVIDER)
                                 } else null
@@ -389,8 +345,7 @@ fun SettingWorkplaceLocationScreen(
                                     centerLat = finalLoc.latitude
                                     centerLon = finalLoc.longitude
                                     targetLatLng = com.kakao.vectormap.LatLng.from(finalLoc.latitude, finalLoc.longitude)
-                                    
-                                    // ✅ GPS 위치로 이동 시에는 역지오코딩 허용
+
                                     isServerMoving = false
                                 }
                             } else {
@@ -404,7 +359,6 @@ fun SettingWorkplaceLocationScreen(
                     Log.e("WorkplaceLoc", "Exception", e)
                     e.printStackTrace()
                 } finally {
-                    // ✅ [수정 3] 서버 데이터 수신 완료(성공/실패) 시 로딩 해제
                     withContext(Dispatchers.Main) {
                         isLoading = false
                     }
@@ -421,13 +375,10 @@ fun SettingWorkplaceLocationScreen(
         if (didServerMove) return@LaunchedEffect
         didServerMove = true
 
-        // ✅ "이동"은 targetLatLng로
         targetLatLng = target
 
-        // [수정] 상태 동기화 제거 (onCenterChanged에 위임)
     }
 
-    // ✅ [추가] 서버 이동 플래그가 켜지면 2초 뒤에 자동으로 끔 (지도 이동 완료 예상 시간)
     LaunchedEffect(isServerMoving) {
         if (isServerMoving) {
             delay(2000) // 2초 동안은 역지오코딩 막음
@@ -442,7 +393,6 @@ fun SettingWorkplaceLocationScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
 
-            // ✅ 지도
             if (isPreview) {
                 Box(
                     modifier = Modifier
@@ -469,7 +419,6 @@ fun SettingWorkplaceLocationScreen(
                         targetLatLng = targetLatLng,
                         onMapReady = { map -> 
                             kakaoMapObj = map
-                            // ✅ 맵 로드 시 줌 레벨 설정 (숫자가 클수록 확대됨, 예: 17)
                             map.moveCamera(com.kakao.vectormap.camera.CameraUpdateFactory.zoomTo(18))
                         },
                         onCenterChanged = { clat, clon ->
@@ -504,8 +453,6 @@ fun SettingWorkplaceLocationScreen(
                 }
             }
 
-
-            // ✅ 검색창 + 드롭다운
             SearchBarOverlay(
                 query = query,
                 onQueryChange = { newText ->
@@ -524,19 +471,15 @@ fun SettingWorkplaceLocationScreen(
                     val lon = selected.lon
 
                     if (lat != null && lon != null) {
-                        // ✅ 이동은 targetLatLng로만 트리거 (지도 드래그해도 다시 안 돌아감)
                         targetLatLng = com.kakao.vectormap.LatLng.from(lat, lon)
 
-                        // ✅ 현재 중심 좌표 상태도 동기화
                         centerLat = lat
                         centerLon = lon
 
-                        // ✅ 표시값은 일단 업데이트
                         address = selected.address ?: address
                         zipcode = selected.zipcode ?: zipcode
                         road = selected.road_address ?: road
 
-                        // ✅ 정확한 주소로 다시 한 번 역지오코딩 (선택 직후 카드 즉시 갱신)
                         requestAddressUpdateByLatLon(lat, lon)
                     } else {
                         Toast.makeText(context, "좌표 정보가 없는 항목입니다.", Toast.LENGTH_SHORT).show()
@@ -548,10 +491,6 @@ fun SettingWorkplaceLocationScreen(
                     .padding(start = 24.dp, end = 24.dp, top = searchTop)
             )
 
-
-
-
-                // ✅ 가운데 핀
             if (isPreview) {
                 Box(
                     modifier = Modifier
@@ -574,12 +513,10 @@ fun SettingWorkplaceLocationScreen(
                 )
             }
 
-            // ✅ floating 버튼 (등록 전만 노출)
-            // (기존의 mapViewHolder/osmdroid 사용 제거 → centerLat/centerLon으로 역지오코딩)
             if (!isRegistered) {
                 MapFloatButton(
                     onClick = {
-                        // ✅ 현재 중심좌표(상태)를 기준으로 주소 갱신
+
                         requestAddressUpdateByLatLon(centerLat, centerLon)
                     },
                     modifier = Modifier
@@ -588,7 +525,6 @@ fun SettingWorkplaceLocationScreen(
                 )
             }
 
-            // ✅ 하단 카드
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -607,7 +543,6 @@ fun SettingWorkplaceLocationScreen(
                             Toast.makeText(context, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
                         } else {
                             scope.launch(Dispatchers.IO) {
-                                // ✅ RetrofitClient.instance 사용
                                 try {
                                     val request = RegisterLocationRequest(userId, address, road, zipcode, centerLat, centerLon)
                                     val response = RetrofitClient.instance.registerWorkplaceLocation(request).execute()
@@ -660,7 +595,6 @@ fun SettingWorkplaceLocationScreen(
                             Toast.makeText(context, "로그인 정보가 없습니다.", Toast.LENGTH_SHORT).show()
                         } else {
                             scope.launch(Dispatchers.IO) {
-                                // ✅ RetrofitClient.instance 사용
                                 try {
                                     val request = RegisterLocationRequest(userId, address, road, zipcode, centerLat, centerLon)
                                     val response = RetrofitClient.instance.registerWorkplaceLocation(request).execute()
@@ -684,7 +618,6 @@ fun SettingWorkplaceLocationScreen(
                 )
             }
 
-            // ✅ TopBar
             TopBarFixed(
                 onBack = onBack,
                 statusTop = statusTop,

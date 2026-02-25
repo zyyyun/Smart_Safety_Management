@@ -51,9 +51,6 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-// -----------------------------
-// Theme constants
-// -----------------------------
 private val BrandOrange = Color(0xFFF97316)
 
 private val PretendardBold = FontFamily(
@@ -64,9 +61,6 @@ private val PretendardMedium = FontFamily(
     Font(R.font.pretendard_medium, FontWeight.Medium)
 )
 
-// -----------------------------
-// Models / States
-// -----------------------------
 private enum class DrawMode { NONE, RECT_2TAP, POLYGON_TAP }
 private enum class UiState { IDLE, DRAWING_NEW, EDITING_SELECTED }
 
@@ -76,9 +70,6 @@ private data class Zone(
     val points: List<LatLng>
 )
 
-// -----------------------------
-// Screen
-// -----------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingWorkplaceAreaScreen(
@@ -89,9 +80,6 @@ fun SettingWorkplaceAreaScreen(
     val context = LocalContext.current
     var kakaoMap by remember { mutableStateOf<KakaoMap?>(null) }
 
-    // -----------------------------
-    // ✅ Search VM 연결 (실제 검색 동작)
-    // -----------------------------
     val kakaoRetrofit = remember {
         Retrofit.Builder()
             .baseUrl("https://dapi.kakao.com/")
@@ -112,9 +100,7 @@ fun SettingWorkplaceAreaScreen(
     var dropdownExpanded by remember { mutableStateOf(false) }
 
     val focusManager = LocalFocusManager.current
-    // -----------------------------
-    // 기존 상태들
-    // -----------------------------
+
     val zones = remember { mutableStateListOf<Zone>() }
     var selectedZoneId by remember { mutableStateOf<Int?>(null) }
     var currentGroupId by remember { mutableStateOf<Int?>(null) } // 서버에서 받아온 그룹 ID
@@ -133,9 +119,6 @@ fun SettingWorkplaceAreaScreen(
     }
     var inputZoneName by remember { mutableStateOf("") }
 
-    // -----------------------------
-    // ✅ 서버 통신 설정 (SignUpService)
-    // -----------------------------
     val appRetrofit = remember {
         Retrofit.Builder()
             .baseUrl("http://10.0.2.2:3000/") // 에뮬레이터 로컬호스트
@@ -144,7 +127,6 @@ fun SettingWorkplaceAreaScreen(
     }
     val signUpService = remember { appRetrofit.create(SignUpService::class.java) }
 
-    // ✅ 1. 유저 정보 조회하여 Group ID 획득
     LaunchedEffect(userId) {
         signUpService.getUserInfo(userId).enqueue(object : Callback<GetUserInfoResponse> {
             override fun onResponse(call: Call<GetUserInfoResponse>, response: Response<GetUserInfoResponse>) {
@@ -161,7 +143,6 @@ fun SettingWorkplaceAreaScreen(
         })
     }
 
-    // ✅ 2. Group ID가 확보되면 구역 목록 로드
     LaunchedEffect(currentGroupId) {
         val gid = currentGroupId
         if (gid != null) {
@@ -188,7 +169,6 @@ fun SettingWorkplaceAreaScreen(
         }
     }
 
-    // ✅ 3. 현장 위치(Workplace) 조회 후 지도 이동
     LaunchedEffect(userId) {
         signUpService.getWorkplaceLocation(userId).enqueue(object : Callback<WorkplaceLocationResponse> {
             override fun onResponse(call: Call<WorkplaceLocationResponse>, response: Response<WorkplaceLocationResponse>) {
@@ -205,7 +185,6 @@ fun SettingWorkplaceAreaScreen(
         })
     }
 
-    // ✅ 4. 맵 로드 완료 & 위치 정보 수신 시 카메라 이동
     LaunchedEffect(kakaoMap, pendingCameraMove) {
         if (kakaoMap != null && pendingCameraMove != null) {
             // 줌 레벨 17로 확대하여 이동 (숫자가 클수록 확대됨, 보통 15~18 사이 사용)
@@ -216,7 +195,6 @@ fun SettingWorkplaceAreaScreen(
 
     val selectedZone: Zone? = zones.firstOrNull { it.id == selectedZoneId }
 
-    // ✅ 바텀시트: 처음 높이(피크) 줄이기
     val sheetPeek = 220.dp
     val sheetState = rememberStandardBottomSheetState(
         initialValue = SheetValue.PartiallyExpanded,
@@ -231,7 +209,7 @@ fun SettingWorkplaceAreaScreen(
         sheetContainerColor = Color.White,
         sheetTonalElevation = 2.dp,
         sheetShadowElevation = 8.dp,
-        sheetDragHandle = null, // ✅ 짝대기(드래그핸들) 위에 하나 더 생기는거 방지
+        sheetDragHandle = null,
         topBar = {
             TopAppBar(
                 title = { Text(text = "영역 설정", fontFamily = PretendardBold) },
@@ -276,7 +254,6 @@ fun SettingWorkplaceAreaScreen(
                         return@BottomSheetContentCard
                     }
 
-                    // ✅ 서버에 등록 요청
                     val pointsDto = draftPoints.map { GeofencePointDTO(it.latitude, it.longitude) }
                     val req = CreateGeofenceRequest(
                         groupId = gid,
@@ -338,7 +315,6 @@ fun SettingWorkplaceAreaScreen(
                         return@BottomSheetContentCard
                     }
 
-                    // ✅ 수정 로직: Update API 호출 (ID 유지)
                     val pointsDto = draftPoints.map { GeofencePointDTO(it.latitude, it.longitude) }
                     val updateReq = UpdateGeofenceRequest(
                         zoneId = z.id,
@@ -349,7 +325,6 @@ fun SettingWorkplaceAreaScreen(
                     signUpService.updateGeofenceZone(updateReq).enqueue(object : Callback<UpdateGeofenceResponse> {
                         override fun onResponse(call: Call<UpdateGeofenceResponse>, response: Response<UpdateGeofenceResponse>) {
                             if (response.isSuccessful) {
-                                // 로컬 리스트 갱신 (ID 변경 없이 내용만 업데이트)
                                 zones.removeAll { it.id == z.id }
                                 zones.add(z.copy(name = updateReq.zoneName, points = draftPoints.toList()))
 
@@ -367,8 +342,7 @@ fun SettingWorkplaceAreaScreen(
                 },
                 onDeleteSelected = {
                     val id = selectedZoneId ?: return@BottomSheetContentCard
-                    
-                    // ✅ 서버 삭제 요청
+
                     signUpService.deleteGeofenceZone(DeleteGeofenceRequest(id)).enqueue(object : Callback<DeleteGeofenceResponse> {
                         override fun onResponse(call: Call<DeleteGeofenceResponse>, response: Response<DeleteGeofenceResponse>) {
                             if (response.isSuccessful) {
@@ -397,7 +371,6 @@ fun SettingWorkplaceAreaScreen(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
                 ) {
-                    // ✅ 빈곳 터치하면 키보드 내리고 드롭다운 닫기
                     focusManager.clearFocus()
                     dropdownExpanded = false
                 }
@@ -410,7 +383,6 @@ fun SettingWorkplaceAreaScreen(
                 onMapReady = { km ->
                     kakaoMap = km
 
-                    // ✅ [최적화] 리플렉션 제거 -> SDK 정식 리스너 사용
                     km.setOnMapClickListener { _, latLng, _, _ ->
                         focusManager.clearFocus()
                         dropdownExpanded = false
@@ -466,11 +438,10 @@ fun SettingWorkplaceAreaScreen(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // ✅ 상단 검색바 (좌우 여백 + 실제 검색 연결)
             SearchBarOverlay(
                 query = query,
                 onQueryChange = { text ->
-                    placeVm.setQuery(text)                 // ✅ 실제 검색
+                    placeVm.setQuery(text)
                     dropdownExpanded = text.isNotBlank()
                 },
                 expanded = dropdownExpanded,
@@ -485,8 +456,6 @@ fun SettingWorkplaceAreaScreen(
                     val lon = selected.lon
                     if (lat != null && lon != null) {
                         val ll = LatLng.from(lat, lon)
-                        // ✅ 지도 이동
-                        // 검색된 위치로 이동하면서 줌 레벨 17로 확대
                         kakaoMap?.moveCamera(CameraUpdateFactory.newCenterPosition(ll, 17))
                     }
                 },
@@ -719,9 +688,6 @@ private fun ToolBarOverlay(
     }
 }
 
-// -----------------------------
-// ✅ BottomSheet content (스크롤 가능 + PretendardMedium)
-// -----------------------------
 @Composable
 private fun BottomSheetContentCard(
     uiState: UiState,
@@ -893,9 +859,6 @@ private fun BottomSheetContentCard(
     }
 }
 
-// -----------------------------
-// Overlay Rendering (Canvas)
-// -----------------------------
 @Composable
 private fun ZonesOverlay(
     kakaoMap: KakaoMap?,
@@ -906,7 +869,7 @@ private fun ZonesOverlay(
     tick: Int,
     modifier: Modifier = Modifier,
 ) {
-    // ✅ [수정] 최적화된 Projection Helper 생성 (메서드 캐싱)
+
     val projection = remember(kakaoMap) { kakaoMap?.let { KakaoProjection(it) } }
 
     val conversionOk = remember(projection, zones, draftPoints) {
@@ -938,7 +901,6 @@ private fun ZonesOverlay(
         val km = kakaoMap ?: return@Canvas
         val proj = projection ?: return@Canvas
 
-        // ✅ [수정] forEach 모호성 해결을 위해 for 루프 사용
         for (z in zones) {
             val isSelected = z.id == selectedZoneId
             val pts = z.points
@@ -992,10 +954,6 @@ private fun ZonesOverlay(
         }
     }
 }
-
-// -----------------------------
-// Geometry helpers
-// -----------------------------
 private fun makeRectPolygon(a: LatLng, b: LatLng): List<LatLng> {
     val minLat = minOf(a.latitude, b.latitude)
     val maxLat = maxOf(a.latitude, b.latitude)
@@ -1031,10 +989,6 @@ private fun isPointInPolygon(p: LatLng, polygon: List<LatLng>): Boolean {
     return inside
 }
 
-// -----------------------------
-// ✅ [추가] 최적화된 리플렉션 헬퍼 클래스
-// 메서드를 한 번만 찾아서 저장해두므로(캐싱), 매 프레임마다 검색하지 않아 빠릅니다.
-// -----------------------------
 private class KakaoProjection(private val km: KakaoMap) {
     private var toScreenMethod: java.lang.reflect.Method? = null
     private var xField: java.lang.reflect.Field? = null

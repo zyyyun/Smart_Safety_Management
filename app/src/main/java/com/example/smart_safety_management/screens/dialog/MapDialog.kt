@@ -74,14 +74,11 @@ fun MapDialog(
     val isDark = c.isDark
     val context = LocalContext.current
 
-    // 전달받은 item의 ID를 그대로 사용 (없으면 첫 번째 카메라)
     val initialCamId = item?.camId ?: cams.firstOrNull()?.camId ?: "CAM 00"
 
-    // 마커 ID(CAM 01)와 서버 데이터 ID(CAM 1) 매칭을 위해 normalize 적용
     var selectedCamId by remember(cams) { mutableStateOf(normalizeCamId(initialCamId)) }
     val selected = cams.firstOrNull { normalizeCamId(it.camId) == selectedCamId } ?: cams.firstOrNull()
 
-    // 지도 상태
     var cameraPoints by remember { mutableStateOf<Map<String, Pair<Double, Double>>>(emptyMap()) }
     var workplacePoint by remember { mutableStateOf<Pair<Double, Double>?>(null) }
 
@@ -92,7 +89,6 @@ fun MapDialog(
     val actionColor = if (isDark) Color.Black else Color.White
     val dialogBg = if (isDark) Color(0xFF1E2124) else Color.White
 
-    // 사이즈
     val dialogW = 348.dp
     val dialogH = 660.dp
     val mapW = 316.dp
@@ -145,7 +141,6 @@ fun MapDialog(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            // 바깥 클릭 닫기
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -198,7 +193,6 @@ fun MapDialog(
                                 )
                             }
 
-                            // 중심점: workplace 있으면 workplace, 없으면 선택 카메라, 없으면 첫 카메라
                             val centerLatLng: LatLng? = run {
                                 workplacePoint?.let { (lat, lon) -> LatLng.from(lat, lon) }
                                     ?: cameraPoints[selectedCamId]?.let { (lat, lon) -> LatLng.from(lat, lon) }
@@ -222,7 +216,6 @@ fun MapDialog(
 
                         }
 
-                        /* ---------- 정보 카드 (선택된 카메라 정보 표시) ---------- */
                         if (selected != null) {
                             Card(
                                 shape = RoundedCornerShape(14.dp),
@@ -305,7 +298,6 @@ fun MapDialog(
                         }
                     }
 
-                    /* ---------- 닫기 버튼 ---------- */
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier

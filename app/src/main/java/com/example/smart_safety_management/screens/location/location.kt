@@ -137,20 +137,17 @@ fun LocationScreen(
     val tableTextColor = Color(0xFF33363D)
     val iconTint = tableTextColor
 
-    // ✅ 기존 상태들
     var selectedWorkerId by remember { mutableStateOf<String?>(null) }
     var areas by remember { mutableStateOf(listOf("전체")) }
     var selectedArea by remember { mutableStateOf("전체") }
 
-    // ✅ CamDialog 관련 (권한 런처에서 쓰니까 먼저 선언해야 함)
     var showCamDialog by remember { mutableStateOf(false) }
     var camTargetRow by remember { mutableStateOf<WorkerRow?>(null) }
 
-    // ✅ 권한 관련
+
     val context = LocalContext.current
     var pendingCamRow by remember { mutableStateOf<WorkerRow?>(null) }
 
-    // ✅ 현장(등록된 workplace) 좌표로 초기 카메라 시작하기 위한 상태
     var isLoadingWorkplace by remember { mutableStateOf(true) }
     var workplaceLatLng by remember { mutableStateOf<LatLng?>(null) }
 
@@ -166,7 +163,6 @@ fun LocationScreen(
         }
     }
 
-    // ✅ [수정] 서버 데이터로 교체하기 위해 상태 변수로 변경 (초기값 빈 리스트)
     var rows by remember { mutableStateOf<List<WorkerRow>>(emptyList()) }
     var pins by remember { mutableStateOf<List<WorkerPin>>(emptyList()) }
 
@@ -216,10 +212,6 @@ fun LocationScreen(
         }
     }
 
-
-
-    /* -------------------- bottom sheet height -------------------- */
-
     val density = LocalDensity.current
     fun Dp.toPxSafe(): Float = with(density) { toPx() }
     fun Float.toDpSafe(): Dp = with(density) { toDp() }
@@ -247,8 +239,6 @@ fun LocationScreen(
         if (sheetHeightPx < targetPx) sheetHeightPx = targetPx
     }
 
-
-    // 등록된 현장 위치(workplace)를 서버에서 가져와 지도 초기 중심으로 사용
     LaunchedEffect(Unit) {
         val userId = UserSession.userId
 
@@ -279,7 +269,6 @@ fun LocationScreen(
         }
     }
 
-    // ✅ [수정] 서버에서 지오펜싱 구역 리스트를 가져와 구역 필터 동적 생성
     LaunchedEffect(Unit) {
         val groupIdStr = UserSession.groupId
         val groupId = groupIdStr?.toIntOrNull()
@@ -300,7 +289,6 @@ fun LocationScreen(
         }
     }
 
-    // 서버에서 작업자 위치(Location) 가져와서 리스트 및 핀 구성 (실시간 갱신)
     LaunchedEffect(Unit) {
         val userId = UserSession.userId
         if (!userId.isNullOrEmpty()) {
@@ -362,8 +350,6 @@ fun LocationScreen(
             }
         }
     }
-
-    /* -------------------- UI -------------------- */
 
     Box(modifier = modifier.fillMaxSize()) {
 
@@ -554,14 +540,14 @@ fun LocationScreen(
             CamDialog(
                 title = "안전모 CAM",
                 onDismiss = { showCamDialog = false },
-                workerId = camTargetRow!!.id,   // ✅ 추가
+                workerId = camTargetRow!!.id,
                 isDark = dark
             )
 
         }
     }
 }
-/* -------------------- bottom sheet parts -------------------- */
+
 @Composable
 private fun SheetHandle(
     handleColor: Color,

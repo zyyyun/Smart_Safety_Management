@@ -68,8 +68,7 @@ import com.example.smart_safety_management.GetArcBreakersResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-/* -------------------- Popup Position Provider -------------------- */
-// ✅ 앵커(버튼) 바로 아래에 뜨도록 위치 계산
+
 private class AnchorBelowPositionProvider(
     private val gap: Int,
     private val alignRightToAnchor: Boolean = false
@@ -265,8 +264,6 @@ private fun RealTimeContent(
 
     val sidePadding = 25.2.dp
     val itemSpacing = 16.8.dp
-
-    // ✅ 헤더(배열) ↔ 첫 카드 간격: 여기만 조절
     val headerBottomGap = 1.dp
 
     val rowW = screenW - (sidePadding * 2)
@@ -361,7 +358,7 @@ private fun RealTimeContent(
 
                 itemsIndexed(
                     items = filteredCards,
-                    key = { index, item -> item.camId }   
+                    key = { index, item -> item.camId }
                 ) { index, item ->
                     val isLast = index == filteredCards.lastIndex
 
@@ -395,7 +392,6 @@ private fun RealTimeHeader(
 ) {
     val c = LocalSafeColors.current
 
-    // ✅ 기기 상태 카운트 State
     var fireTotal by remember { mutableIntStateOf(0) }
     var fireOk by remember { mutableIntStateOf(0) }
     var fireEvent by remember { mutableIntStateOf(0) }
@@ -404,7 +400,6 @@ private fun RealTimeHeader(
     var arcOk by remember { mutableIntStateOf(0) }
     var arcEvent by remember { mutableIntStateOf(0) }
 
-    // ✅ 데이터 로드
     LaunchedEffect(Unit) {
         val userId = UserSession.userId ?: return@LaunchedEffect
 
@@ -489,11 +484,10 @@ private fun RealTimeHeader(
             thickness = 1.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .bleedHorizontal(sidePadding) // ✅ 화면 끝까지
+                .bleedHorizontal(sidePadding)
         )
     }
 
-    // ✅ 기기 상태 대시보드
     DeviceStatusDashboard(
         modifier = Modifier
             .fillMaxWidth()
@@ -522,7 +516,7 @@ private fun RealTimeHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 0.dp, bottom = 10.dp),   // ✅ "기기 상태" 타이틀 라인 느낌
+            .padding(top = 0.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -537,20 +531,18 @@ private fun RealTimeHeader(
 
         IconButton(
             onClick = onToggleGrid,
-            modifier = Modifier.size(36.dp) // ✅ 48 -> 36 (헤더 라인처럼)
+            modifier = Modifier.size(36.dp)
         ) {
             Icon(
                 painter = painterResource(id = if (isGrid) R.drawable.frame else R.drawable.vector),
                 contentDescription = null,
                 tint = c.sub,
-                modifier = Modifier.size(22.dp) // ✅ 28 -> 22
+                modifier = Modifier.size(22.dp)
             )
         }
     }
 }
 
-
-/* -------------------- Dropdown -------------------- */
 @Composable
 fun SimpleDropdown(
     value: String,
@@ -574,7 +566,6 @@ fun SimpleDropdown(
     val gapPx = with(density) { 6.dp.roundToPx() }
     val finalMenuWidth = menuWidth ?: with(density) { anchorWidthPx.toDp() }
 
-    // ✅ 다크모드 전용 색
     val menuTextColor = if (isDark) Color(0xFFCDD1D5) else c.text
     val menuDividerColor = if (isDark) Color(0xFF8A949E) else Color(0xFFF4F5F6)
 
@@ -759,7 +750,6 @@ fun RealTimeBottomBar(
         }
     }
 }
-
 @Composable
 private fun RowScope.BottomIconItem(
     painter: Painter,
@@ -799,8 +789,6 @@ private fun RowScope.BottomIconItem(
         )
     }
 }
-
-/* -------------------- Cards -------------------- */
 @Composable
 fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
     val c = LocalSafeColors.current
@@ -868,7 +856,6 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
         }
     }
 }
-
 @Composable
 fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
     val c = LocalSafeColors.current
@@ -935,8 +922,6 @@ fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
         }
     }
 }
-
-/* -------------------- Badge / Pills -------------------- */
 @Composable
 fun LiveBadge(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "liveDot")
@@ -979,7 +964,6 @@ fun LiveBadge(modifier: Modifier = Modifier) {
         }
     }
 }
-
 @Composable
 fun CamPill(
     text: String,
@@ -1015,7 +999,6 @@ fun CamPill(
         )
     }
 }
-
 @Composable
 fun PlaceText(text: String, color: Color) {
     val c = LocalSafeColors.current
@@ -1029,7 +1012,6 @@ fun PlaceText(text: String, color: Color) {
         fontFamily = Pretendard
     )
 }
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TagsRow(tags: List<String>, isRisk: Boolean = false) {
@@ -1040,7 +1022,6 @@ fun TagsRow(tags: List<String>, isRisk: Boolean = false) {
         tags.forEach { TagPill(it, isRisk = isRisk) }
     }
 }
-
 @Composable
 fun TagPill(text: String, isRisk: Boolean = false) {
     val c = LocalSafeColors.current
@@ -1074,7 +1055,6 @@ fun TagPill(text: String, isRisk: Boolean = false) {
         )
     }
 }
-
 @Composable
 fun TagsRowSingleLine(tags: List<String>, isRisk: Boolean = false) {
     LazyRow(
@@ -1086,7 +1066,6 @@ fun TagsRowSingleLine(tags: List<String>, isRisk: Boolean = false) {
         }
     }
 }
-
 @Composable
 fun TagPillCompact(text: String, isRisk: Boolean = false) {
     val c = LocalSafeColors.current
@@ -1119,8 +1098,6 @@ fun TagPillCompact(text: String, isRisk: Boolean = false) {
         )
     }
 }
-
-/* -------------------- risk detect -------------------- */
 private fun LiveCardItem.hasRisk(): Boolean {
     val riskKeywords = listOf("충돌", "안전모", "화재", "협착", "쓰러짐")
     return tags.any { tag -> riskKeywords.any { key -> tag.contains(key) } }
@@ -1134,7 +1111,6 @@ fun PreviewRealTimeScreen() {
     }
 }
 
-/* -------------------- Device Status Dashboard -------------------- */
 enum class DashBadgeType { LIVE, ALERT }
 
 data class DeviceDashItem(
@@ -1292,7 +1268,6 @@ private fun Modifier.fullBleedHorizontal(sidePadding: Dp): Modifier = this.then(
     Modifier.layout { measurable, constraints ->
         val padPx = sidePadding.roundToPx()
 
-        // ✅ 소수 dp 반올림 오차 보정용 여유(1~2px)
         val fudge = 2
         val extra = padPx * 2 + fudge
 
@@ -1303,9 +1278,7 @@ private fun Modifier.fullBleedHorizontal(sidePadding: Dp): Modifier = this.then(
 
         val placeable = measurable.measure(loose)
 
-        // ✅ 실제 레이아웃 폭도 강제로 extra만큼 늘림
         layout(constraints.maxWidth + extra, placeable.height) {
-            // ✅ 왼쪽으로 더 당겨서 오른쪽도 꽉 차게
             placeable.placeRelative(-(padPx + fudge / 2), 0)
         }
     }
@@ -1324,7 +1297,7 @@ private fun FullBleedDivider(
         modifier = Modifier
             .fillMaxWidth()
             .height(thickness)
-            .graphicsLayer { clip = false } // ✅ 중요: 넘쳐 그리기 허용
+            .graphicsLayer { clip = false }
     ) {
         drawLine(
             color = color,
@@ -1339,16 +1312,13 @@ private fun Modifier.bleedHorizontal(sidePadding: Dp): Modifier = this.then(
     Modifier.layout { measurable, constraints ->
         val pad = sidePadding.roundToPx()
 
-        // ✅ 자식은 더 넓게 측정(좌우 패딩만큼 추가)
         val widened = constraints.copy(
             maxWidth = constraints.maxWidth + pad * 2
         )
 
         val placeable = measurable.measure(widened)
 
-        // ✅ 부모가 기대하는 폭은 그대로 유지 (중요)
         layout(constraints.maxWidth, placeable.height) {
-            // ✅ 왼쪽으로 pad 만큼 당겨서 양쪽으로 삐져나오게
             placeable.placeRelative(-pad, 0)
         }
     }
