@@ -11,21 +11,20 @@ router.get('/get_arc_breakers', async (req, res) => {
 
     try {
         // 1. 요청한 유저의 group_id 조회
-        const userResult = await pool.query('SELECT group_id FROM users WHERE user_id = $1', [user_id]);
-
-        if (userResult.rows.length === 0) {
+        const userRes = await pool.query('SELECT group_id FROM users WHERE user_id = $1', [user_id]);
+        if (userRes.rows.length === 0) {
             return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
         }
+        const groupId = userRes.rows[0].group_id;
 
-        const groupId = userResult.rows[0].group_id;
-
-        // 2. 해당 그룹의 아크 차단기 목록 조회
+        // 2. 해당 그룹의 아크 차단기 조회
         const result = await pool.query(
-            `SELECT breaker_id, group_id, breaker_name, status, status_msg, is_connected, 
+            `SELECT breaker_id, breaker_name, status, status_msg, is_connected, 
              to_char(last_event_at, 'YYYY-MM-DD HH24:MI:SS') as last_event_at 
-             FROM arc_breakers WHERE group_id = $1 ORDER BY breaker_id ASC`,
-            [groupId]
-        );
+             FROM arc_breakers 
+             WHERE group_id = $1 
+             ORDER BY breaker_id ASC`
+        , [groupId]);
         res.status(200).json({ arc_breakers: result.rows });
     } catch (err) {
         console.error('Error fetching arc breakers:', err);

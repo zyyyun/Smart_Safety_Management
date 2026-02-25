@@ -61,6 +61,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.unit.Dp
+import com.example.smart_safety_management.RetrofitClient
+import com.example.smart_safety_management.UserSession
+import com.example.smart_safety_management.GetFireDetectorsResponse
+import com.example.smart_safety_management.GetArcBreakersResponse
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 /* -------------------- Popup Position Provider -------------------- */
 // ✅ 앵커(버튼) 바로 아래에 뜨도록 위치 계산
 private class AnchorBelowPositionProvider(
@@ -377,6 +384,49 @@ private fun RealTimeHeader(
 ) {
     val c = LocalSafeColors.current
 
+    // ✅ 기기 상태 카운트 State
+    var fireTotal by remember { mutableIntStateOf(0) }
+    var fireOk by remember { mutableIntStateOf(0) }
+    var fireEvent by remember { mutableIntStateOf(0) }
+
+    var arcTotal by remember { mutableIntStateOf(0) }
+    var arcOk by remember { mutableIntStateOf(0) }
+    var arcEvent by remember { mutableIntStateOf(0) }
+
+    // ✅ 데이터 로드
+    LaunchedEffect(Unit) {
+        val userId = UserSession.userId ?: return@LaunchedEffect
+
+        // 1. 화재경보기 조회
+        RetrofitClient.instance.getFireDetectors(userId).enqueue(object : Callback<GetFireDetectorsResponse> {
+            override fun onResponse(call: Call<GetFireDetectorsResponse>, response: Response<GetFireDetectorsResponse>) {
+                if (response.isSuccessful) {
+                    val list = response.body()?.fireDetectors ?: emptyList()
+                    fireTotal = list.size
+                    fireOk = list.count { it.status == "NORMAL" || it.status == "정상" }
+                    fireEvent = fireTotal - fireOk
+                }
+            }
+            override fun onFailure(call: Call<GetFireDetectorsResponse>, t: Throwable) {}
+        })
+
+        // 2. 아크차단기 조회
+        RetrofitClient.instance.getArcBreakers(userId).enqueue(object : Callback<GetArcBreakersResponse> {
+            override fun onResponse(call: Call<GetArcBreakersResponse>, response: Response<GetArcBreakersResponse>) {
+                if (response.isSuccessful) {
+                    val list = response.body()?.arcBreakers ?: emptyList()
+                    arcTotal = list.size
+                    // ArcBreakerManageRoute.kt의 로직 참고: 연결됨 AND (위험/경고 아님)
+                    arcOk = list.count {
+                        it.isConnected && it.status.uppercase() !in listOf("DANGER", "CRITICAL", "위험", "WARNING", "ALERT", "ALTER", "경고", "주의")
+                    }
+                    arcEvent = arcTotal - arcOk
+                }
+            }
+            override fun onFailure(call: Call<GetArcBreakersResponse>, t: Throwable) {}
+        })
+    }
+
     // 드롭다운 2개
     Row(
         modifier = Modifier
@@ -440,20 +490,20 @@ private fun RealTimeHeader(
         left = DeviceDashItem(
             iconRes = R.drawable.bell,
             title = "화재경보기",
-            total = 12,
-            ok = 11,
-            event = 1,
-            badgeText = "LIVE",
-            badgeType = DashBadgeType.LIVE
+            total = fireTotal,
+            ok = fireOk,
+            event = fireEvent,
+            badgeText = if (fireEvent > 0) "ALERT" else "LIVE",
+            badgeType = if (fireEvent > 0) DashBadgeType.ALERT else DashBadgeType.LIVE
         ),
         right = DeviceDashItem(
             iconRes = R.drawable.warn,
             title = "아크차단기",
-            total = 15,
-            ok = 11,
-            event = 4,
-            badgeText = "ALERT",
-            badgeType = DashBadgeType.ALERT
+            total = arcTotal,
+            ok = arcOk,
+            event = arcEvent,
+            badgeText = if (arcEvent > 0) "ALERT" else "LIVE",
+            badgeType = if (arcEvent > 0) DashBadgeType.ALERT else DashBadgeType.LIVE
         )
     )
 

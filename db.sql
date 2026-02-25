@@ -344,6 +344,7 @@ CREATE TABLE IF NOT EXISTS public.workplace --설정->현장 생성 및 현장 �
 CREATE TABLE IF NOT EXISTS public.fire_detectors --화재경보기 테이블
 (
     detector_id integer NOT NULL DEFAULT nextval('fire_detectors_detector_id_seq'::regclass),
+    group_id integer, -- 그룹 구분을 위한 컬럼 추가
     detector_name character varying(100) COLLATE pg_catalog."default" NOT NULL,
     is_active boolean DEFAULT true,
     status character varying(20) COLLATE pg_catalog."default" DEFAULT '정상'::character varying,

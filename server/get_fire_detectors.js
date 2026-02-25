@@ -17,7 +17,7 @@ router.get('/get_fire_detectors', async (req, res) => {
         }
         const groupId = userRes.rows[0].group_id;
 
-        // 2. 해당 그룹의 화재 감지기 조회
+        // 2. 해당 그룹의 화재경보기 조회
         const result = await pool.query(
             `SELECT detector_id, detector_name, is_active, status, 
              to_char(last_update, 'YYYY-MM-DD HH24:MI:SS') as last_update 
