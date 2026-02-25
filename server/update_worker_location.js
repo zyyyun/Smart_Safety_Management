@@ -3,23 +3,6 @@ const router = express.Router();
 const pool = require('./db');
 const { sendStatusAlarm } = require('./send_status_alarm'); // ✅ 알림 함수 가져오기
 
-// 하버사인 공식을 이용한 거리 계산 (단위: 미터)
-function getDistanceFromLatLonInM(lat1, lon1, lat2, lon2) {
-    const R = 6371000; // 지구 반지름 (미터)
-    const dLat = deg2rad(lat2 - lat1);
-    const dLon = deg2rad(lon2 - lon1);
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-}
-
-function deg2rad(deg) {
-    return deg * (Math.PI / 180);
-}
-
 router.post('/update_worker_location', async (req, res) => {
     const { user_id, latitude, longitude, status } = req.body;
 
@@ -29,33 +12,37 @@ router.post('/update_worker_location', async (req, res) => {
 
     try {
         // 1. 사용자의 그룹 ID 조회
-        const userRes = await pool.query('SELECT group_id FROM users WHERE user_id = $1', [user_id]);
+        const userRes = await pool.query('SELECT group_id, user_role FROM users WHERE user_id = $1', [user_id]);
         if (userRes.rows.length === 0) {
             return res.status(404).json({ message: "사용자를 찾을 수 없습니다." });
         }
-        const groupId = userRes.rows[0].group_id;
+        const { group_id: groupId, user_role: userRole } = userRes.rows[0];
 
-        // 2. 해당 그룹의 카메라 목록 조회 (지오펜싱 판별용)
-        // 좌표가 등록된 카메라만 조회
-        const camerasRes = await pool.query(
-            'SELECT camera_id, install_area, latitude, longitude FROM cameras WHERE group_id = $1 AND latitude IS NOT NULL AND longitude IS NOT NULL',
-            [groupId]
-        );
+        // ✅ 관리자(manager, general_manager)인 경우 위치 갱신 로직을 수행하지 않고 종료
+        if (userRole !== 'worker') {
+            return res.status(200).json({ message: "관리자는 위치 정보가 갱신되지 않습니다." });
+        }
 
         let currentZone = null;
         let cameraId = null;
 
-        // 3. 현재 위치가 카메라 반경 50m 이내인지 확인
-        for (const cam of camerasRes.rows) {
-            const dist = getDistanceFromLatLonInM(latitude, longitude, cam.latitude, cam.longitude);
-            if (dist <= 50) { // 50m 이내
-                currentZone = cam.install_area;
-                cameraId = cam.camera_id;
-                break; // 가장 가까운 하나만 찾으면 종료 (또는 로직에 따라 변경 가능)
+        // 2. PostGIS를 사용하여 현재 좌표가 포함된 구역 조회 (geofence_zones 테이블 사용)
+        if (groupId) {
+            const zoneRes = await pool.query(
+                `SELECT zone_name 
+                 FROM geofence_zones 
+                 WHERE group_id = $1 
+                   AND ST_Contains(boundary, ST_SetSRID(ST_MakePoint($2, $3), 4326))
+                 LIMIT 1`,
+                [groupId, longitude, latitude]
+            );
+
+            if (zoneRes.rows.length > 0) {
+                currentZone = zoneRes.rows[0].zone_name;
             }
         }
 
-        // 4. 위치 정보 갱신 (로그 쌓기 X -> 최신 상태 유지 O)
+        // 3. 위치 정보 갱신 (로그 쌓기 X -> 최신 상태 유지 O)
         const checkRes = await pool.query('SELECT log_id FROM location_logs WHERE user_id = $1 ORDER BY recorded_at DESC', [user_id]);
 
         if (checkRes.rows.length > 0) {
@@ -81,7 +68,7 @@ router.post('/update_worker_location', async (req, res) => {
             );
         }
 
-        // ✅ 5. 상태가 정상이 아니면 관리자에게 알림 전송
+        // ✅ 4. 상태가 정상이 아니면 관리자에게 알림 전송
         await sendStatusAlarm(pool, user_id, status, currentZone);
 
         res.status(200).json({ message: "위치 정보가 갱신되었습니다." });

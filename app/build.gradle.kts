@@ -118,4 +118,7 @@ dependencies {
     // 카카오맵
     implementation("com.kakao.maps.open:android:2.12.8")
 
+    //gis
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
 }

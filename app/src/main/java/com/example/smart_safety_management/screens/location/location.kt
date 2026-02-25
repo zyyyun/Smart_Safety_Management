@@ -44,7 +44,7 @@ import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
 import com.example.smart_safety_management.RetrofitClient
 import com.example.smart_safety_management.UserSession
-import com.example.smart_safety_management.GetCCTVListResponse
+import com.example.smart_safety_management.GetGeofenceZonesResponse
 import com.example.smart_safety_management.GetLocationResponse
 import retrofit2.Call
 import retrofit2.Callback
@@ -73,6 +73,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
+import android.location.Location
 
 /* -------------------- data -------------------- */
 
@@ -152,7 +153,6 @@ fun LocationScreen(
     // ✅ 현장(등록된 workplace) 좌표로 초기 카메라 시작하기 위한 상태
     var isLoadingWorkplace by remember { mutableStateOf(true) }
     var workplaceLatLng by remember { mutableStateOf<LatLng?>(null) }
-
 
     val audioPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -279,25 +279,23 @@ fun LocationScreen(
         }
     }
 
-    // 서버에서 CCTV 리스트를 가져와 구역 필터 동적 생성
+    // ✅ [수정] 서버에서 지오펜싱 구역 리스트를 가져와 구역 필터 동적 생성
     LaunchedEffect(Unit) {
-        val userId = UserSession.userId
-        if (!userId.isNullOrEmpty()) {
-            RetrofitClient.instance.getCCTVList(null, null, userId).enqueue(object : Callback<GetCCTVListResponse> {
-                override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
+        val groupIdStr = UserSession.groupId
+        val groupId = groupIdStr?.toIntOrNull()
+
+        if (groupId != null) {
+            RetrofitClient.instance.getGeofenceZones(groupId).enqueue(object : Callback<GetGeofenceZonesResponse> {
+                override fun onResponse(call: Call<GetGeofenceZonesResponse>, response: Response<GetGeofenceZonesResponse>) {
                     if (response.isSuccessful) {
-                        val list = response.body()?.cctvList ?: emptyList()
-                        // install_area 예: "A구역 1열" -> "A구역" 추출
-                        val dynamicAreas = list.mapNotNull { it.location }
-                            .map { it.split(" ").first() }
+                        val zones = response.body()?.zones ?: emptyList()
+                        val dynamicAreas = zones.map { it.zoneName }
                             .distinct()
                             .sorted()
                         areas = listOf("전체") + dynamicAreas
-                    } else {
-                        android.util.Log.e("LocationScreen", "CCTV Request Failed: ${response.code()}")
                     }
                 }
-                override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {}
+                override fun onFailure(call: Call<GetGeofenceZonesResponse>, t: Throwable) {}
             })
         }
     }
@@ -327,7 +325,7 @@ fun LocationScreen(
                                         id = loc.userId,
                                         role = if (loc.role.equals("manager", true)) "관리자" else "근로자",
                                         name = loc.name,
-                                        location = loc.currentZone ?: "카메라 외부 지역 ",
+                                        location = loc.currentZone ?: "구역 외",
                                         statusText = statusText,
                                         statusColor = statusColor
                                     )
@@ -347,7 +345,7 @@ fun LocationScreen(
                                     if (lat != null && lng != null) {
                                         WorkerPin(
                                             id = loc.userId,
-                                            area = loc.currentZone ?: "미지정",
+                                            area = loc.currentZone ?: "구역 외",
                                             lat = lat,
                                             lng = lng,
                                             status = pinStatus

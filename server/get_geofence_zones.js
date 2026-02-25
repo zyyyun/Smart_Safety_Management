@@ -10,39 +10,32 @@ router.get('/get_geofence_zones', async (req, res) => {
     }
 
     try {
-        // ST_AsGeoJSON을 사용하여 Geometry 타입을 JSON으로 변환
-        const result = await pool.query(
-            `SELECT zone_id, zone_name, group_id, ST_AsGeoJSON(boundary) as geojson
-             FROM geofence_zones
-             WHERE group_id = $1
-             ORDER BY zone_id ASC`,
-            [group_id]
-        );
+        // ✅ [최적화] DB 쿼리 내에서 JSON 객체 배열을 직접 생성하여 Node.js의 연산 부하 제거
+        // 1. ST_DumpPoints: 다각형의 좌표들을 개별 점으로 분해
+        // 2. WHERE (dp.path)[2] < ST_NPoints(...): 닫힌 다각형의 마지막 중복 점(첫 점과 동일)을 제외
+        // 3. json_build_object & json_agg: 위도/경도 객체 배열로 변환
+        const query = `
+            SELECT 
+                z.zone_id, 
+                z.zone_name, 
+                z.group_id,
+                COALESCE(
+                    (
+                        SELECT json_agg(
+                            json_build_object('latitude', ST_Y(dp.geom), 'longitude', ST_X(dp.geom))
+                        )
+                        FROM ST_DumpPoints(ST_ExteriorRing(z.boundary)) dp
+                        WHERE (dp.path)[1] < ST_NPoints(ST_ExteriorRing(z.boundary))
+                    ),
+                    '[]'::json
+                ) AS points
+            FROM geofence_zones z
+            WHERE z.group_id = $1
+            ORDER BY z.zone_id ASC
+        `;
 
-        const zones = result.rows.map(row => {
-            const geojson = JSON.parse(row.geojson);
-            // geojson.coordinates[0]은 [[lng, lat], ...] 형태의 배열입니다.
-            const rawPoints = geojson.coordinates[0];
-            
-            // 마지막 점이 첫 점과 같으므로(닫힌 다각형), UI 표시를 위해 마지막 점 제거
-            if (rawPoints.length > 0) {
-                rawPoints.pop();
-            }
-
-            const points = rawPoints.map(coord => ({
-                longitude: coord[0],
-                latitude: coord[1]
-            }));
-
-            return {
-                zone_id: row.zone_id,
-                zone_name: row.zone_name,
-                group_id: row.group_id,
-                points: points
-            };
-        });
-
-        res.status(200).json({ zones });
+        const result = await pool.query(query, [group_id]);
+        res.status(200).json({ zones: result.rows });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "서버 오류 발생" });
