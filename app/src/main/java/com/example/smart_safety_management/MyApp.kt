@@ -13,10 +13,10 @@ class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // ✅ 키 해시 로그 찍기 (디버깅용)
+        // 키 해시 로그 찍기
         printKeyHash()
 
-        // ✅ 카카오맵 초기화
+        // 발급받은 카카오맵 네이티브 앱 키
         KakaoMapSdk.init(this, "70b1fc4a6e71158e8bb19fd885f55113")
     }
 

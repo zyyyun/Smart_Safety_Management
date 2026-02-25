@@ -1,7 +1,7 @@
 const axios = require('axios');
 const pool = require('./db');
 
-// 카카오 REST API 키 (Android 앱 코드에 있는 키와 동일하게 설정)
+// REST키
 const KAKAO_API_KEY = '549ef0580861ccd75dc20bc5858e349f';
 
 async function updateCameraCoordinates() {

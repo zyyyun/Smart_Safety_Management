@@ -231,16 +231,16 @@
             android:exported="false"/>
 
 
-        <!-- ✅ 카카오 네이티브 앱 키 -->
+        <!-- ✅ 카카오 네이티브 앱 키 대표 Default Native AppKey 넣는곳-->
         <meta-data
             android:name="com.kakao.sdk.AppKey"
             android:value="ac06bf15c3f3dc080afb2a22bed9dfba" />
-        <!-- ✅ 카카오 SDK 키 -->
+        <!-- ✅ 카카오 SDK 키 대표 Default Native AppKey 넣는곳-->
         <meta-data
             android:name="com.kakao.sdk.AppKey"
             android:value="ac06bf15c3f3dc080afb2a22bed9dfba" />
 
-        <!-- ✅ 카카오 VectorMap 키 (추가) -->
+        <!-- ✅ 카카오 VectorMap 키 (추가) 대표 Default Native AppKey 넣는곳 -->
         <meta-data
             android:name="com.kakao.vectormap.APP_KEY"
             android:value="ac06bf15c3f3dc080afb2a22bed9dfba" />

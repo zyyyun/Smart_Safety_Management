@@ -100,7 +100,7 @@ fun SettingWorkplaceAreaScreen(
     }
     val placeApi = remember { kakaoRetrofit.create(PlaceApi::class.java) }
 
-    // TODO: REST 키 그대로 넣기
+    //REST키
     val REST_API_KEY = "549ef0580861ccd75dc20bc5858e349f"
 
     val placeVm: PlaceSearchViewModel =
