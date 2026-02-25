@@ -26,6 +26,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smart_safety_management.R
+import com.example.smart_safety_management.RetrofitClient
+import com.example.smart_safety_management.GetFireDetectorsResponse
+import com.example.smart_safety_management.UserSession
+import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,16 +39,12 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
-import com.example.smart_safety_management.RetrofitClient
-import com.example.smart_safety_management.GetFireDetectorsResponse
-import com.example.smart_safety_management.UserSession
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
 private val CriticalColor = Color(0xFFF97316)
 // #06D6A033 (RGBA) -> ARGB 0x33 06 D6 A0
-private val OnBg = Color(0x3306D6A0)
 private val OnFg = Color(0xFF06D6A0)
 
 enum class AlarmStatus { NORMAL, NEED_CHECK, OFFLINE }
@@ -192,13 +192,15 @@ fun FireAlarmManageScreen(
     onClearError: () -> Unit,
     onBack: () -> Unit
 ) {
+    val c = LocalSafeColors.current
+
     val devices = state.devices
     val total = devices.size
     val normal = devices.count { it.status == AlarmStatus.NORMAL }
     val needCheck = devices.count { it.status == AlarmStatus.NEED_CHECK }
 
     Scaffold(
-        containerColor = Color.White,
+        containerColor = c.bg,
         topBar = {
             CenterAlignedTopAppBar(
                 navigationIcon = {
@@ -206,7 +208,7 @@ fun FireAlarmManageScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.backicon),
                             contentDescription = "뒤로가기",
-                            tint = Color.Unspecified,
+                            tint = if (c.isDark) Color.White else Color.Unspecified,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -216,11 +218,12 @@ fun FireAlarmManageScreen(
                         "화재경보기 관리",
                         fontFamily = Pretendard,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        fontSize = 18.sp,
+                        color = c.text
                     )
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
+                    containerColor = c.topBar
                 )
             )
         }
@@ -228,7 +231,7 @@ fun FireAlarmManageScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .background(Color.White)
+                .background(c.bg)
                 .padding(padding)
         ) {
             Spacer(Modifier.height(12.dp))
@@ -253,7 +256,8 @@ fun FireAlarmManageScreen(
                     "장치 목록",
                     fontFamily = Pretendard,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
+                    color = c.text
                 )
 
                 Row(
@@ -290,7 +294,10 @@ fun FireAlarmManageScreen(
                 }
 
                 if (state.isLoading) {
-                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = CriticalColor
+                    )
                 }
             }
 
@@ -331,12 +338,18 @@ private fun SummaryChip(
     emphasized: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val border = if (emphasized) BorderStroke(1.dp, CriticalColor) else BorderStroke(1.dp, Color(0xFFE8E8E8))
+    val c = LocalSafeColors.current
+
+    val border = if (emphasized) BorderStroke(1.dp, CriticalColor) else BorderStroke(1.dp, c.border)
+    val bg = if (emphasized) {
+        if (c.isDark) Color(0xFF1A1410) else c.surface
+    } else c.surface
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
         border = border,
-        color = Color.White,
+        color = bg,
         shadowElevation = 0.dp
     ) {
         Column(
@@ -347,7 +360,7 @@ private fun SummaryChip(
         ) {
             Text(
                 title,
-                color = Color(0xFF6B7280),
+                color = c.sub,
                 fontFamily = Pretendard,
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp
@@ -358,7 +371,7 @@ private fun SummaryChip(
                 fontFamily = Pretendard,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
-                color = if (emphasized) CriticalColor else Color.Black
+                color = if (emphasized) CriticalColor else c.text
             )
         }
     }
@@ -366,35 +379,44 @@ private fun SummaryChip(
 
 @Composable
 private fun FireAlarmDeviceCard(device: AlarmDevice) {
+    val c = LocalSafeColors.current
     val isNeedCheck = device.status == AlarmStatus.NEED_CHECK
 
     val dotColor = when (device.status) {
         AlarmStatus.NORMAL -> OnFg
         AlarmStatus.NEED_CHECK -> CriticalColor
-        AlarmStatus.OFFLINE -> Color(0xFF9E9E9E)
+        AlarmStatus.OFFLINE -> c.sub
     }
 
     val statusTextColor = when (device.status) {
         AlarmStatus.NORMAL -> OnFg
         AlarmStatus.NEED_CHECK -> CriticalColor
-        AlarmStatus.OFFLINE -> Color(0xFF6B7280)
+        AlarmStatus.OFFLINE -> c.sub
     }
 
-    val cardBorder = if (device.isCritical) BorderStroke(1.dp, CriticalColor) else BorderStroke(1.dp, Color(0xFFE8E8E8))
+    val cardBorder = if (device.isCritical) BorderStroke(1.dp, CriticalColor) else BorderStroke(1.dp, c.border)
 
-    // ✅ 배지가 카드 모서리에 “딱 붙는” 구조
+    // ✅ 아이콘 박스 배경: 다크에서 톤다운
+    val iconBg = if (!c.isDark) {
+        if (isNeedCheck) Color(0xFFFFF1E8) else Color(0xFFEAFBF4)
+    } else {
+        if (isNeedCheck) Color(0xFF1A1410) else Color(0xFF0E241C)
+    }
+
+    // ✅ 켜짐 배경: 다크에서 더 은은하게
+    val onBg = if (c.isDark) Color(0x1A06D6A0) else Color(0x3306D6A0)
+
     Box(Modifier.fillMaxWidth()) {
         Surface(
             shape = RoundedCornerShape(16.dp),
             border = cardBorder,
-            color = Color.White,
+            color = c.surface,
             shadowElevation = 0.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
                 Modifier
                     .fillMaxWidth()
-                    // ✅ CRITICAL 배지 영역과 겹치지 않게 top padding만 살짝 확보
                     .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -402,7 +424,7 @@ private fun FireAlarmDeviceCard(device: AlarmDevice) {
                     Modifier
                         .size(44.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (isNeedCheck) Color(0xFFFFF1E8) else Color(0xFFEAFBF4)),
+                        .background(iconBg),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -424,11 +446,10 @@ private fun FireAlarmDeviceCard(device: AlarmDevice) {
                         fontFamily = Pretendard,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
-                        color = Color.Black
+                        color = c.text
                     )
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-
                         if (isNeedCheck) {
                             Icon(
                                 painter = painterResource(id = R.drawable.warn),
@@ -460,9 +481,9 @@ private fun FireAlarmDeviceCard(device: AlarmDevice) {
                 }
 
                 val (pillBg, pillFg) =
-                    if (device.isOn) (OnBg to OnFg) else (Color(0xFFF3F4F6) to Color(0xFF6B7280))
+                    if (device.isOn) (onBg to OnFg)
+                    else ((if (c.isDark) Color(0xFF1F2937) else Color(0xFFF3F4F6)) to c.sub)
 
-                // ✅ pill을 더 얇게 + CRITICAL 배지랑 안 닿게
                 PowerPill(
                     text = if (device.isOn) "켜짐" else "꺼짐",
                     bg = pillBg,
@@ -472,13 +493,11 @@ private fun FireAlarmDeviceCard(device: AlarmDevice) {
         }
 
         if (device.isCritical) {
-            // ✅ 모서리에 빈틈 없이 붙임(패딩 0)
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .clip(RoundedCornerShape(topEnd = 16.dp, bottomStart = 10.dp))
                     .background(CriticalColor)
-                    // ✅ 위아래 “너비(두께)” 줄임
                     .padding(horizontal = 6.dp, vertical = 1.dp)
             ) {
                 Text(
@@ -499,24 +518,21 @@ private fun PowerPill(
     text: String,
     bg: Color,
     fg: Color,
-    fontSize: Int = 13,          // 폰트 크기 조절용
-    verticalPadding: Int = 2     // 위아래 두께 조절용
+    fontSize: Int = 13,
+    verticalPadding: Int = 2
 ) {
     Box(
         Modifier
             .clip(RoundedCornerShape(999.dp))
             .background(bg)
-            .padding(
-                horizontal = 12.dp,
-                vertical = verticalPadding.dp   // ✅ 여기 적용
-            )
+            .padding(horizontal = 12.dp, vertical = verticalPadding.dp)
     ) {
         Text(
             text = text,
             color = fg,
             fontFamily = Pretendard,
             fontWeight = FontWeight.Medium,
-            fontSize = fontSize.sp              // ✅ 여기 적용
+            fontSize = fontSize.sp
         )
     }
 }

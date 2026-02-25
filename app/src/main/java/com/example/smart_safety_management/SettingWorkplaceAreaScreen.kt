@@ -6,13 +6,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Place
@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -39,17 +40,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.LatLng
 import com.kakao.vectormap.camera.CameraUpdateFactory
-import java.lang.reflect.Proxy
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.ui.platform.LocalFocusManager
-import retrofit2.Retrofit
+import retrofit2.*
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
 private val BrandOrange = Color(0xFFF97316)
 
@@ -65,7 +61,7 @@ private enum class DrawMode { NONE, RECT_2TAP, POLYGON_TAP }
 private enum class UiState { IDLE, DRAWING_NEW, EDITING_SELECTED }
 
 private data class Zone(
-    val id: Int, // DB ID (Int)로 변경
+    val id: Int,
     val name: String,
     val points: List<LatLng>
 )
@@ -75,8 +71,9 @@ private data class Zone(
 fun SettingWorkplaceAreaScreen(
     initialLat: Double = 37.5665,
     initialLon: Double = 126.9780,
-    userId: String // 유저 ID를 받아와서 그룹 ID 조회
+    userId: String
 ) {
+    val c = LocalSafeColors.current
     val context = LocalContext.current
     var kakaoMap by remember { mutableStateOf<KakaoMap?>(null) }
 
@@ -88,9 +85,7 @@ fun SettingWorkplaceAreaScreen(
     }
     val placeApi = remember { kakaoRetrofit.create(PlaceApi::class.java) }
 
-    //REST키
     val REST_API_KEY = "549ef0580861ccd75dc20bc5858e349f"
-
     val placeVm: PlaceSearchViewModel =
         viewModel(factory = PlaceSearchVmFactory(placeApi, REST_API_KEY))
 
@@ -103,8 +98,8 @@ fun SettingWorkplaceAreaScreen(
 
     val zones = remember { mutableStateListOf<Zone>() }
     var selectedZoneId by remember { mutableStateOf<Int?>(null) }
-    var currentGroupId by remember { mutableStateOf<Int?>(null) } // 서버에서 받아온 그룹 ID
-    var pendingCameraMove by remember { mutableStateOf<LatLng?>(null) } // 초기 위치 이동을 위한 상태
+    var currentGroupId by remember { mutableStateOf<Int?>(null) }
+    var pendingCameraMove by remember { mutableStateOf<LatLng?>(null) }
 
     var uiState by remember { mutableStateOf(UiState.IDLE) }
     var mode by remember { mutableStateOf(DrawMode.NONE) }
@@ -121,7 +116,7 @@ fun SettingWorkplaceAreaScreen(
 
     val appRetrofit = remember {
         Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:3000/") // 에뮬레이터 로컬호스트
+            .baseUrl("http://10.0.2.2:3000/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
@@ -187,9 +182,8 @@ fun SettingWorkplaceAreaScreen(
 
     LaunchedEffect(kakaoMap, pendingCameraMove) {
         if (kakaoMap != null && pendingCameraMove != null) {
-            // 줌 레벨 17로 확대하여 이동 (숫자가 클수록 확대됨, 보통 15~18 사이 사용)
             kakaoMap?.moveCamera(CameraUpdateFactory.newCenterPosition(pendingCameraMove, 17))
-            pendingCameraMove = null // 한 번 이동 후 초기화
+            pendingCameraMove = null
         }
     }
 
@@ -206,23 +200,36 @@ fun SettingWorkplaceAreaScreen(
         scaffoldState = scaffoldState,
         sheetPeekHeight = sheetPeek,
         sheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-        sheetContainerColor = Color.White,
+
+        // ✅ 다크모드 적용 핵심
+        containerColor = c.bg,
+        sheetContainerColor = c.surface,
         sheetTonalElevation = 2.dp,
         sheetShadowElevation = 8.dp,
         sheetDragHandle = null,
+
         topBar = {
             TopAppBar(
-                title = { Text(text = "영역 설정", fontFamily = PretendardBold) },
+                title = {
+                    Text(
+                        text = "영역 설정",
+                        fontFamily = PretendardBold,
+                        color = c.text
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { (context as? Activity)?.finish() }) {
                         Icon(
                             painter = painterResource(id = R.drawable.backicon),
                             contentDescription = "Back",
-                            tint = Color.Black,   // 원하면 BrandOrange로 바꿔도 됨
+                            tint = if (c.isDark) Color.White else Color.Black,
                             modifier = Modifier.size(24.dp)
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = c.topBar
+                )
             )
         },
         sheetContent = {
@@ -247,7 +254,7 @@ fun SettingWorkplaceAreaScreen(
                         statusText = "영역이 너무 작아요 (최소 3점 필요)"
                         return@BottomSheetContentCard
                     }
-                    
+
                     val gid = currentGroupId
                     if (gid == null) {
                         statusText = "그룹 정보를 불러오지 못해 등록할 수 없습니다."
@@ -278,6 +285,8 @@ fun SettingWorkplaceAreaScreen(
                                 selectedZoneId = newZone.id
                                 mode = DrawMode.NONE
                                 statusText = "등록 완료: ${newZone.name}"
+                            } else {
+                                statusText = "등록 실패: ${response.code()}"
                             }
                         }
                         override fun onFailure(call: Call<CreateGeofenceResponse>, t: Throwable) {
@@ -308,7 +317,7 @@ fun SettingWorkplaceAreaScreen(
                         statusText = "영역이 너무 작아요 (최소 3점 필요)"
                         return@BottomSheetContentCard
                     }
-                    
+
                     val gid = currentGroupId
                     if (gid == null) {
                         statusText = "그룹 정보를 불러오지 못해 수정할 수 없습니다."
@@ -333,6 +342,8 @@ fun SettingWorkplaceAreaScreen(
                                 mode = DrawMode.NONE
                                 uiState = UiState.IDLE
                                 statusText = "편집 저장 완료"
+                            } else {
+                                statusText = "수정 실패: ${response.code()}"
                             }
                         }
                         override fun onFailure(call: Call<UpdateGeofenceResponse>, t: Throwable) {
@@ -353,6 +364,8 @@ fun SettingWorkplaceAreaScreen(
                                 mode = DrawMode.NONE
                                 uiState = UiState.IDLE
                                 statusText = "삭제 완료"
+                            } else {
+                                statusText = "삭제 실패: ${response.code()}"
                             }
                         }
                         override fun onFailure(call: Call<DeleteGeofenceResponse>, t: Throwable) {
@@ -367,6 +380,7 @@ fun SettingWorkplaceAreaScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .background(c.bg)
                 .clickable(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
@@ -375,7 +389,6 @@ fun SettingWorkplaceAreaScreen(
                     dropdownExpanded = false
                 }
         ) {
-            // Map
             KakaoMapView(
                 lat = initialLat,
                 lon = initialLon,
@@ -427,7 +440,6 @@ fun SettingWorkplaceAreaScreen(
                 onCenterChanged = { _, _ -> mapTick++ }
             )
 
-            // Overlay
             ZonesOverlay(
                 kakaoMap = kakaoMap,
                 zones = zones.toList(),
@@ -462,10 +474,9 @@ fun SettingWorkplaceAreaScreen(
                 isPreview = false,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 12.dp, start = 20.dp, end = 20.dp) // ✅ 양옆 안 닿게
+                    .padding(top = 12.dp, start = 20.dp, end = 20.dp)
             )
 
-            // 툴바
             ToolBarOverlay(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
@@ -495,7 +506,7 @@ fun SettingWorkplaceAreaScreen(
 }
 
 // -----------------------------
-// Search / ToolBar
+// Search / ToolBar / Sheet (Darkable)
 // -----------------------------
 @Composable
 private fun SearchBarOverlay(
@@ -509,6 +520,7 @@ private fun SearchBarOverlay(
     isPreview: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val c = LocalSafeColors.current
     val density = LocalDensity.current
     var fieldWidthDp by remember { mutableStateOf(0.dp) }
 
@@ -525,9 +537,10 @@ private fun SearchBarOverlay(
                     fieldWidthDp = with(density) { coords.size.width.toDp() }
                 },
             shape = RoundedCornerShape(14.dp),
-            color = Color.White,
+            color = c.surface,
             tonalElevation = 2.dp,
-            shadowElevation = 6.dp
+            shadowElevation = 6.dp,
+            border = BorderStroke(1.dp, c.border)
         ) {
             Row(
                 modifier = Modifier
@@ -538,10 +551,11 @@ private fun SearchBarOverlay(
                 Icon(
                     painter = painterResource(id = R.drawable.search),
                     contentDescription = "search",
-                    tint = Color(0xFF9CA3AF),
+                    tint = c.sub,
                     modifier = Modifier.size(20.dp)
                 )
 
+                Spacer(Modifier.width(8.dp))
 
                 TextField(
                     value = query,
@@ -554,14 +568,14 @@ private fun SearchBarOverlay(
                         Text(
                             text = "주소를 검색하세요",
                             fontFamily = PretendardMedium,
-                            color = Color(0xFF9CA3AF)
+                            color = c.sub
                         )
                     },
                     singleLine = true,
                     textStyle = TextStyle(
                         fontFamily = PretendardMedium,
                         fontSize = 16.sp,
-                        color = Color.Black
+                        color = c.text
                     ),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
@@ -569,6 +583,7 @@ private fun SearchBarOverlay(
                         disabledContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
+                        cursorColor = BrandOrange
                     )
                 )
             }
@@ -581,9 +596,10 @@ private fun SearchBarOverlay(
                     .fillMaxWidth()
                     .heightIn(max = 320.dp),
                 shape = RoundedCornerShape(12.dp),
-                color = Color.White,
+                color = c.surface,
                 tonalElevation = 6.dp,
-                shadowElevation = 6.dp
+                shadowElevation = 6.dp,
+                border = BorderStroke(1.dp, c.border)
             ) {
                 if (loading) {
                     Box(
@@ -596,7 +612,7 @@ private fun SearchBarOverlay(
                             text = "검색중...",
                             fontFamily = PretendardMedium,
                             fontSize = 14.sp,
-                            color = Color(0xFF6B7280)
+                            color = c.sub
                         )
                     }
                 } else {
@@ -617,7 +633,7 @@ private fun SearchBarOverlay(
                                     text = item.title,
                                     fontFamily = PretendardMedium,
                                     fontSize = 16.sp,
-                                    color = Color.Black,
+                                    color = c.text,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -627,7 +643,7 @@ private fun SearchBarOverlay(
                                         text = item.address!!,
                                         fontFamily = PretendardMedium,
                                         fontSize = 12.sp,
-                                        color = Color(0xFF6B7280),
+                                        color = c.sub,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -635,7 +651,7 @@ private fun SearchBarOverlay(
                             }
 
                             if (idx != items.lastIndex) {
-                                Divider(color = Color(0xFFE5E7EB))
+                                Divider(color = c.divider)
                             }
                         }
                     }
@@ -654,24 +670,28 @@ private fun ToolBarOverlay(
     onPolyMode: () -> Unit,
     onClearDraft: () -> Unit,
 ) {
+    val c = LocalSafeColors.current
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
         tonalElevation = 3.dp,
-        shadowElevation = 3.dp
+        shadowElevation = 3.dp,
+        color = c.surface,
+        border = BorderStroke(1.dp, c.border)
     ) {
         Column(
             modifier = Modifier.padding(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             IconButton(onClick = onRectMode, enabled = enabled) {
-                Icon(Icons.Default.Place, contentDescription = "사각형")
+                Icon(Icons.Default.Place, contentDescription = "사각형", tint = c.text)
             }
             IconButton(onClick = onPolyMode, enabled = enabled) {
-                Icon(Icons.Default.Edit, contentDescription = "다각형")
+                Icon(Icons.Default.Edit, contentDescription = "다각형", tint = c.text)
             }
             IconButton(onClick = onClearDraft, enabled = enabled) {
-                Icon(Icons.Default.Delete, contentDescription = "임시영역 초기화")
+                Icon(Icons.Default.Delete, contentDescription = "임시영역 초기화", tint = c.text)
             }
 
             Spacer(Modifier.height(4.dp))
@@ -682,7 +702,8 @@ private fun ToolBarOverlay(
                     else -> "READY"
                 },
                 style = MaterialTheme.typography.labelSmall,
-                fontFamily = PretendardMedium
+                fontFamily = PretendardMedium,
+                color = c.sub
             )
         }
     }
@@ -703,6 +724,7 @@ private fun BottomSheetContentCard(
     onSaveEdit: () -> Unit,
     onDeleteSelected: () -> Unit,
 ) {
+    val c = LocalSafeColors.current
     val scroll = rememberScrollState()
 
     Column(
@@ -712,14 +734,13 @@ private fun BottomSheetContentCard(
             .verticalScroll(scroll)
             .padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 24.dp)
     ) {
-        // drag handle (한 개만)
         Box(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .padding(top = 6.dp, bottom = 16.dp)
                 .width(46.dp)
                 .height(6.dp)
-                .background(Color(0xFFBFC5CC), RoundedCornerShape(999.dp))
+                .background(if (c.isDark) Color(0xFF3A3F45) else Color(0xFFBFC5CC), RoundedCornerShape(999.dp))
         )
 
         val displayTitle = when (uiState) {
@@ -732,7 +753,7 @@ private fun BottomSheetContentCard(
             fontSize = 20.sp,
             fontFamily = PretendardBold,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF111827),
+            color = c.text,
             maxLines = 1
         )
 
@@ -747,7 +768,7 @@ private fun BottomSheetContentCard(
             },
             fontSize = 16.sp,
             fontFamily = PretendardMedium,
-            color = Color(0xFF374151)
+            color = c.text
         )
 
         Spacer(Modifier.height(6.dp))
@@ -756,7 +777,7 @@ private fun BottomSheetContentCard(
             text = statusText,
             fontSize = 14.sp,
             fontFamily = PretendardMedium,
-            color = Color(0xFF6B7280),
+            color = c.sub,
             lineHeight = 20.sp
         )
 
@@ -766,9 +787,17 @@ private fun BottomSheetContentCard(
             OutlinedTextField(
                 value = inputZoneName,
                 onValueChange = onZoneNameChange,
-                label = { Text("영역 이름", fontFamily = PretendardMedium) },
+                label = { Text("영역 이름", fontFamily = PretendardMedium, color = c.sub) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                textStyle = TextStyle(fontFamily = PretendardMedium, color = c.text),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = BrandOrange,
+                    cursorColor = BrandOrange,
+                    focusedLabelColor = BrandOrange,
+                    unfocusedBorderColor = c.border,
+                    unfocusedLabelColor = c.sub
+                )
             )
             Spacer(Modifier.height(16.dp))
         }
@@ -836,8 +865,11 @@ private fun BottomSheetContentCard(
                             onClick = onDeleteSelected,
                             modifier = Modifier.weight(1f).height(54.dp),
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF58616A))
+                            border = BorderStroke(1.dp, c.border),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = if (c.isDark) Color(0xFF8A949E) else Color(0xFF58616A),
+                                containerColor = Color.Transparent
+                            )
                         ) {
                             Text("삭제", fontFamily = PretendardMedium, fontSize = 18.sp)
                         }
@@ -846,9 +878,16 @@ private fun BottomSheetContentCard(
                             onClick = onEditSelected,
                             modifier = Modifier.weight(1f).height(54.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF3F4F6))
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (c.isDark) Color(0xFF131416) else Color(0xFFF3F4F6)
+                            )
                         ) {
-                            Text("영역 편집", fontFamily = PretendardMedium, fontSize = 18.sp, color = Color(0xFF58616A))
+                            Text(
+                                "영역 편집",
+                                fontFamily = PretendardMedium,
+                                fontSize = 18.sp,
+                                color = if (c.isDark) Color(0xFF8A949E) else Color(0xFF58616A)
+                            )
                         }
                     }
                 }
@@ -869,11 +908,10 @@ private fun ZonesOverlay(
     tick: Int,
     modifier: Modifier = Modifier,
 ) {
-
+    val c = LocalSafeColors.current
     val projection = remember(kakaoMap) { kakaoMap?.let { KakaoProjection(it) } }
 
     val conversionOk = remember(projection, zones, draftPoints) {
-        val km = kakaoMap ?: return@remember true
         val anyPts = (zones.firstOrNull()?.points ?: emptyList()) + draftPoints
         if (anyPts.isEmpty()) return@remember true
         projection != null && anyPts.take(1).all { projection.toScreen(it) != null }
@@ -897,8 +935,17 @@ private fun ZonesOverlay(
         }
     }
 
+    // ✅ 다크에서 너무 튀지 않게 톤만 살짝 조절
+    val zoneFill = if (c.isDark) Color(0x1A22C55E) else Color(0x2216A34A)
+    val zoneStroke = if (c.isDark) Color(0xFF22C55E) else Color(0xFF16A34A)
+    val zoneFillSelected = if (c.isDark) Color(0x2622C55E) else Color(0x3322C55E)
+    val zoneStrokeSelected = Color(0xFF22C55E)
+
+    val draftFill = if (c.isDark) Color(0x1A60A5FA) else Color(0x332563EB)
+    val draftStroke = if (c.isDark) Color(0xFF60A5FA) else Color(0xFF2563EB)
+    val draftPointOuter = if (c.isDark) c.bg else Color.White
+
     Canvas(modifier = modifier) {
-        val km = kakaoMap ?: return@Canvas
         val proj = projection ?: return@Canvas
 
         for (z in zones) {
@@ -906,9 +953,7 @@ private fun ZonesOverlay(
             val pts = z.points
             if (pts.size < 3) continue
 
-            val screenPts = pts.mapNotNull { ll ->
-                proj.toScreen(ll)
-            }
+            val screenPts = pts.mapNotNull { ll -> proj.toScreen(ll) }
             if (screenPts.size < 3) continue
 
             val path = Path().apply {
@@ -917,21 +962,16 @@ private fun ZonesOverlay(
                 close()
             }
 
-            val fill = if (isSelected) Color(0x3322C55E) else Color(0x2216A34A)
-            val stroke = if (isSelected) Color(0xFF22C55E) else Color(0xFF16A34A)
-
-            drawPath(path = path, color = fill, style = Fill)
+            drawPath(path = path, color = if (isSelected) zoneFillSelected else zoneFill, style = Fill)
             drawPath(
                 path = path,
-                color = stroke,
+                color = if (isSelected) zoneStrokeSelected else zoneStroke,
                 style = Stroke(width = if (isSelected) 5f else 3f, cap = StrokeCap.Round)
             )
         }
 
         if ((uiState == UiState.DRAWING_NEW || uiState == UiState.EDITING_SELECTED) && draftPoints.size >= 2) {
-            val screenPts = draftPoints.mapNotNull { ll ->
-                proj.toScreen(ll)
-            }
+            val screenPts = draftPoints.mapNotNull { ll -> proj.toScreen(ll) }
             if (screenPts.size >= 2) {
                 val path = Path().apply {
                     moveTo(screenPts[0].x, screenPts[0].y)
@@ -939,21 +979,22 @@ private fun ZonesOverlay(
                     if (screenPts.size >= 3) close()
                 }
 
-                if (screenPts.size >= 3) drawPath(path = path, color = Color(0x332563EB), style = Fill)
+                if (screenPts.size >= 3) drawPath(path = path, color = draftFill, style = Fill)
                 drawPath(
                     path = path,
-                    color = Color(0xFF2563EB),
+                    color = draftStroke,
                     style = Stroke(width = 4f, cap = StrokeCap.Round)
                 )
 
                 screenPts.forEach { p ->
-                    drawCircle(color = Color.White, radius = 10f, center = p)
-                    drawCircle(color = Color(0xFF3B82F6), radius = 6f, center = p)
+                    drawCircle(color = draftPointOuter, radius = 10f, center = p)
+                    drawCircle(color = draftStroke, radius = 6f, center = p)
                 }
             }
         }
     }
 }
+
 private fun makeRectPolygon(a: LatLng, b: LatLng): List<LatLng> {
     val minLat = minOf(a.latitude, b.latitude)
     val maxLat = maxOf(a.latitude, b.latitude)
@@ -999,26 +1040,24 @@ private class KakaoProjection(private val km: KakaoMap) {
 
     fun toScreen(latLng: LatLng): Offset? {
         if (!initialized) initialize()
-        
+
         val method = toScreenMethod ?: return null
         return try {
             val pt = method.invoke(km, latLng) ?: return null
-            
-            // x, y 값 추출 (필드 또는 메서드)
+
             val x = xField?.get(pt)?.toString()?.toFloatOrNull()
                 ?: xMethod?.invoke(pt)?.toString()?.toFloatOrNull()
             val y = yField?.get(pt)?.toString()?.toFloatOrNull()
                 ?: yMethod?.invoke(pt)?.toString()?.toFloatOrNull()
 
             if (x != null && y != null) Offset(x, y) else null
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }
 
     private fun initialize() {
         try {
-            // toScreenPoint 또는 유사한 메서드 검색
             toScreenMethod = km.javaClass.methods.firstOrNull { m ->
                 val n = m.name.lowercase()
                 m.parameterTypes.size == 1 &&

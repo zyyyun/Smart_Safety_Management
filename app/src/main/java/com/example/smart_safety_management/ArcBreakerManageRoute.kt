@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,6 +24,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smart_safety_management.R
+import com.example.smart_safety_management.RetrofitClient
+import com.example.smart_safety_management.GetArcBreakersResponse
+import com.example.smart_safety_management.UserSession
+import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.example.smart_safety_management.ui.theme.Pretendard
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,15 +36,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
-import com.example.smart_safety_management.RetrofitClient
-import com.example.smart_safety_management.GetArcBreakersResponse
-import com.example.smart_safety_management.UserSession
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
 private val CriticalColor = Color(0xFFF97316)
-private val OnBg = Color(0x3306D6A0) // green bg
 private val OnFg = Color(0xFF06D6A0) // green fg
 
 enum class AfciStatus { NORMAL, CRITICAL, ALERT, DISCONNECTED }
@@ -58,7 +57,6 @@ data class ArcBreakerUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val devices: List<AfciDevice> = emptyList(),
-    // ✅ 사진처럼 “요약 카운트”는 서버/DB에서 내려오는 값으로 쓰기 좋게 분리
     val totalCount: Int = 0,
     val normalCount: Int = 0,
     val eventCount: Int = 0
@@ -80,7 +78,6 @@ class FakeArcBreakerRepository : ArcBreakerRepository {
             AfciDevice("5", "3층 사무실 A구역", AfciStatus.NORMAL, "정상 작동 중"),
         )
 
-        // ✅ 사진: 전체 15 / 정상 11 / 이벤트/경보 4
         return ArcBreakerUiState(
             isLoading = false,
             devices = list,
@@ -108,7 +105,6 @@ class RealArcBreakerRepository : ArcBreakerRepository {
                     if (response.isSuccessful) {
                         val list = response.body()?.arcBreakers ?: emptyList()
                         val devices = list.map { dto ->
-                            // 서버 상태값 매핑
                             val statusEnum = when {
                                 !dto.isConnected -> AfciStatus.DISCONNECTED
                                 dto.status.uppercase() in listOf("DANGER", "CRITICAL", "위험") -> AfciStatus.CRITICAL
@@ -130,7 +126,13 @@ class RealArcBreakerRepository : ArcBreakerRepository {
                         val event = devices.count { it.status == AfciStatus.CRITICAL || it.status == AfciStatus.ALERT || it.status == AfciStatus.DISCONNECTED }
 
                         cont.resume(
-                            ArcBreakerUiState(isLoading = false, devices = devices, totalCount = total, normalCount = normal, eventCount = event)
+                            ArcBreakerUiState(
+                                isLoading = false,
+                                devices = devices,
+                                totalCount = total,
+                                normalCount = normal,
+                                eventCount = event
+                            )
                         )
                     } else {
                         cont.resume(ArcBreakerUiState(isLoading = false, errorMessage = "서버 오류: ${response.code()}"))
@@ -185,8 +187,10 @@ fun ArcBreakerManageScreen(
     onRefresh: () -> Unit,
     onBack: () -> Unit
 ) {
+    val c = LocalSafeColors.current
+
     Scaffold(
-        containerColor = Color.White,
+        containerColor = c.bg,
         topBar = {
             CenterAlignedTopAppBar(
                 navigationIcon = {
@@ -194,7 +198,7 @@ fun ArcBreakerManageScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.backicon),
                             contentDescription = "뒤로가기",
-                            tint = Color.Unspecified,
+                            tint = if (c.isDark) Color.White else Color.Unspecified,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -204,11 +208,12 @@ fun ArcBreakerManageScreen(
                         "아크 차단기 관리",
                         fontFamily = Pretendard,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp
+                        fontSize = 18.sp,
+                        color = c.text
                     )
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
+                    containerColor = c.topBar
                 )
             )
         }
@@ -216,7 +221,7 @@ fun ArcBreakerManageScreen(
         Column(
             Modifier
                 .fillMaxSize()
-                .background(Color.White)
+                .background(c.bg)
                 .padding(padding)
         ) {
             Spacer(Modifier.height(12.dp))
@@ -241,14 +246,15 @@ fun ArcBreakerManageScreen(
                     "장치 상세 목록",
                     fontFamily = Pretendard,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    fontSize = 16.sp,
+                    color = c.text
                 )
 
                 IconButton(onClick = { /* 필터 */ }) {
                     Icon(
-                        painter = painterResource(id = R.drawable.filter), // 없으면 너 아이콘으로 교체
+                        painter = painterResource(id = R.drawable.filter),
                         contentDescription = "필터",
-                        tint = Color.Unspecified,
+                        tint = if (c.isDark) Color.White else Color.Unspecified,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -268,7 +274,10 @@ fun ArcBreakerManageScreen(
                 }
 
                 if (state.isLoading) {
-                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = CriticalColor
+                    )
                 }
             }
 
@@ -310,18 +319,31 @@ private fun SummaryChip(
     emphasized: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val border = if (emphasized) BorderStroke(1.dp, Color(0xFFFFD7C0)) else BorderStroke(1.dp, Color(0xFFE8E8E8))
+    val c = LocalSafeColors.current
+
+    val border = if (emphasized) {
+        BorderStroke(1.dp, if (c.isDark) Color(0xFF3A2A21) else Color(0xFFFFD7C0))
+    } else {
+        BorderStroke(1.dp, c.border)
+    }
+
+    val chipBg = if (emphasized) {
+        if (c.isDark) Color(0xFF1A1410) else Color(0xFFFFF1E8)
+    } else {
+        c.surface
+    }
+
     val valueColor = when {
         emphasized -> CriticalColor
         title == "정상" -> OnFg
-        else -> Color.Black
+        else -> c.text
     }
 
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(14.dp),
         border = border,
-        color = if (emphasized) Color(0xFFFFF1E8) else Color.White,
+        color = chipBg,
         shadowElevation = 0.dp
     ) {
         Column(
@@ -332,7 +354,7 @@ private fun SummaryChip(
         ) {
             Text(
                 title,
-                color = if (emphasized) CriticalColor else Color(0xFF6B7280),
+                color = if (emphasized) CriticalColor else c.sub,
                 fontFamily = Pretendard,
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp
@@ -353,7 +375,7 @@ private fun SummaryChip(
                         fontFamily = Pretendard,
                         fontWeight = FontWeight.Bold,
                         fontSize = 10.sp,
-                        color = Color(0xFF9CA3AF)
+                        color = c.sub
                     )
                 }
             }
@@ -363,29 +385,39 @@ private fun SummaryChip(
 
 @Composable
 private fun ArcBreakerDeviceCard(device: AfciDevice) {
+    val c = LocalSafeColors.current
+
     val (iconBg, iconText) = when (device.status) {
-        AfciStatus.NORMAL -> (Color(0xFFEAFBF4) to "🛡")   // 느낌만
+        AfciStatus.NORMAL -> (Color(0xFFEAFBF4) to "🛡")
         AfciStatus.CRITICAL -> (Color(0xFFFFF1E8) to "⚡")
         AfciStatus.ALERT -> (Color(0xFFFFF1E8) to "⚠")
         AfciStatus.DISCONNECTED -> (Color(0xFFF3F4F6) to "📶")
+    }
+
+    // ✅ 다크에서 아이콘 박스 배경은 살짝 톤다운
+    val iconBgFixed = if (!c.isDark) iconBg else when (device.status) {
+        AfciStatus.NORMAL -> Color(0xFF0E241C)
+        AfciStatus.CRITICAL -> Color(0xFF1A1410)
+        AfciStatus.ALERT -> Color(0xFF1A1410)
+        AfciStatus.DISCONNECTED -> Color(0xFF1F2937)
     }
 
     val statusTextColor = when (device.status) {
         AfciStatus.NORMAL -> OnFg
         AfciStatus.CRITICAL -> CriticalColor
         AfciStatus.ALERT -> Color(0xFFF59E0B)
-        AfciStatus.DISCONNECTED -> Color(0xFF6B7280)
+        AfciStatus.DISCONNECTED -> c.sub
     }
 
     val border = when (device.status) {
-        AfciStatus.NORMAL -> BorderStroke(1.dp, Color(0xFFE8E8E8))
+        AfciStatus.NORMAL -> BorderStroke(1.dp, c.border)
         else -> BorderStroke(1.dp, CriticalColor)
     }
 
     Surface(
         shape = RoundedCornerShape(16.dp),
         border = border,
-        color = Color.White,
+        color = c.surface,
         shadowElevation = 0.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -399,7 +431,7 @@ private fun ArcBreakerDeviceCard(device: AfciDevice) {
                 Modifier
                     .size(44.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(iconBg),
+                    .background(iconBgFixed),
                 contentAlignment = Alignment.Center
             ) {
                 Text(text = iconText, fontSize = 18.sp)
@@ -418,7 +450,7 @@ private fun ArcBreakerDeviceCard(device: AfciDevice) {
                     fontFamily = Pretendard,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp,
-                    color = Color.Black
+                    color = c.text
                 )
 
                 Text(
@@ -439,11 +471,22 @@ private fun ArcBreakerDeviceCard(device: AfciDevice) {
 
 @Composable
 private fun StatusPill(status: AfciStatus) {
+    val c = LocalSafeColors.current
+
     val (text, bg, fg) = when (status) {
-        AfciStatus.NORMAL -> Triple("정상", OnBg, OnFg)
+        AfciStatus.NORMAL -> {
+            val bg2 = if (c.isDark) Color(0x1A06D6A0) else Color(0x3306D6A0)
+            Triple("정상", bg2, OnFg)
+        }
         AfciStatus.CRITICAL -> Triple("위험", Color(0xFFF97316), Color.White)
-        AfciStatus.ALERT -> Triple("경고", Color(0xFFFFEEDB), Color(0xFFF59E0B))
-        AfciStatus.DISCONNECTED -> Triple("오류", Color(0xFFF3F4F6), Color(0xFF6B7280))
+        AfciStatus.ALERT -> {
+            val bg2 = if (c.isDark) Color(0xFF2A1F10) else Color(0xFFFFEEDB)
+            Triple("경고", bg2, Color(0xFFF59E0B))
+        }
+        AfciStatus.DISCONNECTED -> {
+            val bg2 = if (c.isDark) Color(0xFF1F2937) else Color(0xFFF3F4F6)
+            Triple("오류", bg2, c.sub)
+        }
     }
 
     Box(

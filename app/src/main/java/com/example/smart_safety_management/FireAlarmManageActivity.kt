@@ -3,8 +3,8 @@ package com.example.smart_safety_management
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
 import com.example.smart_safety_management.screens.firealarm.FireAlarmManageRoute
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 
 class FireAlarmManageActivity : ComponentActivity() {
 
@@ -12,7 +12,7 @@ class FireAlarmManageActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            MaterialTheme {
+            Smart_Safety_ManagementTheme {
                 FireAlarmManageRoute(
                     onBack = { finish() }
                 )

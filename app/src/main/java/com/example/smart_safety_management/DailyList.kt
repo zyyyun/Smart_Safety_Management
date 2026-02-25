@@ -321,7 +321,6 @@ fun DailyListScreen(
                                     .clip(RoundedCornerShape(8.dp))
                             )
 
-                            // ✅ 우측 상단 X 버튼
                             IconButton(
                                 onClick = {
                                     attachedPhotos = attachedPhotos.toMutableList().also { it.removeAt(originalIndex) }
