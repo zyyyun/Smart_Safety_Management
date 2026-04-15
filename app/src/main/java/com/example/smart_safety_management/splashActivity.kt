@@ -21,9 +21,6 @@ class SplashActivity : AppCompatActivity() {
         val btnSignUp = findViewById<View>(R.id.btnSignUp)
         val btnLogin = findViewById<View>(R.id.btnLogin)
 
-        // 자동 로그인 체크
-        val isLoggedIn = UserSession.loadSession(this)
-
         // 처음 상태
         logo.alpha = 0f
         logo.translationY = 0f
@@ -35,53 +32,17 @@ class SplashActivity : AppCompatActivity() {
         fadeLogo.duration = 2000
         fadeLogo.start()
 
-        // 로고 끝난 뒤 동작
+        // 테스트 모드: 로그인 우회 - 로고 애니메이션 후 바로 홈으로 이동
         fadeLogo.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
-                if (isLoggedIn) {
-                    // 서버에 계정 존재 여부 확인 (계정이 삭제되었거나 문제가 생겼을 경우 대비)
-                    val userId = UserSession.userId ?: ""
-                    RetrofitClient.instance.getUsers(userId).enqueue(object : Callback<GetUsersResponse> {
-                        override fun onResponse(call: Call<GetUsersResponse>, response: Response<GetUsersResponse>) {
-                            if (response.isSuccessful) {
-                                // 계정 존재 확인됨 -> 홈 화면으로
-                                // 서버에서 최신 유저 정보를 가져와 세션 업데이트 (is_invited_checked 동기화)
-                                val users = response.body()?.users
-                                val currentUser = users?.find { it.userId == userId }
-                                if (currentUser != null) {
-                                    UserSession.isInviteChecked = currentUser.isInviteChecked
-                                    UserSession.groupId = currentUser.groupId
-                                    UserSession.inviteCode = currentUser.inviteCode
-
-                                    // 역할 정보 최신화 (general_manager 포함)
-                                    if (currentUser.userRole == "manager" || currentUser.userRole == "general_manager") {
-                                        UserSession.userRole = UserRole.MANAGER
-                                    } else {
-                                        UserSession.userRole = UserRole.WORKER
-                                    }
-
-                                    UserSession.saveSession(this@SplashActivity)
-                                }
-                                moveToHome()
-                            } else if (response.code() == 404) {
-                                // 계정을 찾을 수 없음 (서버에서 삭제됨 등) -> 세션 지우고 타이틀로
-                                UserSession.clearSession(this@SplashActivity)
-                                showAuthButtons(logo, btnSignUp, btnLogin)
-                            } else {
-                                // 기타 서버 오류 상황 -> 일단 홈으로 보내거나 네트워크 체크 유도 (여기선 홈으로)
-                                moveToHome()
-                            }
-                        }
-
-                        override fun onFailure(call: Call<GetUsersResponse>, t: Throwable) {
-                            // 네트워크 오류 시에도 일단 저장된 세션으로 진입 시도
-                            moveToHome()
-                        }
-                    })
-                } else {
-                    // 로그인 안 되어 있으면 버튼 등장
-                    showAuthButtons(logo, btnSignUp, btnLogin)
-                }
+                UserSession.userId = "test_user"
+                UserSession.userName = "테스트"
+                UserSession.userRole = UserRole.MANAGER
+                UserSession.isInviteChecked = true
+                UserSession.groupId = "test_group"
+                UserSession.inviteCode = "TEST"
+                UserSession.saveSession(this@SplashActivity)
+                moveToHome()
             }
         })
         
