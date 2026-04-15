@@ -85,7 +85,7 @@ fun SettingWorkplaceAreaScreen(
     }
     val placeApi = remember { kakaoRetrofit.create(PlaceApi::class.java) }
 
-    val REST_API_KEY = "549ef0580861ccd75dc20bc5858e349f"
+    val REST_API_KEY = "SAMPLE_REST_API_KEY"
     val placeVm: PlaceSearchViewModel =
         viewModel(factory = PlaceSearchVmFactory(placeApi, REST_API_KEY))
 

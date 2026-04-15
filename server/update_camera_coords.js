@@ -2,7 +2,7 @@ const axios = require('axios');
 const pool = require('./db');
 
 // REST키
-const KAKAO_API_KEY = '549ef0580861ccd75dc20bc5858e349f';
+const KAKAO_API_KEY = 'SAMPLE_REST_API_KEY';
 
 async function updateCameraCoordinates() {
     const client = await pool.connect();

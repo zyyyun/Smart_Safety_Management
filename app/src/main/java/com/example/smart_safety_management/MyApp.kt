@@ -17,7 +17,7 @@ class MyApp : Application() {
         printKeyHash()
 
         // 발급받은 카카오맵 네이티브 앱 키
-        KakaoMapSdk.init(this, "70b1fc4a6e71158e8bb19fd885f55113")
+        KakaoMapSdk.init(this, "SAMPLE_NATIVE_APP_KEY")
     }
 
     private fun printKeyHash() {
