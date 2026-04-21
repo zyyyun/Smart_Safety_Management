@@ -25,6 +25,7 @@ def _required(key: str) -> str:
 class Settings:
     supabase_url: str
     supabase_service_role_key: str
+    system_agent_secret: str
     captures_bucket: str
     snapshot_interval_min: int
     snapshot_tmp_dir: Path
@@ -44,6 +45,7 @@ def load_settings() -> Settings:
     return Settings(
         supabase_url=_required("SUPABASE_URL"),
         supabase_service_role_key=_required("SUPABASE_SERVICE_ROLE_KEY"),
+        system_agent_secret=_required("SYSTEM_AGENT_SECRET"),
         captures_bucket=os.getenv("CAMERA_CAPTURES_BUCKET", "camera-captures"),
         snapshot_interval_min=int(os.getenv("SNAPSHOT_INTERVAL_MIN", "10")),
         snapshot_tmp_dir=tmp_dir,

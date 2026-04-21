@@ -26,14 +26,37 @@ cameras 테이블 (live_url_detail IS NOT NULL)
 
 ## 최초 설정
 
+### 1) Edge Function 공유 비밀 등록
+
+system Edge Function은 `SYSTEM_AGENT_SECRET` 환경변수와 일치하는 요청만 허용.
+Supabase 프로젝트 비밀로 등록한 뒤 agent도 동일 값을 사용해야 함.
+
+```bash
+# 새 비밀 생성 (예시 — 64자 URL-safe)
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+
+# Supabase에 등록 (한 번만)
+supabase secrets set SYSTEM_AGENT_SECRET="<위에서 생성한 값>"
+
+# system 함수 재배포 (secrets 적용)
+supabase functions deploy system --no-verify-jwt
+```
+
+### 2) `.env` 작성
+
 ```bash
 cd ai_agent
 cp .env.example .env        # Windows: copy .env.example .env
 # .env 편집:
 #   SUPABASE_URL=https://xbjqxnvemcqubjfflain.supabase.co
-#   SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...
+#   SUPABASE_SERVICE_ROLE_KEY=<legacy service_role JWT>
+#   SYSTEM_AGENT_SECRET=<위 1)에서 생성한 값과 동일>
 pip install -r requirements.txt
 ```
+
+> ⚠ **service_role 키 포맷 주의** — 2026-04 이후 Supabase 신규 키는 `sb_secret_xxx`
+> 포맷이나, Storage SDK는 아직 legacy JWT(`eyJ...` 시작)를 요구. `supabase projects api-keys`
+> 출력 중 `type=legacy` 행의 service_role 키를 사용.
 
 ## 실행
 

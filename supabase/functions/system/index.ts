@@ -1,7 +1,10 @@
 // System Edge Function
 // Purpose: Internal (system-to-system) endpoints called by the external Python agent.
-// Auth   : Caller MUST present Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>.
-//          This function is deployed with --no-verify-jwt so we verify the header manually.
+// Auth   : Caller MUST present one of:
+//            - Authorization: Bearer <SYSTEM_AGENT_SECRET>   (권장, 커스텀 공유 비밀)
+//            - x-system-secret: <SYSTEM_AGENT_SECRET>
+//          This function is deployed with --no-verify-jwt so we verify manually.
+//          SYSTEM_AGENT_SECRET는 `supabase secrets set`으로 주입.
 // Actions:
 //   - "camera_capture" : insert a PERIODIC camera_captures row and enforce
 //                        "最近 N장만 유지" retention (default 5). Also deletes
@@ -12,17 +15,30 @@ import { ok, err, optionsResponse } from "../_shared/response.ts";
 
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SYSTEM_AGENT_SECRET = Deno.env.get("SYSTEM_AGENT_SECRET") ?? "";
 const CAPTURES_BUCKET = "camera-captures";
 const KEEP_COUNT = 5;
 
 // ──────────────────────────────────────────────
 // Auth helper
 // ──────────────────────────────────────────────
-function verifyServiceRole(req: Request): boolean {
+function verifyAgentSecret(req: Request): boolean {
+  if (!SYSTEM_AGENT_SECRET) {
+    console.error("[system] SYSTEM_AGENT_SECRET is not set");
+    return false;
+  }
+
+  // 우선 커스텀 헤더 확인 (gateway가 Authorization을 건드려도 통과)
+  const custom = req.headers.get("x-system-secret");
+  if (custom && custom === SYSTEM_AGENT_SECRET) return true;
+
+  // 폴백 : Authorization: Bearer <secret>
   const auth = req.headers.get("Authorization") ?? "";
   const prefix = "Bearer ";
-  if (!auth.startsWith(prefix)) return false;
-  return auth.slice(prefix.length) === SERVICE_ROLE_KEY;
+  if (auth.startsWith(prefix) && auth.slice(prefix.length) === SYSTEM_AGENT_SECRET) {
+    return true;
+  }
+  return false;
 }
 
 function adminClient() {
@@ -38,8 +54,8 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return optionsResponse();
   if (req.method !== "POST") return err("Method not allowed", 405);
 
-  if (!verifyServiceRole(req)) {
-    return err("Unauthorized: service role key required", 401);
+  if (!verifyAgentSecret(req)) {
+    return err("Unauthorized: valid SYSTEM_AGENT_SECRET required", 401);
   }
 
   try {

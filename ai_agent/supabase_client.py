@@ -81,7 +81,10 @@ class SupabaseBridge:
             "image_url": image_url,
             "storage_path": storage_path,
         }
+        # x-system-secret : 우리 커스텀 공유 비밀 (Edge Function 검증용)
+        # Authorization   : Supabase Gateway가 요구하는 JWT (anon/service_role 무관, 존재 여부만 통과)
         headers = {
+            "x-system-secret": self._settings.system_agent_secret,
             "Authorization": f"Bearer {self._settings.supabase_service_role_key}",
             "Content-Type": "application/json",
         }
