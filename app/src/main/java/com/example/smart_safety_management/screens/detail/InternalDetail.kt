@@ -32,6 +32,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.example.smart_safety_management.LiveCardItem
@@ -516,6 +517,7 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
     val exoPlayer = remember {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(Uri.parse(url)))
+            repeatMode = Player.REPEAT_MODE_ONE   // 레퍼런스 영상 무한 루프
             prepare()
             playWhenReady = true
         }
