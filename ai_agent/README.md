@@ -45,14 +45,39 @@ python main.py
 python main.py --once
 ```
 
-## 테스트 카메라 시드
+## 테스트 카메라 시드 — AI-Hub 스타일 레퍼런스 영상 대체
 
-공개 RTSP 샘플을 `cameras` 테이블에 넣으려면:
+2026-04-21 기준 실기기 부재 + 공개 RTSP 데모 스트림(wowza, zephyr) 응답 불가 확인.
+대안으로 **2025 레거시(`D:\2025_산업안전\산업안전\`)의 AI-Hub 스타일 참조 영상**을
+로컬 파일 경로로 `cameras.live_url_detail`에 매핑해 카메라 소스를 시뮬레이션한다.
+
+`snapshot.py`는 URL 스킴(`rtsp://`, `rtsps://`)만 감지해 RTSP 전용 옵션을 적용하고,
+그 외는 일반 FFmpeg 입력으로 처리하므로 로컬 파일·HTTP·RTSP 모두 동일한 파이프라인으로 통과.
+
+### 시드 적용
 
 ```bash
 # Supabase SQL Editor 또는 psql
 \i supabase/seeds/test_cameras.sql
 ```
+
+### 매핑 구성 (5종 파일럿 AI 모델 대응)
+
+| device_code | 레퍼런스 영상 | 검증 |
+|---|---|---|
+| TEST-CAM-01 | `발표자료용 영상/detection(fire, helmet).mp4` | 화재+안전모 |
+| TEST-CAM-02 | `데이터/쓰러짐 영상.mp4` | 쓰러짐 |
+| TEST-CAM-03 | `모델 7종/사람 탐지/input_video.mp4` | 사람 |
+| TEST-CAM-04 | `모델 7종/지게차 탐지/test_forklift.gif` | 지게차 (GIF 정적 장면) |
+| TEST-CAM-05 | `모델 7종/화재 탐지/input.mp4` | 화재 단독 |
+
+### 한계
+
+- **Android 라이브 재생 불가** : `live_url`은 시드에서 `NULL`로 비워짐.
+  D6(ExoPlayer RTSP) 단계에서 mediamtx 등으로 로컬 MP4를 RTSP로 재송출 후 업데이트.
+  현재 앱에서 "전경"/"현장" 영역은 "연결대기" 배지만 표시되지만, "현장캡쳐" 섹션은 정상 동작.
+- **경로는 agent 실행 PC 기준** : 다른 PC에서 구동 시 시드 SQL 재적용 필요.
+- **지게차는 GIF** : 매 스냅샷이 거의 동일한 장면 → 모델 학습은 가능하나 시각적 변화는 제한적.
 
 ## 로컬 검증 절차
 
