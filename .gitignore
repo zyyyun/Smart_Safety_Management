@@ -28,3 +28,11 @@ server/serviceAccountKey.json
 
 
 app/google-services.json
+
+# -- 레퍼런스 영상 (개발 테스트용, 대용량 + 저작권 민감)
+reference_media/**
+!reference_media/README.md
+
+# -- ai_agent 환경변수
+ai_agent/.env
+ai_agent/__pycache__/
