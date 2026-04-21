@@ -1,28 +1,32 @@
-# ai_agent — P.A.S.S. CCTV 스냅샷 Agent (Next-4)
+# ai_agent — P.A.S.S. CCTV 스냅샷 + AI 감지 Agent
 
-Supabase Edge Function(Deno)이 FFmpeg 를 돌릴 수 없어 외부 Python 프로세스로 분리.
-로컬 개발 PC에서 10분 주기로 RTSP 카메라를 캡처해 Supabase Storage·DB에 적재한다.
+Supabase Edge Function(Deno)이 FFmpeg·PyTorch 를 돌릴 수 없어 외부 Python 프로세스로 분리.
+로컬 개발 PC에서 두 가지 잡을 동시 실행한다.
 
 ## 파이프라인
 
 ```
 cameras 테이블 (live_url_detail IS NOT NULL)
   │
-  ▼
-┌─────────── ai_agent (Python) ───────────┐
-│  FFmpeg : RTSP → JPEG 1프레임           │
-│  Supabase Storage : 업로드 (public URL) │
-│  system/camera_capture Edge Function    │
-│    · camera_captures INSERT             │
-│    · 카메라당 최근 5장만 유지            │
-└─────────────────────────────────────────┘
+  ├── [10분 주기 스냅샷 — Next-4]
+  │   FFmpeg → JPEG → camera-captures/periodic/ → camera_captures(PERIODIC)
+  │
+  └── [1분 주기 쓰러짐 감지 — Next-3 / LP-2]
+      FALL_ENABLED_CAMERA_IDS 의 카메라만 대상
+      FFmpeg 1프레임 → YOLOv7-w6-pose → rule 기반 분류
+      is_fall=True 시:
+        camera-captures/detection/ 업로드
+        → system/create_ai_event → detection_events(WARNING/쓰러짐) + notifications
+      카메라당 FALL_COOLDOWN_MIN 분 쿨타임 (중복 방지)
 ```
 
 ## 요구 사항
 
-- Python 3.10+
-- FFmpeg (PATH 등록 또는 `.env`의 `FFMPEG_BIN`에 절대경로 지정)
-- Supabase service_role 키
+- **Python 3.10 또는 3.11** (3.13은 torch 공식 wheel 없음)
+- FFmpeg (PATH 또는 `FFMPEG_BIN` env)
+- Supabase service_role 키 + SYSTEM_AGENT_SECRET
+- (선택) NVIDIA GPU + CUDA — 10x 이상 빠른 추론
+- 쓰러짐 모델 가중치 `yolov7-w6-pose.pt` (154MB, 2025 레거시 폴더 참조)
 
 ## 최초 설정
 
@@ -61,12 +65,52 @@ pip install -r requirements.txt
 ## 실행
 
 ```bash
-# 상시 실행 (10분 주기, 시작 즉시 1회 실행 후 반복)
+# 상시 실행 (스냅샷 10분 주기 + 쓰러짐 감지 1분 주기)
 python main.py
 
-# 1회만 실행하고 종료 (디버깅)
+# 스냅샷만 (쓰러짐 감지 비활성)
+python main.py --no-fall
+
+# 스냅샷 1회만 (디버깅)
 python main.py --once
+
+# 쓰러짐 감지 1회만 (모델 로드 + 추론 검증)
+python main.py --once-fall
 ```
+
+## 쓰러짐 감지 모듈 (Next-3 / LP-2)
+
+### 가중치 설정
+
+`.env` 의 `FALL_MODEL_WEIGHTS` 가 실제 파일을 가리키는지 확인.
+기본은 2025 레거시 폴더 직접 참조:
+
+```
+FALL_MODEL_WEIGHTS=D:/2025_산업안전/산업안전/모델 7종/쓰러짐 탐지/yolov7-w6-pose.pt
+```
+
+YOLOv7 소스 파일(`models/`, `utils/`)은 `yolov7_fork/` 안에 복사되어 있다.
+체크포인트 피클이 `models.yolo.Model` 등을 내장하므로 폴더명을 바꾸지 말 것.
+
+### acceptance gate — 영상에서 쓰러짐 감지 확인
+
+스케줄러를 돌리기 전에 실제 영상에서 감지되는지 검증:
+
+```bash
+python scripts/verify_fall_on_video.py
+# ✅ 쓰러짐 감지 확인: E02_001.mp4 t=XXX.Xs conf=0.85
+```
+
+FAIL 이면 `FALL_IMG_SIZE`, `FALL_CONF_THRES`, 영상 해상도부터 확인.
+
+### 감지 대상 카메라 제어
+
+`.env` 의 `FALL_ENABLED_CAMERA_IDS` 에 camera_id 를 쉼표로 나열.
+기본값 `2` (TEST-CAM-02, 쓰러짐 레퍼런스). 다른 카메라 추가하려면 `2,5` 등.
+
+### 쿨타임
+
+연속 감지 중복 방지. 카메라당 `FALL_COOLDOWN_MIN` (기본 10분). agent 재시작 시 초기화 — 재시작 직후 중복 감지 1건은 허용 범위.
 
 ## 테스트 카메라 시드 — AI-Hub 스타일 레퍼런스 영상 대체
 

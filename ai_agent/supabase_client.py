@@ -46,11 +46,10 @@ class SupabaseBridge:
     # ────────────────────────────────────────
     # storage
     # ────────────────────────────────────────
-    def upload_snapshot(self, camera_id: int, local_path: Path) -> tuple[str, str]:
-        """스냅샷 파일을 Storage에 업로드. (public_url, object_path) 반환."""
-        timestamp_ms = int(time.time() * 1000)
-        object_path = f"periodic/{camera_id}/snapshot_{camera_id}_{timestamp_ms}.jpg"
-
+    def _upload_to_captures(
+        self, object_path: str, local_path: Path
+    ) -> tuple[str, str]:
+        """공통 업로드 헬퍼 — camera-captures 버킷에 JPEG upsert 후 (url, path) 반환."""
         with local_path.open("rb") as fp:
             self._client.storage.from_(self._settings.captures_bucket).upload(
                 path=object_path,
@@ -60,37 +59,84 @@ class SupabaseBridge:
                     "x-upsert": "true",
                 },
             )
-
         public_url = self._client.storage.from_(
             self._settings.captures_bucket
         ).get_public_url(object_path)
-        # supabase-py는 때때로 trailing "?" 를 붙임 — 간단히 정리.
         public_url = public_url.rstrip("?")
         return public_url, object_path
+
+    def upload_snapshot(self, camera_id: int, local_path: Path) -> tuple[str, str]:
+        """10분 주기 PERIODIC 스냅샷 업로드 — periodic/ 하위."""
+        timestamp_ms = int(time.time() * 1000)
+        object_path = f"periodic/{camera_id}/snapshot_{camera_id}_{timestamp_ms}.jpg"
+        return self._upload_to_captures(object_path, local_path)
+
+    def upload_fall_snapshot(
+        self, camera_id: int, local_path: Path
+    ) -> tuple[str, str]:
+        """쓰러짐 감지 시점 스냅샷 업로드 — detection/ 하위 (PERIODIC 과 분리)."""
+        timestamp_ms = int(time.time() * 1000)
+        object_path = f"detection/{camera_id}/fall_{camera_id}_{timestamp_ms}.jpg"
+        return self._upload_to_captures(object_path, local_path)
 
     # ────────────────────────────────────────
     # system edge function
     # ────────────────────────────────────────
+    def _system_headers(self) -> dict[str, str]:
+        # x-system-secret : 우리 커스텀 공유 비밀 (Edge Function 검증용)
+        # Authorization   : Supabase Gateway가 요구하는 JWT (anon/service_role 무관, 존재 여부만 통과)
+        return {
+            "x-system-secret": self._settings.system_agent_secret,
+            "Authorization": f"Bearer {self._settings.supabase_service_role_key}",
+            "Content-Type": "application/json",
+        }
+
     def register_periodic_capture(
         self, camera_id: int, image_url: str, storage_path: str
     ) -> dict[str, Any]:
-        """system Edge Function에 insert + retention 요청."""
+        """system Edge Function에 camera_captures(PERIODIC) insert + retention 요청."""
         payload = {
             "action": "camera_capture",
             "camera_id": camera_id,
             "image_url": image_url,
             "storage_path": storage_path,
         }
-        # x-system-secret : 우리 커스텀 공유 비밀 (Edge Function 검증용)
-        # Authorization   : Supabase Gateway가 요구하는 JWT (anon/service_role 무관, 존재 여부만 통과)
-        headers = {
-            "x-system-secret": self._settings.system_agent_secret,
-            "Authorization": f"Bearer {self._settings.supabase_service_role_key}",
-            "Content-Type": "application/json",
+        resp = self._http.post(
+            self._settings.system_endpoint,
+            json=payload,
+            headers=self._system_headers(),
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def register_ai_event(
+        self,
+        *,
+        camera_id: int,
+        event_name: str,
+        risk_level: str,
+        accuracy: float,
+        image_url: str | None = None,
+    ) -> dict[str, Any]:
+        """쓰러짐/화재 등 AI 감지 이벤트를 detection_events 로 등록.
+
+        서버 내부에서 camera_captures(event_type=event_name) + detection_events
+        + notifications 까지 한번에 생성.
+        """
+        payload = {
+            "action": "create_ai_event",
+            "camera_id": camera_id,
+            "event_name": event_name,
+            "risk_level": risk_level,
+            "accuracy": accuracy,
         }
+        if image_url:
+            payload["image_url"] = image_url
 
         resp = self._http.post(
-            self._settings.system_endpoint, json=payload, headers=headers
+            self._settings.system_endpoint,
+            json=payload,
+            headers=self._system_headers(),
         )
         resp.raise_for_status()
         return resp.json()

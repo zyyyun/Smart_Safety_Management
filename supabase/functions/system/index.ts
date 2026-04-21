@@ -6,12 +6,17 @@
 //          This function is deployed with --no-verify-jwt so we verify manually.
 //          SYSTEM_AGENT_SECRET는 `supabase secrets set`으로 주입.
 // Actions:
-//   - "camera_capture" : insert a PERIODIC camera_captures row and enforce
-//                        "最近 N장만 유지" retention (default 5). Also deletes
-//                        the orphaned Storage objects.
+//   - "camera_capture"  : insert a PERIODIC camera_captures row and enforce
+//                         "最近 N장만 유지" retention (default 5). Also deletes
+//                         the orphaned Storage objects.
+//   - "create_ai_event" : create AI detection event (e.g. 쓰러짐). Delegates to
+//                         _shared/ai_events.ts::createAiEvent (same logic as
+//                         detection/index.ts so they never drift).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createAdminClient } from "../_shared/supabase.ts";
 import { ok, err, optionsResponse } from "../_shared/response.ts";
+import { createAiEvent, CreateAiEventParams } from "../_shared/ai_events.ts";
 
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -65,9 +70,8 @@ Deno.serve(async (req: Request) => {
     switch (action) {
       case "camera_capture":
         return await handleCameraCapture(body);
-      // Placeholder for Next-3 — keeps route stable.
       case "create_ai_event":
-        return err("create_ai_event not implemented yet (Next-3)", 501);
+        return await handleCreateAiEvent(body);
       default:
         return err(`Unknown action: ${action}`);
     }
@@ -76,6 +80,38 @@ Deno.serve(async (req: Request) => {
     return err(e instanceof Error ? e.message : "Internal server error", 500);
   }
 });
+
+// ──────────────────────────────────────────────
+// create_ai_event — Python agent 가 YOLO 추론 후 호출
+// ──────────────────────────────────────────────
+async function handleCreateAiEvent(body: Record<string, unknown>) {
+  const { camera_id, accuracy, risk_level, event_name, image_url } = body as {
+    camera_id?: number;
+    accuracy?: number;
+    risk_level?: string;
+    event_name?: string;
+    image_url?: string;
+  };
+
+  if (
+    typeof camera_id !== "number" ||
+    typeof event_name !== "string" ||
+    typeof risk_level !== "string"
+  ) {
+    return err("camera_id(number), event_name, risk_level required");
+  }
+
+  const params: CreateAiEventParams = {
+    camera_id,
+    accuracy: typeof accuracy === "number" ? accuracy : 0.0,
+    risk_level,
+    event_name,
+    image_url,
+  };
+
+  const admin = createAdminClient();
+  return await createAiEvent(admin, params);
+}
 
 // ──────────────────────────────────────────────
 // camera_capture — Insert + retention

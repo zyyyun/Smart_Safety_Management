@@ -27,11 +27,22 @@ def capture(
     *,
     ffmpeg_bin: str = "ffmpeg",
     timeout_sec: int = 30,
+    seek_seconds: float | None = None,
 ) -> Path:
-    """RTSP 스트림에서 프레임 하나를 캡처해 output_path에 저장.
+    """RTSP 스트림 또는 영상 파일에서 프레임 하나를 캡처해 output_path에 저장.
 
-    Raises:
-        SnapshotError: ffmpeg 실행 실패 또는 출력 파일이 생성되지 않은 경우.
+    Parameters
+    ----------
+    seek_seconds :
+        입력이 파일(로컬 또는 HTTP 영상)일 때, 이 초 지점으로 input seek 후 1프레임 추출.
+        레퍼런스 MP4 데모 환경에서 특정 시점(쓰러짐 순간 등)을 잡기 위한 플래그.
+        RTSP 라이브 스트림에서는 의미 없으므로 무시해도 무방하지만, -ss 자체는
+        허용되므로 넣어도 에러 없음.
+
+    Raises
+    ------
+    SnapshotError
+        ffmpeg 실행 실패 또는 출력 파일이 생성되지 않은 경우.
     """
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -39,6 +50,9 @@ def capture(
     is_rtsp = rtsp_url.lower().startswith(("rtsp://", "rtsps://"))
 
     cmd: list[str] = [ffmpeg_bin, "-y"]
+    # Input seek — -i 앞에 둬야 빠른 seek (key frame 기준)
+    if seek_seconds is not None and seek_seconds > 0:
+        cmd.extend(["-ss", f"{seek_seconds}"])
     # RTSP 전용 옵션 (로컬 파일/HTTP에는 지원되지 않음)
     if is_rtsp:
         cmd.extend(["-rtsp_transport", "tcp"])
