@@ -36,3 +36,7 @@ reference_media/**
 # -- ai_agent 환경변수
 ai_agent/.env
 ai_agent/__pycache__/
+
+# -- Firebase 서비스 계정 (FCM HTTP v1 인증용) — Supabase Secret 으로만 주입
+service-account*.json
+firebase-adminsdk*.json

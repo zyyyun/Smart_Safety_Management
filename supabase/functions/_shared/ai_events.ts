@@ -9,6 +9,7 @@
 
 import { createAdminClient } from "./supabase.ts";
 import { ok, err } from "./response.ts";
+import { sendPushToUsers } from "./fcm.ts";
 
 export type CreateAiEventParams = {
   camera_id: number;
@@ -144,6 +145,25 @@ export async function createAiEvent(
 
     if (notifications.length > 0) {
       await admin.from("notifications").insert(notifications);
+
+      // FCM push (fire-and-forget — DB insert 흐름 보호)
+      const uniqueUserIds = [
+        ...new Set(notifications.map((n) => n.user_id)),
+      ];
+      sendPushToUsers(admin, uniqueUserIds, {
+        title: `[${risk_level}] ${event_name} 감지`,
+        body: `${
+          camera.install_area ?? camera.device_name
+        }에서 ${event_name}이(가) 감지되었습니다. (정확도: ${
+          Math.round(accuracy * 100)
+        }%)`,
+        data: {
+          type: "ai_event",
+          event_id: String(detEvent.event_id),
+          risk_level,
+          camera_id: String(camera_id),
+        },
+      }).catch((e) => console.error("[FCM] ai_events push failed:", e));
     }
   }
 
