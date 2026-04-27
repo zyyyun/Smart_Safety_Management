@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -115,10 +116,12 @@ fun DailyDetailWorkerScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        photoUris.take(2).forEachIndexed { index, uriStr ->
+                        photoUris.forEachIndexed { index, uriStr ->
                             Surface(
                                 modifier = Modifier.size(120.dp),
                                 shape = RoundedCornerShape(8.dp),
@@ -131,7 +134,7 @@ fun DailyDetailWorkerScreen(
                                     contentScale = ContentScale.Crop
                                 )
                             }
-                            if (index == 0 && photoUris.size > 1) Spacer(modifier = Modifier.width(12.dp))
+                            if (index < photoUris.lastIndex) Spacer(modifier = Modifier.width(12.dp))
                         }
                     }
 
