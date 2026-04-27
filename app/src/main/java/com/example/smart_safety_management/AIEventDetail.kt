@@ -242,7 +242,7 @@ fun AIEventDetailScreen(
                                             fontFamily = Pretendard
                                         )
                                         Text(
-                                            text = "${eventDetail?.eventName ?: "이벤트"}가 감지되었습니다.",
+                                            text = "${eventDetail?.eventName ?: "이벤트"}이(가) 감지되었습니다.",
                                             color = CategoryColor,
                                             fontSize = 14.sp,
                                             fontFamily = Pretendard,

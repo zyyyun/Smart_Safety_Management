@@ -224,7 +224,7 @@ class HomeWorkerActivity : AppCompatActivity() {
                             id = dto.eventId,
                             accidentType = mapRiskLevel(dto.riskLevel),
                             location = dto.installArea ?: "알 수 없음",
-                            content = "${dto.eventName ?: "알 수 없는 이벤트"}가 감지되었습니다.",
+                            content = "${dto.eventName ?: "알 수 없는 이벤트"}이(가) 감지되었습니다.",
                             occurrenceTime = calculateTimeAgo(dto.detectedAt),
                             deviceName = dto.deviceName ?: "",
                             accuracy = "${dto.accuracy ?: 0}%"
