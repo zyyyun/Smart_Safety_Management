@@ -1,13 +1,17 @@
 """APScheduler 기반 주기 파이프라인.
 
-잡 2종을 하나의 BlockingScheduler 에 등록한다.
+잡 3종을 하나의 BlockingScheduler 에 등록한다.
 
 1) periodic_snapshot (10분)
    - 활성 카메라 전체에 대해 RTSP → JPEG → Storage → camera_captures(PERIODIC)
 2) fall_detection (1분)
    - FALL_ENABLED_CAMERA_IDS 로 지정된 카메라만 대상
-   - RTSP → JPEG → FallDetector → is_fall 이면 Storage → detection_events
+   - RTSP → JPEG → FallDetector(YOLOv7-pose) → is_fall 이면 Storage → detection_events
    - 카메라당 FALL_COOLDOWN_MIN 분 내 중복 방지 (메모리 상태)
+3) general_detection (1분, LP-2 확장)
+   - DETECTORS_ENABLED 로 지정된 detector 들이 자기 camera_ids 만 대상
+   - RTSP → JPEG → GenericYoloDetector → is_detected 이면 Storage → detection_events
+   - (camera_id, event_key) 별 DETECTORS_COOLDOWN_MIN 분 쿨타임
 """
 
 from __future__ import annotations
@@ -24,9 +28,11 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from config import Settings
+from detector_configs import DETECTOR_CONFIGS
 from fall_detector import FallDetector
 from snapshot import SnapshotError, capture
 from supabase_client import SupabaseBridge
+from yolo_detector import GenericYoloDetector
 
 
 log = logging.getLogger(__name__)
@@ -34,6 +40,9 @@ log = logging.getLogger(__name__)
 # 카메라별 마지막 쓰러짐 감지 타임스탬프 — agent 프로세스 메모리에 유지.
 # 재시작 시 초기화 (plan D7 허용).
 _fall_cooldown: dict[int, float] = {}
+
+# (camera_id, event_key) 별 마지막 일반 detector 감지 타임스탬프.
+_detection_cooldown: dict[tuple[int, str], float] = {}
 
 
 # ──────────────────────────────────────────────
@@ -188,14 +197,129 @@ def run_fall_cycle(
 
 
 # ──────────────────────────────────────────────
+# general detection (LP-2 확장 — 화재·안전모·지게차·사람)
+# ──────────────────────────────────────────────
+def _process_detection_for_camera(
+    bridge: SupabaseBridge,
+    settings: Settings,
+    event_key: str,
+    detector: GenericYoloDetector,
+    cfg: dict[str, Any],
+    camera: dict[str, Any],
+) -> str:
+    camera_id = int(camera["camera_id"])
+    rtsp_url = camera["live_url_detail"]
+
+    cooldown_key = (camera_id, event_key)
+    last_ts = _detection_cooldown.get(cooldown_key)
+    now = time.time()
+    if last_ts and (now - last_ts) < settings.detectors_cooldown_min * 60:
+        return f"[detect_skip_cooldown] camera_id={camera_id} event={event_key}"
+
+    tmp_name = f"detect_{event_key}_{camera_id}_{int(now * 1000)}.jpg"
+    tmp_path = settings.snapshot_tmp_dir / tmp_name
+    try:
+        capture(
+            rtsp_url,
+            tmp_path,
+            ffmpeg_bin=settings.ffmpeg_bin,
+            seek_seconds=settings.detectors_demo_seek_sec,
+        )
+        img = cv2.imread(str(tmp_path))
+        if img is None:
+            return f"[DETECT_ERR] camera_id={camera_id} event={event_key}: cv2.imread failed"
+
+        result = detector.detect(img)
+        if not result.is_detected:
+            return (
+                f"[no_detect] camera_id={camera_id} event={event_key} "
+                f"inf={result.inference_ms:.0f}ms"
+            )
+
+        public_url, _path = bridge.upload_detection_snapshot(
+            camera_id, cfg.get("storage_prefix", event_key), tmp_path
+        )
+        event = bridge.register_ai_event(
+            camera_id=camera_id,
+            event_name=cfg["event_name"],
+            risk_level=cfg["risk_level"],
+            accuracy=float(result.confidence or 0.0),
+            image_url=public_url,
+        )
+        _detection_cooldown[cooldown_key] = now
+        event_id = event.get("event_id")
+        return (
+            f"[DETECT] camera_id={camera_id} event={event_key} "
+            f"label={result.label} conf={result.confidence:.2f} "
+            f"event_id={event_id} url={public_url}"
+        )
+    except SnapshotError as e:
+        return f"[DETECT_SNAPSHOT_ERR] camera_id={camera_id} event={event_key}: {e}"
+    except Exception as e:
+        return f"[DETECT_ERR] camera_id={camera_id} event={event_key}: {e!r}"
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def run_detection_cycle(
+    bridge: SupabaseBridge,
+    settings: Settings,
+    detectors: dict[str, GenericYoloDetector],
+) -> None:
+    """1분 주기 일반 감지 사이클 — 4종 detector 전부 순회."""
+    if not detectors:
+        log.debug("DETECTORS_ENABLED 비어있음 — 감지 스킵")
+        return
+
+    log.info("=== 일반 감지 사이클 시작 (활성 %s) ===", list(detectors.keys()))
+    try:
+        all_cams = bridge.fetch_active_cameras()
+    except Exception as e:
+        log.error("카메라 목록 조회 실패: %s", e)
+        return
+
+    cams_by_id = {int(c["camera_id"]): c for c in all_cams}
+
+    for event_key, detector in detectors.items():
+        cfg = DETECTOR_CONFIGS.get(event_key)
+        if cfg is None:
+            log.warning("[%s] DETECTOR_CONFIGS 에 항목 없음, 스킵", event_key)
+            continue
+        target_cams = [
+            cams_by_id[cid] for cid in cfg["camera_ids"] if cid in cams_by_id
+        ]
+        if not target_cams:
+            log.debug(
+                "[%s] 매핑 카메라 %s 중 활성된 것 없음", event_key, cfg["camera_ids"]
+            )
+            continue
+        for cam in target_cams:
+            msg = _process_detection_for_camera(
+                bridge, settings, event_key, detector, cfg, cam
+            )
+            if msg.startswith(("[no_detect]", "[detect_skip_cooldown]")):
+                log.debug(msg)
+            else:
+                log.info(msg)
+    log.info("=== 일반 감지 사이클 종료 ===")
+
+
+# ──────────────────────────────────────────────
 # scheduler builder
 # ──────────────────────────────────────────────
 def build_scheduler(
     settings: Settings,
     bridge: SupabaseBridge,
     detector: Optional[FallDetector] = None,
+    detectors: Optional[dict[str, GenericYoloDetector]] = None,
 ) -> BlockingScheduler:
-    """10분 스냅샷 + 1분 쓰러짐 감지 두 잡을 등록한 BlockingScheduler 반환."""
+    """10분 스냅샷 + 1분 쓰러짐 + 1분 일반 감지(4종) 잡을 등록.
+
+    detector / detectors 가 None 이면 해당 잡은 건너뜀 (개발 환경 유연성).
+    """
     scheduler = BlockingScheduler(
         executors={"default": APSThreadPoolExecutor(8)},
     )
@@ -213,6 +337,15 @@ def build_scheduler(
             trigger=IntervalTrigger(minutes=settings.fall_interval_min),
             args=[bridge, settings, detector],
             id="fall_detection",
+            max_instances=1,
+            coalesce=True,
+        )
+    if detectors:
+        scheduler.add_job(
+            run_detection_cycle,
+            trigger=IntervalTrigger(minutes=settings.detectors_interval_min),
+            args=[bridge, settings, detectors],
+            id="general_detection",
             max_instances=1,
             coalesce=True,
         )

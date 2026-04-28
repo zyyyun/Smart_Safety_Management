@@ -19,3 +19,7 @@ requests>=2.28
 matplotlib>=3.6
 seaborn>=0.12
 scipy>=1.9
+
+# ── LP-2 확장 (화재·안전모·지게차·사람 YOLO 4종)
+# YOLOv5 / YOLOv8 통합 SDK. 첫 실행 시 모델 캐시 자동 다운로드 (네트워크 필요).
+ultralytics>=8.2

@@ -112,6 +112,42 @@ FAIL 이면 `FALL_IMG_SIZE`, `FALL_CONF_THRES`, 영상 해상도부터 확인.
 
 연속 감지 중복 방지. 카메라당 `FALL_COOLDOWN_MIN` (기본 10분). agent 재시작 시 초기화 — 재시작 직후 중복 감지 1건은 허용 범위.
 
+## 일반 감지 4종 (LP-2 확장 — 화재·안전모·지게차·사람)
+
+YOLOv7-pose 인 쓰러짐과 달리 4종은 모두 일반 객체 검출 (YOLOv5 / YOLOv8). 별도
+`fall_detector.py` 대신 **단일 `GenericYoloDetector` (ultralytics SDK 기반) + 4 인스턴스**
+패턴으로 통합. 1분 슬로텍 `general_detection` 잡이 `DETECTORS_ENABLED` 의 detector 들을
+순회하며 각 detector 의 `camera_ids` 만 처리.
+
+### 설정 흐름
+
+1. **모델 메타** : [`detector_configs.py`](detector_configs.py) 의 `DETECTOR_CONFIGS` dict
+   (가중치 경로·event_name·risk_level·camera_ids·conf_thres·target_classes·storage_prefix)
+2. **활성화 토글** : `.env` 의 `DETECTORS_ENABLED=fire,helmet,forklift,person`
+3. **레퍼런스 영상 매핑** : `python scripts/upload_reference_videos.py` 1회 실행하면
+   레거시 폴더의 영상들을 Storage `reference-videos/{event_key}/` 에 업로드하고
+   cameras.live_url_detail 갱신 (camera_id 1=화재, 5=안전모, 4=지게차, 3=사람)
+
+### 실행
+
+```bash
+# 4종 1회 사이클 (검증)
+python main.py --once-detect
+
+# 상시 (스냅샷 10분 + 쓰러짐 1분 + 일반감지 1분 = 잡 3개)
+python main.py
+```
+
+### 룰 — 단순 conf threshold
+
+본 세션은 단순 룰만 구현 — `model.predict(conf=conf_thres, iou=iou_thres)` 결과 중
+target_classes 화이트리스트에 매칭되는 가장 높은 confidence 1건을 reportable 이벤트로.
+5프레임 연속 / bbox 겹침 등 충실한 룰은 후속 세션 범위.
+
+### 카메라당 쿨타임
+
+`(camera_id, event_key)` 페어 단위 `DETECTORS_COOLDOWN_MIN` 분 (기본 10분).
+
 ## 테스트 카메라 시드 — AI-Hub 스타일 레퍼런스 영상 대체
 
 2026-04-21 기준 실기기 부재 + 공개 RTSP 데모 스트림(wowza, zephyr) 응답 불가 확인.

@@ -37,13 +37,21 @@ from torchvision import transforms
 
 
 _YOLOV7_FORK_DIR = Path(__file__).resolve().parent / "yolov7_fork"
-if str(_YOLOV7_FORK_DIR) not in sys.path:
-    sys.path.insert(0, str(_YOLOV7_FORK_DIR))
 
-# yolov7_fork/utils 아래 upstream import — sys.path prepend 이후에 해야 함.
-from utils.datasets import letterbox  # noqa: E402
-from utils.general import non_max_suppression_kpt  # noqa: E402
-from utils.plots import output_to_keypoint  # noqa: E402
+
+def _install_yolov7_fork():
+    """yolov7_fork 를 sys.path 에 prepend + utils 헬퍼 import.
+
+    Module-level 에서 하면 fall_detector 를 import 만 해도 sys.path 가 오염되어
+    이후 torch.hub 의 yolov5 가 'models'/'utils' 패키지를 yolov7 fork 로 잘못 찾는
+    충돌이 발생. 따라서 FallDetector 가 실제로 인스턴스화될 때만 호출.
+    """
+    if str(_YOLOV7_FORK_DIR) not in sys.path:
+        sys.path.insert(0, str(_YOLOV7_FORK_DIR))
+    from utils.datasets import letterbox  # noqa: WPS433
+    from utils.general import non_max_suppression_kpt  # noqa: WPS433
+    from utils.plots import output_to_keypoint  # noqa: WPS433
+    return letterbox, non_max_suppression_kpt, output_to_keypoint
 
 
 log = logging.getLogger(__name__)
@@ -99,6 +107,11 @@ class FallDetector:
         self.img_size = img_size
         self.stride = stride
         self._fp16 = self.device.type == "cuda"
+
+        # YOLOv7 fork — lazy install (sys.path + utils.* import).
+        # 이 라인 이후로 sys.path 에 yolov7_fork 가 들어가므로 같은 프로세스에서
+        # torch.hub yolov5 를 추가 로드하면 충돌. 일반 detector 는 본 라인 이전에 로드.
+        self._letterbox, self._nms_kpt, self._o2k = _install_yolov7_fork()
 
         t0 = time.time()
         # torch.load 는 피클 unpickling 에서 models.yolo 등의 경로를 resolve 하므로
@@ -159,7 +172,7 @@ class FallDetector:
     def _run_pose(self, image_bgr: np.ndarray) -> np.ndarray:
         """단일 프레임 → output_to_keypoint 결과 배열 (shape (N, 58))."""
         # letterbox + ToTensor (레거시 main.py:87-100 과 동일)
-        image_lb = letterbox(image_bgr, self.img_size, stride=self.stride, auto=True)[0]
+        image_lb = self._letterbox(image_bgr, self.img_size, stride=self.stride, auto=True)[0]
         tensor = transforms.ToTensor()(image_lb)  # 0-1 float tensor, CHW
         tensor = torch.tensor(np.array([tensor.numpy()]))
         if self._fp16:
@@ -170,7 +183,7 @@ class FallDetector:
         with torch.no_grad():
             output, _ = self.model(tensor)
 
-        output = non_max_suppression_kpt(
+        output = self._nms_kpt(
             output,
             self.conf_thres,
             self.iou_thres,
@@ -179,7 +192,7 @@ class FallDetector:
             kpt_label=True,
         )
         with torch.no_grad():
-            poses = output_to_keypoint(output)  # numpy.ndarray
+            poses = self._o2k(output)  # numpy.ndarray
         return poses
 
     @staticmethod

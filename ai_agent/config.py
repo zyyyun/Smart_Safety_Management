@@ -35,7 +35,7 @@ class Settings:
     ffmpeg_bin: str
     log_level: str
 
-    # Fall detection (Next-3 / LP-2)
+    # Fall detection (Next-3 / LP-2 1단계)
     fall_model_weights: str
     fall_interval_min: int
     fall_cooldown_min: int
@@ -45,6 +45,13 @@ class Settings:
     fall_img_size: int
     fall_enabled_camera_ids: tuple[int, ...]
     fall_demo_seek_sec: float | None  # 레퍼런스 MP4 데모 용도 (RTSP 에서는 무시)
+
+    # General detectors (LP-2 확장 — 화재·안전모·지게차·사람)
+    detectors_enabled: tuple[str, ...]  # ex: ('fire','helmet','forklift','person')
+    detectors_interval_min: int
+    detectors_cooldown_min: int
+    detectors_device: str
+    detectors_demo_seek_sec: float | None
 
     @property
     def system_endpoint(self) -> str:
@@ -89,7 +96,18 @@ def load_settings() -> Settings:
         fall_img_size=int(os.getenv("FALL_IMG_SIZE", "960")),
         fall_enabled_camera_ids=_parse_camera_ids(os.getenv("FALL_ENABLED_CAMERA_IDS", "")),
         fall_demo_seek_sec=_parse_optional_float(os.getenv("FALL_DEMO_SEEK_SEC")),
+        detectors_enabled=_parse_csv(os.getenv("DETECTORS_ENABLED", "")),
+        detectors_interval_min=int(os.getenv("DETECTORS_INTERVAL_MIN", "1")),
+        detectors_cooldown_min=int(os.getenv("DETECTORS_COOLDOWN_MIN", "10")),
+        detectors_device=os.getenv("DETECTORS_DEVICE", "auto"),
+        detectors_demo_seek_sec=_parse_optional_float(os.getenv("DETECTORS_DEMO_SEEK_SEC")),
     )
+
+
+def _parse_csv(raw: str) -> tuple[str, ...]:
+    if not raw:
+        return ()
+    return tuple(t.strip() for t in raw.replace(";", ",").split(",") if t.strip())
 
 
 def _parse_optional_float(raw: str | None) -> float | None:

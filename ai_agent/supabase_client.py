@@ -71,13 +71,25 @@ class SupabaseBridge:
         object_path = f"periodic/{camera_id}/snapshot_{camera_id}_{timestamp_ms}.jpg"
         return self._upload_to_captures(object_path, local_path)
 
+    def upload_detection_snapshot(
+        self, camera_id: int, event_key: str, local_path: Path
+    ) -> tuple[str, str]:
+        """AI 감지 시점 스냅샷 업로드 — detection/{camera_id}/{event_key}_*.jpg.
+
+        event_key 는 detector 식별자 (예: 'fall', 'fire', 'helmet', 'forklift', 'person').
+        PERIODIC 스냅샷과 prefix 가 분리되어 retention/필터링이 용이.
+        """
+        timestamp_ms = int(time.time() * 1000)
+        object_path = (
+            f"detection/{camera_id}/{event_key}_{camera_id}_{timestamp_ms}.jpg"
+        )
+        return self._upload_to_captures(object_path, local_path)
+
     def upload_fall_snapshot(
         self, camera_id: int, local_path: Path
     ) -> tuple[str, str]:
-        """쓰러짐 감지 시점 스냅샷 업로드 — detection/ 하위 (PERIODIC 과 분리)."""
-        timestamp_ms = int(time.time() * 1000)
-        object_path = f"detection/{camera_id}/fall_{camera_id}_{timestamp_ms}.jpg"
-        return self._upload_to_captures(object_path, local_path)
+        """[Deprecated] 쓰러짐 전용 — upload_detection_snapshot('fall', ...) 위임."""
+        return self.upload_detection_snapshot(camera_id, "fall", local_path)
 
     # ────────────────────────────────────────
     # system edge function
