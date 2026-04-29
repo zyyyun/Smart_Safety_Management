@@ -7,17 +7,17 @@ progress:
   phases_done: 0
   requirements_total: 19
   requirements_validated: 0
-last_activity: "2026-04-29 — Milestone v1.0 started"
+last_activity: "2026-04-29 — Roadmap created (6 phases, 19 requirements mapped)"
 ---
 
 # Smart Safety Management — State
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Not started (roadmap created, awaiting plan-phase 1)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-29 — Milestone v1.0 started
+Status: Roadmap complete · 6 phases · 19/19 REQs mapped
+Last activity: 2026-04-29 — Roadmap created (6 phases, 19 requirements mapped)
 
 ## Accumulated Context
 
@@ -30,6 +30,8 @@ Last activity: 2026-04-29 — Milestone v1.0 started
 - 2026-04-29: GSD `.planning/` 부트스트랩 — `docs/PROJECT_SPEC.md` + 메모리 +
   `iridescent-percolating-fox.md` + `J2208A_안전관리_시스템_PLAN.md` 합성. PROJECT.md
   가 단일 source of truth, `docs/` 는 v0 보존본.
+- 2026-04-29: Roadmap 6 phase 결정 — Phase 1·2·3 비전 chain (데이터 → frames → fusion),
+  Phase 4 워치 병렬 (코드베이스 분리), Phase 5·6 통합 평가/데모. 19/19 REQs 매핑.
 
 ### Blockers
 
@@ -37,10 +39,10 @@ Last activity: 2026-04-29 — Milestone v1.0 started
 
 ### Pending Todos
 
-- 비전 트랙: helmet/fire 데모 영상 교체 (DATA-01/02), frames_required 룰 (MODEL-01/02)
-- 워치 트랙: Supabase 6 테이블 마이그레이션 + S2~S4 파이프라인 + wear-state state machine
-- 평가: 2단계 정량 지표 정의 + 검증셋 라벨링
-- 데모: PPT 슬라이드 + Android/워치 캡처 + 의료기기 면책 문구
+- Phase 1 plan: helmet/fire 데모 영상 교체 (DATA-01/02/03) — `/gsd-plan-phase 1`
+- Phase 4 plan (병렬 가능): J2208A Supabase 스키마 + S2~S4 + state machine —
+  `/gsd-plan-phase 4`
+- 비전 Phase 2·3, 평가 Phase 5, 데모 Phase 6 — 의존성 풀린 시점에 plan 작성
 
 ## Notes
 
@@ -48,3 +50,5 @@ Last activity: 2026-04-29 — Milestone v1.0 started
   시 `state.milestone-switch` / `commit` / `phases.clear` 핸들러로 전환 가능.
 - GSD agents (`gsd-roadmapper`, `gsd-project-researcher`,
   `gsd-research-synthesizer`) 는 `~/.claude/agents/` 에 설치 확인됨.
+- Dependency graph: Phase 1 → 2 → 3 (비전 chain), Phase 4 (워치) 병렬, Phase 5
+  ← (1·2·3·4) 모두, Phase 6 ← Phase 5 (시연 흐름은 Phase 3·4 산출물 활용).

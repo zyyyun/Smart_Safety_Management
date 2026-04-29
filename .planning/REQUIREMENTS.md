@@ -121,4 +121,28 @@
 
 ## Traceability
 
-(roadmapper 가 ROADMAP.md 생성 후 채움 — REQ-ID → Phase 매핑)
+> 19/19 v1.0 requirements mapped to phases · 0 orphans · 0 duplicates
+> Source: `.planning/ROADMAP.md` (created 2026-04-29)
+
+| REQ-ID    | Phase   | Phase Name                          | Status  |
+|-----------|---------|-------------------------------------|---------|
+| DATA-01   | Phase 1 | 비전 — 데모 영상 교체               | Pending |
+| DATA-02   | Phase 1 | 비전 — 데모 영상 교체               | Pending |
+| DATA-03   | Phase 1 | 비전 — 데모 영상 교체               | Pending |
+| MODEL-01  | Phase 2 | 비전 — frames 연속 룰               | Pending |
+| MODEL-02  | Phase 2 | 비전 — frames 연속 룰               | Pending |
+| MODEL-03  | Phase 2 | 비전 — frames 연속 룰               | Pending |
+| FUSION-01 | Phase 3 | 비전 — bbox 겹침/공간 매칭          | Pending |
+| FUSION-02 | Phase 3 | 비전 — bbox 겹침/공간 매칭          | Pending |
+| WATCH-01  | Phase 4 | 워치 — J2208A 1인 파이프라인        | Pending |
+| WATCH-02  | Phase 4 | 워치 — J2208A 1인 파이프라인        | Pending |
+| WATCH-03  | Phase 4 | 워치 — J2208A 1인 파이프라인        | Pending |
+| WATCH-04  | Phase 4 | 워치 — J2208A 1인 파이프라인        | Pending |
+| WATCH-05  | Phase 4 | 워치 — J2208A 1인 파이프라인        | Pending |
+| EVAL-01   | Phase 5 | 평가 — 2단계 정량 지표              | Pending |
+| EVAL-02   | Phase 5 | 평가 — 2단계 정량 지표              | Pending |
+| EVAL-03   | Phase 5 | 평가 — 2단계 정량 지표              | Pending |
+| DEMO-01   | Phase 6 | 데모 빌드 — 통합 시연·캡처·PPT      | Pending |
+| DEMO-02   | Phase 6 | 데모 빌드 — 통합 시연·캡처·PPT      | Pending |
+| DEMO-03   | Phase 6 | 데모 빌드 — 통합 시연·캡처·PPT      | Pending |
+| DEMO-04   | Phase 6 | 데모 빌드 — 통합 시연·캡처·PPT      | Pending |
