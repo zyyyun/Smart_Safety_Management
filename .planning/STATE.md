@@ -7,17 +7,17 @@ progress:
   phases_done: 0
   requirements_total: 19
   requirements_validated: 0
-last_activity: "2026-05-02 — Phase 1 planned (1 plan, 1 wave, verification PASSED)"
+last_activity: "2026-05-02 — Phase 4 context gathered (CONTEXT.md, 13 decisions)"
 ---
 
 # Smart Safety Management — State
 
 ## Current Position
 
-Phase: 1 — 비전 — 데모 영상 교체 (planned, ready to execute)
-Plan: 01-01-PLAN.md (3 sequential tasks, autonomous)
-Status: Plans verified · DATA-01/02/03 + MODEL-03 absorbed · ready for /gsd-execute-phase 1
-Last activity: 2026-05-02 — Phase 1 planned (1 plan, 1 wave, verification PASSED)
+Phase: 1 (planned, ready to execute) + Phase 4 (context gathered, awaiting plan-phase) — 병렬 트랙
+Plan: 01-01-PLAN.md (Phase 1, 3 tasks); Phase 4 plan TBD
+Status: Phase 1 = 실행 진입 가능 / Phase 4 = /gsd-plan-phase 4 진입 가능
+Last activity: 2026-05-02 — Phase 4 context gathered (CONTEXT.md, 13 decisions)
 
 ## Accumulated Context
 
@@ -35,6 +35,11 @@ Last activity: 2026-05-02 — Phase 1 planned (1 plan, 1 wave, verification PASS
 - 2026-05-02: Phase 1 컨텍스트 — 영상 소스 = 레거시 `발표자료용 영상/detection(fire,
   helmet).mp4` (39MB), fire/helmet 동일 mp4 매핑, Storage 새 키 (`source_v2.mp4`),
   detector_configs.py 영구 변경 (MODEL-03 흡수), 검증은 `--once-detect` 1회 + SQL.
+- 2026-05-02: Phase 4 컨텍스트 — 기존 `devices` 확장 (mac_address·firmware·last_comm)
+  + 신규 4 테이블 (raw_events·wear_state_events·minute_summary·safety_alerts);
+  파이프라인 = `scripts/j2208a_sensor_reader.py` 인라인 (모듈 분리 `j2208a/`);
+  wear-state 임계 = Python 상수 (v1.1 외부화); TTL = pg_cron + UNIQUE constraint
+  dedup; 알림 = FCM only (`_shared/fcm.ts` 재사용); 24h 검증 = 실측 착용.
 
 ### Blockers
 
@@ -43,8 +48,7 @@ Last activity: 2026-05-02 — Phase 1 planned (1 plan, 1 wave, verification PASS
 ### Pending Todos
 
 - Phase 1 execute: `/gsd-execute-phase 1` 진입 가능 (3 task autonomous, ROADMAP SC #1-#4 매핑됨)
-- Phase 4 plan (병렬 가능): J2208A Supabase 스키마 + S2~S4 + state machine —
-  `/gsd-discuss-phase 4` 부터 시작
+- Phase 4 plan: `/gsd-plan-phase 4` 진입 가능 (CONTEXT.md 13 decisions 캡처됨)
 - 비전 Phase 2·3, 평가 Phase 5, 데모 Phase 6 — 의존성 풀린 시점에 plan 작성
 
 ## Notes
