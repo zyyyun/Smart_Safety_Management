@@ -7,17 +7,17 @@ progress:
   phases_done: 0
   requirements_total: 19
   requirements_validated: 0
-last_activity: "2026-05-02 — Phase 4 context gathered (CONTEXT.md, 13 decisions)"
+last_activity: "2026-05-02 — Phase 4 planned (4 plans, 3 waves, verification PASSED iter 2/3)"
 ---
 
 # Smart Safety Management — State
 
 ## Current Position
 
-Phase: 1 (planned, ready to execute) + Phase 4 (context gathered, awaiting plan-phase) — 병렬 트랙
-Plan: 01-01-PLAN.md (Phase 1, 3 tasks); Phase 4 plan TBD
-Status: Phase 1 = 실행 진입 가능 / Phase 4 = /gsd-plan-phase 4 진입 가능
-Last activity: 2026-05-02 — Phase 4 context gathered (CONTEXT.md, 13 decisions)
+Phase: 1 + Phase 4 모두 planned — 병렬 실행 가능
+Plan: Phase 1 = 01-01-PLAN.md (3 tasks); Phase 4 = 04-01·02·03·04-PLAN.md (4 plans / 3 waves)
+Status: 두 Phase 모두 /gsd-execute-phase N 진입 가능. Phase 4 04-04 는 24h 실측 (autonomous: false)
+Last activity: 2026-05-02 — Phase 4 planned (4 plans, 3 waves, verification PASSED iter 2/3)
 
 ## Accumulated Context
 
@@ -40,6 +40,11 @@ Last activity: 2026-05-02 — Phase 4 context gathered (CONTEXT.md, 13 decisions
   파이프라인 = `scripts/j2208a_sensor_reader.py` 인라인 (모듈 분리 `j2208a/`);
   wear-state 임계 = Python 상수 (v1.1 외부화); TTL = pg_cron + UNIQUE constraint
   dedup; 알림 = FCM only (`_shared/fcm.ts` 재사용); 24h 검증 = 실측 착용.
+- 2026-05-02: Phase 4 plan — 4 plan / 3 wave. Wave 1 = 04-01 (마이그레이션) ∥ 04-02
+  (j2208a/ 패키지 + 단위 테스트). Wave 2 = 04-03 (BLE wiring + watch-alert
+  Edge Function + heartbeat). Wave 3 = 04-04 (24h 실측, non-autonomous).
+  Iteration 2/3 PASSED — COMMS_LOST cold-start false-positive fix + XML escape +
+  Test D-6 wording 보정 (커밋 `a54d71d` + `6998b3d`).
 
 ### Blockers
 
@@ -47,8 +52,10 @@ Last activity: 2026-05-02 — Phase 4 context gathered (CONTEXT.md, 13 decisions
 
 ### Pending Todos
 
-- Phase 1 execute: `/gsd-execute-phase 1` 진입 가능 (3 task autonomous, ROADMAP SC #1-#4 매핑됨)
-- Phase 4 plan: `/gsd-plan-phase 4` 진입 가능 (CONTEXT.md 13 decisions 캡처됨)
+- Phase 1 execute: `/gsd-execute-phase 1` 진입 가능 (3 task autonomous)
+- Phase 4 execute: `/gsd-execute-phase 4` 진입 가능 (Wave 1·2 autonomous, Wave 3 = 24h 실측)
+- 비전 chain Phase 2·3 (frames 룰 + bbox fusion) — Phase 1 실행 후 진입
+- 평가 Phase 5, 데모 Phase 6 — 의존성 풀린 시점에 plan
 - 비전 Phase 2·3, 평가 Phase 5, 데모 Phase 6 — 의존성 풀린 시점에 plan 작성
 
 ## Notes
