@@ -7,17 +7,17 @@ progress:
   phases_done: 0
   requirements_total: 19
   requirements_validated: 0
-last_activity: "2026-04-29 — Roadmap created (6 phases, 19 requirements mapped)"
+last_activity: "2026-05-02 — Phase 1 context gathered (CONTEXT.md, 5 decisions)"
 ---
 
 # Smart Safety Management — State
 
 ## Current Position
 
-Phase: Not started (roadmap created, awaiting plan-phase 1)
+Phase: 1 — 비전 — 데모 영상 교체 (context gathered, awaiting plan-phase)
 Plan: —
-Status: Roadmap complete · 6 phases · 19/19 REQs mapped
-Last activity: 2026-04-29 — Roadmap created (6 phases, 19 requirements mapped)
+Status: Context complete · 5 implementation decisions · ready for /gsd-plan-phase 1
+Last activity: 2026-05-02 — Phase 1 context gathered (CONTEXT.md, 5 decisions)
 
 ## Accumulated Context
 
@@ -32,6 +32,9 @@ Last activity: 2026-04-29 — Roadmap created (6 phases, 19 requirements mapped)
   가 단일 source of truth, `docs/` 는 v0 보존본.
 - 2026-04-29: Roadmap 6 phase 결정 — Phase 1·2·3 비전 chain (데이터 → frames → fusion),
   Phase 4 워치 병렬 (코드베이스 분리), Phase 5·6 통합 평가/데모. 19/19 REQs 매핑.
+- 2026-05-02: Phase 1 컨텍스트 — 영상 소스 = 레거시 `발표자료용 영상/detection(fire,
+  helmet).mp4` (39MB), fire/helmet 동일 mp4 매핑, Storage 새 키 (`source_v2.mp4`),
+  detector_configs.py 영구 변경 (MODEL-03 흡수), 검증은 `--once-detect` 1회 + SQL.
 
 ### Blockers
 
@@ -39,9 +42,9 @@ Last activity: 2026-04-29 — Roadmap created (6 phases, 19 requirements mapped)
 
 ### Pending Todos
 
-- Phase 1 plan: helmet/fire 데모 영상 교체 (DATA-01/02/03) — `/gsd-plan-phase 1`
+- Phase 1 plan: 컨텍스트 완료 → `/gsd-plan-phase 1` 진입 가능 (DATA-01/02/03 + MODEL-03 흡수)
 - Phase 4 plan (병렬 가능): J2208A Supabase 스키마 + S2~S4 + state machine —
-  `/gsd-plan-phase 4`
+  `/gsd-discuss-phase 4` 부터 시작
 - 비전 Phase 2·3, 평가 Phase 5, 데모 Phase 6 — 의존성 풀린 시점에 plan 작성
 
 ## Notes
