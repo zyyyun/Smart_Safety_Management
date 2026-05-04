@@ -1,23 +1,25 @@
 ---
 milestone: v1.0
 name: "5월 PPT 데모"
-status: blocked
+status: in_progress
 progress:
   phases_total: 6
   phases_done: 0
+  phases_in_progress: 2
   requirements_total: 19
   requirements_validated: 0
-last_activity: "2026-05-04 — Phase 1 WAITING_USER_INPUT (사용자 옵션 A1 선택, 두 mp4 제공 대기)"
+last_activity: "2026-05-04 — Phase 4 Wave 1 완료 (04-01 마이그레이션 + 04-02 j2208a/ 31 tests pass)"
 ---
 
 # Smart Safety Management — State
 
 ## Current Position
 
-Phase: 1 WAITING_USER_INPUT (CONTEXT/PLAN A1 hybrid 로 갱신 완료, 사용자 mp4 2개 제공 대기); Phase 4 planned
-Plan: Phase 1 = 01-01-PLAN.md (Task 1 PASS, Task 2 rev2 placeholder 대기, Task 3 후속); Phase 4 = 04-01·02·03·04-PLAN.md
-Status: 사용자가 (1) AI-Hub 화재 mp4 + (2) 자체 촬영 helmet 30s mp4 제공 → Task 2 placeholder 채우고 Task 3 재실행. Phase 4 병렬 진입 가능.
-Last activity: 2026-05-04 — Phase 1 WAITING_USER_INPUT (옵션 A1 선택, CONTEXT/PLAN/REQUIREMENTS 갱신, 두 mp4 제공 대기)
+Phase 1: WAITING_USER_INPUT (사용자 mp4 2개 제공 대기 — Task 1 PASS, Task 2 rev2 placeholder)
+Phase 4: Wave 1 완료 (04-01 + 04-02), Wave 2 (04-03) 진입 가능 — 단 010 마이그레이션 운영 DB 적용 선행 필요
+Plan: Phase 1 = 01-01-PLAN.md / Phase 4 = 04-01·02·03·04-PLAN.md
+Status: Phase 4 Wave 1 = 코드/SQL 모두 작성 + 31 tests pass + 3 commits (`8a67962`, `e3a559c`, `2e28532`). 다음 = 사용자가 `supabase db push` 또는 Claude 에 위임 → 04-03 (Wave 2) 진입.
+Last activity: 2026-05-04 — Phase 4 Wave 1 완료 (04-01 마이그레이션 파일 + 04-02 j2208a/ 패키지 31 tests pass)
 
 ## Accumulated Context
 
@@ -62,7 +64,15 @@ Last activity: 2026-05-04 — Phase 1 WAITING_USER_INPUT (옵션 A1 선택, CONT
 
 ### Awaiting User Input
 
-- **사용자가 두 mp4 파일 준비 후 경로 제공 필요:**
+- **(Phase 4) 010_watch_pipeline.sql 운영 DB 적용 결정**:
+  - 마이그레이션 파일 작성 + 커밋 완료 (`8a67962`). 운영 DB (`xbjqxnvemcqubjfflain`)
+    적용은 미수행 — auto mode 의 "shared/production system 변경은 명시적 승인" 룰 준수.
+  - 적용 명령: `cd D:/2026_산업안전/Smart_Safety_Management && supabase db push`
+  - 사용자 승인 후 또는 Claude 에 위임 시 적용 → 04-03 (Wave 2) 진입 가능.
+  - 미적용 상태에서 04-03 진입 시 BLE 클라이언트가 raw_events insert 실패 → Wave 2
+    BLOCKED. 이 단계는 04-03 의 verify (1인 24h 운용 직전) 이전에 완료되어야 함.
+
+- **(Phase 1) 사용자가 두 mp4 파일 준비 후 경로 제공 필요:**
   1. **AI-Hub 화재 mp4** — `project_legacy_assets.md` 의 "AI-Hub URL 3종 (화재/끼임/
      공사현장)" 중 화재 항목에서 다운로드. 권장 위치 예: `D:\2025_산업안전\산업안전\AI-Hub\화재\<선택>.mp4`. 크기 ≤ 50MB, 길이 30s~3min, 화염 명확.
   2. **자체 촬영 helmet 30s mp4** — 휴대폰으로 작업자가 helmet 미착용 + 착용 구간
