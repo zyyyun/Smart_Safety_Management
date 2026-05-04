@@ -41,8 +41,11 @@ CREATE TABLE IF NOT EXISTS public.raw_events (
     cmd         SMALLINT NOT NULL,
     raw_hex     TEXT NOT NULL,
     parsed      JSONB,
-    ts_truncated_to_second TIMESTAMPTZ
-        GENERATED ALWAYS AS (date_trunc('second', ts)) STORED,
+    -- generated column 은 IMMUTABLE expression 만 허용. date_trunc('second', timestamptz) 는
+    -- timezone 설정 의존이라 STABLE → 사용 불가. `ts AT TIME ZONE 'UTC'` 로 TIMESTAMP 변환 후
+    -- date_trunc 적용하면 IMMUTABLE 보장. 1초 dedup 의미는 동일 (UTC 기준 동일 초).
+    ts_truncated_to_second TIMESTAMP
+        GENERATED ALWAYS AS (date_trunc('second', ts AT TIME ZONE 'UTC')) STORED,
     raw_hash    TEXT
         GENERATED ALWAYS AS (md5(raw_hex)) STORED,
     UNIQUE (device_id, ts_truncated_to_second, raw_hash)
