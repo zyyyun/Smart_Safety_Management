@@ -1,23 +1,23 @@
 ---
 milestone: v1.0
 name: "5월 PPT 데모"
-status: planning
+status: blocked
 progress:
   phases_total: 6
   phases_done: 0
   requirements_total: 19
   requirements_validated: 0
-last_activity: "2026-05-02 — Phase 4 planned (4 plans, 3 waves, verification PASSED iter 2/3)"
+last_activity: "2026-05-04 — Phase 1 EXECUTION BLOCKED at Task 3.3 (신규 mp4 + 기존 YOLO 가중치 부적합)"
 ---
 
 # Smart Safety Management — State
 
 ## Current Position
 
-Phase: 1 + Phase 4 모두 planned — 병렬 실행 가능
-Plan: Phase 1 = 01-01-PLAN.md (3 tasks); Phase 4 = 04-01·02·03·04-PLAN.md (4 plans / 3 waves)
-Status: 두 Phase 모두 /gsd-execute-phase N 진입 가능. Phase 4 04-04 는 24h 실측 (autonomous: false)
-Last activity: 2026-05-02 — Phase 4 planned (4 plans, 3 waves, verification PASSED iter 2/3)
+Phase: 1 BLOCKED at Task 3.3 (Task 1·2 완료, 커밋 `34cb4ec`+`022383c`); Phase 4 planned
+Plan: Phase 1 = 01-01-PLAN.md (Task 1·2 PASS, Task 3 empirical FAIL); Phase 4 = 04-01·02·03·04-PLAN.md
+Status: Phase 1 사용자 결정 대기 (영상 교체 vs D-04 완화 vs YOLO 가중치 교체). Phase 4 진입 가능 (병렬).
+Last activity: 2026-05-04 — Phase 1 EXECUTION BLOCKED at Task 3.3 (신규 mp4 + 기존 YOLO 가중치 부적합)
 
 ## Accumulated Context
 
@@ -45,10 +45,30 @@ Last activity: 2026-05-02 — Phase 4 planned (4 plans, 3 waves, verification PA
   Edge Function + heartbeat). Wave 3 = 04-04 (24h 실측, non-autonomous).
   Iteration 2/3 PASSED — COMMS_LOST cold-start false-positive fix + XML escape +
   Test D-6 wording 보정 (커밋 `a54d71d` + `6998b3d`).
+- 2026-05-04: Phase 1 Task 1·2 실행 완료 (커밋 `34cb4ec` detector_configs 운영급 임계,
+  `022383c` upload_reference_videos SOURCES + remote_path). Storage 업로드도 성공
+  (fire/source_v2.mp4 + helmet/source_v2.mp4) + cameras.live_url_detail (camera_id 1, 5)
+  도 신규 URL 가리킴. **그러나 Task 3.3 검증 단계에서 empirical FAIL** — 신규 영상
+  `발표자료용 영상/detection(fire, helmet).mp4` 가 기존 YOLO 가중치 (`fire_best.pt`,
+  `hard_hat_best.pt`) 와 부적합.
 
 ### Blockers
 
-- (없음)
+- **2026-05-04: Phase 1 Task 3.3 — 신규 mp4 가 기존 YOLO 가중치와 부적합.**
+  - 측정 (cv2.VideoCapture 20프레임 균등 샘플, conf_thres=0.01, target_classes=None):
+    - fire 최대 conf = 0.039 (t=177s), 평균 ≈ 0.015
+    - helmet 최대 conf = 0.013, label='helmet' 만 (label='head' 미검출)
+  - D-04 임계 (≥ 0.5) 와 empirical 격차 = 약 12배 (fire) / 38배 (helmet)
+  - v0.5 임시조치 conf 0.10 으로 후퇴해도 실패 (max 0.039)
+  - 기존 영상 (`모델 7종/화재 탐지/input.mp4`) 은 fire conf 0.10~0.14 검출 가능 →
+    YOLO 가중치/파이프라인은 정상 동작. 문제는 신규 mp4 의 의미적 부적합.
+  - CONTEXT D-01 가정 ("fire/helmet 두 이벤트가 한 영상에 모두 포함") 은 시각 검사
+    기반이었고, YOLO 가중치 실측은 미수행 — planning gap.
+  - **사용자 결정 필요:**
+    - **A** 다른 영상 교체 (Task 2 LEGACY_DEMO_MP4 만 변경 후 Task 3 재실행)
+    - **B** D-04 완화 (CONTEXT 수정 + Task 1 부분 revert)
+    - **C** YOLO 가중치 교체 (AI-Hub fine-tune — 현재 v1.1 deferred)
+  - 부분 롤백 SQL: `UPDATE cameras SET live_url=$old_url, live_url_detail=$old_url WHERE camera_id IN (1,5)` (기존 source.mp4 URL 로 환원, Storage 객체는 D-03 보존됨)
 
 ### Pending Todos
 
