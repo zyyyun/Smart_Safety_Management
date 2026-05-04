@@ -27,9 +27,9 @@ DETECTOR_CONFIGS: dict[str, dict] = {
         "event_name": "화재",
         "risk_level": "DANGER",
         "camera_ids": [1],
-        # 레거시 fire 영상의 fire 검출 conf 가 0.10~0.15 수준이라 데모용 하향.
-        # 운영 시 올려서 false positive 줄일 것.
-        "conf_thres": 0.10,
+        # 운영급 임계 (Phase 1 / DATA-02 / D-04). 신규 영상
+        # `발표자료용 영상/detection(fire, helmet).mp4` 에서 fire conf >= 0.5 로 검출 검증.
+        "conf_thres": 0.5,
         "iou_thres": 0.45,
         "img_size": 640,
         "target_classes": None,
@@ -41,13 +41,12 @@ DETECTOR_CONFIGS: dict[str, dict] = {
         "event_name": "안전모 미착용",
         "risk_level": "WARNING",
         "camera_ids": [5],
-        # 의미상 'head' 가 알람 대상이지만 데모 image_loop 영상이 helmet 위주라 검출.
-        # 데모 목적 단순 알람 발생 우선 → target_classes=None + 낮은 임계.
-        # 후속에서 head 가 나오는 영상으로 교체 + target_classes=['head'] 복원.
-        "conf_thres": 0.10,
+        # 운영급 임계 (Phase 1 / DATA-01 / D-04). 안전모 미착용 = head 객체 검출 시 알람.
+        # 신규 영상 `발표자료용 영상/detection(fire, helmet).mp4` 에 작업자 등장 → head 검출 검증.
+        "conf_thres": 0.5,
         "iou_thres": 0.45,
         "img_size": 640,
-        "target_classes": None,
+        "target_classes": ["head"],
         "storage_prefix": "helmet",
     },
     "forklift": {
