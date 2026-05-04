@@ -141,6 +141,57 @@ FCM 훅으로 발송한다. 1인 (testuser1, MAC `21:02:02:06:01:69`) 24h 연속
     now() - interval '24 hours'` → ≥ 95% raw 수신율 (5–6Hz × 86400s × 0.95
     ≈ 410k 이상, dedup 후 ≈ 80k 이상).
 
+### 실측 로그 기반 추가 결정 (2026-05-02 후행 보강)
+
+사용자가 2026-05-02 실 J2208A 디바이스 raw 로그를 분석하면서 도출된 4개 추가 그레이
+영역에 대한 결정. D-01 ~ D-13 와 동격, downstream 모두 준수.
+
+- **D-14: Dual stream 처리 = `cmd=0x09` 만 raw_events 적재, `cmd=0x28` 은 silent drop**
+  - 실측: `cmd=0x28` (HRV/심박 응답) 과 `cmd=0x09` (실시간 걸음/심박/체온) 가
+    *둘 다 동일한* `heart_rate` + `temperature_c` 를 실어 도착. 1초당 raw 가 추정
+    5–6Hz 의 **2배** (10–12Hz) 가 됨.
+  - 결정: `j2208a/decode.py` 또는 `j2208a/supabase_writer.py` 의 raw insert
+    분기에서 `cmd == 0x28` (CMD_HRV_BLOOD_PRESSURE) 인 경우 **raw_events 적재
+    skip**. S2/S3 입력에도 사용하지 않음 (silent drop, 로그도 안 남김 — debug
+    레벨만).
+  - `cmd_health_measure(2, True)` 20s 재시작 명령은 그대로 유지 — 0x09 stream 을
+    살아있게 하는 트리거 역할 (제거 시 0x09 도 끊김).
+  - 영향: raw_events 24h ≈ 80k → 40k 행으로 절반 감축. minute_summary 의
+    good_ratio 계산 정확도 ↑ (중복 카운트 제거).
+
+- **D-15: Same-value dedup = 현 설계 유지 (1초 내만 차단)**
+  - 실측: 동일 raw 값 (`28 02 57 ... 6f` 등) 이 1초 안에 4-5회, 다음 1초에도 또
+    4-5회 반복.
+  - 결정: D-02 의 UNIQUE (`device_id`, `ts_truncated_to_second`, `raw_hash`)
+    그대로 유지. 1초 내 동일 값만 차단, 1초 후 같은 값은 또 적재.
+  - 근거: v1.0 1인 PoC 의 raw_events 24h ≈ 40k 행 (D-14 적용 후) 은 Supabase
+    Storage 에서 충분 감수 가능. 5s/30s median 은 중복 값 많아도 정상 동작.
+    v1.1 다중작업자 진입 시 (작업자당 40k × N) 재검토.
+
+- **D-16: 온도 누적 강하 (NOISY 임계 미달) = 추가 룰 없음, wear-state state
+  machine 으로 충분**
+  - 실측: 37.0°C → 35.3°C 점프는 1.7°C/sec → NOISY 잡힘. 그러나 35.3 → 35.0 →
+    34.8 (0.1°C/sec) 는 GOOD 통과. 누적 5초 0.5°C 강하는 D-07 의 절대 변화율
+    룰로는 못 잡음.
+  - 결정: D-05 의 wear-state state machine 이 ABNORMAL (HR>0 + temp<T_off=33.5)
+    또는 TRANSIENT (T_off↔T_warm 자주 교차) 로 결국 catch 함. *추가 trend NOISY
+    룰 도입 X*. v1.1 §8 보정 시 trend 룰 도입 검토.
+  - 영향: 04-02 validate.py 변경 없음. state_machine.py 의 5 상태 분류 정확도
+    가 잡혀야 하는 케이스가 더 명확해짐 (단조 강하 = TRANSIENT 진입 신호).
+
+- **D-17: minute_summary GOOD 임계 = 50% → 30%**
+  - 실측: 20s 마다 `cmd_health_measure(2, True)` 재시작 명령 직후 1-2 sample 동안
+    HR=0 (PPG 재 락온). 1분 = 3회 재시작 × 1-2 sample / 12-15 sample → 1분 당
+    GOOD 비율 3-5% 깎임. 50% 임계는 너무 빡빡 — 정상 운용 중에도 결측 표기 위험.
+  - 결정: D-08 의 "GOOD 비율 < 50% 면 결측 표기" 를 "**< 30% 면 결측 표기**"
+    로 변경. `j2208a/aggregate.py` 의 상수 `MIN_GOOD_RATIO = 0.30` 으로 낮춤.
+    `minute_summary.good_ratio` 컬럼 자체는 0.0~1.0 그대로 기록, 결측 판정만
+    임계 변경.
+  - 영향: 04-02 aggregate.py 의 임계 상수 변경 (1줄). 04-04 verify SQL 의
+    `select count(*) from minute_summary where good_ratio < 0.30` 으로 수정
+    (missing_minutes 정의 변경). REQUIREMENTS.md WATCH-03 본문은 "GOOD 비율
+    < 30% 면 결측 표기" 로 갱신.
+
 ### Claude's Discretion
 - pg_cron job 스케줄 (1시간 주기 vs 6시간 주기 vs 매일 자정) — 1시간 주기 default
 - `safety_alerts.alert_type` 의 ENUM vs CHECK constraint vs 자유 문자열 — CHECK
@@ -148,6 +199,8 @@ FCM 훅으로 발송한다. 1인 (testuser1, MAC `21:02:02:06:01:69`) 24h 연속
 - BLE 클라이언트의 재연결 backoff 정책 — 기존 `demo()` 의 3s → 30s 백오프 유지
 - TIMESTAMPTZ vs TIMESTAMP — TIMESTAMPTZ 사용 (Supabase 컨벤션)
 - raw_events.parsed JSONB 의 schema validation — 우선 풀어두고 v1.1 에서 구체화
+- 0x28 silent drop 시 debug 로그 출력 여부 — default off (count 카운터만 메모리에
+  유지, /metrics 엔드포인트로 노출은 v1.1)
 
 </decisions>
 

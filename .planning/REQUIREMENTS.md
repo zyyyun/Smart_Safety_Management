@@ -51,8 +51,8 @@
   INVALID, temp<25 또는 >43 → INVALID, |Δtemp|>1.5°C/sec → NOISY. 단위 테스트로
   잠정 임계 검증
 - [ ] **WATCH-03**: S3 Aggregate — HR 5초 median, temp 30초 median+IQR, steps
-  1분 delta. 윈도우 내 GOOD 비율 < 50% 면 결측 표기. `minute_summary` 적재 (Edge
-  Function 또는 Python agent insert)
+  1분 delta. 윈도우 내 GOOD 비율 < 30% 면 결측 표기 (D-17 — 20s 재시작 명령으로
+  인한 sample 단절 흡수). `minute_summary` 적재 (Python agent insert, D-04 인라인)
 - [ ] **WATCH-04**: Wear-state state machine — OFF/WARMUP/TRANSIENT/WORN/ABNORMAL
   분류, 5초 sliding window 다수결. T_off (예: 33.5°C), T_warm (예: 35.5°C),
   N₁/N₂ 잠정값 사용. 상태 전이 시 `wear_state_events` insert
