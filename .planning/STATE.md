@@ -7,17 +7,17 @@ progress:
   phases_done: 0
   requirements_total: 19
   requirements_validated: 0
-last_activity: "2026-05-04 — Phase 1 EXECUTION BLOCKED at Task 3.3 (신규 mp4 + 기존 YOLO 가중치 부적합)"
+last_activity: "2026-05-04 — Phase 1 WAITING_USER_INPUT (사용자 옵션 A1 선택, 두 mp4 제공 대기)"
 ---
 
 # Smart Safety Management — State
 
 ## Current Position
 
-Phase: 1 BLOCKED at Task 3.3 (Task 1·2 완료, 커밋 `34cb4ec`+`022383c`); Phase 4 planned
-Plan: Phase 1 = 01-01-PLAN.md (Task 1·2 PASS, Task 3 empirical FAIL); Phase 4 = 04-01·02·03·04-PLAN.md
-Status: Phase 1 사용자 결정 대기 (영상 교체 vs D-04 완화 vs YOLO 가중치 교체). Phase 4 진입 가능 (병렬).
-Last activity: 2026-05-04 — Phase 1 EXECUTION BLOCKED at Task 3.3 (신규 mp4 + 기존 YOLO 가중치 부적합)
+Phase: 1 WAITING_USER_INPUT (CONTEXT/PLAN A1 hybrid 로 갱신 완료, 사용자 mp4 2개 제공 대기); Phase 4 planned
+Plan: Phase 1 = 01-01-PLAN.md (Task 1 PASS, Task 2 rev2 placeholder 대기, Task 3 후속); Phase 4 = 04-01·02·03·04-PLAN.md
+Status: 사용자가 (1) AI-Hub 화재 mp4 + (2) 자체 촬영 helmet 30s mp4 제공 → Task 2 placeholder 채우고 Task 3 재실행. Phase 4 병렬 진입 가능.
+Last activity: 2026-05-04 — Phase 1 WAITING_USER_INPUT (옵션 A1 선택, CONTEXT/PLAN/REQUIREMENTS 갱신, 두 mp4 제공 대기)
 
 ## Accumulated Context
 
@@ -54,21 +54,40 @@ Last activity: 2026-05-04 — Phase 1 EXECUTION BLOCKED at Task 3.3 (신규 mp4 
 
 ### Blockers
 
-- **2026-05-04: Phase 1 Task 3.3 — 신규 mp4 가 기존 YOLO 가중치와 부적합.**
-  - 측정 (cv2.VideoCapture 20프레임 균등 샘플, conf_thres=0.01, target_classes=None):
-    - fire 최대 conf = 0.039 (t=177s), 평균 ≈ 0.015
-    - helmet 최대 conf = 0.013, label='helmet' 만 (label='head' 미검출)
-  - D-04 임계 (≥ 0.5) 와 empirical 격차 = 약 12배 (fire) / 38배 (helmet)
-  - v0.5 임시조치 conf 0.10 으로 후퇴해도 실패 (max 0.039)
-  - 기존 영상 (`모델 7종/화재 탐지/input.mp4`) 은 fire conf 0.10~0.14 검출 가능 →
-    YOLO 가중치/파이프라인은 정상 동작. 문제는 신규 mp4 의 의미적 부적합.
-  - CONTEXT D-01 가정 ("fire/helmet 두 이벤트가 한 영상에 모두 포함") 은 시각 검사
-    기반이었고, YOLO 가중치 실측은 미수행 — planning gap.
-  - **사용자 결정 필요:**
-    - **A** 다른 영상 교체 (Task 2 LEGACY_DEMO_MP4 만 변경 후 Task 3 재실행)
-    - **B** D-04 완화 (CONTEXT 수정 + Task 1 부분 revert)
-    - **C** YOLO 가중치 교체 (AI-Hub fine-tune — 현재 v1.1 deferred)
-  - 부분 롤백 SQL: `UPDATE cameras SET live_url=$old_url, live_url_detail=$old_url WHERE camera_id IN (1,5)` (기존 source.mp4 URL 로 환원, Storage 객체는 D-03 보존됨)
+- **(해소됨, 2026-05-04 사용자 결정)** Phase 1 Task 3.3 신규 mp4 부적합 → 옵션
+  **A1 (AI-Hub 화재 + 자체 촬영 helmet 30s, 두 mp4 분리)** 선택. CONTEXT D-01·D-02
+  rev2, D-18 (가중치 한계 명시), D-19 (fallback = conf 0.10 + frames_required 결합)
+  추가. 01-01-PLAN.md Task 2 rev2 적용 — `LEGACY_DEMO_MP4` 단일 상수 폐기, 두
+  별도 상수 `AI_HUB_FIRE_MP4` + `SELF_SHOT_HELMET_MP4` 로 placeholder 추가.
+
+### Awaiting User Input
+
+- **사용자가 두 mp4 파일 준비 후 경로 제공 필요:**
+  1. **AI-Hub 화재 mp4** — `project_legacy_assets.md` 의 "AI-Hub URL 3종 (화재/끼임/
+     공사현장)" 중 화재 항목에서 다운로드. 권장 위치 예: `D:\2025_산업안전\산업안전\AI-Hub\화재\<선택>.mp4`. 크기 ≤ 50MB, 길이 30s~3min, 화염 명확.
+  2. **자체 촬영 helmet 30s mp4** — 휴대폰으로 작업자가 helmet 미착용 + 착용 구간
+     모두 포함 30s 촬영. 권장 위치 예: `D:\2025_산업안전\산업안전\자체촬영\helmet_30s.mp4`.
+- **두 경로 제공 후 진행 단계 (Claude 가 자동 실행)**:
+  1. `01-01-PLAN.md` Task 2 의 placeholder `<USER_PROVIDES: ...>` 두 곳을 실제
+     경로로 교체 + 커밋
+  2. `python ai_agent/scripts/upload_reference_videos.py --only fire,helmet` 실행
+     (cwd=`ai_agent/`, env 주의 — 노트 참조)
+  3. `cd ai_agent && python main.py --once-detect` (env 주의)
+  4. `select event_id, event_type_id, accuracy, camera_id from detection_events
+     where camera_id in (1,5) and created_at > now() - interval '5 minutes'` SQL
+     검증
+  5. accuracy ≥ 0.5 → Phase 1 PASS. 미달 → D-19 fallback 적용 검토 (사용자 재확인)
+- **Storage 현재 상태 (참고)**: `reference-videos/{fire,helmet}/source_v2.mp4` 는
+  현재 부적합 mp4 가 들어있음. 새 업로드 시 자동 덮어쓰기. cameras URL 도 이미
+  source_v2.mp4 가리키므로 DB 변경 없음.
+
+### Environment Notes (Phase 1 실행 시 필수)
+
+- `.env` 위치: **`ai_agent/.env`** (프로젝트 루트가 아님)
+- Python 실행: `cd ai_agent && python main.py --once-detect` (프로젝트 루트에서
+  `python -m ai_agent.main` 은 ModuleNotFoundError)
+- Supabase 환경변수: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` 가 `ai_agent/.env`
+  에 있어야 함
 
 ### Pending Todos
 

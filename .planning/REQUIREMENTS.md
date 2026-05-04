@@ -12,12 +12,15 @@
 
 ### 1. 데이터 트랙 (DATA)
 
-- [ ] **DATA-01**: helmet 데모 영상 교체 — head 검출 가능한 영상 확보 (AI-Hub
-  안전모 미착용 데이터셋 / 자체 30s mp4 / 레거시 `발표자료용 영상/detection(fire,
-  helmet).mp4` 중 택일), `reference-videos` 버킷에 업로드, `cameras.live_url_detail`
-  갱신
-- [ ] **DATA-02**: fire 데모 영상 교체 — fire conf 0.5+ 검출 가능한 영상으로
-  (동일 옵션 또는 AI-Hub 화재 데이터셋), 동일 업로드/갱신
+- [ ] **DATA-01** (rev 2026-05-04, A1 hybrid): helmet 데모 영상 교체 — **자체 촬영
+  30s mp4 (작업자 helmet 미착용 + 착용 구간 동시 포함, 'head' label 검출 가능)**,
+  `reference-videos/helmet/source_v2.mp4` 키로 업로드, `cameras.live_url_detail`
+  (camera_id=5) 갱신. (구버전 D-01 의 단일 mp4 매핑은 empirical 실패로 폐기 —
+  CONTEXT D-01 rev2 / D-18 참조)
+- [ ] **DATA-02** (rev 2026-05-04, A1 hybrid): fire 데모 영상 교체 — **AI-Hub
+  화재 데이터셋 mp4 (사용자 다운로드)**, fire conf 0.5+ 검출 시도 (D-19 fallback
+  conf 0.10 + Phase 2 frames_required), `reference-videos/fire/source_v2.mp4` 키로
+  업로드, `cameras.live_url_detail` (camera_id=1) 갱신
 - [ ] **DATA-03**: `scripts/upload_reference_videos.py` SOURCES dict 갱신 + `--only
   fire,helmet` 옵션으로 부분 재업로드 검증
 

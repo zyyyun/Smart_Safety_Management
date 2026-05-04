@@ -23,18 +23,30 @@ helmet/fire 데모 영상 2종을 운영급 임계 (helmet `target_classes=['hea
 <decisions>
 ## Implementation Decisions
 
-### 데이터 소스
-- **D-01: 영상 소스 = 레거시 `발표자료용 영상/detection(fire, helmet).mp4`**
-  - 경로: `D:\2025_산업안전\산업안전\발표자료용 영상\detection(fire, helmet).mp4`
-  - 39 MB · 4분 19초 (259.33s) · 960×504 · 30fps · h264 yuv420p · AAC
-  - fire 와 helmet 두 이벤트가 한 영상에 모두 포함 → 두 SOURCE 에 동일 매핑
-  - 즉시 사용 가능 — AI-Hub 다운로드 (시간 ↑↑) / 자체 촬영 (시간 ↑↑) 보다 빠름
-  - 50 MB Storage 제한 충족, ffmpeg 재인코딩 불필요 (이미 yuv420p faststart 호환)
-- **D-02: fire/helmet 모두 같은 mp4 URL 가리킴 (분할 인코딩 X)**
-  - `cameras.camera_id=1` (fire) 과 `camera_id=5` (helmet) 의 `live_url_detail`
-    이 동일 Storage 객체를 가리키도록 갱신
-  - 각 detector 의 `target_classes` 가 알아서 fire bbox / head bbox 만 필터
-  - ffmpeg 으로 fire 구간 / helmet 구간 분할 X — 단순화 우선
+### 데이터 소스 (2026-05-04 재정의 — A1 hybrid 후 EMPIRICAL 검증 결과로 D-01·02 수정)
+
+**~~D-01·D-02 (구버전, 2026-05-02)~~ 폐기됨 — 사유는 D-18 참조.**
+
+- **D-01 (rev2, 2026-05-04): fire/helmet 영상 분리 — AI-Hub fire mp4 + 자체 촬영 helmet 30s mp4**
+  - **fire 영상**: AI-Hub 화재 데이터셋 다운로드 mp4 (`project_legacy_assets.md` 의
+    "AI-Hub URL 3종 (화재/끼임/공사현장)" 참조). 사용자가 다운로드 후 경로 제공.
+    예상 위치: `D:\2025_산업안전\산업안전\AI-Hub\화재\<선택>.mp4`
+    선정 기준: 크기 ≤ 50MB, 길이 30s~3min, 화염이 명확히 보이는 구간 포함
+  - **helmet 영상**: 사용자 휴대폰 30s 자체 촬영 mp4. 작업자가 helmet 미착용
+    상태에서 카메라 정면을 본 구간 + helmet 착용 상태 구간을 동시에 포함하여
+    head 검출 가능성 ↑. 예상 위치: `D:\2025_산업안전\산업안전\자체촬영\helmet_30s.mp4`
+  - **두 영상 분리** = `cameras.camera_id=1` (fire) 과 `camera_id=5` (helmet) 의
+    `live_url_detail` 이 *서로 다른* Storage 객체를 가리킴
+  - **선결 조건**: 사용자가 두 mp4 파일 준비 후 경로 제공해야 Task 2/3 재실행 가능
+
+- **D-02 (rev2, 2026-05-04): fire/helmet 분리 매핑 (이전 단일 mp4 매핑 폐기)**
+  - `SOURCES["fire"]["src"]` = AI-Hub fire mp4 경로
+  - `SOURCES["helmet"]["src"]` = 자체 촬영 helmet 30s mp4 경로
+  - 두 항목 모두 `kind="mp4"` (image_loop X)
+  - `LEGACY_DEMO_MP4` 공통 상수 폐기 — 두 개의 별도 상수 (`AI_HUB_FIRE_MP4`,
+    `SELF_SHOT_HELMET_MP4`) 사용
+  - Storage remote_path = `f"{event_key}/source_v2.mp4"` 그대로 (D-03 unchanged)
+    — 같은 키 덮어쓰기. 이전 시도의 `source_v2.mp4` 가 새 mp4 로 교체됨
 
 ### Storage 경로
 - **D-03: 신규 파일은 새 객체 키로 업로드, 기존 파일은 보존 (롤백 가능)**
@@ -67,13 +79,35 @@ helmet/fire 데모 영상 2종을 운영급 임계 (helmet `target_classes=['hea
     검증 셋으로 별도 평가
   - SC #2/#3 의 "≥ 1프레임 검출" 조건은 단일 cycle 로 충분
 
+### 학습 사항 (2026-05-04 추가)
+
+- **D-18: 보유 YOLO 가중치 (`fire_best.pt`, `hard_hat_best.pt`) 의 empirical 한계**
+  - cv2.VideoCapture 20프레임 균등 샘플 측정 (conf_thres=0.01, target_classes=None):
+    - 신규 mp4 (`발표자료용 영상/detection(fire, helmet).mp4`): fire max=0.039,
+      helmet max=0.013 (label='helmet' 만, label='head' 0건)
+    - 기존 mp4 (`모델 7종/화재 탐지/input.mp4`): fire conf 0.10~0.14 (v0.5 검증됨)
+  - **결론**: 현 가중치로 conf 0.5+ 도달 불가. D-04 의 "운영급 0.5+" 는 가중치
+    한계 미검증 상태에서 lock 됨 (planning gap).
+  - **A1 (이번 결정) 의 의미**: AI-Hub 화재 데이터셋이 학습 데이터셋과 더 유사할
+    가능성 → fire conf 0.5+ 시도 가능. helmet 자체 촬영은 명확한 head 노출로
+    label='head' 검출 시도. 둘 다 실패 시 → **fallback 경로 필요**.
+  - **Fallback 결정 (D-19)**: A1 으로도 0.5+ 미달성 시 자동으로 conf 0.10 +
+    Phase 2 의 frames_required (fire 5, helmet 3) 결합 = 운영급 의미. CONTEXT
+    D-04 부분 revert + Phase 1 의 실질적 성공 기준을 "Phase 1+2 combined" 로
+    재정의. 이 경우 Phase 1 은 PARTIAL-PASS 상태로 진행, Phase 2 완료 시점에
+    full-pass 표시.
+  - **v1.1 액션 (별개)**: AI-Hub + 자체 라벨링 데이터셋으로 fine-tune (옵션 C
+    원래 계획). v1.0 5월 PPT 데모 일정 보호 위해 fine-tune 은 v1.1 유지.
+
 ### Claude's Discretion
 - conf_thres 0.5 vs 0.55 vs 0.6 미세 조정은 D-04 적용 후 detection_events.accuracy
   실측치 보고 결정 — 실측치 분포 보고 false positive 줄이는 방향으로
 - ffmpeg 재인코딩이 정말 필요한지 검증 (`ffprobe` 결과상 이미 호환되지만, 일부 player
   호환성 우려 시 가벼운 재인코딩) — 우선 원본 그대로 시도, 실패 시 재인코딩
-- `SOURCES` dict 의 fire/helmet 항목 모두 같은 src 경로를 가리키므로 코드상 명료
-  하게 표현 (e.g., 공통 상수 `LEGACY_DEMO_MP4` 추출) 여부
+- A1 의 두 mp4 별도 상수명 (`AI_HUB_FIRE_MP4`, `SELF_SHOT_HELMET_MP4`) 또는 단순
+  inline 경로 — 가독성 우선 별도 상수 권장
+- D-19 fallback 자동 적용 vs 사용자 재확인 — A1 시도 후 empirical 결과 사용자
+  확인 후 decide
 
 </decisions>
 
