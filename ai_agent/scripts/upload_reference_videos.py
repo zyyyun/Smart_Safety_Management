@@ -34,20 +34,22 @@ from supabase import Client, create_client
 BUCKET = "reference-videos"
 LEGACY_BASE = Path(r"D:\2025_산업안전\산업안전\모델 7종")
 
+# Phase 1 / DATA-01·DATA-02 / CONTEXT D-01: fire 와 helmet 동시 등장 영상.
+# 39 MB / 4:19 / 960x504 / h264 yuv420p — 재인코딩 불필요, Storage 50MB 제한 충족.
+LEGACY_DEMO_MP4 = Path(r"D:\2025_산업안전\산업안전\발표자료용 영상\detection(fire, helmet).mp4")
+
 
 # (event_key, camera_id, kind, source path, [optional duration])
 SOURCES: dict[str, dict] = {
     "fire": {
         "camera_id": 1,
         "kind": "mp4",
-        "src": LEGACY_BASE / "화재 탐지" / "input.mp4",
+        "src": LEGACY_DEMO_MP4,
     },
     "helmet": {
         "camera_id": 5,
-        "kind": "image_loop",
-        # 첫 번째 jpg 자동 탐색
-        "src_dir": LEGACY_BASE / "안전모 탐지" / "hard_hat_images",
-        "duration": 60,
+        "kind": "mp4",
+        "src": LEGACY_DEMO_MP4,
     },
     "forklift": {
         "camera_id": 4,
@@ -203,7 +205,8 @@ def process_one(
         return False, f"unknown kind: {kind}"
 
     # 2) Storage 업로드
-    remote_path = f"{event_key}/source.mp4"
+    # CONTEXT D-03: 새 객체 키로 업로드, 기존 source.mp4 는 보존 (롤백 가능).
+    remote_path = f"{event_key}/source_v2.mp4"
     try:
         url = upload_video(client, local_mp4, remote_path)
     except Exception as e:
