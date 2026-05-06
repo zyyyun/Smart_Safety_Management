@@ -4,11 +4,11 @@ name: "5월 PPT 데모"
 status: in_progress
 progress:
   phases_total: 6
-  phases_done: 0
-  phases_in_progress: 2
+  phases_done: 1
+  phases_in_progress: 1
   requirements_total: 19
-  requirements_validated: 0
-last_activity: "2026-05-04 — Phase 4 Wave 1 완료 + 010 마이그레이션 운영 DB 적용 완료 (Wave 2 진입 가능)"
+  requirements_validated: 4
+last_activity: "2026-05-06 — Phase 1 ✓ COMPLETE (DATA-01·02·03 + MODEL-03 absorbed, D-19 fallback for fire). Phase 4 Wave 2 완료, Wave 3 (24h 실측) 사용자 시점 결정 대기."
 ---
 
 # Smart Safety Management — State

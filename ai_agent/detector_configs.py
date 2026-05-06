@@ -27,9 +27,13 @@ DETECTOR_CONFIGS: dict[str, dict] = {
         "event_name": "화재",
         "risk_level": "DANGER",
         "camera_ids": [1],
-        # 운영급 임계 (Phase 1 / DATA-02 / D-04). 신규 영상
-        # `발표자료용 영상/detection(fire, helmet).mp4` 에서 fire conf >= 0.5 로 검출 검증.
-        "conf_thres": 0.5,
+        # D-19 fallback (2026-05-04): 보유 가중치 fire_best.pt 의 사용자 제공 데이터셋
+        # (불꽃/0087·연기/0096·정상/0077) batch 측정 결과 max conf 0.156. D-04 의 0.5
+        # 임계 절대 미달. fire_aihub_0087.mp4 frame 300 (seek=10s) max 0.142 검증.
+        # 0.10 임계 = v0.5 baseline (project_legacy_assets.md 의 검증된 운영값).
+        # Phase 2 frames_required (fire 5 연속) 결합 시 운영급 의미 확보.
+        # v1.1 의 AI-Hub fine-tune (옵션 C) 으로 진정한 0.5+ 도달 예정.
+        "conf_thres": 0.10,
         "iou_thres": 0.45,
         "img_size": 640,
         "target_classes": None,
@@ -41,8 +45,9 @@ DETECTOR_CONFIGS: dict[str, dict] = {
         "event_name": "안전모 미착용",
         "risk_level": "WARNING",
         "camera_ids": [5],
-        # 운영급 임계 (Phase 1 / DATA-01 / D-04). 안전모 미착용 = head 객체 검출 시 알람.
-        # 신규 영상 `발표자료용 영상/detection(fire, helmet).mp4` 에 작업자 등장 → head 검출 검증.
+        # 운영급 임계 (Phase 1 / DATA-01 / D-04 정상). 안전모 미착용 = head 객체 검출 시 알람.
+        # helmet_h0_demo.mp4 (H0/L2_D2023-08-31-09-08_001 시퀀스 × 3 loop, 30s 영상) 에서
+        # 87% frame head 검출, max conf 0.871, seek=10s 시 head conf 0.697 검증.
         "conf_thres": 0.5,
         "iou_thres": 0.45,
         "img_size": 640,

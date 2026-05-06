@@ -12,17 +12,20 @@
 
 ### 1. 데이터 트랙 (DATA)
 
-- [ ] **DATA-01** (rev 2026-05-04, A1 hybrid): helmet 데모 영상 교체 — **자체 촬영
-  30s mp4 (작업자 helmet 미착용 + 착용 구간 동시 포함, 'head' label 검출 가능)**,
-  `reference-videos/helmet/source_v2.mp4` 키로 업로드, `cameras.live_url_detail`
-  (camera_id=5) 갱신. (구버전 D-01 의 단일 mp4 매핑은 empirical 실패로 폐기 —
-  CONTEXT D-01 rev2 / D-18 참조)
-- [ ] **DATA-02** (rev 2026-05-04, A1 hybrid): fire 데모 영상 교체 — **AI-Hub
-  화재 데이터셋 mp4 (사용자 다운로드)**, fire conf 0.5+ 검출 시도 (D-19 fallback
-  conf 0.10 + Phase 2 frames_required), `reference-videos/fire/source_v2.mp4` 키로
-  업로드, `cameras.live_url_detail` (camera_id=1) 갱신
-- [ ] **DATA-03**: `scripts/upload_reference_videos.py` SOURCES dict 갱신 + `--only
-  fire,helmet` 옵션으로 부분 재업로드 검증
+- [x] **DATA-01** (PASS 2026-05-04): helmet 데모 영상 교체 — H0/L2_D2023-08-31-09-08_001
+  시퀀스 (298 frames × 3 loop = 30s mp4 `helmet_h0_demo.mp4`), 87% frames head 검출,
+  max head conf 0.871, seek=10s 시 head conf 0.697. `reference-videos/helmet/source_v2.mp4`
+  업로드 + `cameras.live_url_detail` (camera_id=5) 갱신. **detection_events ev=24/25
+  acc=0.687 label='head' 적재 검증**.
+- [x] **DATA-02** (PASS 2026-05-04, D-19 fallback): fire 데모 영상 교체 — 사용자 제공
+  화재현상/불꽃/0087 (360 frames @ 30fps = 12s mp4 `fire_aihub_0087.mp4`), seek=10s 시
+  conf 0.142. **fire 가중치 한계로 D-04 의 0.5 미달 → D-19 fallback 발동** (conf 0.10
+  v0.5 baseline). Phase 2 frames_required (5 연속) 결합 시 운영급 의미. v1.1 fine-tune
+  으로 진정한 0.5+ 도달 예정. `reference-videos/fire/source_v2.mp4` 업로드 + cameras
+  갱신. **detection_events ev=22/23 acc=0.134 적재 검증**.
+- [x] **DATA-03** (PASS 2026-05-04): `scripts/upload_reference_videos.py` SOURCES dict
+  갱신 (`AI_HUB_FIRE_MP4` + `SELF_SHOT_HELMET_MP4` 두 별도 상수), `--only fire,helmet`
+  부분 재업로드 검증 (성공 2 / 실패 0). forklift/person 무손상.
 
 ### 2. 모델 트랙 단계 1 (MODEL — frames 연속 룰)
 
@@ -31,8 +34,9 @@
 - [ ] **MODEL-02**: `ai_agent/scheduler.py` 또는 `yolo_detector.py` 에 frame
   buffer 로직 — 마지막 N 개 모두 is_detected=True 면 알람, 아니면 no_detect 처리;
   detect 강제 모드 테스트 추가
-- [ ] **MODEL-03**: 임시조치 복원 — fire/helmet `conf_thres` 0.5 (또는 그 이상),
-  helmet `target_classes` ['head'] 로 복원 (DATA-01/02 완료 후)
+- [x] **MODEL-03** (PASS 2026-05-04, partial — D-19 fallback): helmet `conf_thres = 0.5` +
+  `target_classes = ['head']` **완전 복원 (D-04 정상)**. fire `conf_thres = 0.10`
+  **D-19 fallback** (가중치 한계). Phase 1 에 흡수 완료.
 
 ### 3. 모델 트랙 단계 2 (FUSION — 다중 모델 cross-reference)
 
@@ -129,9 +133,9 @@
 
 | REQ-ID    | Phase   | Phase Name                          | Status  |
 |-----------|---------|-------------------------------------|---------|
-| DATA-01   | Phase 1 | 비전 — 데모 영상 교체               | Pending |
-| DATA-02   | Phase 1 | 비전 — 데모 영상 교체               | Pending |
-| DATA-03   | Phase 1 | 비전 — 데모 영상 교체               | Pending |
+| DATA-01   | Phase 1 | 비전 — 데모 영상 교체               | ✓ Complete |
+| DATA-02   | Phase 1 | 비전 — 데모 영상 교체               | ✓ Complete (D-19 fallback) |
+| DATA-03   | Phase 1 | 비전 — 데모 영상 교체               | ✓ Complete |
 | MODEL-01  | Phase 2 | 비전 — frames 연속 룰               | Pending |
 | MODEL-02  | Phase 2 | 비전 — frames 연속 룰               | Pending |
 | MODEL-03  | Phase 2 | 비전 — frames 연속 룰               | Pending |

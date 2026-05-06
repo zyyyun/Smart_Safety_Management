@@ -19,8 +19,9 @@ created: 2026-04-29
 
 ## Phases
 
-- [ ] **Phase 1: 비전 — 데모 영상 교체** — helmet/fire 영상이 운영급 conf (0.5+) 로
-  검출되며 cameras 매핑이 갱신됨
+- [x] **Phase 1: 비전 — 데모 영상 교체** ✓ 2026-05-06 (D-19 fallback: fire conf 0.10) —
+  helmet/fire 영상이 운영급 conf (helmet 0.5+, fire 0.10 v0.5 baseline) 로 검출되며
+  cameras 매핑이 갱신됨
 - [ ] **Phase 2: 비전 — frames 연속 룰** — 단일 frame conf 변동으로 인한 false
   positive 가 N 프레임 연속 룰로 흡수되고, 임시 임계가 운영값으로 복원됨
 - [ ] **Phase 3: 비전 — bbox 겹침/공간 매칭** — 지게차 충돌 위험·안전모 미착용이

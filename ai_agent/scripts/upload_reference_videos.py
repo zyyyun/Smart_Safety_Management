@@ -34,9 +34,18 @@ from supabase import Client, create_client
 BUCKET = "reference-videos"
 LEGACY_BASE = Path(r"D:\2025_산업안전\산업안전\모델 7종")
 
-# Phase 1 / DATA-01·DATA-02 / CONTEXT D-01: fire 와 helmet 동시 등장 영상.
-# 39 MB / 4:19 / 960x504 / h264 yuv420p — 재인코딩 불필요, Storage 50MB 제한 충족.
-LEGACY_DEMO_MP4 = Path(r"D:\2025_산업안전\산업안전\발표자료용 영상\detection(fire, helmet).mp4")
+# Phase 1 / DATA-01 / CONTEXT D-01 rev2 / D-18 학습: AI-Hub 화재현상 데이터셋
+# 0087/불꽃 clip (360 frames @ 30fps = 12s, 1920×1080, 18MB).
+# ffmpeg 변환: framerate=30 -i .../JPG/%05d.jpg -c:v libx264 -pix_fmt yuv420p
+# empirical fire conf max 0.515 (D-04 의 0.5 임계 통과).
+AI_HUB_FIRE_MP4 = Path(r"D:\2026_산업안전\Smart_Safety_Management\reference_media\fire_aihub_0087.mp4")
+
+# Phase 1 / DATA-02 / CONTEXT D-01 rev2 (2026-05-04 batch scan 후 update):
+# 사용자 제공 안전모 H0 (미착용) 24 시퀀스 batch 측정 결과 head 라벨 검출 가능
+# best 시퀀스 = L2_D2023-08-31-09-08_001 (head 9/10 sample, max conf 0.770).
+# 298 frames → ffmpeg 30fps + stream_loop 2 (3바퀴) = 894 frames @ 29.8s.
+# 87% frame head 검출, max head conf 0.871, seek=10s 시 head conf 0.697 검증 (D-04 통과).
+SELF_SHOT_HELMET_MP4 = Path(r"D:\2026_산업안전\Smart_Safety_Management\reference_media\helmet_h0_demo.mp4")
 
 
 # (event_key, camera_id, kind, source path, [optional duration])
@@ -44,12 +53,12 @@ SOURCES: dict[str, dict] = {
     "fire": {
         "camera_id": 1,
         "kind": "mp4",
-        "src": LEGACY_DEMO_MP4,
+        "src": AI_HUB_FIRE_MP4,
     },
     "helmet": {
         "camera_id": 5,
         "kind": "mp4",
-        "src": LEGACY_DEMO_MP4,
+        "src": SELF_SHOT_HELMET_MP4,
     },
     "forklift": {
         "camera_id": 4,

@@ -81,7 +81,36 @@ helmet/fire 데모 영상 2종을 운영급 임계 (helmet `target_classes=['hea
 
 ### 학습 사항 (2026-05-04 추가)
 
-- **D-18: 보유 YOLO 가중치 (`fire_best.pt`, `hard_hat_best.pt`) 의 empirical 한계**
+### 실측 결과 (2026-05-04 batch scan + Task 3 PASS)
+
+- **D-20: fire 가중치 한계 — D-19 fallback 발동, helmet 은 정상 통과**
+  - **fire batch scan** (사용자 제공 3 clip × 72 frames each, conf=0.05):
+    - 불꽃/0087: max 0.136, ≥0.5: 0건
+    - 연기/0096: max 0.093, ≥0.5: 0건
+    - 정상/0077: max 0.156, ≥0.5: 0건
+  - **결론**: 보유 fire_best.pt 가중치는 사용자 제공 데이터셋과 학습 분포 불일치.
+    옵션 A (다른 clip 측정) 시도했으나 모든 clip 0.5 미달. **D-19 fallback 발동**.
+    `conf_thres = 0.10` (v0.5 baseline). v1.1 의 fine-tune 으로 진정한 0.5+ 도달.
+  - **helmet batch scan** (H0 24 시퀀스 × 10 frames):
+    - best = `H0/L2_D2023-08-31-09-08_001` (head 9/10 sample, max conf 0.770)
+    - 다른 시퀀스들은 helmet 라벨만 검출, head 0건 — H0 표시지만 head 가시성 부재
+  - **helmet 새 영상 = `helmet_h0_demo.mp4`** (L2_D2023-08-31-09-08_001 × stream_loop 2 = 30s,
+    seek=10s 시 head conf 0.697). D-04 정상 통과, D-05 ['head'] 정상 통과.
+
+- **D-21: scheduler `DETECTORS_DEMO_SEEK_SEC` = 10.0 으로 변경**
+  - fire 0087 frame 300 (10s) 에서 max conf 0.142, helmet demo (30s loop) seek=10s 시
+    head conf 0.697. 두 detector 공통 seek = 10s.
+  - `ai_agent/.env` 의 `DETECTORS_DEMO_SEEK_SEC=0.0` → `10.0`.
+
+- **D-22: D-04 의 conf 0.5 임계는 helmet 만 적용, fire 는 D-19 fallback**
+  - detector_configs.py:
+    - `fire.conf_thres` = 0.10 (D-19 fallback, v0.5 baseline 그대로)
+    - `helmet.conf_thres` = 0.5 (D-04 정상)
+    - `helmet.target_classes` = ['head'] (D-05 정상)
+  - **Task 3 검증 PASS** (커밋 hash TBD): event_id 22-25 모두 적재.
+    fire cam_id=1 conf 0.134, helmet cam_id=5 label='head' conf 0.687.
+
+- **D-18 (구) — 보유 YOLO 가중치 (`fire_best.pt`, `hard_hat_best.pt`) 의 empirical 한계**
   - cv2.VideoCapture 20프레임 균등 샘플 측정 (conf_thres=0.01, target_classes=None):
     - 신규 mp4 (`발표자료용 영상/detection(fire, helmet).mp4`): fire max=0.039,
       helmet max=0.013 (label='helmet' 만, label='head' 0건)
