@@ -22,8 +22,9 @@ created: 2026-04-29
 - [x] **Phase 1: 비전 — 데모 영상 교체** ✓ 2026-05-06 (D-19 fallback: fire conf 0.10) —
   helmet/fire 영상이 운영급 conf (helmet 0.5+, fire 0.10 v0.5 baseline) 로 검출되며
   cameras 매핑이 갱신됨
-- [ ] **Phase 2: 비전 — frames 연속 룰** — 단일 frame conf 변동으로 인한 false
-  positive 가 N 프레임 연속 룰로 흡수되고, 임시 임계가 운영값으로 복원됨
+- [x] **Phase 2: 비전 — frames 연속 룰** ✓ 2026-05-07 — 단일 frame conf 변동으로 인한
+  false positive 가 N 프레임 연속 룰로 흡수되고, Phase 1 의 D-19 fallback 의 운영급
+  의미를 frames_required (fire 5, helmet 3, forklift 1, person 1) 가 완성
 - [ ] **Phase 3: 비전 — bbox 겹침/공간 매칭** — 지게차 충돌 위험·안전모 미착용이
   단일 detector 결과 대신 다중 모델 fusion 으로 판정됨
 - [ ] **Phase 4: 워치 — J2208A 1인 파이프라인** — BLE notification 이 S2~S4 를

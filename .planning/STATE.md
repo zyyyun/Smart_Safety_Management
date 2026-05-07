@@ -4,11 +4,11 @@ name: "5월 PPT 데모"
 status: in_progress
 progress:
   phases_total: 6
-  phases_done: 1
+  phases_done: 2
   phases_in_progress: 1
   requirements_total: 19
-  requirements_validated: 4
-last_activity: "2026-05-07 — Phase 2 plan 작성 + 검증 PASS iter 1/3. Phase 1 ✓, Phase 4 Wave 2 ✓ + Wave 3 사용자 대기."
+  requirements_validated: 6
+last_activity: "2026-05-07 — Phase 2 ✓ COMPLETE (frames_required 룰 + pytest 8/8 PASS). Phase 1 ✓, Phase 4 Wave 2 ✓ + Wave 3 사용자 대기."
 ---
 
 # Smart Safety Management — State

@@ -29,11 +29,12 @@
 
 ### 2. 모델 트랙 단계 1 (MODEL — frames 연속 룰)
 
-- [ ] **MODEL-01**: `ai_agent/detector_configs.py` 에 `frames_required` 키 추가 —
-  fire 5, helmet 3, forklift 1, person 1 (메모리 검증된 룰 임계치 그대로)
-- [ ] **MODEL-02**: `ai_agent/scheduler.py` 또는 `yolo_detector.py` 에 frame
-  buffer 로직 — 마지막 N 개 모두 is_detected=True 면 알람, 아니면 no_detect 처리;
-  detect 강제 모드 테스트 추가
+- [x] **MODEL-01** (PASS 2026-05-07): `ai_agent/detector_configs.py` 에 `frames_required`
+  키 추가 — fire 5, helmet 3, forklift 1, person 1 (커밋 `e9da88b`)
+- [x] **MODEL-02** (PASS 2026-05-07): `ai_agent/scheduler.py` 의 `_detection_buffer:
+  dict[(camera_id, event_key), deque[bool]]` + `_process_detection_for_camera` 의
+  buffer push + N 연속 검사 + 알람 후 `buffer.clear()` (커밋 `1d77fae` + `daa0b4b`).
+  pytest 8 unit tests PASS (단발 spike → 알람 0회, N 연속 → 알람 1회 + reset 등 전 케이스).
 - [x] **MODEL-03** (PASS 2026-05-04, partial — D-19 fallback): helmet `conf_thres = 0.5` +
   `target_classes = ['head']` **완전 복원 (D-04 정상)**. fire `conf_thres = 0.10`
   **D-19 fallback** (가중치 한계). Phase 1 에 흡수 완료.
@@ -136,9 +137,9 @@
 | DATA-01   | Phase 1 | 비전 — 데모 영상 교체               | ✓ Complete |
 | DATA-02   | Phase 1 | 비전 — 데모 영상 교체               | ✓ Complete (D-19 fallback) |
 | DATA-03   | Phase 1 | 비전 — 데모 영상 교체               | ✓ Complete |
-| MODEL-01  | Phase 2 | 비전 — frames 연속 룰               | Pending |
-| MODEL-02  | Phase 2 | 비전 — frames 연속 룰               | Pending |
-| MODEL-03  | Phase 2 | 비전 — frames 연속 룰               | Pending |
+| MODEL-01  | Phase 2 | 비전 — frames 연속 룰               | ✓ Complete |
+| MODEL-02  | Phase 2 | 비전 — frames 연속 룰               | ✓ Complete |
+| MODEL-03  | Phase 2 | 비전 — frames 연속 룰               | ✓ Complete (Phase 1 absorbed, D-08) |
 | FUSION-01 | Phase 3 | 비전 — bbox 겹침/공간 매칭          | Pending |
 | FUSION-02 | Phase 3 | 비전 — bbox 겹침/공간 매칭          | Pending |
 | WATCH-01  | Phase 4 | 워치 — J2208A 1인 파이프라인        | Pending |
