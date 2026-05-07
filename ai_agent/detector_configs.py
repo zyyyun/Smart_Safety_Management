@@ -35,6 +35,9 @@ DETECTOR_CONFIGS: dict[str, dict] = {
         # v1.1 의 AI-Hub fine-tune (옵션 C) 으로 진정한 0.5+ 도달 예정.
         "conf_thres": 0.10,
         "iou_thres": 0.45,
+        # Phase 2 MODEL-01 / D-04: 5 cycle 연속 fire 검출 시에만 알람 (false positive 흡수).
+        # D-19 fallback (conf 0.10) 의 운영급 의미는 frames_required 와 결합으로 완성됨 (D-08).
+        "frames_required": 5,
         "img_size": 640,
         "target_classes": None,
         "storage_prefix": "fire",
@@ -50,6 +53,8 @@ DETECTOR_CONFIGS: dict[str, dict] = {
         # 87% frame head 검출, max conf 0.871, seek=10s 시 head conf 0.697 검증.
         "conf_thres": 0.5,
         "iou_thres": 0.45,
+        # Phase 2 MODEL-01 / D-04: 3 cycle 연속 head 검출 시에만 알람 (일시적 가림 흡수).
+        "frames_required": 3,
         "img_size": 640,
         "target_classes": ["head"],
         "storage_prefix": "helmet",
@@ -62,6 +67,8 @@ DETECTOR_CONFIGS: dict[str, dict] = {
         "camera_ids": [4],
         "conf_thres": 0.25,
         "iou_thres": 0.45,
+        # Phase 2 MODEL-01 / D-04: 지게차 진입 1회 검출만으로도 알람 (시간 누적 불필요).
+        "frames_required": 1,
         "img_size": 640,
         "target_classes": None,  # forklift_1 / forklift_2 둘 다 OK
         "storage_prefix": "forklift",
@@ -76,6 +83,8 @@ DETECTOR_CONFIGS: dict[str, dict] = {
         "camera_ids": [3],
         "conf_thres": 0.30,
         "iou_thres": 0.45,
+        # Phase 2 MODEL-01 / D-04: 사람 등장 1회 검출만으로도 알람.
+        "frames_required": 1,
         "img_size": 640,
         "target_classes": ["person"],
         "storage_prefix": "person",
