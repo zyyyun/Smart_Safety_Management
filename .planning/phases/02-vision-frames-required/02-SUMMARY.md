@@ -210,6 +210,35 @@ Phase 3 SC #3). 본 Plan 이 인프라 토대를 마련.
 **Phase 5 (EVAL-02)** 진입 시 baseline event_id 22-25 (Phase 1) → Phase 2 적용 후 5 cycle
 누적 알람 동작 차이를 정량 평가. 본 Plan 의 unit test 가 의미 동등성 입증.
 
+## 운영 모드 실측 검증 (2026-05-07 18:22-18:30, 8 cycle)
+
+`python main.py --no-fall` 데몬 모드 8분 운영 결과:
+
+| cycle | 시각 | 결과 | 의미 |
+|---|---|---|---|
+| 1 | 18:22 | `[DETECT] forklift event_id=36 conf=0.68` | N=1 즉시 알람 + cooldown 갱신 |
+| 2-5 | 18:23-26 | silent (DEBUG `[no_alert_yet]`) | helmet/fire buffer 누적, forklift cooldown skip |
+| 6 | 18:27 | `[DETECT] helmet label='head' event_id=37 conf=0.69` | **N=3 충족 → 알람** + buffer.clear() + cooldown 갱신 |
+| 7-8 | 18:28-29 | silent | 두 detector 모두 cooldown 활성 |
+
+**검증된 동작**:
+- ✅ frames_required N=1 즉시 알람 (forklift)
+- ✅ frames_required N=3 누적 알람 (helmet — head 검출 분포에 따라 통계적으로 6 cycle 후 last 3 모두 True 충족)
+- ✅ 알람 후 `buffer.clear()` + cooldown 10분 활성 (8 cycle 간 forklift 추가 발사 X)
+- ✅ Phase 1 의 helmet 'head' 라벨 (D-04 정상) 운영 중 정확 검출 (event_id=37 의 label='head')
+- ✅ D-07 흐름 (cooldown skip 시 buffer push 안 함) — forklift 의 8 cycle silent 동작
+
+**fire 미발사** (예상 동작):
+- fire mp4 conf 0.10~0.14 (Phase 1 D-18 측정) → D-19 fallback 임계 0.10 의 마진 좁음
+- 매 cycle ffmpeg seek=10s 의 NMS 노이즈로 conf 0.10 경계 ↔ 미달 변동
+- 5 cycle 연속 충족 통계적으로 8분 운영으로 부족
+- **D-08 의 의도된 동작** — fire 가중치 한계 (D-18) + frames_required=5 의 보수적 설정. v1.1 fine-tune 으로 자연 해결.
+
+**중요 학습 — D-06 의 "1프로세스" 의미 명확화**:
+- `--once-detect` 반복 (시나리오 2) = 매번 fresh 프로세스 → 모듈 dict 초기화 → frames_required 누적 X
+- 데몬 모드 (`python main.py --no-fall`) = 단일 프로세스 + 1분 cycle 무한 루프 → 모듈 dict 유지 → 정확한 검증
+- Phase 2 의 검증/운영은 **데몬 모드** 가 정답 (CONTEXT D-06 보강됨)
+
 ## Self-Check: PASSED
 
 - [x] `ai_agent/detector_configs.py` 존재 + frames_required 4개 키 정확 (verify command exit 0)
