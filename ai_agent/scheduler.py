@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections import deque
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Optional
@@ -43,6 +44,13 @@ _fall_cooldown: dict[int, float] = {}
 
 # (camera_id, event_key) 별 마지막 일반 detector 감지 타임스탬프.
 _detection_cooldown: dict[tuple[int, str], float] = {}
+
+# (camera_id, event_key) 별 최근 N 사이클 is_detected 결과 buffer (Phase 2 / MODEL-02).
+# - maxlen = 5 (DETECTOR_CONFIGS 의 max frames_required = fire 5).
+# - cooldown skip cycle 에서는 push 하지 않음 (D-07).
+# - 알람 발사 시 buffer.clear() + cooldown 갱신 (D-02).
+# - 1프로세스 PoC 휘발성 OK — 재시작 시 자동 reset (D-06).
+_detection_buffer: dict[tuple[int, str], deque] = {}
 
 
 # ──────────────────────────────────────────────
@@ -230,10 +238,31 @@ def _process_detection_for_camera(
             return f"[DETECT_ERR] camera_id={camera_id} event={event_key}: cv2.imread failed"
 
         result = detector.detect(img)
+
+        # Phase 2 MODEL-02: buffer push (cooldown skip 이 아닌 모든 detect 결과를 누적).
+        # maxlen 은 DETECTOR_CONFIGS 의 max frames_required (현재 fire 5).
+        # buffer 미존재 시 lazy 생성. is_detected=False 도 push (연속성 깨뜨리는 신호).
+        frames_required = int(cfg.get("frames_required", 1))
+        buffer = _detection_buffer.get(cooldown_key)
+        if buffer is None:
+            buffer = deque(maxlen=max(5, frames_required))
+            _detection_buffer[cooldown_key] = buffer
+        buffer.append(bool(result.is_detected))
+
         if not result.is_detected:
             return (
                 f"[no_detect] camera_id={camera_id} event={event_key} "
                 f"inf={result.inference_ms:.0f}ms"
+            )
+
+        # Phase 2 MODEL-02: N 연속 검사 — 최근 N 결과가 모두 True 일 때만 알람 발사.
+        # forklift/person 의 N=1 도 동일 코드 경로 (D-04, 분기 없이 즉시 통과).
+        recent = list(buffer)[-frames_required:]
+        if len(buffer) < frames_required or not all(recent):
+            return (
+                f"[no_alert_yet] camera_id={camera_id} event={event_key} "
+                f"frames={sum(recent)}/{frames_required} "
+                f"conf={result.confidence:.2f}"
             )
 
         public_url, _path = bridge.upload_detection_snapshot(
@@ -246,6 +275,9 @@ def _process_detection_for_camera(
             accuracy=float(result.confidence or 0.0),
             image_url=public_url,
         )
+        # Phase 2 MODEL-02: 알람 발사 후 buffer reset (D-02).
+        # 다음 알람은 cooldown 만료 + buffer 재누적 N 연속 둘 다 충족 시에만 발생.
+        buffer.clear()
         _detection_cooldown[cooldown_key] = now
         event_id = event.get("event_id")
         return (
@@ -300,7 +332,7 @@ def run_detection_cycle(
             msg = _process_detection_for_camera(
                 bridge, settings, event_key, detector, cfg, cam
             )
-            if msg.startswith(("[no_detect]", "[detect_skip_cooldown]")):
+            if msg.startswith(("[no_detect]", "[detect_skip_cooldown]", "[no_alert_yet]")):
                 log.debug(msg)
             else:
                 log.info(msg)
