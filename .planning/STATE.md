@@ -7,9 +7,9 @@ progress:
   phases_done: 3
   phases_in_progress: 1
   requirements_total: 28
-  requirements_validated: 12
+  requirements_validated: 14
 phases_planned: 1
-last_activity: "2026-05-14 — Phase 7 Plan 01 (인프라) ✓ COMPLETE. supabase-kt 2.2.0 + ktor-cio 2.3.9 + desugar 2.0.4 lock (3 commits: ddf2def·92bed99·4be6d2c). 011_watch_app_rls.sql 운영 DB 적용 완료 (PostgREST anon SELECT 200 검증 — RLS narrowing + 4테이블 publication ADD). tests/sql/test_011_rls_isolation.sql + scripts/seed_watch_demo.py 작성. Rule 1 deviation: SUPABASE_URL 정정 (qjmpxyenkqcdrwnsxvcs → xbjqxnvemcqubjfflain — 실제 linked project ref). Rule 3 deviations 3건 (grep regex false-positive 2건 + supabase migration history stash 복원 1건) 모두 해소. Wave 2 (07-02 Edge Function watch-ack/pair) 진입 가능."
+last_activity: "2026-05-14 — Phase 7 Plan 02 (Edge Function notifications watch-ack/pair) ✓ COMPLETE. notifications/index.ts 에 case 'watch-ack' (T-7-02 ownership SQL + idempotency .is(ack_at,null) + T-7-05 server-side toISOString) + case 'watch-pair' (T-7-03 MAC 정규식 재검증 + 다른 worker paired → 409 + unpair-aware 3-tier 룩업) 추가. 운영 Deno Deploy 3회 배포 (script size 68.59kB final). 8 curl smoke 모두 PASS (ack 3 + pair 5 — 정상/idempotency/ownership/MAC invalid/spoofing/unpair/re-pair). Pitfall 5 회귀 가드 (acknowledged_at == 0) + D-09 알림 전이 회귀 가드 (notifications insert 5분 윈도우 0행) 모두 통과. Rule 3 deviations 3건 (_shared/{supabase,response,cors}.ts stash 복원 + .env 작성 + Pitfall 5 코멘트 우회) + Rule 1 deviation 1건 (re-pair after unpair unique constraint → serial_number fallback 추가) 모두 해소. 커밋 e2298a2·3eb872d. Wave 3 (07-03 Android UI) 진입 가능."
 ---
 
 # Smart Safety Management — State
@@ -27,13 +27,13 @@ Phase 4: Wave 1·2 완료 (04-01·02·03), Wave 3 (04-04) = 사용자 24h 워치
 Phase 5·6: not started (의존성 풀린 시점에 plan)
 Phase 7: ⚠ IN PROGRESS (2026-05-14) — 워치-앱 양방향 연동 (BRIDGE-01·02·03). 수요일 2026-05-20 마감.
   - 07-01 ✓ COMPLETE (2026-05-14): supabase-kt 2.2.0 + ktor-cio 2.3.9 + desugar 2.0.4 의존성 lock + BuildConfig (실제 linked project ref `xbjqxnvemcqubjfflain`) + ProGuard keep 룰. 011_watch_app_rls.sql 운영 DB 적용 완료 (RLS narrowing 4종 + supabase_realtime publication 4 테이블 ADD). tests/sql/test_011_rls_isolation.sql + scripts/seed_watch_demo.py (D-05 fallback). 커밋 ddf2def·92bed99·4be6d2c.
-  - 07-02 ⏸ : Edge Function (notifications/index.ts watch-ack + watch-pair). 다음 단계 = /gsd-execute-plan 7 02.
+  - 07-02 ✓ COMPLETE (2026-05-14): notifications/index.ts case 'watch-ack' (BRIDGE-02) + case 'watch-pair' (BRIDGE-03) 운영 배포. 8 curl smoke 모두 PASS — watch_ack 3종 (정상 200 / idempotency 404 / ownership 404) + watch_pair 5종 (정상 200 / MAC invalid 400 / spoofing 409 / unpair 200 / re-pair idempotent 200). T-7-02·03·05 mitigation. D-09 알림 전이 회귀 가드 통과 (notifications insert 0). 커밋 e2298a2·3eb872d.
   - 07-03 ⏸ : Android UI (MyApp SupabaseClient 싱글톤 + watch/ 패키지 8 파일 + HomeWorker ComposeView 카드 + SafetyAlertsActivity + DeviceManage 워치 섹션).
   - 07-04 ⏸ : 단축 PoC + E2E 시연 (autonomous: false).
 Phase 8: NEW (2026-05-14 추가) — Drift X3 RTSP 실시간 카메라 (RTSP-01·02·03). ai_agent mp4 → RTSP 전환 + 실기기 검증 + 재연결 안정성.
 Phase 9: NEW (2026-05-14 추가) — TBM 현장 작업자 가이드 (TBM-01·02·03). 4 신규 테이블 + Android 가이드 화면 + 미참여 알림. 기존 관리자 순회 점검과 동시 운용.
-Status: Phase 3 ✓ COMPLETE + Phase 7 Wave 1 ✓ COMPLETE (07-01 인프라). 다음 즉시 = /gsd-execute-plan 7 02 (Edge Function notifications watch-ack/pair).
-Last activity: 2026-05-14 — Phase 7 Plan 01 (인프라) ✓ COMPLETE — supabase-kt 2.2.0 lock + 011 RLS 운영 DB 적용 + PoC fallback seed.
+Status: Phase 3 ✓ COMPLETE + Phase 7 Wave 1·2 ✓ COMPLETE (07-01 인프라 + 07-02 Edge Function watch-ack/pair). 다음 즉시 = /gsd-execute-plan 7 03 (Android UI — MyApp SupabaseClient 싱글톤 + watch/ 패키지 + HomeWorker 카드 + SafetyAlertsActivity + DeviceManage 워치 섹션).
+Last activity: 2026-05-14 — Phase 7 Plan 02 (Edge Function notifications watch-ack/pair) ✓ COMPLETE — case 2개 추가 + 운영 배포 + 8/8 curl smoke PASS + D-09 회귀 가드 통과.
 
 ## Accumulated Context
 
@@ -109,6 +109,7 @@ Last activity: 2026-05-14 — Phase 7 Plan 01 (인프라) ✓ COMPLETE — supab
   `camera["camera_id"]`) caught pre-implementation. Migration 009 `지게차 충돌 위험` applied
   to production Supabase DB via `supabase db push --include-all`. T-03-04/06/08 위협 완화.
   22/22 pytest PASS. FUSION-01·02 완전 충족. 커밋 769a0fc·a2a31c8·d546fb5.
+- **2026-05-14 (Phase 7 Plan 02 COMPLETE)**: Edge Function notifications/index.ts 의 case 'watch-ack' (BRIDGE-02) + case 'watch-pair' (BRIDGE-03) 운영 배포 완료. (a) case 'watch-ack' = ownership SQL `device_id IN (SELECT FROM devices WHERE user_id=$user_id)` (T-7-02 mitigation) + idempotency `.is('ack_at', null)` 가드 (재호출 시 0행 + 404) + 서버측 `new Date().toISOString()` (T-7-05 clock spoofing 방어). (b) case 'watch-pair' = MAC 정규식 `/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/` 재검증 + toUpperCase 정규화 + 두 lookup 경로 (mac eq → serial fallback) 모두 user_id 충돌 시 409 (T-7-03 spoofing 차단) + unpair-after-pair 케이스 호환 3-tier 룩업. (c) 8 curl smoke 모두 PASS — watch_ack 3종 (200/404/404) + watch_pair 5종 (200/400/409/200/200). (d) Pitfall 5 회귀 가드 (`acknowledged_at` grep == 0) + D-09 알림 전이 회귀 가드 (notifications insert 5분 윈도우 0행) 모두 통과. (e) Deviations: Rule 3 × 3 (`_shared/{supabase,response,cors}.ts` stash 복원 + `.env` 작성 + Pitfall 5 코멘트 우회) + Rule 1 × 1 (re-pair after unpair → unique constraint → serial_number fallback 추가, `'already paired to another user'` 등장 횟수 1→2 강도 강화). 커밋 e2298a2·3eb872d. Wave 3 (Android UI) 진입 가능.
 - **2026-05-14 (Phase 7 Plan 01 COMPLETE)**: 워치-앱 양방향 인프라 토대 lock. (a) app/build.gradle.kts
   에 supabase-kt 2.2.0 + ktor-cio 2.3.9 + desugar_jdk_libs 2.0.4 + BuildConfig (SUPABASE_URL/
   ANON_KEY 운영 ref `xbjqxnvemcqubjfflain`) 추가, 회귀 가드 2종 (3.x 거부 + okhttp engine 거부)
@@ -152,9 +153,10 @@ Last activity: 2026-05-14 — Phase 7 Plan 01 (인프라) ✓ COMPLETE — supab
 ### Pending Todos
 
 - **⚠ Phase 7 (CRITICAL — 수요일 2026-05-20 마감)** — 워치-앱 양방향 연동
-  (BRIDGE-01·02·03). Phase 4 백엔드 완료 위에 Android Realtime 구독 +
-  watch-command Edge Function + 페어링 화면. 즉시 `/gsd-discuss-phase 7` 또는
-  `/gsd-plan-phase 7 --skip-research`. 5/14~5/20 → 약 5 영업일.
+  (BRIDGE-01·02·03). Wave 1·2 완료 (07-01 인프라 + 07-02 Edge Function watch-ack/pair).
+  남은 단계: Wave 3 = `/gsd-execute-plan 7 03` (Android UI — MyApp SupabaseClient 싱글톤 +
+  watch/ 패키지 + HomeWorker 카드 + SafetyAlertsActivity + DeviceManage 워치 섹션 + 4 unit test) →
+  Wave 4 = `/gsd-execute-plan 7 04` (단축 PoC + E2E 시연, autonomous: false).
 - **Phase 8** (Drift X3 RTSP 실시간 카메라, RTSP-01·02·03) — `ai_agent` mp4 →
   RTSP 전환 + 실기기 검증 + 재연결 안정성. Phase 1 cameras 매핑 활용.
 - **Phase 9** (TBM 현장 작업자 가이드, TBM-01·02·03) — 4 신규 테이블 + Android

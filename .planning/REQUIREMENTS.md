@@ -103,14 +103,19 @@
   앱에 실시간 표시 — Supabase Realtime 구독 (`raw_events`/`wear_state_events`/
   `safety_alerts`) 으로 푸시. 워치 화면 카드 + 1시간 차트 + 알림 타임라인
   Android UI 구현. 백엔드 `_shared/fcm.ts` 의 watch-alert action 과 연동.
-- [ ] **BRIDGE-02**: 앱 → 워치 명령 양방향 채널 — 알림 acknowledge/dismiss/
-  check-in 등 앱 측 액션이 Supabase Edge Function 으로 라우팅되어 `safety_alerts`
-  의 `acknowledged_at` 컬럼 갱신 + (옵션) BLE 워치로 명령 전달. 신규 Edge Function
-  `watch-command` 추가.
-- [ ] **BRIDGE-03**: 앱 사용자별 워치 매핑 + 페어링 화면 — 작업자가 본인 워치
-  MAC 등록, 페어링 상태 (connected / disconnected / paired), `workers` 테이블
-  연결. v1.0 은 1인=1 워치 단순 매핑 (J2208A 플랜 §11 미해결 결정 중 MAC 고정
-  방식 채택).
+- [x] **BRIDGE-02**: 앱 → 워치 명령 양방향 채널 (백엔드) ✓ 2026-05-14 (07-02 e2298a2) —
+  notifications/index.ts 의 case 'watch-ack' 가 `safety_alerts.ack_at` 컬럼 갱신
+  (010 스키마 컬럼명, REQ 텍스트의 `acknowledged_at` 표기는 오기). T-7-02 ownership
+  SQL + idempotency `.is('ack_at', null)` + 서버측 `new Date().toISOString()`
+  (T-7-05). watch_ack.sh 3 smoke (정상/idempotency/ownership) PASS. UI 호출 측은
+  Wave 3 (07-03) 에서 SafetyAlertsActivity 의 acknowledge 버튼으로 완성.
+- [x] **BRIDGE-03**: 앱 사용자별 워치 매핑 + 페어링 (백엔드) ✓ 2026-05-14 (07-02 3eb872d) —
+  notifications/index.ts 의 case 'watch-pair' 가 devices 테이블의 user_id +
+  mac_address UPDATE/INSERT. MAC 정규식 재검증 (T-7-03 client validation 우회
+  차단) + 다른 worker paired → 409 + unpair-aware 3-tier 룩업 (mac eq → serial
+  fallback → INSERT). watch_pair.sh 5 smoke (정상/MAC invalid/spoofing/unpair/
+  re-pair) PASS. v1.0 1인=1 워치 매핑 — testuser1 + 21:02:02:06:01:69 운영 DB
+  검증 완료. UI 호출 측은 Wave 3 (07-03) 의 PairWatchSection 으로 완성.
 
 ### 8. Drift X3 RTSP 실시간 카메라 (RTSP)
 
@@ -200,8 +205,8 @@
 | DEMO-03   | Phase 6 | 데모 빌드 — 통합 시연·캡처·PPT      | Pending |
 | DEMO-04   | Phase 6 | 데모 빌드 — 통합 시연·캡처·PPT      | Pending |
 | BRIDGE-01 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | Pending |
-| BRIDGE-02 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | Pending |
-| BRIDGE-03 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | Pending |
+| BRIDGE-02 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | ✓ Complete (07-02, e2298a2) — UI 측은 07-03 |
+| BRIDGE-03 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | ✓ Complete (07-02, 3eb872d) — UI 측은 07-03 |
 | RTSP-01   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending |
 | RTSP-02   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending |
 | RTSP-03   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending |
