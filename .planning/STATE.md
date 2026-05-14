@@ -8,7 +8,8 @@ progress:
   phases_in_progress: 1
   requirements_total: 28
   requirements_validated: 12
-last_activity: "2026-05-14 — Phase 3 COMPLETE (FUSION-01·02 done) + 마일스톤에 Phase 7·8·9 추가 (사용자 요청 2026-05-14): Phase 7 워치-앱 양방향 연동 (BRIDGE-01·02·03, ⚠ 2026-05-20 수요일 마감), Phase 8 Drift X3 RTSP 실시간 카메라 (RTSP-01·02·03), Phase 9 TBM 현장 작업자 가이드 (TBM-01·02·03). REQ 19→28, Phase 6→9 확장. 다음 = /gsd-discuss-phase 7 (수요일 마감 critical)."
+phases_planned: 1
+last_activity: "2026-05-14 — Phase 7 (워치-앱 양방향) discuss + research + plan 완료. 4 plans / 4 waves (07-01 인프라, 07-02 Edge Function, 07-03 Android UI, 07-04 단축 PoC + E2E). researcher amendments: supabase-kt 2.2.0 (NOT 3.0.x — Kotlin 1.9.22 ABI), ktor-cio (NOT okhttp engine), HomeWorker ComposeView 임베드, ack_at 컬럼명, Edge Function 'watch-pair' (Firebase Auth → auth.uid() 미해상 security amendment). plan-checker: 0 blockers / 2 warnings (W-1 scope 22 files acknowledged, W-2 bash env — 둘 다 진행 차단 X). Ready to execute. 수요일 (2026-05-20) 마감 D-6. 다음 = /gsd-execute-phase 7."
 ---
 
 # Smart Safety Management — State
