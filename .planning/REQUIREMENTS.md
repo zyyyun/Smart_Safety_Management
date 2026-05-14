@@ -99,23 +99,36 @@
 
 ### 7. 워치-앱 양방향 연동 (BRIDGE — 2026-05-20 수요일 마감)
 
-- [ ] **BRIDGE-01**: 워치 데이터 (HR/temp/wear-state/safety_alerts) 가 Android
-  앱에 실시간 표시 — Supabase Realtime 구독 (`raw_events`/`wear_state_events`/
-  `safety_alerts`) 으로 푸시. 워치 화면 카드 + 1시간 차트 + 알림 타임라인
-  Android UI 구현. 백엔드 `_shared/fcm.ts` 의 watch-alert action 과 연동.
-- [x] **BRIDGE-02**: 앱 → 워치 명령 양방향 채널 (백엔드) ✓ 2026-05-14 (07-02 e2298a2) —
+- [x] **BRIDGE-01**: 워치 데이터 (HR/temp/wear-state/safety_alerts) 가 Android
+  앱에 실시간 표시 ✓ 2026-05-14 (07-03 ebcd623) — Supabase Realtime 3 채널 구독
+  (`device_watches` Update / `wear_state_events` Insert / `safety_alerts`
+  Insert+Update+Delete) via WatchRealtimeRepository.postgresChangeFlow.
+  WatchCardComposable (HomeWorker ComposeView 임베드) — HR/temp 한 줄 +
+  WearStateLabel (5 상태 한글 매핑, 의료기기 면책 '측정값' 단어 0건) + 마지막
+  활성 alert 1건. Realtime.Status.CONNECTED 시 SDK push, 그 외 5초 polling
+  fallback (D-01). HR=0 또는 wear-state WARMUP/OFF 시 회색 + '—' 표기 (신호=
+  상태신호 PROJECT.md key decision). 1시간 차트는 Phase 6 DEMO-03 으로 이연.
+  Wave 4 (07-04) 단축 PoC 에서 ≤3초 지연 실측 검증.
+- [x] **BRIDGE-02**: 앱 → 워치 명령 양방향 채널 ✓ 2026-05-14 (07-02 e2298a2 백엔드 + 07-03 ebcd623 UI) —
   notifications/index.ts 의 case 'watch-ack' 가 `safety_alerts.ack_at` 컬럼 갱신
   (010 스키마 컬럼명, REQ 텍스트의 `acknowledged_at` 표기는 오기). T-7-02 ownership
   SQL + idempotency `.is('ack_at', null)` + 서버측 `new Date().toISOString()`
-  (T-7-05). watch_ack.sh 3 smoke (정상/idempotency/ownership) PASS. UI 호출 측은
-  Wave 3 (07-03) 에서 SafetyAlertsActivity 의 acknowledge 버튼으로 완성.
-- [x] **BRIDGE-03**: 앱 사용자별 워치 매핑 + 페어링 (백엔드) ✓ 2026-05-14 (07-02 3eb872d) —
+  (T-7-05). watch_ack.sh 3 smoke (정상/idempotency/ownership) PASS. **UI 측 (07-03)**:
+  SafetyAlertsActivity 신규 + SafetyAlertsScreen LazyColumn — 미해결 alert 만
+  acknowledge 버튼 노출, Retrofit POST `/functions/v1/notifications` 호출 → 200
+  '확인됨' / 404 '이미 확인됨' (idempotent 무예외) / 5xx '오류'. WatchAckIdempotencyTest
+  3 cases PASS. 하단 fine print '1차 경고용, 의료기기 아님'.
+- [x] **BRIDGE-03**: 앱 사용자별 워치 매핑 + 페어링 ✓ 2026-05-14 (07-02 3eb872d 백엔드 + 07-03 d3d3baf UI) —
   notifications/index.ts 의 case 'watch-pair' 가 devices 테이블의 user_id +
   mac_address UPDATE/INSERT. MAC 정규식 재검증 (T-7-03 client validation 우회
   차단) + 다른 worker paired → 409 + unpair-aware 3-tier 룩업 (mac eq → serial
   fallback → INSERT). watch_pair.sh 5 smoke (정상/MAC invalid/spoofing/unpair/
   re-pair) PASS. v1.0 1인=1 워치 매핑 — testuser1 + 21:02:02:06:01:69 운영 DB
-  검증 완료. UI 호출 측은 Wave 3 (07-03) 의 PairWatchSection 으로 완성.
+  검증 완료. **UI 측 (07-03)**: PairWatchSection (DeviceManageScreen 하단 통합) —
+  MAC TextField + 정규식 클라이언트 검증 + 등록/해제 버튼 + WatchStatus 3-색상
+  badge (UNPAIRED 회색 / CONNECTED 초록 last_comm<5분 / DISCONNECTED 노랑).
+  Realtime devices 채널 (filter user_id) 구독으로 status 자동 갱신.
+  MacAddressValidatorTest 9 cases PASS.
 
 ### 8. Drift X3 RTSP 실시간 카메라 (RTSP)
 
@@ -204,9 +217,9 @@
 | DEMO-02   | Phase 6 | 데모 빌드 — 통합 시연·캡처·PPT      | Pending |
 | DEMO-03   | Phase 6 | 데모 빌드 — 통합 시연·캡처·PPT      | Pending |
 | DEMO-04   | Phase 6 | 데모 빌드 — 통합 시연·캡처·PPT      | Pending |
-| BRIDGE-01 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | Pending |
-| BRIDGE-02 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | ✓ Complete (07-02, e2298a2) — UI 측은 07-03 |
-| BRIDGE-03 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | ✓ Complete (07-02, 3eb872d) — UI 측은 07-03 |
+| BRIDGE-01 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | ✓ Complete (07-03, ebcd623) — Wave 4 E2E 시연 검증 예정 |
+| BRIDGE-02 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | ✓ Complete (백엔드 07-02 e2298a2 + UI 07-03 ebcd623) |
+| BRIDGE-03 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | ✓ Complete (백엔드 07-02 3eb872d + UI 07-03 d3d3baf) |
 | RTSP-01   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending |
 | RTSP-02   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending |
 | RTSP-03   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending |
