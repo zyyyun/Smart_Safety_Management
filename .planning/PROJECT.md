@@ -2,7 +2,7 @@
 
 > **Project Code**: SSM
 > **Bootstrapped from existing context** on 2026-04-29 (sources: `docs/PROJECT_SPEC.md`, `docs/J2208A_안전관리_시스템_PLAN.md`, memory files, prior plan `iridescent-percolating-fox.md`, 25+ commits).
-> **Last updated**: 2026-05-14 (Phase 3 ✓ COMPLETE — bbox fusion: FUSION-01·02 validated)
+> **Last updated**: 2026-05-14 (Phase 3 ✓ COMPLETE — bbox fusion: FUSION-01·02 validated. **마일스톤 확장: Phase 7·8·9 추가** — 워치-앱 양방향 (수요일 2026-05-20 마감), Drift X3 RTSP, TBM 가이드. REQ 19→28.)
 
 ---
 

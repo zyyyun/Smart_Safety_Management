@@ -1,14 +1,14 @@
 ---
 milestone: v1.0
-name: "5월 PPT 데모"
+name: "5월 PPT 데모 + 수요일 추가 (워치-앱·RTSP·TBM)"
 status: in_progress
 progress:
-  phases_total: 6
+  phases_total: 9
   phases_done: 3
   phases_in_progress: 1
-  requirements_total: 19
+  requirements_total: 28
   requirements_validated: 12
-last_activity: "2026-05-14 — Phase 3 Plan 02 COMPLETE: scheduler fusion wiring (_fusion_buffer + _process_fusion_for_camera + fusion loop + D-04 disabled guard) + migration 009 applied to DB + 22/22 pytest PASS (커밋 769a0fc·a2a31c8·d546fb5). Phase 3 COMPLETE (FUSION-01·FUSION-02 done)."
+last_activity: "2026-05-14 — Phase 3 COMPLETE (FUSION-01·02 done) + 마일스톤에 Phase 7·8·9 추가 (사용자 요청 2026-05-14): Phase 7 워치-앱 양방향 연동 (BRIDGE-01·02·03, ⚠ 2026-05-20 수요일 마감), Phase 8 Drift X3 RTSP 실시간 카메라 (RTSP-01·02·03), Phase 9 TBM 현장 작업자 가이드 (TBM-01·02·03). REQ 19→28, Phase 6→9 확장. 다음 = /gsd-discuss-phase 7 (수요일 마감 critical)."
 ---
 
 # Smart Safety Management — State
@@ -24,8 +24,11 @@ Phase 4: Wave 1·2 완료 (04-01·02·03), Wave 3 (04-04) = 사용자 24h 워치
   - 04-03 ✓: BLE wiring + watch-alert Edge Function 배포 + .env 보호 + curl smoke 200
   - 04-04 ⏸ : 24h 실측 — non-autonomous, 사용자 결정 대기 (5월 시연 전 진행 vs v1.1 이연)
 Phase 5·6: not started (의존성 풀린 시점에 plan)
-Status: Phase 3 COMPLETE. Plan 01 (detect_all + fusion_helpers + fusion_configs + test_fusion 12/12 PASS) + Plan 02 (scheduler fusion wiring + D-04 disabled + migration 009 + 22/22 pytest PASS). FUSION-01·02 완전 충족.
-Last activity: 2026-05-14 — Phase 3 Plan 02 COMPLETE (03-02-SUMMARY.md 작성, 커밋 769a0fc·a2a31c8·d546fb5).
+Phase 7: ⚠ NEW (2026-05-14 추가) — 워치-앱 양방향 연동 (BRIDGE-01·02·03). 수요일 2026-05-20 마감. Phase 4 백엔드 완성 위에 Android 앱 Realtime 구독 + watch-command Edge Function + 페어링 화면. 다음 단계 = /gsd-discuss-phase 7.
+Phase 8: NEW (2026-05-14 추가) — Drift X3 RTSP 실시간 카메라 (RTSP-01·02·03). ai_agent mp4 → RTSP 전환 + 실기기 검증 + 재연결 안정성.
+Phase 9: NEW (2026-05-14 추가) — TBM 현장 작업자 가이드 (TBM-01·02·03). 4 신규 테이블 + Android 가이드 화면 + 미참여 알림. 기존 관리자 순회 점검과 동시 운용.
+Status: Phase 3 ✓ COMPLETE (비전 chain 1·2·3 완료, FUSION-01·02 충족). **마일스톤에 Phase 7·8·9 추가** (사용자 2026-05-14 요청): Phase 7 워치-앱 양방향 연동 (수요일 2026-05-20 마감) + Phase 8 Drift X3 RTSP + Phase 9 TBM 가이드. REQ 19→28, Phase 6→9. 다음 즉시 = /gsd-discuss-phase 7 (critical path, 수요일 마감).
+Last activity: 2026-05-14 — Phase 3 COMPLETE + 마일스톤 확장 (Phase 7·8·9 추가).
 
 ## Accumulated Context
 
@@ -85,6 +88,16 @@ Last activity: 2026-05-14 — Phase 3 Plan 02 COMPLETE (03-02-SUMMARY.md 작성,
   버그 수정 (`if y2 < 0: y1 = 0` → `y2 = max(0.0, ...)`). T-03-01 (ZeroDivisionError guard)
   + T-03-02 (frame_width=0 clamp) 위협 완화. test_fusion.py 12/12 PASS (Phase 2 포함 20/20
   full suite). 커밋 729a1b4·cd2528a·40a9224.
+- 2026-05-14: Phase 3 Plan 02 COMPLETE + Phase 3 종결. scheduler.py fusion wiring
+  (_fusion_buffer + _process_fusion_for_camera + fusion loop + D-04 disabled guard) +
+  migration 009 운영 DB 적용 + 22/22 pytest PASS. Code review = 0 critical / 3 warnings
+  (WR-01 temp file leak, WR-02 helmet label divergence, WR-03 y1>=y2 guard) — 후속 처리
+  대상. HUMAN-UAT (DB row 확인) approved.
+- **2026-05-14 (마일스톤 확장)**: 사용자 추가 요청 — 수요일 2026-05-20 까지 (1) 워치-앱
+  양방향 연동, (2) Drift X3 RTSP 실시간 카메라, (3) TBM 현장 작업자 가이드. ROADMAP/
+  REQUIREMENTS 갱신: Phase 6→9 (Phase 7 BRIDGE-01·02·03 수요일 마감, Phase 8
+  RTSP-01·02·03, Phase 9 TBM-01·02·03 추가). REQ 19→28. 마일스톤 명 "5월 PPT 데모" →
+  "5월 PPT 데모 + 수요일 추가". 다음 = `/gsd-discuss-phase 7` (수요일 마감 critical).
 - 2026-05-14: Phase 3 Plan 02 COMPLETE — scheduler fusion wiring: _fusion_buffer module dict
   + _process_fusion_for_camera (7-step, D-05) + disabled guard (D-04) + fusion loop in
   run_detection_cycle (D-12). Rule 1 fix: camera dict key mismatch (`camera["id"]` →
@@ -119,6 +132,15 @@ Last activity: 2026-05-14 — Phase 3 Plan 02 COMPLETE (03-02-SUMMARY.md 작성,
 
 ### Pending Todos
 
+- **⚠ Phase 7 (CRITICAL — 수요일 2026-05-20 마감)** — 워치-앱 양방향 연동
+  (BRIDGE-01·02·03). Phase 4 백엔드 완료 위에 Android Realtime 구독 +
+  watch-command Edge Function + 페어링 화면. 즉시 `/gsd-discuss-phase 7` 또는
+  `/gsd-plan-phase 7 --skip-research`. 5/14~5/20 → 약 5 영업일.
+- **Phase 8** (Drift X3 RTSP 실시간 카메라, RTSP-01·02·03) — `ai_agent` mp4 →
+  RTSP 전환 + 실기기 검증 + 재연결 안정성. Phase 1 cameras 매핑 활용.
+- **Phase 9** (TBM 현장 작업자 가이드, TBM-01·02·03) — 4 신규 테이블 + Android
+  가이드 화면 + 미참여 알림. 기존 관리자 순회 점검과 병렬 운용. 비전·워치와
+  코드베이스 분리.
 - **Phase 3** ✓ COMPLETE (2026-05-14) — FUSION-01·02 완전 충족.
 - **Phase 5** (평가 — 2단계 정량 지표, EVAL-01·02·03) — Phase 1·2·3 완료됨. Phase 4 04-04
   의사결정 결과에 따라 병렬 진입 가능. `/gsd-discuss-phase 5` 또는 `/gsd-plan-phase 5`.

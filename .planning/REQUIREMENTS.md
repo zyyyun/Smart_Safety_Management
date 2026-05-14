@@ -1,10 +1,11 @@
 # Smart Safety Management — Milestone v1.0 Requirements
 
-> **Milestone**: v1.0 5월 PPT 데모
+> **Milestone**: v1.0 5월 PPT 데모 + 수요일 추가 (워치-앱·RTSP·TBM)
 > **Goal**: 5월 중순 PPT 데모에서 5종 AI 비전 + J2208A 워치 1인 파이프라인이 단일
-> 시연 흐름으로 통합 동작.
-> **Total**: 6 카테고리 / 19 요구사항
-> **Sources**: `iridescent-percolating-fox.md` (W1-W3 비전 큐), `docs/J2208A_안전관리_시스템_PLAN.md` (Phase 1)
+> 시연 흐름으로 통합 동작. **2026-05-14 추가**: 수요일(2026-05-20)까지 (1) 워치-앱
+> 양방향 연동, (2) Drift X3 RTSP 실시간 카메라, (3) TBM 현장 작업자 가이드.
+> **Total**: 9 카테고리 / 28 요구사항
+> **Sources**: `iridescent-percolating-fox.md` (W1-W3 비전 큐), `docs/J2208A_안전관리_시스템_PLAN.md` (Phase 1), 2026-05-14 사용자 추가 요청 (Phase 7·8·9)
 
 ---
 
@@ -96,6 +97,49 @@
   지표 (EVAL-01: 비전+워치) + 5월 데모 화면 (DEMO-02 비전 캡처 + DEMO-03 워치
   캡처) + 의료기기 면책 1줄 ("1차 경고용, 의료기기 아님") 통합
 
+### 7. 워치-앱 양방향 연동 (BRIDGE — 2026-05-20 수요일 마감)
+
+- [ ] **BRIDGE-01**: 워치 데이터 (HR/temp/wear-state/safety_alerts) 가 Android
+  앱에 실시간 표시 — Supabase Realtime 구독 (`raw_events`/`wear_state_events`/
+  `safety_alerts`) 으로 푸시. 워치 화면 카드 + 1시간 차트 + 알림 타임라인
+  Android UI 구현. 백엔드 `_shared/fcm.ts` 의 watch-alert action 과 연동.
+- [ ] **BRIDGE-02**: 앱 → 워치 명령 양방향 채널 — 알림 acknowledge/dismiss/
+  check-in 등 앱 측 액션이 Supabase Edge Function 으로 라우팅되어 `safety_alerts`
+  의 `acknowledged_at` 컬럼 갱신 + (옵션) BLE 워치로 명령 전달. 신규 Edge Function
+  `watch-command` 추가.
+- [ ] **BRIDGE-03**: 앱 사용자별 워치 매핑 + 페어링 화면 — 작업자가 본인 워치
+  MAC 등록, 페어링 상태 (connected / disconnected / paired), `workers` 테이블
+  연결. v1.0 은 1인=1 워치 단순 매핑 (J2208A 플랜 §11 미해결 결정 중 MAC 고정
+  방식 채택).
+
+### 8. Drift X3 RTSP 실시간 카메라 (RTSP)
+
+- [ ] **RTSP-01**: `ai_agent/scheduler.py` 가 RTSP 스트림을 직접 추론 — 기존 mp4
+  파일 경로 대신 `rtsp://...` URL 처리. `cameras.live_url_detail` 의 RTSP URL
+  지원 + `cv2.VideoCapture` 또는 `ffmpeg-python` 으로 frame 추출. mp4 fallback
+  유지 (영상 없을 때 데모 모드).
+- [ ] **RTSP-02**: Drift X3 카메라 ≥ 1대 실기기 RTSP 연동 검증 — `cameras`
+  테이블에 Drift X3 RTSP URL 등록 + 1 detection cycle 실측 (forklift 또는
+  person detector) + `detection_events` 적재 확인. SUMMARY 에 실측 frame rate
+  / 지연 (감지~insert ≤ 10s) 기록.
+- [ ] **RTSP-03**: RTSP 안정성 — 끊김 시 재연결 (최대 N=3 회 backoff), 헬스체크
+  (마지막 frame 수신 시각 추적), 끊김 N분 지속 시 운영 알림 (FCM 또는 로그).
+  `cameras.last_frame_at` 컬럼 추가 + 헬스체크 SQL.
+
+### 9. TBM (Tool Box Meeting) 현장 작업자 가이드 (TBM)
+
+- [ ] **TBM-01**: TBM 스키마 — `tbm_sessions` (일자·시각·작업장·리더), 
+  `tbm_checklists` (세션별 위험 항목·체크 상태·근거), `tbm_participants`
+  (세션 참여 작업자·서명·체크인 시각), `tbm_templates` (작업 유형별 체크리스트
+  템플릿) 마이그레이션 추가.
+- [ ] **TBM-02**: TBM 가이드 화면 (Android) — 오늘 TBM 세션 시작 → 작업 유형
+  선택 → 템플릿 기반 위험 항목 체크리스트 (예: 화재 위험·전기·고소·중량물 등)
+  → 참여 작업자 체크인 (NFC/QR/수기 서명 중 1) → 세션 종료 + Supabase 적재.
+  관리자 순회 점검과 별도 메뉴.
+- [ ] **TBM-03**: TBM 참여 이력 + 미참여 알림 — 작업자별 일자별 TBM 참여 여부
+  대시보드 (관리자 화면), 출근했으나 TBM 미참여인 작업자에게 FCM 알림 (관리자
+  지정 시각 기준). 일일 안전 점검 (기존 일지 시스템) 과 동시 운용.
+
 ---
 
 ## Future Requirements (deferred)
@@ -117,7 +161,8 @@
 
 ## Out of Scope (v1.0)
 
-- **LP-3 RTSP 실카메라** (Drift X3 실기기 부재) — v1.1 6월 설치 직전
+- ~~**LP-3 RTSP 실카메라** (Drift X3 실기기 부재) — v1.1 6월 설치 직전~~ **→
+  2026-05-14 v1.0 으로 승격 (Phase 8 — RTSP-01·02·03)**
 - **LP-5 룰 seed DB / `risk_level` 매핑** — v1.1
 - **Next-5/6/7/8/9** (PTT 음성·JWT 활성화·SMS Solapi·릴리즈 빌드·main PR) — v0.9
   또는 v1.1 별도 마일스톤
@@ -129,8 +174,8 @@
 
 ## Traceability
 
-> 19/19 v1.0 requirements mapped to phases · 0 orphans · 0 duplicates
-> Source: `.planning/ROADMAP.md` (created 2026-04-29)
+> 28/28 v1.0 requirements mapped to phases · 0 orphans · 0 duplicates
+> Source: `.planning/ROADMAP.md` (created 2026-04-29, extended 2026-05-14)
 
 | REQ-ID    | Phase   | Phase Name                          | Status  |
 |-----------|---------|-------------------------------------|---------|
@@ -140,8 +185,8 @@
 | MODEL-01  | Phase 2 | 비전 — frames 연속 룰               | ✓ Complete |
 | MODEL-02  | Phase 2 | 비전 — frames 연속 룰               | ✓ Complete |
 | MODEL-03  | Phase 2 | 비전 — frames 연속 룰               | ✓ Complete (Phase 1 absorbed, D-08) |
-| FUSION-01 | Phase 3 | 비전 — bbox 겹침/공간 매칭          | Done ✓  |
-| FUSION-02 | Phase 3 | 비전 — bbox 겹침/공간 매칭          | Done ✓  |
+| FUSION-01 | Phase 3 | 비전 — bbox 겹침/공간 매칭          | ✓ Complete |
+| FUSION-02 | Phase 3 | 비전 — bbox 겹침/공간 매칭          | ✓ Complete |
 | WATCH-01  | Phase 4 | 워치 — J2208A 1인 파이프라인        | Pending |
 | WATCH-02  | Phase 4 | 워치 — J2208A 1인 파이프라인        | Pending |
 | WATCH-03  | Phase 4 | 워치 — J2208A 1인 파이프라인        | Pending |
@@ -154,3 +199,12 @@
 | DEMO-02   | Phase 6 | 데모 빌드 — 통합 시연·캡처·PPT      | Pending |
 | DEMO-03   | Phase 6 | 데모 빌드 — 통합 시연·캡처·PPT      | Pending |
 | DEMO-04   | Phase 6 | 데모 빌드 — 통합 시연·캡처·PPT      | Pending |
+| BRIDGE-01 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | Pending |
+| BRIDGE-02 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | Pending |
+| BRIDGE-03 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | Pending |
+| RTSP-01   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending |
+| RTSP-02   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending |
+| RTSP-03   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending |
+| TBM-01    | Phase 9 | TBM 현장 작업자 가이드              | Pending |
+| TBM-02    | Phase 9 | TBM 현장 작업자 가이드              | Pending |
+| TBM-03    | Phase 9 | TBM 현장 작업자 가이드              | Pending |
