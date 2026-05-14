@@ -240,7 +240,7 @@ check-in) 양방향 채널이 동작하며, 작업자별 워치 페어링이 가
   4. 2026-05-20 (수요일) 까지 Phase 7 완료 — Phase 4 의 데이터가 앱에서
      실시간으로 보이고 양방향 명령 가능한 상태.
 **Plans**: 4 plans
-- [ ] 07-01-PLAN.md — 인프라 (supabase-kt 2.2.0 의존성 + 011 RLS/publication 마이그레이션 + seed_watch_demo.py fallback + RLS isolation SQL test)
+- [x] 07-01-PLAN.md — 인프라 (supabase-kt 2.2.0 의존성 + 011 RLS/publication 마이그레이션 + seed_watch_demo.py fallback + RLS isolation SQL test) — ✓ 2026-05-14 (커밋 ddf2def·92bed99·4be6d2c, SUMMARY 07-01-SUMMARY.md)
 - [ ] 07-02-PLAN.md — Edge Function (notifications/index.ts 에 case watch-ack + watch-pair 추가 + 배포 + curl smoke 8종)
 - [ ] 07-03-PLAN.md — Android UI (MyApp SupabaseClient 싱글톤 + watch/ 패키지 8 파일 + HomeWorker ComposeView 카드 + SafetyAlertsActivity 신규 + DeviceManage 워치 섹션 + 4 unit test)
 - [ ] 07-04-PLAN.md — 단축 PoC + E2E 시연 (autonomous: false — 사용자 워치 착용 + 실기기 시연 + 영상/캡처)

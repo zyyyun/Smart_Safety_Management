@@ -9,7 +9,7 @@ progress:
   requirements_total: 28
   requirements_validated: 12
 phases_planned: 1
-last_activity: "2026-05-14 — Phase 7 (워치-앱 양방향) discuss + research + plan 완료. 4 plans / 4 waves (07-01 인프라, 07-02 Edge Function, 07-03 Android UI, 07-04 단축 PoC + E2E). researcher amendments: supabase-kt 2.2.0 (NOT 3.0.x — Kotlin 1.9.22 ABI), ktor-cio (NOT okhttp engine), HomeWorker ComposeView 임베드, ack_at 컬럼명, Edge Function 'watch-pair' (Firebase Auth → auth.uid() 미해상 security amendment). plan-checker: 0 blockers / 2 warnings (W-1 scope 22 files acknowledged, W-2 bash env — 둘 다 진행 차단 X). Ready to execute. 수요일 (2026-05-20) 마감 D-6. 다음 = /gsd-execute-phase 7."
+last_activity: "2026-05-14 — Phase 7 Plan 01 (인프라) ✓ COMPLETE. supabase-kt 2.2.0 + ktor-cio 2.3.9 + desugar 2.0.4 lock (3 commits: ddf2def·92bed99·4be6d2c). 011_watch_app_rls.sql 운영 DB 적용 완료 (PostgREST anon SELECT 200 검증 — RLS narrowing + 4테이블 publication ADD). tests/sql/test_011_rls_isolation.sql + scripts/seed_watch_demo.py 작성. Rule 1 deviation: SUPABASE_URL 정정 (qjmpxyenkqcdrwnsxvcs → xbjqxnvemcqubjfflain — 실제 linked project ref). Rule 3 deviations 3건 (grep regex false-positive 2건 + supabase migration history stash 복원 1건) 모두 해소. Wave 2 (07-02 Edge Function watch-ack/pair) 진입 가능."
 ---
 
 # Smart Safety Management — State
@@ -25,11 +25,15 @@ Phase 4: Wave 1·2 완료 (04-01·02·03), Wave 3 (04-04) = 사용자 24h 워치
   - 04-03 ✓: BLE wiring + watch-alert Edge Function 배포 + .env 보호 + curl smoke 200
   - 04-04 ⏸ : 24h 실측 — non-autonomous, 사용자 결정 대기 (5월 시연 전 진행 vs v1.1 이연)
 Phase 5·6: not started (의존성 풀린 시점에 plan)
-Phase 7: ⚠ NEW (2026-05-14 추가) — 워치-앱 양방향 연동 (BRIDGE-01·02·03). 수요일 2026-05-20 마감. Phase 4 백엔드 완성 위에 Android 앱 Realtime 구독 + watch-command Edge Function + 페어링 화면. 다음 단계 = /gsd-discuss-phase 7.
+Phase 7: ⚠ IN PROGRESS (2026-05-14) — 워치-앱 양방향 연동 (BRIDGE-01·02·03). 수요일 2026-05-20 마감.
+  - 07-01 ✓ COMPLETE (2026-05-14): supabase-kt 2.2.0 + ktor-cio 2.3.9 + desugar 2.0.4 의존성 lock + BuildConfig (실제 linked project ref `xbjqxnvemcqubjfflain`) + ProGuard keep 룰. 011_watch_app_rls.sql 운영 DB 적용 완료 (RLS narrowing 4종 + supabase_realtime publication 4 테이블 ADD). tests/sql/test_011_rls_isolation.sql + scripts/seed_watch_demo.py (D-05 fallback). 커밋 ddf2def·92bed99·4be6d2c.
+  - 07-02 ⏸ : Edge Function (notifications/index.ts watch-ack + watch-pair). 다음 단계 = /gsd-execute-plan 7 02.
+  - 07-03 ⏸ : Android UI (MyApp SupabaseClient 싱글톤 + watch/ 패키지 8 파일 + HomeWorker ComposeView 카드 + SafetyAlertsActivity + DeviceManage 워치 섹션).
+  - 07-04 ⏸ : 단축 PoC + E2E 시연 (autonomous: false).
 Phase 8: NEW (2026-05-14 추가) — Drift X3 RTSP 실시간 카메라 (RTSP-01·02·03). ai_agent mp4 → RTSP 전환 + 실기기 검증 + 재연결 안정성.
 Phase 9: NEW (2026-05-14 추가) — TBM 현장 작업자 가이드 (TBM-01·02·03). 4 신규 테이블 + Android 가이드 화면 + 미참여 알림. 기존 관리자 순회 점검과 동시 운용.
-Status: Phase 3 ✓ COMPLETE (비전 chain 1·2·3 완료, FUSION-01·02 충족). **마일스톤에 Phase 7·8·9 추가** (사용자 2026-05-14 요청): Phase 7 워치-앱 양방향 연동 (수요일 2026-05-20 마감) + Phase 8 Drift X3 RTSP + Phase 9 TBM 가이드. REQ 19→28, Phase 6→9. 다음 즉시 = /gsd-discuss-phase 7 (critical path, 수요일 마감).
-Last activity: 2026-05-14 — Phase 3 COMPLETE + 마일스톤 확장 (Phase 7·8·9 추가).
+Status: Phase 3 ✓ COMPLETE + Phase 7 Wave 1 ✓ COMPLETE (07-01 인프라). 다음 즉시 = /gsd-execute-plan 7 02 (Edge Function notifications watch-ack/pair).
+Last activity: 2026-05-14 — Phase 7 Plan 01 (인프라) ✓ COMPLETE — supabase-kt 2.2.0 lock + 011 RLS 운영 DB 적용 + PoC fallback seed.
 
 ## Accumulated Context
 
@@ -105,6 +109,20 @@ Last activity: 2026-05-14 — Phase 3 COMPLETE + 마일스톤 확장 (Phase 7·8
   `camera["camera_id"]`) caught pre-implementation. Migration 009 `지게차 충돌 위험` applied
   to production Supabase DB via `supabase db push --include-all`. T-03-04/06/08 위협 완화.
   22/22 pytest PASS. FUSION-01·02 완전 충족. 커밋 769a0fc·a2a31c8·d546fb5.
+- **2026-05-14 (Phase 7 Plan 01 COMPLETE)**: 워치-앱 양방향 인프라 토대 lock. (a) app/build.gradle.kts
+  에 supabase-kt 2.2.0 + ktor-cio 2.3.9 + desugar_jdk_libs 2.0.4 + BuildConfig (SUPABASE_URL/
+  ANON_KEY 운영 ref `xbjqxnvemcqubjfflain`) 추가, 회귀 가드 2종 (3.x 거부 + okhttp engine 거부)
+  통과. (b) app/proguard-rules.pro 에 io.github.jan.supabase.* + io.ktor.* + kotlinx.serialization.*
+  keep 룰 (Pitfall 8 v1.1 minify 대비). (c) supabase/migrations/011_watch_app_rls.sql 운영 DB
+  적용 — `supabase db push` 성공, NOTICE 4종 (정책 first-time creation), PostgREST anon SELECT
+  200 OK 검증. 003 의 device_watches_select USING(true) DROP + safety_alerts/wear_state_events/
+  device_watches/devices SELECT × 4 narrowing (mac_address IS NOT NULL 패턴 v1.0 PoC) +
+  supabase_realtime publication 4 테이블 ADD. (d) tests/sql/test_011_rls_isolation.sql + scripts/
+  seed_watch_demo.py (D-05 fallback, urllib + service_role key, REMOVED 시나리오 minute_summary
+  120 + wear_state_events 3 + safety_alerts 2). Deviations 4건 모두 자동 해소: Rule 1 (SUPABASE_URL
+  정정 — plan 의 stale ref) + Rule 3 × 3 (grep regex false-positive 2 + supabase migration history
+  stash 복원 1). T-7-01 mitigated, T-7-04 accepted v1.0, T-7-supply mitigated. 커밋 ddf2def·92bed99·
+  4be6d2c.
 
 ### Blockers
 
