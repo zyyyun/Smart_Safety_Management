@@ -28,15 +28,15 @@ import fusion_helpers  # noqa: E402
 def reset_module_state():
     """매 테스트 전후 scheduler 모듈 상태 초기화.
 
-    _fusion_buffer 는 Plan 02 Task 2 에서 추가됨 — getattr 로 forward-compat.
+    Plan 02 Task 2 이후 _fusion_buffer 가 정식 추가되었으므로 직접 참조.
     """
     scheduler._detection_buffer.clear()
     scheduler._detection_cooldown.clear()
-    getattr(scheduler, "_fusion_buffer", {}).clear()
+    scheduler._fusion_buffer.clear()
     yield
     scheduler._detection_buffer.clear()
     scheduler._detection_cooldown.clear()
-    getattr(scheduler, "_fusion_buffer", {}).clear()
+    scheduler._fusion_buffer.clear()
 
 
 def _dr(x1, y1, x2, y2, conf=0.8, label="obj"):
@@ -176,3 +176,163 @@ def test_helmet_missing_no_persons():
     """persons 리스트 빔 → False (사람 없음 = 알람 없음)"""
     helmet = [_dr(140, 90, 160, 110, label="head")]
     assert fusion_helpers.compute_fusion_helmet_missing([], helmet, 640) is False
+
+
+# ──────────────────────────────────────────────
+# Case 8: _process_fusion_for_camera — 3-cycle integration
+# ──────────────────────────────────────────────
+
+CAM_FUSION = {"camera_id": 4, "live_url_detail": "rtsp://fake/stream"}
+
+SETTINGS_STUB = SimpleNamespace(
+    snapshot_tmp_dir=Path("/tmp"),
+    ffmpeg_bin="ffmpeg",
+    detectors_demo_seek_sec=10,
+    detectors_cooldown_min=10,
+)
+
+
+def make_bridge():
+    bridge = MagicMock(name="bridge")
+    bridge.upload_detection_snapshot.return_value = ("https://example.test/snap.jpg", "obj/path")
+    bridge.register_ai_event.return_value = {"event_id": 999}
+    return bridge
+
+
+def make_detect_all_detector(sequences_by_call):
+    """sequences_by_call: list of list[SimpleNamespace] — one list per detect_all() call."""
+    iterator = iter(sequences_by_call)
+
+    def _detect_all(_img):
+        try:
+            return next(iterator)
+        except StopIteration:
+            return []
+
+    det = MagicMock(name="detector_all")
+    det.detect_all.side_effect = _detect_all
+    return det
+
+
+def _forklift_bbox(iou_gt_03=True):
+    """Synthetic forklift bbox that creates IoU > 0.3 with person_bbox() when iou_gt_03=True."""
+    if iou_gt_03:
+        return SimpleNamespace(
+            is_detected=True, confidence=0.75,
+            bbox=(0.0, 0.0, 10.0, 10.0),  # IoU with person (0,0,9,9) = 0.81
+            label="forklift_1", inference_ms=10.0,
+        )
+    return SimpleNamespace(
+        is_detected=True, confidence=0.75,
+        bbox=(0.0, 0.0, 5.0, 5.0),  # IoU with person (10,10,20,20) = 0.0
+        label="forklift_1", inference_ms=10.0,
+    )
+
+
+def _person_bbox(near=True):
+    if near:
+        return SimpleNamespace(
+            is_detected=True, confidence=0.70,
+            bbox=(0.0, 0.0, 9.0, 9.0),  # near forklift → IoU=0.81
+            label="person", inference_ms=10.0,
+        )
+    return SimpleNamespace(
+        is_detected=True, confidence=0.70,
+        bbox=(10.0, 10.0, 20.0, 20.0),  # far from forklift → IoU=0
+        label="person", inference_ms=10.0,
+    )
+
+
+FORKLIFT_CFG = {
+    "event_name": "지게차 충돌 위험",
+    "risk_level": "DANGER",
+    "detectors_required": ["forklift", "person"],
+    "camera_ids": [4],
+    "rule": "iou_gt",
+    "threshold": 0.3,
+    "frames_required": 3,
+    "storage_prefix": "forklift_collision",
+}
+
+
+def test_process_fusion_3cycles_triggers_alarm(monkeypatch):
+    """3 cycle 연속 IoU>0.3 → 알람 1회 + buffer.clear (D-10 case 8, FUSION-01)"""
+    monkeypatch.setattr(scheduler, "capture", lambda *a, **kw: None)
+    fake_img = MagicMock(name="fake_img")
+    fake_img.shape = (480, 640, 3)
+    monkeypatch.setattr(scheduler.cv2, "imread", lambda _p: fake_img)
+
+    bridge = make_bridge()
+    # Each cycle: detect_all called twice (forklift, then person)
+    forklift_det = make_detect_all_detector([
+        [_forklift_bbox(True)],  # cycle 1
+        [_forklift_bbox(True)],  # cycle 2
+        [_forklift_bbox(True)],  # cycle 3
+    ])
+    person_det = make_detect_all_detector([
+        [_person_bbox(True)],    # cycle 1
+        [_person_bbox(True)],    # cycle 2
+        [_person_bbox(True)],    # cycle 3
+    ])
+    detectors = {"forklift": forklift_det, "person": person_det}
+
+    results = []
+    for _ in range(3):
+        msg = scheduler._process_fusion_for_camera(
+            bridge, SETTINGS_STUB, "forklift_collision", FORKLIFT_CFG, CAM_FUSION, detectors
+        )
+        results.append(msg)
+
+    # First 2 cycles: buffer accumulating, no alarm
+    assert results[0].startswith("[no_fusion_yet]"), f"Expected [no_fusion_yet] got {results[0]}"
+    assert results[1].startswith("[no_fusion_yet]"), f"Expected [no_fusion_yet] got {results[1]}"
+    # 3rd cycle: N=3 consecutive True → alarm fires
+    assert results[2].startswith("[FUSION]"), f"Expected [FUSION] got {results[2]}"
+    assert bridge.register_ai_event.call_count == 1, "Alarm should fire exactly once"
+
+    # After alarm: buffer cleared. Next cycle with cooldown active → fusion_skip_cooldown
+    forklift_det2 = make_detect_all_detector([[_forklift_bbox(False)]])
+    person_det2   = make_detect_all_detector([[_person_bbox(False)]])
+    detectors2 = {"forklift": forklift_det2, "person": person_det2}
+    # cooldown is now active (detectors_cooldown_min=10 minutes)
+    msg_after = scheduler._process_fusion_for_camera(
+        bridge, SETTINGS_STUB, "forklift_collision", FORKLIFT_CFG, CAM_FUSION, detectors2
+    )
+    # cooldown active after alarm → skip
+    assert msg_after.startswith("[fusion_skip_cooldown]"), (
+        f"After alarm + cooldown, expected [fusion_skip_cooldown] got {msg_after}"
+    )
+    assert bridge.register_ai_event.call_count == 1, "No additional alarm after cooldown"
+
+
+def test_process_fusion_no_alarm_when_not_consecutive(monkeypatch):
+    """N=3 중 하나가 False 이면 알람 미발사 (spike 흡수, D-12)"""
+    monkeypatch.setattr(scheduler, "capture", lambda *a, **kw: None)
+    fake_img = MagicMock(name="fake_img")
+    fake_img.shape = (480, 640, 3)
+    monkeypatch.setattr(scheduler.cv2, "imread", lambda _p: fake_img)
+
+    bridge = make_bridge()
+    # Cycle sequence: True, True, False — not 3 consecutive
+    forklift_det = make_detect_all_detector([
+        [_forklift_bbox(True)],
+        [_forklift_bbox(True)],
+        [_forklift_bbox(False)],  # IoU=0 → False
+    ])
+    person_det = make_detect_all_detector([
+        [_person_bbox(True)],
+        [_person_bbox(True)],
+        [_person_bbox(False)],
+    ])
+    detectors = {"forklift": forklift_det, "person": person_det}
+
+    results = []
+    for _ in range(3):
+        msg = scheduler._process_fusion_for_camera(
+            bridge, SETTINGS_STUB, "forklift_collision", FORKLIFT_CFG, CAM_FUSION, detectors
+        )
+        results.append(msg)
+
+    assert bridge.register_ai_event.call_count == 0, (
+        f"Alarm should NOT fire with non-consecutive pattern. msgs={results}"
+    )
