@@ -42,7 +42,13 @@ DETECTOR_CONFIGS: dict[str, dict] = {
         "target_classes": None,
         "storage_prefix": "fire",
     },
+    # Phase 3 D-04: helmet 단독 알람 경로 → fusion 으로 대체 (ROADMAP Phase 3 SC #2).
+    # disabled=True: run_detection_cycle 에서 helmet detector 를 단독 알람 루프에서 스킵.
+    # target_classes=None: detect_all() 가 head + helmet 두 라벨 모두 반환하도록.
+    # frames_required=1: 단독 알람 경로 제거 (fusion buffer 가 N=3 관리).
+    # 이전 값: target_classes=['head'], frames_required=3, disabled 없음 (Phase 1/2 lock).
     "helmet": {
+        "disabled": True,
         "framework": "yolov5",
         "weights": r"D:\2025_산업안전\산업안전\모델 7종\안전모 탐지\hard_hat_best.pt",
         "event_name": "안전모 미착용",
@@ -53,10 +59,10 @@ DETECTOR_CONFIGS: dict[str, dict] = {
         # 87% frame head 검출, max conf 0.871, seek=10s 시 head conf 0.697 검증.
         "conf_thres": 0.5,
         "iou_thres": 0.45,
-        # Phase 2 MODEL-01 / D-04: 3 cycle 연속 head 검출 시에만 알람 (일시적 가림 흡수).
-        "frames_required": 3,
+        # D-04: 1 로 변경 — 단독 알람 경로 제거. fusion buffer (_fusion_buffer N=3) 가 대체.
+        "frames_required": 1,
         "img_size": 640,
-        "target_classes": ["head"],
+        "target_classes": None,  # D-04: head + helmet 두 라벨 모두 detect_all() 에 포함
         "storage_prefix": "helmet",
     },
     "forklift": {
