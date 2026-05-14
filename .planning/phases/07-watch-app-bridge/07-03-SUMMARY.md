@@ -238,3 +238,12 @@ RLS 가 보안 경계. anon key 가 git/decompile 노출 = 정상 (Supabase 설�
 - ✅ `acknowledged_at` count = 0 in watch/
 - ✅ `측정값` count = 0 in watch/
 - ✅ `realtime-kt:3.` count = 0 in build.gradle.kts
+
+**Wave 3 phase-gate (BLOCKING) verification:**
+- ✅ `./gradlew app:assembleDebug` → BUILD SUCCESSFUL in 1m 23s, 40 actionable tasks
+  - APK: `/d/ssm-app-build/outputs/apk/debug/app-debug.apk` (70 MB)
+  - Validates: AndroidManifest 머지 (SafetyAlertsActivity 등록) + main_home_worker.xml ComposeView
+    리소스 처리 + kotlinx-serialization 플러그인 dexing + desugaring (07-01 + 07-03 buildDir
+    redirect 양립) + R class 생성 + lint 통과 + APK 패키징
+  - 알려진 메시지 (무해): `stripDebugDebugSymbols` — libK3fAndroid.so / libandroidx.graphics.path.so
+    스트립 못함 → 그대로 패키징 (debug build 표준 동작)
