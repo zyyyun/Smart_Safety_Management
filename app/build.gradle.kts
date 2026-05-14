@@ -24,6 +24,14 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // Phase 7 / D-01 — Supabase Realtime SDK 초기화용 BuildConfig 필드.
+        // anon key 는 git 커밋 OK — 보안 경계는 RLS (011_watch_app_rls.sql).
+        // 운영 프로젝트 ref = xbjqxnvemcqubjfflain (Smart_Safety_Management, Singapore).
+        // (Rule 1 deviation: 07-01-PLAN.md 의 'qjmpxyenkqcdrwnsxvcs' 는 stale.
+        //  `supabase projects list` 의 실제 ref 로 정정 — 2026-05-14)
+        buildConfigField("String", "SUPABASE_URL", "\"https://xbjqxnvemcqubjfflain.supabase.co\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhianF4bnZlbWNxdWJqZmZsYWluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzkwMDEsImV4cCI6MjA5MTgxNTAwMX0.o3vm5icG-6Lk6R3cAt-LDh-Gr-HKDn2B0PFVtuFXXus\"")
     }
 
     buildTypes {
@@ -36,6 +44,9 @@ android {
         }
     }
     compileOptions {
+        // Phase 7 / D-01 (Pitfall 2) — minSdk 24 + supabase-kt minSdk 26 충돌 회피용
+        // core library desugaring 필수. desugar_jdk_libs:2.0.4 + 활성화 토글 둘 다 필요.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
@@ -44,6 +55,8 @@ android {
     }
     buildFeatures {
         compose = true
+        // Phase 7 / D-01 — BuildConfig.SUPABASE_URL / SUPABASE_ANON_KEY 노출용
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.10"
@@ -120,5 +133,15 @@ dependencies {
 
     //gis
     implementation("com.google.android.gms:play-services-location:21.0.1")
+
+    // Phase 7 / D-01 (amended 2026-05-14) — Supabase Realtime + PostgREST (Kotlin 1.9.22 호환)
+    // 금지 (Pitfall 1): supabase-kt 3.x 계열 → Kotlin 2.3.21 강제 (Compose Compiler 1.5.10 ABI 비호환)
+    // 금지 (Pitfall 7): ktor okhttp engine → Retrofit 의 OkHttp 4.12.0 와 transitive 충돌, cio engine 사용
+    implementation("io.github.jan-tennert.supabase:realtime-kt:2.2.0")
+    implementation("io.github.jan-tennert.supabase:postgrest-kt:2.2.0")
+    implementation("io.ktor:ktor-client-cio:2.3.9")
+
+    // Phase 7 / Pitfall 2 — minSdk 24 + supabase-kt minSdk 26 → core library desugaring 필수
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
 }
