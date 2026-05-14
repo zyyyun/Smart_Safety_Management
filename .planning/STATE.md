@@ -8,7 +8,7 @@ progress:
   phases_in_progress: 2
   requirements_total: 19
   requirements_validated: 10
-last_activity: "2026-05-14 — Phase 3 PLANNED: 2 plans / 2 waves. Wave 1 = foundation (detect_all + fusion_helpers + fusion_configs + test stubs 1-7). Wave 2 = integration (scheduler wiring + migration 009 + test case 8 + DB push). D-04 suppression Option A locked (disabled flag). 다음 = /gsd-execute-phase 3."
+last_activity: "2026-05-14 — Phase 3 Plan 01 COMPLETE: detect_all() + fusion_helpers.py + fusion_configs.py + test_fusion.py 12/12 PASS (커밋 729a1b4·cd2528a·40a9224). 다음 = Phase 3 Plan 02 (scheduler wiring + migration 009 + D-04 disabled flag)."
 ---
 
 # Smart Safety Management — State
@@ -17,15 +17,15 @@ last_activity: "2026-05-14 — Phase 3 PLANNED: 2 plans / 2 waves. Wave 1 = foun
 
 Phase 1: ✓ COMPLETE (2026-05-06, A1 batch scan + D-19 fallback, 커밋 `559b90a`)
 Phase 2: ✓ COMPLETE (2026-05-07, frames_required + pytest 8/8 PASS, 커밋 `954bb19`)
-Phase 3: PLANNED ✓ (2026-05-14, 2 plans / 2 waves). 다음 = /gsd-execute-phase 3.
+Phase 3: IN PROGRESS — Plan 01 ✓ COMPLETE (2026-05-14, detect_all + fusion_helpers + fusion_configs + test_fusion 12/12, 커밋 729a1b4·cd2528a·40a9224). Plan 02 next (scheduler wiring, D-04, migration 009).
 Phase 4: Wave 1·2 완료 (04-01·02·03), Wave 3 (04-04) = 사용자 24h 워치 착용 결정 대기
   - 04-01 ✓: 010_watch_pipeline.sql 운영 DB 적용 완료 (UTC immutability fix)
   - 04-02 ✓: j2208a/ 패키지 (8 모듈, 843 lines) + pytest 39 pass (31 + 04-03 의 8 integration)
   - 04-03 ✓: BLE wiring + watch-alert Edge Function 배포 + .env 보호 + curl smoke 200
   - 04-04 ⏸ : 24h 실측 — non-autonomous, 사용자 결정 대기 (5월 시연 전 진행 vs v1.1 이연)
 Phase 5·6: not started (의존성 풀린 시점에 plan)
-Status: Phase 3 CONTEXT 준비 완료. Phase 1/2 의 패턴 (`_detection_buffer` + N 연속 + cooldown) 을 fusion 으로 직교 확장. helmet 단독 알람은 fusion 이 인수 (Phase 1 D-05 의도된 부분 revert). 다음 단계 = planner 가 detect_all/_process_fusion_for_camera/fusion_helpers/FUSION_CONFIGS/마이그레이션 009/test_fusion 의 plan task 분해.
-Last activity: 2026-05-14 — Phase 3 CONTEXT.md + DISCUSSION-LOG.md 작성 (autonomous).
+Status: Phase 3 Plan 01 완료. detect_all() (D-01) + fusion_helpers.py 4 pure functions (D-02) + FUSION_CONFIGS dict (D-03) + test_fusion.py 12/12 PASS 구축. Plan 02 에서 scheduler wiring (_fusion_buffer, _process_fusion_for_camera, fusion loop) + D-04 helmet disabled + migration 009 진행 예정.
+Last activity: 2026-05-14 — Phase 3 Plan 01 COMPLETE (03-01-SUMMARY.md 작성, 커밋 729a1b4·cd2528a·40a9224).
 
 ## Accumulated Context
 
@@ -80,6 +80,11 @@ Last activity: 2026-05-14 — Phase 3 CONTEXT.md + DISCUSSION-LOG.md 작성 (aut
   head 영역 top 25%×±width/6 N=3 (D-08), person detector cross-camera (D-09), pytest unit
   + 데몬 1회 통합 검증 (D-10), 마이그레이션 009 신규 event_type (D-11), 단독+fusion
   직교 (D-12). 검증 영상 신규 수집은 v1.1 검단·포천 이연 — v1.0 은 합성 입력 + mock.
+- 2026-05-14: Phase 3 Plan 01 COMPLETE — detect_all() (D-01), fusion_helpers.py pure
+  functions (D-02), FUSION_CONFIGS dict (D-03) 구현 완료. Legacy bbox_utils.py y2 clamp
+  버그 수정 (`if y2 < 0: y1 = 0` → `y2 = max(0.0, ...)`). T-03-01 (ZeroDivisionError guard)
+  + T-03-02 (frame_width=0 clamp) 위협 완화. test_fusion.py 12/12 PASS (Phase 2 포함 20/20
+  full suite). 커밋 729a1b4·cd2528a·40a9224.
 
 ### Blockers
 
