@@ -178,6 +178,52 @@ Deno.serve(async (req) => {
         return ok({ success: true });
       }
 
+      // ──────────────────────────────────────────
+      // WATCH-ACK — Phase 7 BRIDGE-02 (per 07-CONTEXT.md D-03)
+      // ──────────────────────────────────────────
+      // SafetyAlertsActivity 의 acknowledge 버튼 → 본 Edge Function 호출.
+      // SQL: UPDATE safety_alerts SET ack_at=now() WHERE alert_id=$1
+      //      AND device_id IN (SELECT device_id FROM devices WHERE user_id=$2)
+      //      AND ack_at IS NULL
+      // T-7-02 mitigation (cross-worker tampering): ownership 검증은 device_id IN (...)
+      // T-7-05 mitigation (clock spoofing): 서버측 new Date().toISOString() — client 시계 무시
+      // D-09 알림 전이 원칙: ack 자체는 새 알림 발생 X (notifications insert / FCM 발송 안 함)
+      // idempotency: .is('ack_at', null) 가드 — 두 번째 ack 는 0 rows + 404 "already acknowledged"
+      // 컬럼명: ack_at (010_watch_pipeline.sql) — REQUIREMENTS.md §7 의 acknowledg* 표기는 오기 (Pitfall 5)
+      case "watch-ack": {
+        const { user_id, alert_id } = body;
+        if (!user_id || !alert_id) {
+          return err("user_id, alert_id are required");
+        }
+
+        // ownership 검증 (T-7-02): 본 user_id 가 보유한 devices 의 alert 만 ack 가능
+        const { data: ownDevices, error: devErr } = await supabase
+          .from("devices")
+          .select("device_id")
+          .eq("user_id", user_id);
+        if (devErr) return err(devErr.message, 500);
+        const ownDeviceIds = (ownDevices ?? []).map((d) => d.device_id);
+        if (ownDeviceIds.length === 0) {
+          return err("user has no devices", 404);
+        }
+
+        // ack_at 갱신 — server-side toISOString() + idempotency 가드
+        const nowIso = new Date().toISOString();
+        const { data, error } = await supabase
+          .from("safety_alerts")
+          .update({ ack_at: nowIso })
+          .eq("alert_id", alert_id)
+          .in("device_id", ownDeviceIds)
+          .is("ack_at", null)
+          .select();
+
+        if (error) return err(error.message, 500);
+        if (!data || data.length === 0) {
+          return err("alert not found or already acknowledged or not owned by user", 404);
+        }
+        return ok({ ok: true, ack_at: data[0].ack_at, alert_id });
+      }
+
       default:
         return err(`Unknown action: ${action}`);
     }
