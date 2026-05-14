@@ -118,8 +118,16 @@ fusion (지게차+사람 IoU, 사람 head 영역 + helmet 객체 매칭) 으로 
   3. Phase 2 의 frames 연속 룰이 FUSION-01/02 에도 동일하게 적용됨 — 1프레임 spike
      로는 알람이 발생하지 않고, N 프레임 연속 조건 충족 시 1회 발생.
 **Plans**: 2 plans (2 waves)
-  - [ ] 03-01-PLAN.md -- GenericYoloDetector.detect_all() + fusion_helpers.py (iou_xyxy/hardhat_is_on/compute_fusion_collision/compute_fusion_helmet_missing) + fusion_configs.py (FUSION_CONFIGS) + test_fusion.py cases 1-7 (Wave 1)
-  - [ ] 03-02-PLAN.md -- detector_configs.py D-04 helmet disabled + scheduler.py _fusion_buffer + _process_fusion_for_camera + fusion loop + migration 009 DB push + test case 8 (Wave 2)
+
+  **Wave 1**
+  - [ ] 03-01-PLAN.md — GenericYoloDetector.detect_all() + fusion_helpers.py (iou_xyxy/hardhat_is_on/compute_fusion_collision/compute_fusion_helmet_missing) + fusion_configs.py (FUSION_CONFIGS) + test_fusion.py cases 1-7
+
+  **Wave 2** *(blocked on Wave 1 completion)*
+  - [ ] 03-02-PLAN.md — detector_configs.py D-04 helmet `disabled=True` + scheduler.py _fusion_buffer + _process_fusion_for_camera + fusion loop + migration 009 + `supabase db push` [BLOCKING] + test case 8
+
+  **Cross-cutting constraints:**
+  - `_fusion_buffer` (D-06) and `_detection_buffer` (Phase 2) operate as separate module dicts — never share keys
+  - helmet detector `disabled=True` must be set before fusion loop runs (both in Wave 2)
 ### Phase 4: 워치 — J2208A 1인 파이프라인
 **Goal**: J2208A BLE notification 이 S2 (Validate) → S3 (Aggregate) → wear-state
 state machine → S4 (Derive) 을 거쳐 1인 24h 연속 운용 시 wear-state 분류 + 1차 위험

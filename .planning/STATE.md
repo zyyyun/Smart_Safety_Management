@@ -8,7 +8,7 @@ progress:
   phases_in_progress: 2
   requirements_total: 19
   requirements_validated: 10
-last_activity: "2026-05-14 — Phase 3 CONTEXT.md 작성 (autonomous discuss-phase). 12개 implementation decision 잠금 — detect_all() API, fusion_helpers 모듈, FUSION_CONFIGS dict, _fusion_buffer Phase 2 패턴 재사용, helmet 단독 알람 fusion 으로 대체 (Phase 1 D-05 부분 revert), IoU>0.3 / hardhat_is_on point-in-area, person detector cross-camera. 다음 = /gsd-plan-phase 3."
+last_activity: "2026-05-14 — Phase 3 PLANNED: 2 plans / 2 waves. Wave 1 = foundation (detect_all + fusion_helpers + fusion_configs + test stubs 1-7). Wave 2 = integration (scheduler wiring + migration 009 + test case 8 + DB push). D-04 suppression Option A locked (disabled flag). 다음 = /gsd-execute-phase 3."
 ---
 
 # Smart Safety Management — State
@@ -17,7 +17,7 @@ last_activity: "2026-05-14 — Phase 3 CONTEXT.md 작성 (autonomous discuss-pha
 
 Phase 1: ✓ COMPLETE (2026-05-06, A1 batch scan + D-19 fallback, 커밋 `559b90a`)
 Phase 2: ✓ COMPLETE (2026-05-07, frames_required + pytest 8/8 PASS, 커밋 `954bb19`)
-Phase 3: CONTEXT.md ✓ (2026-05-14, 12 decisions locked). 다음 = /gsd-plan-phase 3.
+Phase 3: PLANNED ✓ (2026-05-14, 2 plans / 2 waves). 다음 = /gsd-execute-phase 3.
 Phase 4: Wave 1·2 완료 (04-01·02·03), Wave 3 (04-04) = 사용자 24h 워치 착용 결정 대기
   - 04-01 ✓: 010_watch_pipeline.sql 운영 DB 적용 완료 (UTC immutability fix)
   - 04-02 ✓: j2208a/ 패키지 (8 모듈, 843 lines) + pytest 39 pass (31 + 04-03 의 8 integration)
