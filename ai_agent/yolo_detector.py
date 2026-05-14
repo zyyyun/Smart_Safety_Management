@@ -182,3 +182,46 @@ class GenericYoloDetector:
             label=label,
             inference_ms=inference_ms,
         )
+
+    def detect_all(self, image_bgr: np.ndarray) -> "list[DetectResult]":
+        """모든 bbox 를 DetectResult list 로 반환. detect() 와 동일 inference 결과 사용.
+        target_classes 필터 동일 적용. 추가 추론 호출 없음 (D-01).
+        빈 리스트 = no detection."""
+        if image_bgr is None or image_bgr.size == 0:
+            return []
+
+        t0 = time.time()
+        if self.framework == "yolov5":
+            results = self.model(image_bgr, size=self.img_size)
+            preds = results.xyxy[0].cpu().numpy() if hasattr(results.xyxy[0], "cpu") else results.xyxy[0]
+            cls_ids = [int(row[5]) for row in preds]
+            confs   = [float(row[4]) for row in preds]
+            xyxys   = [[float(row[0]), float(row[1]), float(row[2]), float(row[3])] for row in preds]
+        else:  # yolov8
+            predict_kwargs = dict(conf=self.conf_thres, iou=self.iou_thres, imgsz=self.img_size, verbose=False)
+            if self._device:
+                predict_kwargs["device"] = self._device
+            results = self.model.predict(image_bgr, **predict_kwargs)
+            if not results:
+                return []
+            boxes = results[0].boxes
+            if boxes is None or len(boxes) == 0:
+                return []
+            cls_ids = boxes.cls.tolist() if hasattr(boxes.cls, "tolist") else list(boxes.cls)
+            confs   = boxes.conf.tolist() if hasattr(boxes.conf, "tolist") else list(boxes.conf)
+            xyxys   = boxes.xyxy.tolist() if hasattr(boxes.xyxy, "tolist") else [list(b) for b in boxes.xyxy]
+        inference_ms = (time.time() - t0) * 1000.0
+
+        out: list[DetectResult] = []
+        for cls_id, conf, xyxy in zip(cls_ids, confs, xyxys):
+            label = self.class_names.get(int(cls_id), str(int(cls_id)))
+            if self.targets is not None and label.lower() not in self.targets:
+                continue
+            out.append(DetectResult(
+                is_detected=True,
+                confidence=float(conf),
+                bbox=(float(xyxy[0]), float(xyxy[1]), float(xyxy[2]), float(xyxy[3])),
+                label=label,
+                inference_ms=inference_ms,
+            ))
+        return out
