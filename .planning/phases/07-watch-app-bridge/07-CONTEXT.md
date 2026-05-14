@@ -45,14 +45,22 @@ Management 의 워치 섹션 추가 + Edge Function `notifications` 에 case 'wa
 ## Implementation Decisions
 
 ### 실시간 전송 채널 (BRIDGE-01)
-- **D-01: Supabase-kt Realtime SDK 도입**
+- **D-01: Supabase-kt Realtime SDK 도입** (researcher 검증 후 amended 2026-05-14)
+  - **버전 정정 (CRITICAL)**: 원안 "3.0.0" 는 Kotlin 2.3.21 강제 — 본 프로젝트
+    Kotlin 1.9.22 + Compose Compiler 1.5.10 와 ABI 비호환. **2.2.0 사용**
+    (Kotlin 1.9.22 + Ktor 2.3.9 매칭, Kotlin/Compose 업그레이드 0건).
   - `app/build.gradle.kts` 에 신규 의존성 추가:
     ```
-    implementation("io.github.jan-tennert.supabase:realtime-kt:3.0.0")
-    implementation("io.github.jan-tennert.supabase:postgrest-kt:3.0.0")
-    implementation("io.ktor:ktor-client-okhttp:2.3.12")
+    implementation("io.github.jan-tennert.supabase:realtime-kt:2.2.0")
+    implementation("io.github.jan-tennert.supabase:postgrest-kt:2.2.0")
+    implementation("io.ktor:ktor-client-cio:2.3.9")
     ```
-    (정확한 버전은 planner 가 jan-tennert/supabase-kt latest stable 확인 후 결정)
+    (cio engine — OkHttp engine 은 기존 Retrofit OkHttp 4.12.0 와 충돌 가능,
+    cio 는 독립 실행)
+  - **minSdk 24 + supabase-kt minSdk 26 충돌**: core library desugaring 활성화
+    필수 — `coreLibraryDesugaringEnabled = true` + `coreLibraryDesugaring
+    ("com.android.tools:desugar_jdk_libs:2.0.4")`. API 24/25 실기기 검증
+    안 하면 발견 안 됨.
   - **3개 채널 구독**:
     - `wear_state_events` (filter: `device_id=eq.{paired_device_id}`) — wear-state 라벨 갱신
     - `safety_alerts` (filter: `device_id=eq.{paired_device_id}`) — 카드 마지막 알림 + FCM 와 별개의 in-app 갱신
@@ -69,7 +77,14 @@ Management 의 워치 섹션 추가 + Edge Function `notifications` 에 case 'wa
     raw 데이터 미실시간 (알림 있을 때만 갱신).
 
 ### 워치 화면 위치 / 구조
-- **D-02: HomeWorkerActivity 카드 1개 (가벼운 통합)**
+- **D-02: HomeWorkerActivity 카드 1개 (가벼운 통합)** (researcher 검증: ComposeView 임베드 패턴)
+  - **HomeWorkerActivity 는 XML/AppCompatActivity** (NOT Compose). 카드 1개
+    추가는 기존 XML 레이아웃에 `<androidx.compose.ui.platform.ComposeView>`
+    임베드하여 Compose Composable 호출 — XML 마이그레이션 없이 신규 코드만
+    Compose 로 작성.
+  - **카드 위치**: profile_bar 아래 (researcher 권장, planner 가 최종 결정).
+  - SafetyAlertsActivity (신규) + SettingDeviceManagementActivity (기존 Compose) 는
+    pure Compose 로 진행.
   - **카드 필드** (세로 배치):
     1. **HR 숫자** (예: `82 bpm`) + **temp 숫자** (예: `36.4°C`) — 한 줄 좌우 배치
     2. **wear-state 라벨** (예: `WORN` / `OFF` / `WARMUP` / `ABNORMAL`) — 색상
@@ -90,11 +105,14 @@ Management 의 워치 섹션 추가 + Edge Function `notifications` 에 case 'wa
 ### Acknowledge 채널 (BRIDGE-02)
 - **D-03: 기존 `notifications/index.ts` 에 case 'watch-ack' 추가**
   - Phase 4 03 에서 `watch-alert` case 추가한 동일 파일에 case 'watch-ack' 추가.
+  - **컬럼명 정정**: `safety_alerts.ack_at` (010_watch_pipeline.sql 의 실제
+    컬럼명). REQUIREMENTS.md §7 BRIDGE-02 의 `acknowledged_at` 표기는 오기
+    — 본 phase 는 `ack_at` 으로 통일.
   - **Payload 계약**: `{action: "watch-ack", alert_id: number, user_id: string}`.
     `ack_at` 은 Edge Function 내부에서 `now()` 로 세팅 (클라이언트 시계 신뢰 X).
   - **SQL**: `UPDATE safety_alerts SET ack_at = now() WHERE alert_id = $1 AND
     device_id IN (SELECT device_id FROM devices WHERE user_id = $2)` —
-    ownership 검증을 SQL WHERE 절에 포함 (RLS 보강).
+    ownership 검증을 SQL WHERE 절에 포함 (Edge Function service_role 우회 방지).
   - **응답**: `{ok: true, ack_at: "2026-05-20T09:42:13Z"}` 또는 `{error}`.
   - **재배포**: 1회 (`supabase functions deploy notifications`) + curl smoke
     test 200 (Phase 4 03 패턴 동일).
@@ -106,24 +124,39 @@ Management 의 워치 섹션 추가 + Edge Function `notifications` 에 case 'wa
     — 단순 상태 갱신.
 
 ### 페어링 (BRIDGE-03)
-- **D-04: SettingDeviceManagementActivity 에 'J2208A 워치' 섹션 추가**
+- **D-04: SettingDeviceManagementActivity 에 'J2208A 워치' 섹션 추가** (UI/UX)
   - **신규 섹션**: 화면 하단에 "J2208A 워치" 카드 1개 — MAC 입력 TextField +
     "등록" 버튼 + status badge.
-  - **status**: `paired` (workers.device_mac 채워짐) / `connected` (paired +
+  - **status**: `paired` (devices.mac_address 채워짐) / `connected` (paired +
     `devices.last_comm_at >= now() - interval '5 minutes'`) / `disconnected`
     (paired but last_comm_at < 5분).
-  - **DB write**: 등록 클릭 → `UPDATE devices SET mac_address = $mac,
-    user_id = $current_user WHERE device_type = 'WATCH'` (1인=1워치 단순 매핑,
-    J2208A §11 v1.0 결정). MAC validation: `^([0-9A-F]{2}:){5}[0-9A-F]{2}$`
-    정규식.
-  - **unpair**: status badge 옆 "해제" 버튼 → `UPDATE devices SET
-    mac_address = NULL, user_id = NULL`.
-  - **Edge Function**: 신규 X — Android 가 supabase-kt PostgREST 로 직접
-    UPDATE (D-01 SDK 도입했으므로 가능). RLS 정책 = worker 가 본인 user_id 의
-    devices 만 UPDATE 허용 (D-04b 추가).
+  - **MAC validation**: `^([0-9A-F]{2}:){5}[0-9A-F]{2}$` 정규식 (대소문자
+    허용은 planner 가 결정).
+  - **unpair**: status badge 옆 "해제" 버튼.
   - **Phase 4 D-01 와 호환**: `devices.mac_address` 컬럼은 Phase 4 010 마이그레이션
     에서 ALTER 로 추가됨. `workers` 테이블 별도 X (Phase 4 결정 — `profiles` +
     `devices.user_id` 로 매핑 충분).
+
+- **D-04b (2026-05-14 amended via researcher OQ-1): 페어링 UPDATE 는 Edge Function 경유**
+  - **변경 이유 (research finding)**: 본 프로젝트는 Firebase Auth + UserSession.userId
+    기반이고 Supabase Auth (gotrue) 미도입 → Postgres RLS 의 `auth.uid()` 가
+    null 반환 → anon key + RLS 만으로 ownership 강제 불가능 (SECURITY HOLE).
+    원안 "supabase-kt PostgREST 직접 UPDATE" 는 worker A 가 worker B 의 워치 MAC
+    을 변경할 수 있음.
+  - **결정**: D-03 의 'watch-ack' 와 동일 패턴으로 `notifications/index.ts` 에
+    case 'watch-pair' 추가. Payload: `{action, user_id, mac_address, op}` —
+    `op ∈ {'pair', 'unpair'}`. Edge Function 내부에서 service_role 로 `UPDATE
+    devices SET mac_address=$1, user_id=$2 WHERE device_type='WATCH' AND
+    (user_id IS NULL OR user_id=$2)` (이미 다른 작업자에 매핑된 워치 차단).
+  - **Read 경로**: 페어링 status 조회는 Realtime 구독 (`devices` 채널, filter
+    `user_id=eq.{user_id}`) — RLS 는 v1.0 한정 `USING (true)` 잠정 (모든 worker
+    가 모든 devices 읽기 가능, v1.1 Auth 도입 시 강화). v1.0 PoC 한정 위험 감수.
+  - **Realtime publication**: `010_watch_pipeline.sql` 의 4 테이블이 `supabase_
+    realtime` publication 에 자동 포함 안 될 수 있음 → 011 마이그레이션에서
+    `ALTER PUBLICATION supabase_realtime ADD TABLE wear_state_events,
+    safety_alerts, device_watches, devices` 명시 추가.
+  - **v1.1 follow-up**: Supabase Auth 도입 시 `auth.uid()` 기반 RLS 로 강화 +
+    페어링 Edge Function 단순화 (RLS 가 ownership 책임).
 
 ### 데모 데이터 소스 (Phase 4 04-04 의존)
 - **D-05: Phase 4 04-04 단축 PoC 먼저 (2시간 + REMOVED 시나리오)**
