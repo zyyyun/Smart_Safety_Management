@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.SpanStyle
@@ -206,11 +207,20 @@ fun DeviceManageScreen(
                             filteredBatteryList.forEach { data ->
                                 BatteryItem(data = data, onAlarmClick = {
                                     sendBatteryAlarm(data.userId)
-                                    showAlarmDialog = true 
+                                    showAlarmDialog = true
                                 })
                             }
                         }
                     }
+
+                    // Phase 7 / 07-03 BRIDGE-03 — J2208A 워치 섹션 (MAC 등록 + status badge)
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Divider(color = dividerColor, thickness = 1.dp, modifier = Modifier.fillMaxWidth())
+                    Spacer(modifier = Modifier.height(12.dp))
+                    com.example.smart_safety_management.watch.PairWatchSection(
+                        supabase = com.example.smart_safety_management.watch.SupabaseModule.client(LocalContext.current)
+                    )
+
                     Spacer(modifier = Modifier.height(35.dp))
                 }
             }
