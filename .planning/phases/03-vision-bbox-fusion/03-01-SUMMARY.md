@@ -48,7 +48,10 @@ patterns-established:
   - "FUSION_CONFIGS structure mirrors DETECTOR_CONFIGS dict style — Plan 02 can iterate identically"
   - "test_fusion.py autouse fixture: reset_module_state with forward-compat _fusion_buffer.clear() — extend for Plan 02 Case 8"
 
-requirements-completed: [FUSION-01, FUSION-02]
+requirements-completed: []
+# Note: FUSION-01 and FUSION-02 are partially addressed here (pure-function foundation).
+# Full validation (scheduler wiring + DB insert) completes in Plan 02 (03-02).
+# Mark FUSION-01·02 complete after 03-02-SUMMARY is written.
 
 # Metrics
 duration: 25min
