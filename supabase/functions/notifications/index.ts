@@ -224,6 +224,118 @@ Deno.serve(async (req) => {
         return ok({ ok: true, ack_at: data[0].ack_at, alert_id });
       }
 
+      // ──────────────────────────────────────────
+      // WATCH-PAIR — Phase 7 BRIDGE-03 (per 07-CONTEXT.md D-04b)
+      // ──────────────────────────────────────────
+      // SettingDeviceManagementActivity 의 J2208A 워치 섹션 → 본 Edge Function 호출.
+      // op='pair'   : payload {action, op, user_id, mac_address}
+      //   - MAC 형식 재검증 (T-7-03 client validation 우회 차단)
+      //   - 기존 device row 의 user_id 가 NULL 이거나 본 user_id 일 때만 허용
+      //   - 다른 user 가 paired 한 워치 → 409 (워치 가로채기 차단)
+      //   - 같은 user 의 같은 mac 재등록 → idempotent UPDATE
+      //   - 시드 외 MAC → INSERT (device_type='WATCH', serial_number='J2208A-{MAC}')
+      // op='unpair' : payload {action, op, user_id}
+      //   - 본인 user_id + device_type='WATCH' 의 mac_address NULL 화
+      //
+      // T-7-03 mitigation: WHERE (user_id IS NULL OR user_id=$2) — 다른 worker 가
+      // 이미 paired 한 워치는 selectErr 후 409 응답. MAC 정규식 (대문자 정규화)
+      // 으로 client validation 우회 시도 차단.
+      case "watch-pair": {
+        const { user_id, mac_address, op } = body;
+        if (!user_id || !op) {
+          return err("user_id, op are required");
+        }
+        if (op !== "pair" && op !== "unpair") {
+          return err(`invalid op: ${op} (expected "pair" or "unpair")`);
+        }
+
+        if (op === "pair") {
+          // MAC 재검증 (T-7-03 — 클라이언트 정규식 우회 차단)
+          if (!mac_address || typeof mac_address !== "string") {
+            return err("mac_address is required for op=pair");
+          }
+          const MAC_REGEX = /^([0-9A-F]{2}:){5}[0-9A-F]{2}$/;
+          const macUpper = mac_address.toUpperCase();
+          if (!MAC_REGEX.test(macUpper)) {
+            return err(`invalid MAC format: ${mac_address}`, 400);
+          }
+
+          // ownership 검증 (T-7-03 spoofing 차단): mac 의 device 가 (a) 미할당 or (b) 본인 보유
+          const { data: existing, error: selErr } = await supabase
+            .from("devices")
+            .select("device_id, user_id, mac_address")
+            .eq("mac_address", macUpper)
+            .eq("device_type", "WATCH")
+            .maybeSingle();
+          if (selErr) return err(selErr.message, 500);
+
+          if (existing && existing.user_id && existing.user_id !== user_id) {
+            return err("watch already paired to another user", 409);
+          }
+
+          if (existing) {
+            // idempotent UPDATE (같은 user 의 같은 mac 재등록 OK)
+            const { error: updErr } = await supabase
+              .from("devices")
+              .update({ user_id })
+              .eq("device_id", existing.device_id);
+            if (updErr) return err(updErr.message, 500);
+            return ok({ ok: true, device_id: existing.device_id, mac_address: macUpper, op: "pair" });
+          }
+
+          // unpair 후 re-pair 케이스: serial_number 는 유지되지만 mac 은 NULL.
+          // serial_number = `J2208A-{MAC}` 로 재조회. 다른 user 가 보유 시 409.
+          const expectedSerial = `J2208A-${macUpper}`;
+          const { data: bySerial, error: serialErr } = await supabase
+            .from("devices")
+            .select("device_id, user_id")
+            .eq("serial_number", expectedSerial)
+            .eq("device_type", "WATCH")
+            .maybeSingle();
+          if (serialErr) return err(serialErr.message, 500);
+
+          if (bySerial) {
+            if (bySerial.user_id && bySerial.user_id !== user_id) {
+              return err("watch already paired to another user", 409);
+            }
+            // mac_address + user_id 둘 다 복구 (unpair 가 mac 만 NULL 했어도, 또는 다른 변형)
+            const { error: updErr } = await supabase
+              .from("devices")
+              .update({ mac_address: macUpper, user_id })
+              .eq("device_id", bySerial.device_id);
+            if (updErr) return err(updErr.message, 500);
+            return ok({ ok: true, device_id: bySerial.device_id, mac_address: macUpper, op: "pair" });
+          }
+
+          // 신규 device INSERT (010 시드 외 MAC, 처음 등록)
+          const { data, error: insErr } = await supabase
+            .from("devices")
+            .insert({
+              device_type: "WATCH",
+              serial_number: expectedSerial,
+              mac_address: macUpper,
+              user_id,
+            })
+            .select()
+            .single();
+          if (insErr) return err(insErr.message, 500);
+          return ok({ ok: true, device_id: data.device_id, mac_address: macUpper, op: "pair" });
+        } else {
+          // op === "unpair" — 본인 워치만 mac_address NULL
+          const { data, error } = await supabase
+            .from("devices")
+            .update({ mac_address: null })
+            .eq("user_id", user_id)
+            .eq("device_type", "WATCH")
+            .select();
+          if (error) return err(error.message, 500);
+          if (!data || data.length === 0) {
+            return err("no paired watch found for user", 404);
+          }
+          return ok({ ok: true, count: data.length, op: "unpair" });
+        }
+      }
+
       default:
         return err(`Unknown action: ${action}`);
     }
