@@ -41,11 +41,11 @@
 
 ### 3. 모델 트랙 단계 2 (FUSION — 다중 모델 cross-reference)
 
-- [ ] **FUSION-01**: 지게차+사람 bbox IoU 계산 — IoU > 0.3 이 N 프레임 연속이면
+- [x] **FUSION-01**: 지게차+사람 bbox IoU 계산 — IoU > 0.3 이 N 프레임 연속이면
   "지게차 충돌 위험" 알람. `_process_collision_check(forklift_result,
-  person_result)` scheduler helper 추가
-- [ ] **FUSION-02**: 사람 bbox 의 head 영역 helmet 객체 매칭 — 없으면 "안전모
-  미착용". 레거시 `사람 탐지/main.py` 의 `hardhat_is_on` 패턴 이식
+  person_result)` scheduler helper 추가 ✓ 2026-05-14 (Phase 3 Plan 02)
+- [x] **FUSION-02**: 사람 bbox 의 head 영역 helmet 객체 매칭 — 없으면 "안전모
+  미착용". 레거시 `사람 탐지/main.py` 의 `hardhat_is_on` 패턴 이식 ✓ 2026-05-14 (Phase 3 Plan 02)
 
 ### 4. 워치 트랙 (WATCH — J2208A 플랜 Phase 1: 1인 PoC 파이프라인)
 
@@ -140,8 +140,8 @@
 | MODEL-01  | Phase 2 | 비전 — frames 연속 룰               | ✓ Complete |
 | MODEL-02  | Phase 2 | 비전 — frames 연속 룰               | ✓ Complete |
 | MODEL-03  | Phase 2 | 비전 — frames 연속 룰               | ✓ Complete (Phase 1 absorbed, D-08) |
-| FUSION-01 | Phase 3 | 비전 — bbox 겹침/공간 매칭          | Pending |
-| FUSION-02 | Phase 3 | 비전 — bbox 겹침/공간 매칭          | Pending |
+| FUSION-01 | Phase 3 | 비전 — bbox 겹침/공간 매칭          | Done ✓  |
+| FUSION-02 | Phase 3 | 비전 — bbox 겹침/공간 매칭          | Done ✓  |
 | WATCH-01  | Phase 4 | 워치 — J2208A 1인 파이프라인        | Pending |
 | WATCH-02  | Phase 4 | 워치 — J2208A 1인 파이프라인        | Pending |
 | WATCH-03  | Phase 4 | 워치 — J2208A 1인 파이프라인        | Pending |

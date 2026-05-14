@@ -4,11 +4,11 @@ name: "5월 PPT 데모"
 status: in_progress
 progress:
   phases_total: 6
-  phases_done: 2
-  phases_in_progress: 2
+  phases_done: 3
+  phases_in_progress: 1
   requirements_total: 19
-  requirements_validated: 10
-last_activity: "2026-05-14 — Phase 3 Plan 01 COMPLETE: detect_all() + fusion_helpers.py + fusion_configs.py + test_fusion.py 12/12 PASS (커밋 729a1b4·cd2528a·40a9224). 다음 = Phase 3 Plan 02 (scheduler wiring + migration 009 + D-04 disabled flag)."
+  requirements_validated: 12
+last_activity: "2026-05-14 — Phase 3 Plan 02 COMPLETE: scheduler fusion wiring (_fusion_buffer + _process_fusion_for_camera + fusion loop + D-04 disabled guard) + migration 009 applied to DB + 22/22 pytest PASS (커밋 769a0fc·a2a31c8·d546fb5). Phase 3 COMPLETE (FUSION-01·FUSION-02 done)."
 ---
 
 # Smart Safety Management — State
@@ -17,15 +17,15 @@ last_activity: "2026-05-14 — Phase 3 Plan 01 COMPLETE: detect_all() + fusion_h
 
 Phase 1: ✓ COMPLETE (2026-05-06, A1 batch scan + D-19 fallback, 커밋 `559b90a`)
 Phase 2: ✓ COMPLETE (2026-05-07, frames_required + pytest 8/8 PASS, 커밋 `954bb19`)
-Phase 3: IN PROGRESS — Plan 01 ✓ COMPLETE (2026-05-14, detect_all + fusion_helpers + fusion_configs + test_fusion 12/12, 커밋 729a1b4·cd2528a·40a9224). Plan 02 next (scheduler wiring, D-04, migration 009).
+Phase 3: ✓ COMPLETE (2026-05-14) — Plan 01 ✓ (detect_all + fusion_helpers + fusion_configs + 12/12 tests, 커밋 729a1b4·cd2528a·40a9224) + Plan 02 ✓ (scheduler fusion wiring + D-04 disabled + migration 009 DB push + 22/22 tests, 커밋 769a0fc·a2a31c8·d546fb5). FUSION-01·02 완료.
 Phase 4: Wave 1·2 완료 (04-01·02·03), Wave 3 (04-04) = 사용자 24h 워치 착용 결정 대기
   - 04-01 ✓: 010_watch_pipeline.sql 운영 DB 적용 완료 (UTC immutability fix)
   - 04-02 ✓: j2208a/ 패키지 (8 모듈, 843 lines) + pytest 39 pass (31 + 04-03 의 8 integration)
   - 04-03 ✓: BLE wiring + watch-alert Edge Function 배포 + .env 보호 + curl smoke 200
   - 04-04 ⏸ : 24h 실측 — non-autonomous, 사용자 결정 대기 (5월 시연 전 진행 vs v1.1 이연)
 Phase 5·6: not started (의존성 풀린 시점에 plan)
-Status: Phase 3 Plan 01 완료. detect_all() (D-01) + fusion_helpers.py 4 pure functions (D-02) + FUSION_CONFIGS dict (D-03) + test_fusion.py 12/12 PASS 구축. Plan 02 에서 scheduler wiring (_fusion_buffer, _process_fusion_for_camera, fusion loop) + D-04 helmet disabled + migration 009 진행 예정.
-Last activity: 2026-05-14 — Phase 3 Plan 01 COMPLETE (03-01-SUMMARY.md 작성, 커밋 729a1b4·cd2528a·40a9224).
+Status: Phase 3 COMPLETE. Plan 01 (detect_all + fusion_helpers + fusion_configs + test_fusion 12/12 PASS) + Plan 02 (scheduler fusion wiring + D-04 disabled + migration 009 + 22/22 pytest PASS). FUSION-01·02 완전 충족.
+Last activity: 2026-05-14 — Phase 3 Plan 02 COMPLETE (03-02-SUMMARY.md 작성, 커밋 769a0fc·a2a31c8·d546fb5).
 
 ## Accumulated Context
 
@@ -85,6 +85,12 @@ Last activity: 2026-05-14 — Phase 3 Plan 01 COMPLETE (03-01-SUMMARY.md 작성,
   버그 수정 (`if y2 < 0: y1 = 0` → `y2 = max(0.0, ...)`). T-03-01 (ZeroDivisionError guard)
   + T-03-02 (frame_width=0 clamp) 위협 완화. test_fusion.py 12/12 PASS (Phase 2 포함 20/20
   full suite). 커밋 729a1b4·cd2528a·40a9224.
+- 2026-05-14: Phase 3 Plan 02 COMPLETE — scheduler fusion wiring: _fusion_buffer module dict
+  + _process_fusion_for_camera (7-step, D-05) + disabled guard (D-04) + fusion loop in
+  run_detection_cycle (D-12). Rule 1 fix: camera dict key mismatch (`camera["id"]` →
+  `camera["camera_id"]`) caught pre-implementation. Migration 009 `지게차 충돌 위험` applied
+  to production Supabase DB via `supabase db push --include-all`. T-03-04/06/08 위협 완화.
+  22/22 pytest PASS. FUSION-01·02 완전 충족. 커밋 769a0fc·a2a31c8·d546fb5.
 
 ### Blockers
 
@@ -113,10 +119,9 @@ Last activity: 2026-05-14 — Phase 3 Plan 01 COMPLETE (03-01-SUMMARY.md 작성,
 
 ### Pending Todos
 
-- **Phase 3** (bbox 겹침/공간 매칭, FUSION-01·02) — plan 작성 후 execute. Phase
-  1·2 완료된 상태라 진입 가능. `/gsd-discuss-phase 3` 또는 `/gsd-plan-phase 3`.
-- **Phase 5** (평가 — 2단계 정량 지표, EVAL-01·02·03) — Phase 1·2·3·4 산출물
-  의존, Phase 3 완료 후 진입.
+- **Phase 3** ✓ COMPLETE (2026-05-14) — FUSION-01·02 완전 충족.
+- **Phase 5** (평가 — 2단계 정량 지표, EVAL-01·02·03) — Phase 1·2·3 완료됨. Phase 4 04-04
+  의사결정 결과에 따라 병렬 진입 가능. `/gsd-discuss-phase 5` 또는 `/gsd-plan-phase 5`.
 - **Phase 6** (데모 빌드 — 통합 시연·캡처·PPT) — Phase 5 의 정량 지표 슬라이드
   완료 후 진입.
 - **Phase 4 04-04** — 위 의사결정 결과에 따라 (A 즉시 실행 / B v1.1 이연 / C
