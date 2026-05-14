@@ -44,6 +44,20 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 import android.location.LocationManager
 import android.content.Context
+// Phase 7 / 07-03 BRIDGE-01 — ComposeView + Realtime
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.watch.DeviceRow
+import com.example.smart_safety_management.watch.EmptyWatchPrompt
+import com.example.smart_safety_management.watch.SupabaseModule
+import com.example.smart_safety_management.watch.WatchCardComposable
+import io.github.jan.supabase.postgrest.from
 
 
 class HomeWorkerActivity : AppCompatActivity() {
@@ -83,6 +97,68 @@ class HomeWorkerActivity : AppCompatActivity() {
 
         initUI()
         checkLocationPermission()
+
+        // Phase 7 / 07-03 BRIDGE-01 — J2208A 워치 카드 (ComposeView 임베드)
+        setupWatchCard()
+
+        // Phase 7 / 07-03 BRIDGE-02 — FCM watch_alert intent 라우팅
+        // intent extras 의 alert_type='watch_alert' 시 SafetyAlertsActivity 진입.
+        // (alert_id 는 신뢰 X — DB 재조회 가 source of truth)
+        if (intent?.getStringExtra("alert_type") == "watch_alert") {
+            val alertId = intent.getLongExtra("alert_id", -1L)
+            startActivity(Intent(this, SafetyAlertsActivity::class.java).apply {
+                if (alertId > 0) putExtra("alert_id", alertId)
+            })
+        }
+    }
+
+    /**
+     * Phase 7 / 07-03 BRIDGE-01 — main_home_worker.xml 의 watch_card_compose ComposeView
+     * 에 WatchCardComposable 을 setContent. supabase Realtime 채널의 lifecycle 은
+     * Compose collectLatest 의 cancellation finally 블록에서 unsubscribe (D-01).
+     *
+     * ViewCompositionStrategy.DisposeOnLifecycleDestroyed: Activity 파괴 시 Composition
+     * 해제 → Realtime channel.unsubscribe() 호출 → WSS slot 해소.
+     */
+    private fun setupWatchCard() {
+        val composeView = findViewById<ComposeView>(R.id.watch_card_compose) ?: return
+        composeView.setViewCompositionStrategy(
+            ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this)
+        )
+        val supabase = SupabaseModule.client(this)
+        composeView.setContent {
+            Smart_Safety_ManagementTheme {
+                var pairedDeviceId by remember { mutableStateOf<Int?>(null) }
+                var loaded by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    val userId = UserSession.userId ?: run { loaded = true; return@LaunchedEffect }
+                    pairedDeviceId = supabase.from("devices").select {
+                        filter {
+                            eq("user_id", userId)
+                            eq("device_type", "WATCH")
+                        }
+                        limit(1)
+                    }.decodeSingleOrNull<DeviceRow>()?.deviceId
+                    loaded = true
+                }
+                if (loaded) {
+                    val devId = pairedDeviceId
+                    if (devId != null) {
+                        WatchCardComposable(
+                            deviceId = devId,
+                            supabase = supabase,
+                            onCardTap = {
+                                startActivity(Intent(this@HomeWorkerActivity, SafetyAlertsActivity::class.java))
+                            },
+                        )
+                    } else {
+                        EmptyWatchPrompt(onClick = {
+                            startActivity(Intent(this@HomeWorkerActivity, SettingDeviceManagementActivity::class.java))
+                        })
+                    }
+                }
+            }
+        }
     }
 
     private fun initUI() {

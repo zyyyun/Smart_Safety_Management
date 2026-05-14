@@ -31,7 +31,20 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
-        // 알림 내용이 있다면 직접 알림을 생성해서 보여줌
+        // Phase 7 / 07-03 BRIDGE-02 — data payload 'type=watch_alert' 분기.
+        // FCM payload (Phase 4 D-11): { type:"watch_alert", alert_type, severity, alert_id }
+        val data = remoteMessage.data
+        if (data["type"] == "watch_alert") {
+            showWatchAlertNotification(
+                title = remoteMessage.notification?.title ?: "워치 알림",
+                body = remoteMessage.notification?.body ?: data["alert_type"] ?: "이벤트 발생",
+                alertId = data["alert_id"]?.toLongOrNull() ?: -1L,
+                alertType = data["alert_type"] ?: "",
+            )
+            return
+        }
+
+        // 일반 알림은 기존 흐름 유지 (data['type'] 없음 + notification 만 있는 경우)
         remoteMessage.notification?.let {
             showNotification(it.title, it.body)
         }
@@ -66,6 +79,48 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         }
 
         notificationManager.notify(0, notificationBuilder.build())
+    }
+
+    /**
+     * Phase 7 / 07-03 BRIDGE-02 — 워치 알림 전용 채널 (watch_alerts) +
+     * pendingIntent → SafetyAlertsActivity (alert_id extras).
+     *
+     * extras 의 alert_id 는 신뢰 X — SafetyAlertsScreen 진입 시 DB 재조회 (T-7-07 mitigate).
+     */
+    private fun showWatchAlertNotification(title: String, body: String, alertId: Long, alertType: String) {
+        val intent = Intent(this, SafetyAlertsActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (alertId > 0) putExtra("alert_id", alertId)
+            putExtra("alert_type", "watch_alert")
+            putExtra("watch_alert_type", alertType)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            alertId.toInt().takeIf { it > 0 } ?: 0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val channelId = "watch_alerts"
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "워치 안전 알림",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+        // alert_id 를 notification id 로 사용 → 같은 alert 재push 시 갱신만 (D-09 알림 전이)
+        notificationManager.notify(alertId.toInt().takeIf { it > 0 } ?: 1, notificationBuilder.build())
     }
 
     private fun sendRegistrationToServer(token: String) {

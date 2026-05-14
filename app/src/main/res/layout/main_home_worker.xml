@@ -66,6 +66,15 @@
                     android:paddingBottom="16dp"
                     android:paddingTop="24dp">
 
+                    <!-- Phase 7 / 07-03 BRIDGE-01 — J2208A 워치 카드 (ComposeView 임베드) -->
+                    <!-- profile_bar 아래, 섹션 1 위. setContent 는 HomeWorkerActivity.setupWatchCard() -->
+                    <androidx.compose.ui.platform.ComposeView
+                        android:id="@+id/watch_card_compose"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="24dp"
+                        android:layout_marginBottom="16dp" />
+
                     <!-- 섹션 1 -->
                     <LinearLayout
                         android:layout_width="match_parent"

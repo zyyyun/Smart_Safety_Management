@@ -264,6 +264,12 @@
         <activity android:name=".FireAlarmManageActivity" />
         <activity android:name=".screens.afci.ArcBreakerManageActivity" />
         <activity android:name=".SettingWorkplaceAreaActivity" />
+
+        <!-- Phase 7 / 07-03 BRIDGE-02 — 워치 알림 전용 화면 (AIEventActivity 와 별도) -->
+        <activity
+            android:name=".SafetyAlertsActivity"
+            android:exported="false"
+            android:label="워치 알림" />
     </application>
 
 </manifest>
