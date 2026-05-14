@@ -31,6 +31,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 from config import Settings
 from detector_configs import DETECTOR_CONFIGS
 from fall_detector import FallDetector
+from fusion_configs import FUSION_CONFIGS
+from fusion_helpers import compute_fusion_collision, compute_fusion_helmet_missing
 from snapshot import SnapshotError, capture
 from supabase_client import SupabaseBridge
 from yolo_detector import GenericYoloDetector
@@ -51,6 +53,13 @@ _detection_cooldown: dict[tuple[int, str], float] = {}
 # - 알람 발사 시 buffer.clear() + cooldown 갱신 (D-02).
 # - 1프로세스 PoC 휘발성 OK — 재시작 시 자동 reset (D-06).
 _detection_buffer: dict[tuple[int, str], deque] = {}
+
+# (camera_id, fusion_key) 별 최근 N 사이클 fusion rule 결과 buffer (Phase 3 / FUSION-01·02, D-06).
+# - 키: (camera_id, fusion_key) — _detection_buffer 와 동일 tuple 패턴.
+# - cooldown 은 _detection_cooldown 공유 — 동일 카메라의 detector/fusion 알람 동등 처리 (D-06).
+# - 알람 발사 후 buffer.clear() + cooldown 갱신.
+# - 1프로세스 PoC 휘발성 OK — 재시작 시 자동 reset.
+_fusion_buffer: dict[tuple[int, str], deque] = {}
 
 
 # ──────────────────────────────────────────────
@@ -296,6 +305,141 @@ def _process_detection_for_camera(
             pass
 
 
+def _process_fusion_for_camera(
+    bridge: SupabaseBridge,
+    settings: Settings,
+    fusion_key: str,
+    cfg: dict[str, Any],
+    camera: dict[str, Any],
+    detectors: dict[str, "GenericYoloDetector"],
+) -> str:
+    """한 카메라에 대한 fusion rule 평가 + _fusion_buffer 누적 + 알람 발사.
+
+    Phase 3 D-05. _process_detection_for_camera 와 동일한 7단계 흐름:
+    1. cooldown 검사 → [fusion_skip_cooldown]
+    2. snapshot capture + cv2.imread
+    3. cfg['detectors_required'] 의 각 detector 에 detect_all(img) 호출
+    4. rule 분기 (iou_gt / hardhat_missing) → fusion_result: bool
+    5. _fusion_buffer push
+    6. N 연속 검사 → [no_fusion_yet]
+    7. 알람 발사: upload + register_ai_event + buffer.clear() + cooldown 갱신 → [FUSION]
+    """
+    camera_id = int(camera["camera_id"])
+    rtsp_url = camera["live_url_detail"]
+
+    # 1. cooldown 검사 (_detection_cooldown 공유 — D-06)
+    fusion_key_tuple = (camera_id, fusion_key)
+    now = time.time()
+    last_ts = _detection_cooldown.get(fusion_key_tuple)
+    if last_ts and (now - last_ts) < settings.detectors_cooldown_min * 60:
+        return f"[fusion_skip_cooldown] camera_id={camera_id} fusion={fusion_key}"
+
+    # 2. snapshot capture + imread (tmp_name 에 fusion_ prefix — collision 방지)
+    tmp_name = f"fusion_{fusion_key}_{camera_id}_{int(now * 1000)}.jpg"
+    tmp_path = settings.snapshot_tmp_dir / tmp_name
+    img = None
+    try:
+        capture(
+            rtsp_url,
+            tmp_path,
+            ffmpeg_bin=settings.ffmpeg_bin,
+            seek_seconds=settings.detectors_demo_seek_sec,
+        )
+        img = cv2.imread(str(tmp_path))
+    except Exception as exc:
+        return f"[FUSION_ERR] camera_id={camera_id} fusion={fusion_key}: capture failed: {exc}"
+    if img is None:
+        return f"[FUSION_ERR] camera_id={camera_id} fusion={fusion_key}: cv2.imread failed"
+
+    # 3. detect_all() for each required detector
+    frame_width = max(1, img.shape[1])
+    det_results: dict[str, list] = {}
+    max_conf = 0.0
+    for det_key in cfg["detectors_required"]:
+        det = detectors.get(det_key)
+        if det is None:
+            log.warning(
+                "[FUSION] detector '%s' not in detectors dict, skipping %s",
+                det_key, fusion_key,
+            )
+            return (
+                f"[FUSION_ERR] camera_id={camera_id} fusion={fusion_key}: "
+                f"detector {det_key!r} not loaded"
+            )
+        results = det.detect_all(img)
+        det_results[det_key] = results
+        for r in results:
+            if r.confidence and r.confidence > max_conf:
+                max_conf = r.confidence
+
+    # 4. rule 분기 → fusion_result (bool)
+    rule = cfg.get("rule", "")
+    if rule == "iou_gt":
+        forklifts = det_results.get("forklift", [])
+        persons   = det_results.get("person", [])
+        fusion_result = compute_fusion_collision(forklifts, persons, cfg.get("threshold", 0.3))
+    elif rule == "hardhat_missing":
+        persons = det_results.get("person", [])
+        # Filter to true helmet bboxes only — exclude "head"-labeled bboxes (unhelmeted head)
+        # which would otherwise match hardhat_is_on() and suppress the alarm (D-04 checker fix).
+        helmets = [
+            h for h in det_results.get("helmet", [])
+            if h.label and h.label.lower() in ("helmet", "hardhat")
+        ]
+        fusion_result = compute_fusion_helmet_missing(persons, helmets, frame_width)
+        # accuracy = unmatched person conf (D-03 Claude's Discretion)
+        if fusion_result and persons:
+            max_conf = max((p.confidence or 0.0) for p in persons)
+    else:
+        return f"[FUSION_ERR] camera_id={camera_id} fusion={fusion_key}: unknown rule={rule!r}"
+
+    # 5. _fusion_buffer push
+    frames_required = int(cfg.get("frames_required", 3))
+    fbuf = _fusion_buffer.get(fusion_key_tuple)
+    if fbuf is None:
+        fbuf = deque(maxlen=max(5, frames_required))
+        _fusion_buffer[fusion_key_tuple] = fbuf
+    fbuf.append(bool(fusion_result))
+
+    if not fusion_result:
+        return f"[no_fusion] camera_id={camera_id} fusion={fusion_key}"
+
+    # 6. N 연속 검사
+    recent = list(fbuf)[-frames_required:]
+    if len(fbuf) < frames_required or not all(recent):
+        return (
+            f"[no_fusion_yet] camera_id={camera_id} fusion={fusion_key} "
+            f"frames={sum(recent)}/{frames_required}"
+        )
+
+    # 7. 알람 발사
+    try:
+        public_url, _ = bridge.upload_detection_snapshot(
+            camera_id, cfg.get("storage_prefix", fusion_key), tmp_path
+        )
+        event = bridge.register_ai_event(
+            camera_id=camera_id,
+            event_name=cfg["event_name"],
+            risk_level=cfg["risk_level"],
+            accuracy=float(max_conf),
+            image_url=public_url,
+        )
+        fbuf.clear()
+        _detection_cooldown[fusion_key_tuple] = now
+        event_id = event.get("event_id")
+        return (
+            f"[FUSION] camera_id={camera_id} fusion={fusion_key} "
+            f"conf={max_conf:.2f} event_id={event_id}"
+        )
+    except Exception as exc:
+        return f"[FUSION_ERR] camera_id={camera_id} fusion={fusion_key}: alarm failed: {exc}"
+    finally:
+        try:
+            tmp_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
 def run_detection_cycle(
     bridge: SupabaseBridge,
     settings: Settings,
@@ -320,6 +464,9 @@ def run_detection_cycle(
         if cfg is None:
             log.warning("[%s] DETECTOR_CONFIGS 에 항목 없음, 스킵", event_key)
             continue
+        if cfg.get("disabled", False):
+            log.debug("[%s] disabled=True, 단독 알람 스킵 (fusion 전용, D-04)", event_key)
+            continue
         target_cams = [
             cams_by_id[cid] for cid in cfg["camera_ids"] if cid in cams_by_id
         ]
@@ -336,6 +483,26 @@ def run_detection_cycle(
                 log.debug(msg)
             else:
                 log.info(msg)
+
+    # [Phase 3 addition] fusion loop — after detector loop (D-05, D-12)
+    for fusion_key, fcfg in FUSION_CONFIGS.items():
+        f_target_cams = [
+            cams_by_id[cid] for cid in fcfg["camera_ids"] if cid in cams_by_id
+        ]
+        if not f_target_cams:
+            log.debug(
+                "[FUSION] %s: 매핑 카메라 %s 중 활성된 것 없음",
+                fusion_key, fcfg["camera_ids"],
+            )
+            continue
+        for cam in f_target_cams:
+            fmsg = _process_fusion_for_camera(
+                bridge, settings, fusion_key, fcfg, cam, detectors
+            )
+            if fmsg.startswith(("[no_fusion]", "[fusion_skip_cooldown]", "[no_fusion_yet]")):
+                log.debug(fmsg)
+            else:
+                log.info(fmsg)
     log.info("=== 일반 감지 사이클 종료 ===")
 
 
