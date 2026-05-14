@@ -2,6 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.services)
+    // Phase 7 / 07-03 Wave 3 — supabase-kt 2.2.0 의 @Serializable data class 컴파일러 플러그인
+    // (Kotlin 1.9.22 매칭 — libs.versions.toml 의 kotlin 버전과 동일하게 유지)
+    id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
 }
 
 android {
@@ -67,6 +70,20 @@ android {
         }
     }
 }
+
+// Phase 7 / 07-03 Task 1 (deviation Rule 3 — environmental block) —
+// Project root 가 한글 경로 (D:\2026_산업안전\...) 라서 forked unit-test JVM 의
+// argfile classpath 파싱 시 Windows ACP=CP949 로 sun.jnu.encoding 이 초기화되어
+// UTF-8 argfile 의 한글 바이트가 깨지고 URLClassLoader 가 ClassNotFoundException 발생.
+// `-Dsun.jnu.encoding=UTF-8` 은 argv 파싱 후 적용되므로 fix 안 됨 (JEP 400 한계).
+//
+// Workaround: app build output 만 ASCII-only 경로 (D:/ssm-app-build) 로 redirect.
+// 같은 D: 드라이브 유지 — Kotlin 컴파일러의 relativize() 가 cross-drive 실패 안 함.
+// argfile classpath 의 모든 경로가 ASCII 만 포함하게 되어 argv 디코딩 실패가 발생 안 함.
+// app/src 와 git repo 는 D:\2026_산업안전\... 그대로 — 시드/스냅샷 영향 0.
+//
+// 향후 CI/dev 셋업 시 동일 워크어라운드 필요. v1.1 에서 repo 를 ASCII path 로 이동 검토.
+layout.buildDirectory.set(file("D:/ssm-app-build"))
 
 dependencies {
     implementation(libs.androidx.core.ktx)
