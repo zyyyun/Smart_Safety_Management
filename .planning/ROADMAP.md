@@ -243,7 +243,7 @@ check-in) 양방향 채널이 동작하며, 작업자별 워치 페어링이 가
 - [x] 07-01-PLAN.md — 인프라 (supabase-kt 2.2.0 의존성 + 011 RLS/publication 마이그레이션 + seed_watch_demo.py fallback + RLS isolation SQL test) — ✓ 2026-05-14 (커밋 ddf2def·92bed99·4be6d2c, SUMMARY 07-01-SUMMARY.md)
 - [x] 07-02-PLAN.md — Edge Function (notifications/index.ts 에 case watch-ack + watch-pair 추가 + 배포 + curl smoke 8종) — ✓ 2026-05-14 (커밋 e2298a2·3eb872d, SUMMARY 07-02-SUMMARY.md, 8/8 smoke PASS)
 - [x] 07-03-PLAN.md — Android UI (MyApp SupabaseClient 싱글톤 + watch/ 패키지 9 파일 + HomeWorker ComposeView 카드 + SafetyAlertsActivity 신규 + DeviceManage 워치 섹션 + 4 unit test 26 cases) — ✓ 2026-05-14 (커밋 c20d0dd·ebcd623·d3d3baf, SUMMARY 07-03-SUMMARY.md, 26/26 unit test PASS, compileDebugKotlin PASS, BRIDGE-01·02·03 Android 가시 부분 완료)
-- [ ] 07-04-PLAN.md — 단축 PoC + E2E 시연 (autonomous: false — 사용자 워치 착용 + 실기기 시연 + 영상/캡처)
+- [⏸] 07-04-PLAN.md — 단축 PoC + E2E 시연 (autonomous: false). **DEFERRED 2026-05-15** — 사용자 시연 환경 부재. 코드/인프라 (Wave 1·2·3) 완성 + 합성 검증 통과 (8 curl smoke + 26 unit + assembleDebug APK). 실측 E2E 만 사용자 가용 시점 재개. 07-04-SUMMARY.md (status: deferred).
 
 ### Phase 8: Drift X3 RTSP 실시간 카메라
 **Goal**: `ai_agent/scheduler.py` 가 mp4 파일 대신 RTSP 스트림을 직접 추론, Drift
