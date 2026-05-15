@@ -51,45 +51,77 @@ VideoCapture 객체 생성 1줄에 한정. ✓ 본 phase 의 D-01 (ffmpeg subpro
 ## Implementation Decisions
 
 ### Frame 추출 방식 (RTSP-01)
-- **D-01: 기존 ffmpeg subprocess (snapshot.capture) 재사용 + RTSP 전용 플래그 추가**
-  - **변경 X**: `ai_agent/snapshot.py` 의 `capture(url, tmp_path, ffmpeg_bin=...)` 함수
-    그대로 유지. ffmpeg 자체가 RTSP/mp4 URL scheme 자동 인식 — scheduler 가 mp4
-    보내든 rtsp:// 보내든 동일 호출.
-  - **추가 ffmpeg 플래그** (RTSP 케이스):
+- **D-01 (amended 2026-05-15 — drift_test.py 검증 적용): cv2.VideoCapture + CAP_FFMPEG (RTSP) / 기존 ffmpeg subprocess (mp4 fallback)**
+  - **사용자 검증 레퍼런스**: `D:\2025_산업안전\산업안전\Dirft 카메라\DriftX3\drift_test.py`
+    가 실제 동작하는 RTSP 카메라 연결 코드. 핵심:
+    ```python
+    cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
+    time.sleep(2)
+    ret, frame = cap.read()
+    if ret and cap.isOpened() and frame is not None: ...
     ```
-    -rtsp_transport tcp        # UDP 대신 TCP (방화벽 + 패킷 손실 강건)
-    -timeout 5000000           # 5초 connection timeout (microseconds)
-    -fflags nobuffer           # 라이브 스트림 buffering 최소화
-    -i rtsp://...
-    -frames:v 1                # 단일 frame 추출
-    -y output.jpg
+  - **호환성 검증 완료**: ai_agent env 의 `opencv-python 4.12.0` build 가
+    `FFMPEG: YES (prebuilt binaries)` + `CAP_FFMPEG = 1900` 가용 확인 — drift_x3
+    conda env (Python 3.9 + opencv-python 4.13) 와 별도 분리 불필요. **단일 ai_agent
+    env (Python 3.10/3.11) 에서 그대로 동작**.
+  - **신규 함수**: `ai_agent/snapshot.py` 에 `capture_rtsp(url, tmp_path, max_attempts=3)` 추가.
+    ```python
+    def capture_rtsp(url, tmp_path, max_attempts=3):
+        for attempt in range(max_attempts):
+            cap = cv2.VideoCapture(url, cv2.CAP_FFMPEG)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # latest frame only
+            time.sleep(2)
+            ret, frame = cap.read()
+            if ret and cap.isOpened() and frame is not None:
+                cv2.imwrite(str(tmp_path), frame)
+                cap.release()
+                return tmp_path
+            cap.release()
+            time.sleep(BACKOFF_DELAYS[attempt])  # D-02 backoff
+        raise SnapshotError(f"RTSP {url} failed after {max_attempts} attempts")
     ```
-    URL scheme 으로 분기: `if url.startswith("rtsp://"): rtsp_args = [...] else: rtsp_args = []`.
-    snapshot.py 내부에서 처리.
-  - **근거**: scheduler.py 가 이미 RTSP-aware (line 72/128/228/328 의 `rtsp_url =
-    camera["live_url_detail"]` 변수명 + `capture(rtsp_url, ...)`) → 변경 surface 최소.
-    Phase 1·2·3 의 mp4 동작 회귀 X. cv2.VideoCapture 는 OpenCV build 의 GStreamer/
-    RTSP backend 의존성 검증 부담 (CPython binary 마다 다름) → ffmpeg subprocess
-    가 호환성 안전.
-  - **SC #4 충족**: 분기점이 snapshot.py 내부의 ffmpeg args 리스트 1곳 — scheduler
+  - **URL scheme 분기**: `snapshot.capture()` 진입점 wrapper —
+    `if url.startswith("rtsp://"): return capture_rtsp(url, tmp_path)
+     else: return capture_ffmpeg(url, tmp_path, ffmpeg_bin=...)`
+  - **mp4 fallback 유지**: 기존 ffmpeg subprocess (snapshot.capture 의 현재 구현)
+    가 mp4/file:// 처리. 1줄 분기로 SC #4 자동 충족.
+  - **buffer size = 1**: drift_test.py 에는 명시 X 지만 long-lived 가 아닌
+    1-shot capture 라 stale frame 방지 위해 추가 — 가장 최근 frame 만 사용.
+  - **GUI 코드 제거**: drift_test.py 의 `cv2.imshow` / `cv2.waitKey` /
+    `cv2.destroyAllWindows` 는 headless ai_agent 운영에 불필요. 제거.
+  - **scheduler 변경 X**: `from snapshot import capture` 호출 그대로. capture()
+    내부에서 URL scheme 자동 분기.
+  - **SC #4 충족**: 분기점이 snapshot.py 내부 1줄 (URL scheme if/else) — scheduler
     의 4 detector 코드 무변경.
+  - **근거**:
+    - 검증된 코드 (사용자 환경에서 실제 RTSP 카메라 연결 성공 사례)
+    - opencv-python prebuilt 의 FFMPEG backend 가 시스템 ffmpeg 보다 호환성 ↑
+    - drift_test.py 의 `time.sleep(2)` + `cap.read()` 검증 패턴 그대로 reuse
+    - subprocess 대비 process spawn overhead 없음 (cv2 in-process)
 
 ### 재연결 backoff (RTSP-03)
-- **D-02: snapshot.capture 내부 + 1s→3s→9s exponential 3회 + 포기 시 SnapshotError**
-  - **위치**: `snapshot.capture()` 내부에 retry decorator 또는 try/except loop.
-    실패 시 `time.sleep(delay)` 후 재시도 (delays = [1, 3, 9], 총 13초).
-  - **포기 시**: 기존 `SnapshotError` raise → scheduler 의 detector 4종 진입점이
-    이미 `except SnapshotError` 처리 (line 84 _process_single_camera 패턴 동일) →
-    이번 cycle skip + 로그. **다음 1분 cycle 에 자동 재시도** (scheduler 의
-    1분 주기 detector loop 가 자연스러운 외부 retry 역할).
-  - **알람 방지**: backoff 3회 모두 실패 시점에 cameras.last_frame_at 갱신 X →
-    헬스체크 (D-03) 가 5분 임계 도달하면 FCM 발사. 즉 단일 blip 은 자동 흡수,
-    지속적 단절만 catch.
-  - **테스트**: `ai_agent/tests/test_snapshot_retry.py` 신규 — mocked subprocess
-    (3회 fail → SnapshotError raise / 2회 fail + 3회 success → 정상 반환 / 1회
-    fail + 2회 success 생략 / instant success → delay 0 검증).
-  - **근거**: ROADMAP SC #3 의 "최대 3회" 명시 + 1s→3s→9s exponential 은 일반적
-    transient error backoff 패턴. snapshot 내부에 둠으로써 scheduler 코드 변경 없음.
+- **D-02 (amended 2026-05-15 — drift_test.py 패턴 적용): capture_rtsp 내부 + drift_test 의 3회 + 2초 sleep 패턴**
+  - **drift_test.py 검증 패턴**: `try_connect(max_attempts=3)` 함수가 각 시도
+    사이에 `time.sleep(2)` 으로 단순 고정 wait. RTSP 카메라 연결의 실제 동작
+    검증된 timing.
+  - **변경**: 원안의 1s→3s→9s exponential 대신 **drift_test.py 의 2s 고정 3회**
+    적용 (총 6초 + 시도당 2초 wait = ~12초). exponential 대비 단순.
+    `BACKOFF_DELAYS = [2, 2, 2]` (또는 그냥 `for ...: sleep(2); ...`).
+  - **연결 시도 내부 추가 wait**: drift_test.py 가 `cv2.VideoCapture()` 직후
+    `time.sleep(2)` 후 read 시도 — RTSP handshake 완료 대기. 이 패턴도 보존.
+  - **위치**: `capture_rtsp()` 내부 (D-01). mp4 fallback (기존 ffmpeg subprocess)
+    은 backoff 없음 (파일 read 는 transient failure 적음).
+  - **포기 시**: `SnapshotError` raise → scheduler 의 기존 except 패턴 (line 84
+    `[SNAPSHOT_ERR]` 로그) 자동 catch → 1분 cycle skip + 다음 cycle 자동 재시도.
+    스케줄러는 변경 없음.
+  - **알람 방지**: 3회 모두 실패 시점에 cameras.last_frame_at 갱신 X → 헬스체크
+    (D-03) 가 5분 임계 도달 시점에 FCM 발사. 단일 blip 자동 흡수.
+  - **테스트**: `ai_agent/tests/test_snapshot_rtsp.py` 신규 — mocked
+    cv2.VideoCapture (3회 fail → SnapshotError / 2회 fail + 3회 success → 정상
+    frame 반환 / instant success → wait 1회 + return / cap.read() ret=False →
+    재시도). drift_test.py 의 cap.isOpened() + frame is not None 가드 검증.
+  - **근거**: 검증된 코드 우선 (드리프트 X3 카메라 실제 검증된 timing). ROADMAP
+    SC #3 의 "최대 3회" 충족. 단순 고정 sleep 이 디버깅 + tracing 쉬움.
 
 ### 헬스체크 + 알림 (RTSP-03)
 - **D-03: cameras.last_frame_at + pg_cron 1분 주기 healthcheck + FCM 관리자 알림 + 5분 임계**
@@ -270,8 +302,20 @@ VideoCapture 객체 생성 1줄에 한정. ✓ 본 phase 의 D-01 (ffmpeg subpro
 ### 외부 도구
 - **mediamtx** (`/c/Users/ANNA/Desktop/mediamtx/bin`) — RTSP 미디어 서버. 본 phase
   D-04 합성 검증의 핵심. config 파일 + ffmpeg publish 명령으로 mp4 → RTSP 합성.
-- **ffmpeg** (`settings.ffmpeg_bin` 경로 — Phase 1 부터 사용) — RTSP frame 추출 (snapshot.capture) +
-  mp4 → RTSP publish (mediamtx 시연용).
+- **ffmpeg** (`settings.ffmpeg_bin` 경로 — Phase 1 부터 사용) — mp4 fallback frame
+  추출 (snapshot.capture_ffmpeg) + mp4 → RTSP publish (mediamtx 시연용).
+- **opencv-python 4.12+** (FFMPEG=YES prebuilt) — RTSP frame 추출 (snapshot.capture_rtsp,
+  D-01). cv2.VideoCapture(url, cv2.CAP_FFMPEG). drift_test.py 검증 패턴.
+
+### 사용자 검증 레퍼런스 (D-01·02 의 핵심 출처)
+- **`D:\2025_산업안전\산업안전\Dirft 카메라\DriftX3\drift_test.py`** — 사용자가 실제
+  Drift X3 카메라 (`rtsp://192.168.0.13/live`) 와 검증한 단순 RTSP 연결 코드. 핵심
+  패턴: `cv2.VideoCapture(url, cv2.CAP_FFMPEG)` + 2초 sleep + cap.isOpened() +
+  frame is not None + 3회 retry + 시도 사이 2초 wait. 본 phase 의 D-01·02 가 이
+  코드의 검증된 timing/sequence 를 그대로 채택 (GUI 코드 cv2.imshow 는 headless
+  운영 위해 제거). conda env `drift_x3` (Python 3.9 + opencv-python 4.13) 에서 동작
+  검증되었으나, ai_agent env (Python 3.10/11 + opencv-python 4.12 prebuilt
+  FFMPEG=YES) 호환성 확인 완료 — 별도 env 분리 불필요.
 
 ### testuser1 시드 + 기존 cameras
 - testuser1 (`profiles.user_id`) — manager 권한 (DB 확인됨), camera_id 1·5 (fire·helmet)
