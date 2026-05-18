@@ -150,10 +150,10 @@
   `tbm_checklists` (세션별 위험 항목·체크 상태·근거), `tbm_participants`
   (세션 참여 작업자·서명·체크인 시각), `tbm_templates` (작업 유형별 체크리스트
   템플릿) 마이그레이션 추가. ✓ 2026-05-18 (Phase 9 09-01, 커밋 f044fac · 20d2c7f).
-- [ ] **TBM-02**: TBM 가이드 화면 (Android) — 오늘 TBM 세션 시작 → 작업 유형
+- [x] **TBM-02**: TBM 가이드 화면 (Android) — 오늘 TBM 세션 시작 → 작업 유형
   선택 → 템플릿 기반 위험 항목 체크리스트 (예: 화재 위험·전기·고소·중량물 등)
   → 참여 작업자 체크인 (NFC/QR/수기 서명 중 1) → 세션 종료 + Supabase 적재.
-  관리자 순회 점검과 별도 메뉴.
+  관리자 순회 점검과 별도 메뉴. ✓ 2026-05-18 (Phase 9 09-03, 커밋 c94ee1c · 8df2ced · f4d3f3b · 5f52800 · bfd0cec).
 - [x] **TBM-03**: TBM 참여 이력 + 미참여 알림 — Edge Function 4 case 운영 배포 (tbm-start/checkin/end/missed) + 12 smoke PASS + Pitfall 9 leader dedup 검증. 작업자별 일자별 TBM 참여 여부 대시보드 (Plan 09-03 Android UI) + 미참여 FCM 알림 (Plan 09-01 pg_cron tbm_missed_attendance_minute 1분 주기 + 본 plan 의 tbm-missed case 가 round-trip). ✓ 2026-05-18 (Phase 9 09-02, 커밋 417c203 · aeb6ddf).
 
 ---
@@ -222,5 +222,5 @@
 | RTSP-02   | Phase 8 | Drift X3 RTSP 실시간 카메라         | ⏸ DEFERRED (실기기 부재 — v1.1 6월 검단·포천 설치 직전 LP-3). 08-04 mediamtx 합성 충족 = SC #2 의 "1 cycle detection_events + 추론 ≤10s" 부분 충족 (mediamtx 로컬 ≈0초). 실기기 측정 부분만 deferred. |
 | RTSP-03   | Phase 8 | Drift X3 RTSP 실시간 카메라         | ✓ Complete (백엔드 08-02 cameras_healthcheck 0131ffa + 08-03 case camera-down/recovered c8c7b6d + scheduler health wiring 00aeedf + 08-04 backoff 검증 ~101s + recovery 검증). 5분 cron round-trip FCM 도착 = Vault sr_key Dashboard 시드 후 자연 동작 (08-04 SUMMARY User Setup Required). |
 | TBM-01    | Phase 9 | TBM 현장 작업자 가이드              | ✓ Complete (09-01 f044fac · 20d2c7f, 2026-05-18) — 013_tbm_schema.sql 운영 DB 적용 + 4 신규 테이블 + RLS + Realtime publication ADD 4 + tbm-signatures Storage + pg_cron tbm_missed_attendance_minute + 5 templates 시드 + 7/7 isolation assertions PASS |
-| TBM-02    | Phase 9 | TBM 현장 작업자 가이드              | Pending |
+| TBM-02    | Phase 9 | TBM 현장 작업자 가이드              | ✓ Complete (09-03 c94ee1c · 8df2ced · f4d3f3b · 5f52800 · bfd0cec, 2026-05-18) — Android tbm/ 12 main + 4 TDD test (Phase 7 watch/ 1:1 미러 + Dynamic session_id 2-stage Realtime + SignatureCanvas Pitfall 1·2 + ExpectedEndAtValidator Pitfall 8) + storage-kt:2.2.0 + MyApp.install(Storage) + 2 신규 Activity + ComposeView 임베드 (manager 첫 + worker 추가) + FCM tbm_alert 분기 + 48 unit tests PASS (tbm/ 21 + watch/ 26 + Example 1) + T-9-01/06/12/13/14/15 mitigation + 회귀 watch/ + Daily*.kt + ai_agent/ diff 0 |
 | TBM-03    | Phase 9 | TBM 현장 작업자 가이드              | ✓ Complete (09-02 417c203 · aeb6ddf, 2026-05-18) — notifications 4 case (tbm-start/checkin/end/missed) 운영 배포 (74.97kB) + 12 smoke PASS + D-09 delta=0 + T-9-02/03/04/09 mitigation + Pitfall 5·9·11 검증 + testuser1 실제 push notified_count:1 |
