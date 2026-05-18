@@ -435,6 +435,221 @@ Deno.serve(async (req) => {
         return ok({ ok: true, sent: r.sent, failed: r.failed, skipped: r.skipped });
       }
 
+      // ──────────────────────────────────────────
+      // TBM-START — Phase 9 TBM-03 (per 09-CONTEXT.md D-08 / 09-RESEARCH §Pattern 4)
+      // ──────────────────────────────────────────
+      // 관리자가 오늘 TBM 세션을 시작. 4 단계:
+      //  (1) tbm_templates 로부터 work_type 별 checklist 조회
+      //  (2) tbm_sessions INSERT — UNIQUE (group_id, session_date) 충돌 시 23505 → 409
+      //      (T-9-02 mitigation, Pitfall 5 회피 — DB-level UNIQUE 가 신뢰 경계)
+      //  (3) tbm_checklists 에 template.checklist 의 각 항목 snapshot bulk INSERT
+      //      (JSONB array order 보장 — Pitfall 11)
+      //  (4) group 의 worker N명 (leader 제외) 에게 sendPushToUsers (plural) — Phase 8 패턴
+      //
+      // D-09 회귀 가드: notifications 테이블 insert 없음 (push-only). 상태 전이 책임은
+      // tbm_sessions row 자체 + tbm_participants insert (worker checkin) + missed_alert_at
+      // (cron) 이 가짐. 본 case 호출로 public.notifications row 증가 0.
+      case "tbm-start": {
+        const { leader_user_id, group_id, work_type, expected_end_at, location, notes } = body;
+        if (!leader_user_id || !group_id || !work_type || !expected_end_at) {
+          return err("leader_user_id, group_id, work_type, expected_end_at are required", 400);
+        }
+        // 1. work_type 검증 + checklist 조회
+        const { data: tmpl, error: tErr } = await supabase
+          .from("tbm_templates").select("checklist, title")
+          .eq("work_type", work_type).maybeSingle();
+        if (tErr) return err(tErr.message, 500);
+        if (!tmpl) return err(`unknown work_type: ${work_type}`, 400);
+
+        // 2. session insert (UNIQUE 23505 → 409, Pitfall 5)
+        const today = new Date().toISOString().slice(0, 10);
+        const { data: session, error: sErr } = await supabase
+          .from("tbm_sessions").insert({
+            group_id, session_date: today,
+            expected_end_at, leader_user_id, work_type,
+            location: location ?? null, notes: notes ?? null,
+          }).select().maybeSingle();
+        if (sErr) {
+          if (sErr.code === "23505") return err("이미 오늘 세션이 존재합니다", 409);
+          return err(sErr.message, 500);
+        }
+        if (!session) return err("session insert returned null", 500);
+
+        // 3. checklists bulk insert (JSONB array order 보장 — Pitfall 11)
+        const items = (tmpl.checklist as string[]).map((text, idx) => ({
+          session_id: session.session_id, item_idx: idx, item_text: text,
+        }));
+        const { error: cErr } = await supabase.from("tbm_checklists").insert(items);
+        if (cErr) return err(cErr.message, 500);
+
+        // 4. group worker 전원 SELECT (leader 제외)
+        const { data: workers, error: wErr } = await supabase
+          .from("profiles").select("user_id")
+          .eq("group_id", group_id)
+          .in("user_role", ["worker", "general_manager"])
+          .neq("user_id", leader_user_id);
+        if (wErr) return err(wErr.message, 500);
+
+        const workerIds = (workers ?? []).map((w: { user_id: string }) => w.user_id);
+        const r = await sendPushToUsers(supabase, workerIds, {
+          title: "TBM 세션 시작",
+          body: `${tmpl.title} — ${workerIds.length}명 대상`,
+          data: {
+            type: "tbm_alert", action_in_app: "tbm-started",
+            session_id: String(session.session_id), work_type,
+          },
+        });
+        return ok({
+          ok: true,
+          session_id: session.session_id,
+          checklist_count: items.length,
+          notified_count: r.sent,
+        });
+      }
+
+      // ──────────────────────────────────────────
+      // TBM-CHECKIN — Phase 9 TBM-02 (per 09-CONTEXT.md D-08)
+      // ──────────────────────────────────────────
+      // 작업자가 자신의 폰에서 체크인 (수기 서명 후). T-9-03 (cross-group spoofing) 차단:
+      // profiles.group_id 가 session.group_id 와 일치해야 함. Phase 7 watch-pair 의
+      // T-7-03 mitigation 패턴 1:1 미러.
+      //
+      // 멱등성 — UNIQUE (session_id, user_id) 23505 충돌 시 200 idempotent 응답
+      // (Pitfall 5 — 사용자 재시도 안전). existing row 의 participant_id + signed_at 을
+      // DB 에서 SELECT 후 반환 (T-9-10 응답 fabrication accept — 거짓 응답 0 가능).
+      case "tbm-checkin": {
+        const { session_id, user_id, signature_url } = body;
+        if (!session_id || !user_id) return err("session_id, user_id are required", 400);
+
+        // 1. session 유효성 (ended_at NULL 확인)
+        const { data: session, error: sErr } = await supabase
+          .from("tbm_sessions").select("session_id, group_id, ended_at")
+          .eq("session_id", session_id).maybeSingle();
+        if (sErr) return err(sErr.message, 500);
+        if (!session) return err("session not found", 404);
+        if (session.ended_at) return err("session already ended", 410);
+
+        // 2. ownership 검증 (T-9-03 spoofing 차단)
+        const { data: profile, error: pErr } = await supabase
+          .from("profiles").select("group_id").eq("user_id", user_id).maybeSingle();
+        if (pErr) return err(pErr.message, 500);
+        if (!profile) return err("user not found", 404);
+        if (profile.group_id !== session.group_id) {
+          return err("user not in session group", 403);
+        }
+
+        // 3. participant insert (UNIQUE 23505 → 200 idempotent)
+        const { data: p, error: insErr } = await supabase
+          .from("tbm_participants").insert({
+            session_id, user_id,
+            signature_url: signature_url ?? null,
+            method: "signature",
+          }).select().maybeSingle();
+        if (insErr) {
+          if (insErr.code === "23505") {
+            const { data: existing } = await supabase
+              .from("tbm_participants")
+              .select("participant_id, signed_at")
+              .eq("session_id", session_id).eq("user_id", user_id).maybeSingle();
+            return ok({
+              ok: true,
+              participant_id: existing?.participant_id,
+              signed_at: existing?.signed_at,
+              idempotent: true,
+            });
+          }
+          return err(insErr.message, 500);
+        }
+        return ok({ ok: true, participant_id: p!.participant_id, signed_at: p!.signed_at });
+      }
+
+      // ──────────────────────────────────────────
+      // TBM-END — Phase 9 TBM-02 (per 09-CONTEXT.md D-08)
+      // ──────────────────────────────────────────
+      // 관리자가 세션 종료. T-9-04 (다른 manager 가 종료 시도) 차단:
+      //   .eq("leader_user_id", leader_user_id) + .is("ended_at", null)
+      // 의 조합으로 매치 0 rows → 404 응답. 정상 1 row 매치 시 ended_at = now() UPDATE.
+      //
+      // 클라이언트 시계 무시 — 서버측 new Date().toISOString() (T-7-05 clock spoofing 차단).
+      case "tbm-end": {
+        const { session_id, leader_user_id } = body;
+        if (!session_id || !leader_user_id) {
+          return err("session_id, leader_user_id are required", 400);
+        }
+
+        const { data, error } = await supabase
+          .from("tbm_sessions")
+          .update({ ended_at: new Date().toISOString() })
+          .eq("session_id", session_id)
+          .eq("leader_user_id", leader_user_id)
+          .is("ended_at", null)
+          .select().maybeSingle();
+        if (error) return err(error.message, 500);
+        if (!data) return err("session not found or already ended or not led by user", 404);
+
+        const { count } = await supabase
+          .from("tbm_participants").select("*", { count: "exact", head: true })
+          .eq("session_id", session_id);
+        return ok({ ok: true, ended_at: data.ended_at, participant_count: count ?? 0 });
+      }
+
+      // ──────────────────────────────────────────
+      // TBM-MISSED — Phase 9 TBM-03 (per 09-CONTEXT.md D-05 / D-08)
+      // ──────────────────────────────────────────
+      // pg_cron (013_tbm_schema.sql tbm_missed_attendance_check) 이 expected_end_at + 30분
+      // 경과 + missed_alert_at NULL 인 세션마다 service_role JWT 로 호출. cron 자체가
+      // missed_alert_at 업데이트 + 알림 전이 1회 발사 dedup 책임 (Phase 4 D-09 / Phase 8
+      // last_alert_at 패턴 1:1 미러).
+      //
+      // D-04 미참여 worker 정의: group_id == session.group_id AND user_role IN
+      //   ('worker','general_manager') AND user_id NOT IN tbm_participants AND
+      //   user_id != leader_user_id. (출근 시스템 v1.0 부재 → 그룹 worker 전원 단순화.)
+      //
+      // Pitfall 9 dedup: recipients = missedIds + leader_user_id. sendPushToUsers 내부
+      // [...new Set(userIds)] (fcm.ts:253) 가 자연 dedup — D-04 SQL 의 leader 제외와
+      // 합치면 leader 가 missedIds 에 들어갈 일은 0 이지만 방어적 dedup.
+      case "tbm-missed": {
+        const { session_id, group_id, leader_user_id } = body;
+        if (!session_id || group_id === undefined || group_id === null || !leader_user_id) {
+          return err("session_id, group_id, leader_user_id are required", 400);
+        }
+
+        // 1. session 존재 확인 (defensive — cron 이 이미 ended_at NULL 필터)
+        const { data: session } = await supabase
+          .from("tbm_sessions").select("session_id, ended_at")
+          .eq("session_id", session_id).maybeSingle();
+        if (!session) return err("session not found", 404);
+
+        // 2. missed worker 계산 (D-04 SQL — RPC 미생성, 직접 query 채택)
+        const { data: groupWorkers, error: gErr } = await supabase
+          .from("profiles").select("user_id, user_name")
+          .eq("group_id", group_id)
+          .in("user_role", ["worker", "general_manager"])
+          .neq("user_id", leader_user_id);
+        if (gErr) return err(gErr.message, 500);
+
+        const { data: joined } = await supabase
+          .from("tbm_participants").select("user_id")
+          .eq("session_id", session_id);
+        const joinedSet = new Set((joined ?? []).map((j: { user_id: string }) => j.user_id));
+        const missedIds = (groupWorkers ?? [])
+          .map((w: { user_id: string }) => w.user_id)
+          .filter((uid: string) => !joinedSet.has(uid));
+
+        // 3. recipients = missedIds + leader (sendPushToUsers Set dedup — Pitfall 9)
+        const recipientIds = [...missedIds, leader_user_id];
+        const r = await sendPushToUsers(supabase, recipientIds, {
+          title: "TBM 미참여 작업자 알림",
+          body: `예정 종료 + 30분 — ${missedIds.length}명 미참여`,
+          data: {
+            type: "tbm_alert", action_in_app: "tbm-missed",
+            session_id: String(session_id),
+            missed_count: String(missedIds.length),
+          },
+        });
+        return ok({ ok: true, missed_count: missedIds.length, notified_count: r.sent });
+      }
+
       default:
         return err(`Unknown action: ${action}`);
     }
