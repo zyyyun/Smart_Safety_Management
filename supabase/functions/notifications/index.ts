@@ -621,8 +621,9 @@ Deno.serve(async (req) => {
         if (!session) return err("session not found", 404);
 
         // 2. missed worker 계산 (D-04 SQL — RPC 미생성, 직접 query 채택)
+        //    profiles 컬럼명: name (user_name 아님 — Plan 09-01 검증 schema)
         const { data: groupWorkers, error: gErr } = await supabase
-          .from("profiles").select("user_id, user_name")
+          .from("profiles").select("user_id, name")
           .eq("group_id", group_id)
           .in("user_role", ["worker", "general_manager"])
           .neq("user_id", leader_user_id);
