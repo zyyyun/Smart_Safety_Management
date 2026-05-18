@@ -44,6 +44,22 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             return
         }
 
+        // Phase 9 / 09-03 TBM-02 — data payload 'type=tbm_alert' 분기 (D-09).
+        // FCM payload: { type:"tbm_alert", action_in_app, session_id, work_type }
+        // - action_in_app == "tbm-started" → worker = TbmWorkerActivity, manager = TbmDashboardActivity
+        // - action_in_app == "tbm-missed"  → worker = TbmWorkerActivity (직접 진입)
+        // - action_in_app == "tbm-ended"   → 표시만 (notification tray)
+        // channel_id = fcm_default_channel (Option B, Android 코드 변경 0 원칙)
+        if (data["type"] == "tbm_alert") {
+            showTbmAlertNotification(
+                title = remoteMessage.notification?.title ?: "TBM 알림",
+                body = remoteMessage.notification?.body ?: data["action_in_app"] ?: "TBM 세션 알림",
+                sessionId = data["session_id"]?.toLongOrNull() ?: -1L,
+                actionInApp = data["action_in_app"] ?: "",
+            )
+            return
+        }
+
         // 일반 알림은 기존 흐름 유지 (data['type'] 없음 + notification 만 있는 경우)
         remoteMessage.notification?.let {
             showNotification(it.title, it.body)
@@ -121,6 +137,71 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         }
         // alert_id 를 notification id 로 사용 → 같은 alert 재push 시 갱신만 (D-09 알림 전이)
         notificationManager.notify(alertId.toInt().takeIf { it > 0 } ?: 1, notificationBuilder.build())
+    }
+
+    /**
+     * Phase 9 / 09-03 TBM-02 — TBM 알림 push 처리 (D-09).
+     *
+     * channel_id = fcm_default_channel (Option B, Phase 8 일관) — 신규 채널 생성 X,
+     * Android 코드 변경 0 원칙. v1.1 에서 'tbm_alerts' 채널 분리 검토.
+     *
+     * pendingIntent → UserRole 분기 (D-09):
+     *   - MANAGER → TbmDashboardActivity (extras 부재 — Activity 가 자체 fetch)
+     *   - WORKER  → TbmWorkerActivity (extras EXTRA_SESSION_ID 전달)
+     *
+     * extras 의 session_id 는 신뢰 X (T-9-12 mitigation) — Activity 진입 시 DB 재조회로
+     * 권한/상태 확인. session_id 는 hint 로만 사용 (Phase 7 D-02 anti-pattern 회피).
+     */
+    private fun showTbmAlertNotification(
+        title: String,
+        body: String,
+        sessionId: Long,
+        @Suppress("UNUSED_PARAMETER") actionInApp: String,
+    ) {
+        // UserRole 분기 — manager = Dashboard, worker = WorkerActivity
+        val targetActivity = if (UserSession.userRole == UserRole.MANAGER) {
+            TbmDashboardActivity::class.java
+        } else {
+            TbmWorkerActivity::class.java
+        }
+
+        val intent = Intent(this, targetActivity).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (sessionId > 0 && targetActivity == TbmWorkerActivity::class.java) {
+                putExtra(TbmWorkerActivity.EXTRA_SESSION_ID, sessionId)
+            }
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            sessionId.toInt().takeIf { it > 0 } ?: 0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Option B (Phase 8 일관, Pitfall 3 회피): fcm_default_channel 재사용.
+        val channelId = "fcm_default_channel"
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "기본 알림",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+        // session_id 를 notification id 로 사용 → 같은 세션 재push 시 갱신만 (D-09 알림 전이)
+        notificationManager.notify(
+            sessionId.toInt().takeIf { it > 0 } ?: 2,
+            notificationBuilder.build(),
+        )
     }
 
     private fun sendRegistrationToServer(token: String) {
