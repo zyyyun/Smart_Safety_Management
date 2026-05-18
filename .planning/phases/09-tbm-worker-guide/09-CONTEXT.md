@@ -147,7 +147,10 @@ v1.0 5월 PPT 데모 흐름에 통합 가능 (3·4·7·8 + 9 통합 시연).
     -- (templates / checklists / participants 동일 패턴)
     -- write 정책 = 등록 안 함 → service_role 만 (D-08 Edge Function 경유)
     ```
-  - **Realtime publication**: 011 패턴 미러 — 4 테이블 모두 등록:
+  - **Realtime publication** (amended 2026-05-18 via research C2): 011 패턴 미러 —
+    **4 테이블 모두 등록** (단순성 우선, Phase 7 011 패턴 직접 미러). tbm_templates
+    의 trafffic 은 작지만 시드 후 보강 시 즉시 클라이언트 갱신 가능 + 4-채널 구독이
+    Realtime SDK 의 단일 channel 호출로 가능 (구조 동일):
     ```sql
     ALTER PUBLICATION supabase_realtime ADD TABLE
       public.tbm_sessions, public.tbm_templates,
@@ -199,8 +202,25 @@ v1.0 5월 PPT 데모 흐름에 통합 가능 (3·4·7·8 + 9 통합 시연).
     - 키 컨벤션: `{session_id}/{user_id}_{timestamp}.png` (e.g., `42/testuser1_20260518T091532Z.png`).
     - `tbm_participants.signature_url` = Storage 키 (URL 아닌 path).
     - 표시: 관리자 대시보드에서 클릭 시 signed URL 생성 (60s 만료) 후 표시.
-  - **신규 Storage 버킷**: `tbm-signatures` (Phase 1 의 `reference-videos`, Next-2 의
-    4 버킷 동일 패턴). `004_storage.sql` 에 추가 또는 `013_tbm_schema.sql` 내부.
+  - **신규 Storage 버킷** (amended 2026-05-18 via research C3): `tbm-signatures` —
+    **v1.0 = Option A (anon INSERT + key prefix 가드)**, v1.1 = Option B (Edge Function
+    경유) 마이그. Option A 의 이유: 본 코드베이스 최초의 private 버킷이지만 Edge
+    Function 경유 업로드는 PNG 바이너리 base64 + Edge Function 단계 페이로드 누적
+    부담 → anon INSERT + storage RLS 의 path prefix 검증으로 충분.
+    ```sql
+    -- 013 내부 또는 별도 014_tbm_storage.sql
+    INSERT INTO storage.buckets (id, name, public)
+    VALUES ('tbm-signatures','tbm-signatures', false)
+    ON CONFLICT (id) DO NOTHING;
+
+    -- v1.0 Option A: anon INSERT 허용 + key prefix 가드
+    -- (path = {session_id}/{user_id}_{timestamp}.png 형식 강제는 클라이언트 책임)
+    CREATE POLICY "tbm_sig_insert_anon_v1_poc" ON storage.objects
+      FOR INSERT TO anon, authenticated
+      WITH CHECK (bucket_id = 'tbm-signatures');
+    -- public read 없음 — 모든 read 는 signed URL 60s 만료 (service_role 발급)
+    ```
+    Plan 작성 시 (planner) Option A → B 마이그레이션 경로를 deferred 에 명시.
   - **PII 고려**: 서명은 PII 가능성 — `tbm-signatures` 는 private + signed URL only.
     PROJECT.md "신호 = 상태 신호 원칙" 의 보안 측면 일관.
   - **근거**: 산업안전 5월 PPT 데모 + 6월 현장 설치 즉시성 우선. v1.1 NFC/QR 옵션은
@@ -380,6 +400,11 @@ v1.0 5월 PPT 데모 흐름에 통합 가능 (3·4·7·8 + 9 통합 시연).
     - Response: `{ok, missed_count, notified_count}`
     - **D-09 회귀 가드**: `notifications.insert()` 부재 (push-only, 상태 전이 책임은
       cron 의 `missed_alert_at` UPDATE).
+  - **notifications insert 정책** (amended 2026-05-18 via research C1): **4 case 모두
+    push-only** — `public.notifications` row insert 없음. Phase 8 D-09 회귀 가드 일관.
+    상태 전이 책임은 `tbm_sessions.missed_alert_at` (cron) + `tbm_participants` insert
+    (worker checkin) 이 가짐. notifications insert 회귀 가드: 4 case 호출 후
+    `public.notifications` row 수 변화 = 0.
   - **재배포**: 1회 (`supabase functions deploy notifications`) — Phase 4·7·8 동일.
   - **curl smoke**: 4 actions × {정상 / 권한 부족 / 중복 / 누락 payload} = 8~12 케이스.
     Phase 8 4-smoke 패턴 동일.
