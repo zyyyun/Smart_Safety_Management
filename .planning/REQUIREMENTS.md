@@ -220,9 +220,9 @@
 | BRIDGE-01 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | ✓ Complete (07-03, ebcd623) — Wave 4 E2E 시연 검증 예정 |
 | BRIDGE-02 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | ✓ Complete (백엔드 07-02 e2298a2 + UI 07-03 ebcd623) |
 | BRIDGE-03 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | ✓ Complete (백엔드 07-02 3eb872d + UI 07-03 d3d3baf) |
-| RTSP-01   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending |
-| RTSP-02   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending |
-| RTSP-03   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending |
+| RTSP-01   | Phase 8 | Drift X3 RTSP 실시간 카메라         | ✓ Complete (백엔드 08-01 capture_rtsp 715c277 + 08-03 scheduler health wiring 00aeedf) — 08-04 mediamtx 합성 E2E 검증 예정 |
+| RTSP-02   | Phase 8 | Drift X3 RTSP 실시간 카메라         | Pending (실기기 부재 — v1.1 6월 검단·포천 설치 직전 LP-3) |
+| RTSP-03   | Phase 8 | Drift X3 RTSP 실시간 카메라         | ✓ Complete (백엔드 08-02 cameras_healthcheck 0131ffa + 08-03 case camera-down/recovered c8c7b6d + scheduler health wiring 00aeedf) — 08-04 5분 cron round-trip 검증 예정 |
 | TBM-01    | Phase 9 | TBM 현장 작업자 가이드              | Pending |
 | TBM-02    | Phase 9 | TBM 현장 작업자 가이드              | Pending |
 | TBM-03    | Phase 9 | TBM 현장 작업자 가이드              | Pending |
