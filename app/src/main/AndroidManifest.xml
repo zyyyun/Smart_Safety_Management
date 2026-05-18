@@ -270,6 +270,18 @@
             android:name=".SafetyAlertsActivity"
             android:exported="false"
             android:label="워치 알림" />
+
+        <!-- Phase 9 / 09-03 TBM-02 — manager TBM 대시보드 (D-06, T-9-13 manager only) -->
+        <activity
+            android:name=".TbmDashboardActivity"
+            android:exported="false"
+            android:label="TBM 대시보드" />
+
+        <!-- Phase 9 / 09-03 TBM-02 — worker TBM 가이드 (D-07) -->
+        <activity
+            android:name=".TbmWorkerActivity"
+            android:exported="false"
+            android:label="TBM 가이드" />
     </application>
 
 </manifest>

@@ -57,6 +57,8 @@ import com.example.smart_safety_management.watch.DeviceRow
 import com.example.smart_safety_management.watch.EmptyWatchPrompt
 import com.example.smart_safety_management.watch.SupabaseModule
 import com.example.smart_safety_management.watch.WatchCardComposable
+// Phase 9 / 09-03 TBM-02 — TBM 카드 (worker)
+import com.example.smart_safety_management.tbm.TbmWorkerCardComposable
 import io.github.jan.supabase.postgrest.from
 
 
@@ -100,6 +102,9 @@ class HomeWorkerActivity : AppCompatActivity() {
 
         // Phase 7 / 07-03 BRIDGE-01 — J2208A 워치 카드 (ComposeView 임베드)
         setupWatchCard()
+
+        // Phase 9 / 09-03 TBM-02 — TBM 카드 (D-07, watch_card_compose 아래)
+        setupTbmCard()
 
         // Phase 7 / 07-03 BRIDGE-02 — FCM watch_alert intent 라우팅
         // intent extras 의 alert_type='watch_alert' 시 SafetyAlertsActivity 진입.
@@ -157,6 +162,34 @@ class HomeWorkerActivity : AppCompatActivity() {
                         })
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Phase 9 / 09-03 TBM-02 — main_home_worker.xml 의 tbm_card_compose ComposeView 에
+     * TbmWorkerCardComposable 을 setContent. Phase 7 setupWatchCard 1:1 미러.
+     */
+    private fun setupTbmCard() {
+        val composeView = findViewById<ComposeView>(R.id.tbm_card_compose) ?: return
+        composeView.setViewCompositionStrategy(
+            ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this)
+        )
+        val supabase = SupabaseModule.client(this)
+        val userId = UserSession.userId ?: return
+        val groupId = UserSession.groupId?.toIntOrNull() ?: return
+        composeView.setContent {
+            Smart_Safety_ManagementTheme {
+                TbmWorkerCardComposable(
+                    groupId = groupId,
+                    userId = userId,
+                    supabase = supabase,
+                    onClickGuide = { sessionId ->
+                        startActivity(Intent(this@HomeWorkerActivity, TbmWorkerActivity::class.java).apply {
+                            putExtra(TbmWorkerActivity.EXTRA_SESSION_ID, sessionId)
+                        })
+                    },
+                )
             }
         }
     }

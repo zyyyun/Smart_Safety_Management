@@ -75,6 +75,16 @@
                         android:layout_marginHorizontal="24dp"
                         android:layout_marginBottom="16dp" />
 
+                    <!-- Phase 9 / 09-03 TBM-02 — worker TBM 카드 (D-07)
+                         watch_card_compose 아래 위치.
+                         setContent 는 HomeWorkerActivity.setupTbmCard() -->
+                    <androidx.compose.ui.platform.ComposeView
+                        android:id="@+id/tbm_card_compose"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="24dp"
+                        android:layout_marginBottom="16dp" />
+
                     <!-- 섹션 1 -->
                     <LinearLayout
                         android:layout_width="match_parent"

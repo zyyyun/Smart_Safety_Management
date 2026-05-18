@@ -39,6 +39,12 @@ import android.util.Log
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+// Phase 9 / 09-03 TBM-02 — ComposeView 임베드 (첫 manager 카드, Pitfall 12 Theme 래핑 강제)
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import com.example.smart_safety_management.tbm.TbmDashboardCardComposable
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.watch.SupabaseModule
 
 class HomeActivity : AppCompatActivity() {
 
@@ -58,6 +64,43 @@ class HomeActivity : AppCompatActivity() {
         setContentView(R.layout.main_home)
 
         initUI()
+
+        // Phase 9 / 09-03 TBM-02 — manager TBM 대시보드 카드 (D-06)
+        setupTbmDashboardCard()
+    }
+
+    /**
+     * Phase 9 / 09-03 TBM-02 — main_home.xml 의 tbm_dashboard_compose ComposeView 에
+     * TbmDashboardCardComposable 을 setContent. Pitfall 12 (HomeActivity 첫 ComposeView
+     * Theme 래핑 강제) 적용.
+     *
+     * ViewCompositionStrategy.DisposeOnLifecycleDestroyed: Activity 파괴 시 Composition
+     * 해제 → Realtime channel.unsubscribe() 호출 → WSS slot 해소 (Phase 7 D-01 패턴).
+     *
+     * 권한 가드는 TbmDashboardActivity 의 onCreate 에서 다시 검증 (manager only).
+     */
+    private fun setupTbmDashboardCard() {
+        val composeView = findViewById<ComposeView>(R.id.tbm_dashboard_compose) ?: return
+        composeView.setViewCompositionStrategy(
+            ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this)
+        )
+        val supabase = SupabaseModule.client(this)
+        val groupId = UserSession.groupId?.toIntOrNull()
+        if (groupId == null) {
+            // 그룹 미가입 시 카드 빈 영역 — 초대코드 입력 흐름이 별도로 진행 중.
+            return
+        }
+        composeView.setContent {
+            Smart_Safety_ManagementTheme {
+                TbmDashboardCardComposable(
+                    groupId = groupId,
+                    supabase = supabase,
+                    onClickDashboard = {
+                        startActivity(Intent(this@HomeActivity, TbmDashboardActivity::class.java))
+                    },
+                )
+            }
+        }
     }
 
     private val addDailyLauncher =
