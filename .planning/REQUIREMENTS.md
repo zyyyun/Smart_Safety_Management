@@ -154,9 +154,7 @@
   선택 → 템플릿 기반 위험 항목 체크리스트 (예: 화재 위험·전기·고소·중량물 등)
   → 참여 작업자 체크인 (NFC/QR/수기 서명 중 1) → 세션 종료 + Supabase 적재.
   관리자 순회 점검과 별도 메뉴.
-- [ ] **TBM-03**: TBM 참여 이력 + 미참여 알림 — 작업자별 일자별 TBM 참여 여부
-  대시보드 (관리자 화면), 출근했으나 TBM 미참여인 작업자에게 FCM 알림 (관리자
-  지정 시각 기준). 일일 안전 점검 (기존 일지 시스템) 과 동시 운용.
+- [x] **TBM-03**: TBM 참여 이력 + 미참여 알림 — Edge Function 4 case 운영 배포 (tbm-start/checkin/end/missed) + 12 smoke PASS + Pitfall 9 leader dedup 검증. 작업자별 일자별 TBM 참여 여부 대시보드 (Plan 09-03 Android UI) + 미참여 FCM 알림 (Plan 09-01 pg_cron tbm_missed_attendance_minute 1분 주기 + 본 plan 의 tbm-missed case 가 round-trip). ✓ 2026-05-18 (Phase 9 09-02, 커밋 417c203 · aeb6ddf).
 
 ---
 
@@ -225,4 +223,4 @@
 | RTSP-03   | Phase 8 | Drift X3 RTSP 실시간 카메라         | ✓ Complete (백엔드 08-02 cameras_healthcheck 0131ffa + 08-03 case camera-down/recovered c8c7b6d + scheduler health wiring 00aeedf + 08-04 backoff 검증 ~101s + recovery 검증). 5분 cron round-trip FCM 도착 = Vault sr_key Dashboard 시드 후 자연 동작 (08-04 SUMMARY User Setup Required). |
 | TBM-01    | Phase 9 | TBM 현장 작업자 가이드              | ✓ Complete (09-01 f044fac · 20d2c7f, 2026-05-18) — 013_tbm_schema.sql 운영 DB 적용 + 4 신규 테이블 + RLS + Realtime publication ADD 4 + tbm-signatures Storage + pg_cron tbm_missed_attendance_minute + 5 templates 시드 + 7/7 isolation assertions PASS |
 | TBM-02    | Phase 9 | TBM 현장 작업자 가이드              | Pending |
-| TBM-03    | Phase 9 | TBM 현장 작업자 가이드              | Pending |
+| TBM-03    | Phase 9 | TBM 현장 작업자 가이드              | ✓ Complete (09-02 417c203 · aeb6ddf, 2026-05-18) — notifications 4 case (tbm-start/checkin/end/missed) 운영 배포 (74.97kB) + 12 smoke PASS + D-09 delta=0 + T-9-02/03/04/09 mitigation + Pitfall 5·9·11 검증 + testuser1 실제 push notified_count:1 |
