@@ -1,0 +1,42 @@
+# Phase 8 plan 04 — mediamtx config for synthetic RTSP validation
+# Source: https://github.com/bluenviron/mediamtx/blob/main/mediamtx.yml
+# 5 paths (fire, helmet, forklift, person, fall) — runOnDemand 패턴 (클라이언트 connect 시 ffmpeg 자동 spawn).
+# 각 경로의 reference_media 파일 매핑은 PLAN.md interfaces 참조 (advisor #1 정정).
+# 검증 후 정리: scripts/stop_rtsp_mock.sh (Pitfall 5: taskkill /F SIGKILL 으로 RTSP TEARDOWN 회피).
+
+logLevel: info
+logDestinations: [stdout]
+rtspAddress: :8554
+
+# RTP/RTCP UDP 포트는 default (8000~8001) 유지. TCP-only 클라이언트 (cv2 OPENCV_FFMPEG_CAPTURE_OPTIONS=rtsp_transport;tcp) 도 호환.
+# disable HLS/WebRTC — 검증 단계 외부 접근 차단 (T-8-04 mitigation, localhost-only RTSP).
+hls: no
+webrtc: no
+rtmp: no
+
+paths:
+  fire:
+    # advisor #1: reference_media/fire/ 비어있음 → fire_aihub_0087.mp4 사용 (DATA-02 source)
+    runOnDemand: ffmpeg -re -stream_loop -1 -i reference_media/fire_aihub_0087.mp4 -c copy -f rtsp rtsp://localhost:$RTSP_PORT/$MTX_PATH
+    runOnDemandRestart: yes
+
+  helmet:
+    # advisor #1: reference_media/helmet/ 비어있음 → helmet_h0_demo.mp4 (DATA-01 source)
+    runOnDemand: ffmpeg -re -stream_loop -1 -i reference_media/helmet_h0_demo.mp4 -c copy -f rtsp rtsp://localhost:$RTSP_PORT/$MTX_PATH
+    runOnDemandRestart: yes
+
+  forklift:
+    # advisor #1: forklift mp4 부재 → helmet_h0_L2_09-08_001.mp4 재사용
+    # (RTSP-01 = frame 추출 + detector 호출 가능 검증, 검출 자체는 v1.1)
+    runOnDemand: ffmpeg -re -stream_loop -1 -i reference_media/helmet_h0_L2_09-08_001.mp4 -c copy -f rtsp rtsp://localhost:$RTSP_PORT/$MTX_PATH
+    runOnDemandRestart: yes
+
+  person:
+    # advisor #1: person mp4 부재 → 동일 재사용
+    runOnDemand: ffmpeg -re -stream_loop -1 -i reference_media/helmet_h0_L2_09-08_001.mp4 -c copy -f rtsp rtsp://localhost:$RTSP_PORT/$MTX_PATH
+    runOnDemandRestart: yes
+
+  fall:
+    # 정상 매핑 — reference_media/fall/E02_001.mp4
+    runOnDemand: ffmpeg -re -stream_loop -1 -i reference_media/fall/E02_001.mp4 -c copy -f rtsp rtsp://localhost:$RTSP_PORT/$MTX_PATH
+    runOnDemandRestart: yes

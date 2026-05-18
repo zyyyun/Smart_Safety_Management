@@ -57,3 +57,6 @@ ai_agent/yolov8_cache/
 # -- Firebase 서비스 계정 (FCM HTTP v1 인증용) — Supabase Secret 으로만 주입
 service-account*.json
 firebase-adminsdk*.json
+
+# -- Phase 8 RTSP 합성 검증 (mediamtx binary 30MB, 검증 도구만 — 무커밋)
+bin/
