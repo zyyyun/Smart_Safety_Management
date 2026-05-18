@@ -146,10 +146,10 @@
 
 ### 9. TBM (Tool Box Meeting) 현장 작업자 가이드 (TBM)
 
-- [ ] **TBM-01**: TBM 스키마 — `tbm_sessions` (일자·시각·작업장·리더), 
+- [x] **TBM-01**: TBM 스키마 — `tbm_sessions` (일자·시각·작업장·리더), 
   `tbm_checklists` (세션별 위험 항목·체크 상태·근거), `tbm_participants`
   (세션 참여 작업자·서명·체크인 시각), `tbm_templates` (작업 유형별 체크리스트
-  템플릿) 마이그레이션 추가.
+  템플릿) 마이그레이션 추가. ✓ 2026-05-18 (Phase 9 09-01, 커밋 f044fac · 20d2c7f).
 - [ ] **TBM-02**: TBM 가이드 화면 (Android) — 오늘 TBM 세션 시작 → 작업 유형
   선택 → 템플릿 기반 위험 항목 체크리스트 (예: 화재 위험·전기·고소·중량물 등)
   → 참여 작업자 체크인 (NFC/QR/수기 서명 중 1) → 세션 종료 + Supabase 적재.
@@ -223,6 +223,6 @@
 | RTSP-01   | Phase 8 | Drift X3 RTSP 실시간 카메라         | ✓ Complete (백엔드 08-01 capture_rtsp 715c277 + 08-03 scheduler health wiring 00aeedf + 08-04 mediamtx 합성 E2E 85370c5 — 6 cycles RTSP capture + last_frame_at 갱신 + camera_id=4 forklift detection_events 6건) |
 | RTSP-02   | Phase 8 | Drift X3 RTSP 실시간 카메라         | ⏸ DEFERRED (실기기 부재 — v1.1 6월 검단·포천 설치 직전 LP-3). 08-04 mediamtx 합성 충족 = SC #2 의 "1 cycle detection_events + 추론 ≤10s" 부분 충족 (mediamtx 로컬 ≈0초). 실기기 측정 부분만 deferred. |
 | RTSP-03   | Phase 8 | Drift X3 RTSP 실시간 카메라         | ✓ Complete (백엔드 08-02 cameras_healthcheck 0131ffa + 08-03 case camera-down/recovered c8c7b6d + scheduler health wiring 00aeedf + 08-04 backoff 검증 ~101s + recovery 검증). 5분 cron round-trip FCM 도착 = Vault sr_key Dashboard 시드 후 자연 동작 (08-04 SUMMARY User Setup Required). |
-| TBM-01    | Phase 9 | TBM 현장 작업자 가이드              | Pending |
+| TBM-01    | Phase 9 | TBM 현장 작업자 가이드              | ✓ Complete (09-01 f044fac · 20d2c7f, 2026-05-18) — 013_tbm_schema.sql 운영 DB 적용 + 4 신규 테이블 + RLS + Realtime publication ADD 4 + tbm-signatures Storage + pg_cron tbm_missed_attendance_minute + 5 templates 시드 + 7/7 isolation assertions PASS |
 | TBM-02    | Phase 9 | TBM 현장 작업자 가이드              | Pending |
 | TBM-03    | Phase 9 | TBM 현장 작업자 가이드              | Pending |
