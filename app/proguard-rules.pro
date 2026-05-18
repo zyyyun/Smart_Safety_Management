@@ -32,3 +32,9 @@
 -keepclassmembers class kotlinx.serialization.** { *; }
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.AnnotationsKt
+
+# Phase 9 / 09-03 — storage-kt 2.2.0 transitive (gotrue-kt + ktor-server-*).
+# Auth 모듈 (gotrue) 은 본 앱이 사용 X — anon key 만 운용. ktor-server-* 도 client 만 사용.
+# R8 strip 시 reflection 경고 silence.
+-dontwarn io.github.jan.supabase.gotrue.**
+-dontwarn io.ktor.server.**

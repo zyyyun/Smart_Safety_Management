@@ -156,6 +156,10 @@ dependencies {
     // 금지 (Pitfall 7): ktor okhttp engine → Retrofit 의 OkHttp 4.12.0 와 transitive 충돌, cio engine 사용
     implementation("io.github.jan-tennert.supabase:realtime-kt:2.2.0")
     implementation("io.github.jan-tennert.supabase:postgrest-kt:2.2.0")
+    // Phase 9 / 09-03 TBM-02 — Storage 모듈 (수기 서명 PNG 업로드용).
+    // ABI 호환: realtime-kt + postgrest-kt 2.2.0 와 동일 버전 강제 (Pitfall 1 — 3.x 거부 유지).
+    // Transitive: gotrue-kt:2.2.0 + ktor-server-core/cio:2.3.9 자동 (Pitfall 10 acceptable, APK +50KB).
+    implementation("io.github.jan-tennert.supabase:storage-kt:2.2.0")
     implementation("io.ktor:ktor-client-cio:2.3.9")
 
     // Phase 7 / Pitfall 2 — minSdk 24 + supabase-kt minSdk 26 → core library desugaring 필수

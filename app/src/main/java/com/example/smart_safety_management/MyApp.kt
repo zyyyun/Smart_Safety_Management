@@ -10,6 +10,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.storage.Storage
 import io.ktor.client.engine.cio.CIO
 import java.security.MessageDigest
 
@@ -25,6 +26,7 @@ class MyApp : Application() {
         ) {
             install(Realtime)
             install(Postgrest)
+            install(Storage)  // Phase 9 / 09-03 TBM-02 — 수기 서명 PNG 업로드용
             httpEngine = CIO.create()
         }
     }
