@@ -3,12 +3,14 @@
 - 카메라 목록 조회 (`live_url_detail` 있는 행만)
 - Storage에 JPEG 업로드 → 공개 URL 반환
 - system Edge Function 호출 (camera_capture)
+- cameras.last_frame_at 갱신 (Phase 8 RTSP-03 헬스체크 source)
 """
 
 from __future__ import annotations
 
 import logging
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -152,6 +154,30 @@ class SupabaseBridge:
         )
         resp.raise_for_status()
         return resp.json()
+
+    # ────────────────────────────────────────
+    # camera health (Phase 8 RTSP-03)
+    # ────────────────────────────────────────
+    def update_camera_health(self, camera_id: int) -> None:
+        """capture 성공 직후 cameras.last_frame_at = utc now 갱신.
+
+        RTSP-03 헬스체크의 진실 source — pg_cron cameras_healthcheck() 가 매 분
+        last_frame_at < now() - 5min 인 카메라를 down 으로 전이 + FCM 알림.
+
+        PostgREST 의 ``"now()"`` 문자열은 server-side eval 안 됨 (08-RESEARCH A6) →
+        Python ``datetime.now(timezone.utc).isoformat()`` 으로 ISO 문자열 전달.
+
+        실패 시 warn 만 (capture 자체는 성공한 상태 — detection/upload 흐름 차단 X).
+        scheduler 의 4 detector 진입점에서 각 cycle 마다 호출.
+        """
+        now_iso = datetime.now(timezone.utc).isoformat()
+        try:
+            self._client.table("cameras") \
+                .update({"last_frame_at": now_iso}) \
+                .eq("camera_id", camera_id) \
+                .execute()
+        except Exception as e:
+            log.warning("update_camera_health failed camera_id=%s: %s", camera_id, e)
 
     def close(self) -> None:
         self._http.close()

@@ -76,6 +76,9 @@ def _process_single_camera(
 
     try:
         capture(rtsp_url, tmp_path, ffmpeg_bin=settings.ffmpeg_bin)
+        # Phase 8 RTSP-03: capture 성공 직후 cameras.last_frame_at = now() 갱신
+        # (pg_cron cameras_healthcheck() 의 진실 source — 4 detector 모두 동일 패턴).
+        bridge.update_camera_health(camera_id)
         public_url, object_path = bridge.upload_snapshot(camera_id, tmp_path)
         response = bridge.register_periodic_capture(camera_id, public_url, object_path)
         deleted = response.get("retention", {}).get("deleted", 0)
@@ -142,6 +145,8 @@ def _process_fall_for_camera(
             ffmpeg_bin=settings.ffmpeg_bin,
             seek_seconds=settings.fall_demo_seek_sec,
         )
+        # Phase 8 RTSP-03: capture 성공 직후 헬스체크 source 갱신 (fall detector).
+        bridge.update_camera_health(camera_id)
         img = cv2.imread(str(tmp_path))
         if img is None:
             return f"[FALL_ERR] camera_id={camera_id}: cv2.imread failed"
@@ -242,6 +247,8 @@ def _process_detection_for_camera(
             ffmpeg_bin=settings.ffmpeg_bin,
             seek_seconds=settings.detectors_demo_seek_sec,
         )
+        # Phase 8 RTSP-03: capture 성공 직후 헬스체크 source 갱신 (general detector).
+        bridge.update_camera_health(camera_id)
         img = cv2.imread(str(tmp_path))
         if img is None:
             return f"[DETECT_ERR] camera_id={camera_id} event={event_key}: cv2.imread failed"
@@ -345,6 +352,8 @@ def _process_fusion_for_camera(
             ffmpeg_bin=settings.ffmpeg_bin,
             seek_seconds=settings.detectors_demo_seek_sec,
         )
+        # Phase 8 RTSP-03: capture 성공 직후 헬스체크 source 갱신 (fusion detector).
+        bridge.update_camera_health(camera_id)
         img = cv2.imread(str(tmp_path))
     except Exception as exc:
         return f"[FUSION_ERR] camera_id={camera_id} fusion={fusion_key}: capture failed: {exc}"
