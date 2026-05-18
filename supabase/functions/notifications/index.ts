@@ -336,6 +336,105 @@ Deno.serve(async (req) => {
         }
       }
 
+      // ──────────────────────────────────────────
+      // CAMERA-DOWN — Phase 8 RTSP-03 (per 08-CONTEXT.md D-03 / 08-RESEARCH §Pattern 4)
+      // ──────────────────────────────────────────
+      // pg_cron (012_cameras_health.sql cameras_healthcheck()) 가 5분 무수신 카메라마다
+      // service_role JWT 로 호출. cron 자체가 30분 cooldown + last_alert_at + 상태 전이
+      // 책임 (D-09 알림 전이 원칙) — 본 케이스는 push-only. notifications insert 없음
+      // (회귀 가드: 본 case 호출로 notifications row 증가 0).
+      //
+      // C5 정정 (RESEARCH 정정 #5): manager 권한 사용자 N명 → sendPushToUsers (plural).
+      // Phase 4 watch-alert (single-recipient) 패턴 복사 금지.
+      //
+      // C4 정정 (RESEARCH 정정 #4 / Pitfall 3): Option B (deadline 우선) — Android
+      // channel_id 명시 X. fcm_default_channel 재사용 (Android 코드 변경 0). v1.1
+      // 에서 'camera_alerts' 채널 분리.
+      case "camera-down": {
+        const { camera_id, group_id, last_frame_at } = body;
+        if (!camera_id || group_id === undefined || group_id === null) {
+          return err("camera_id and group_id are required");
+        }
+
+        // 카메라 메타 (알림 본문용 — install_area 등)
+        const { data: cam, error: camErr } = await supabase
+          .from("cameras")
+          .select("camera_id, device_name, install_area")
+          .eq("camera_id", camera_id)
+          .maybeSingle();
+        if (camErr) return err(camErr.message, 500);
+
+        // manager 권한 사용자 N명 (정정 #5 — plural)
+        const { data: managers, error: mgrErr } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("group_id", group_id)
+          .in("user_role", ["manager", "general_manager"]);
+        if (mgrErr) return err(mgrErr.message, 500);
+
+        const userIds = (managers ?? []).map((m: { user_id: string }) => m.user_id);
+        if (userIds.length === 0) {
+          return ok({ ok: true, sent: 0, failed: 0, skipped: 0, reason: "no managers in group" });
+        }
+
+        const camName = cam?.device_name ?? `camera-${camera_id}`;
+        const camArea = cam?.install_area ?? "";
+        const r = await sendPushToUsers(supabase, userIds, {
+          title: "카메라 통신두절",
+          body: `${camName} (${camArea}) 5분 이상 frame 무수신`,
+          data: {
+            type: "camera_alert",
+            camera_id: String(camera_id),
+            severity: "WARNING",
+            last_frame_at: String(last_frame_at ?? ""),
+          },
+        });
+        return ok({ ok: true, sent: r.sent, failed: r.failed, skipped: r.skipped });
+      }
+
+      // ──────────────────────────────────────────
+      // CAMERA-RECOVERED — Phase 8 RTSP-03 회복 알림 (D-09 종료 알림 패턴)
+      // ──────────────────────────────────────────
+      // down→ok 전이 시점에 cron 함수가 1회 호출. camera-down 사본 — 텍스트만 변경.
+      // last_frame_at 은 회복 알림에 불필요 (방금 frame 수신했음 = recover trigger).
+      case "camera-recovered": {
+        const { camera_id, group_id } = body;
+        if (!camera_id || group_id === undefined || group_id === null) {
+          return err("camera_id and group_id are required");
+        }
+
+        const { data: cam } = await supabase
+          .from("cameras")
+          .select("camera_id, device_name, install_area")
+          .eq("camera_id", camera_id)
+          .maybeSingle();
+
+        const { data: managers, error: mgrErr } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("group_id", group_id)
+          .in("user_role", ["manager", "general_manager"]);
+        if (mgrErr) return err(mgrErr.message, 500);
+
+        const userIds = (managers ?? []).map((m: { user_id: string }) => m.user_id);
+        if (userIds.length === 0) {
+          return ok({ ok: true, sent: 0, failed: 0, skipped: 0, reason: "no managers in group" });
+        }
+
+        const camName = cam?.device_name ?? `camera-${camera_id}`;
+        const camArea = cam?.install_area ?? "";
+        const r = await sendPushToUsers(supabase, userIds, {
+          title: "카메라 회복",
+          body: `${camName} (${camArea}) frame 수신 재개`,
+          data: {
+            type: "camera_alert",
+            camera_id: String(camera_id),
+            severity: "NORMAL",
+          },
+        });
+        return ok({ ok: true, sent: r.sent, failed: r.failed, skipped: r.skipped });
+      }
+
       default:
         return err(`Unknown action: ${action}`);
     }
