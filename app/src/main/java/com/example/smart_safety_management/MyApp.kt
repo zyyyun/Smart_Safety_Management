@@ -40,8 +40,16 @@ class MyApp : Application() {
         // 발급받은 카카오맵 네이티브 앱 키
         KakaoMapSdk.init(this, "SAMPLE_NATIVE_APP_KEY")
 
-        // supabase 는 by lazy — 첫 사용 (Realtime 구독 / PostgREST select) 시점에 WSS 연결.
-        // 앱 시작 시 미리 connect 하지 않음 (모든 사용자가 워치 사용자가 아니므로 zero-cost 시작).
+        // 2026-05-19 fix: SupabaseClient by-lazy 사전 warm-up.
+        // 첫 진입 (SettingDeviceManagement / TBM 카드) 시 lazy block 의 CIO+Realtime+
+        // Postgrest+Storage install 비용이 main thread 에 부하 → cold-start 예외 또는
+        // ANR → Activity 강제 종료 ("첫 진입 튕김"). 백그라운드 thread 에서 미리 인스턴스
+        // 생성하면 사용자가 화면 진입할 시점엔 이미 ready 상태.
+        // 단, WSS 연결은 첫 channel.subscribe() 시점에 시작 — 트래픽 비용 zero.
+        Thread {
+            runCatching { supabase }
+                .onFailure { android.util.Log.w("MyApp", "Supabase warm-up failed: ${it.message}", it) }
+        }.start()
     }
 
     private fun printKeyHash() {

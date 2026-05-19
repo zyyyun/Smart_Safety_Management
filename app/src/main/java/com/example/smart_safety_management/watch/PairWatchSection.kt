@@ -88,28 +88,47 @@ fun PairWatchSection(supabase: SupabaseClient) {
     val api = remember { buildPairApi() }
 
     // 초기 fetch + Realtime 구독 (devices 의 본 user_id row UPDATE)
+    // 2026-05-19 fix: 전체 try-catch 추가 — SupabaseClient by-lazy cold-start 또는
+    // PostgREST/Realtime 첫 호출 예외가 LaunchedEffect 밖으로 propagation 되면 Compose
+    // runtime → Activity crash → 사용자 "첫 진입 시 튕김" 증상. 예외 무시 + 로그만 남김
+    // (다음 composition 또는 사용자 액션에서 재시도 가능).
     LaunchedEffect(Unit) {
-        val userId = UserSession.userId ?: return@LaunchedEffect
-        device = supabase.from("devices").select {
-            filter {
-                eq("user_id", userId)
-                eq("device_type", "WATCH")
-            }
-            limit(1)
-        }.decodeSingleOrNull<DeviceRow>()
-
-        val ch = supabase.channel("devices_user:$userId")
-        val flow = ch.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
-            table = "devices"
-            filter("user_id", FilterOperator.EQ, userId)
-        }
-        ch.subscribe()
         try {
-            flow.collectLatest { action ->
-                device = action.decodeRecord<DeviceRow>()
+            val userId = UserSession.userId ?: return@LaunchedEffect
+            device = runCatching {
+                supabase.from("devices").select {
+                    filter {
+                        eq("user_id", userId)
+                        eq("device_type", "WATCH")
+                    }
+                    limit(1)
+                }.decodeSingleOrNull<DeviceRow>()
+            }.getOrElse { e ->
+                android.util.Log.w("PairWatchSection", "Initial devices fetch failed: ${e.message}", e)
+                null
             }
-        } finally {
-            ch.unsubscribe()
+
+            val ch = supabase.channel("devices_user:$userId")
+            val flow = ch.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
+                table = "devices"
+                filter("user_id", FilterOperator.EQ, userId)
+            }
+            try {
+                ch.subscribe()
+            } catch (e: Exception) {
+                android.util.Log.w("PairWatchSection", "Realtime subscribe failed: ${e.message}", e)
+                return@LaunchedEffect
+            }
+            try {
+                flow.collectLatest { action ->
+                    runCatching { device = action.decodeRecord<DeviceRow>() }
+                        .onFailure { android.util.Log.w("PairWatchSection", "decodeRecord failed", it) }
+                }
+            } finally {
+                runCatching { ch.unsubscribe() }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("PairWatchSection", "LaunchedEffect fatal: ${e.message}", e)
         }
     }
 
