@@ -185,11 +185,28 @@ fun PairWatchSection(supabase: SupabaseClient) {
                                 ),
                             )
                             resultDialog = when {
-                                resp.isSuccessful && resp.body()?.ok == true -> PairResultDialog(
-                                    title = "등록 완료",
-                                    message = "워치가 정상적으로 등록되었습니다.\nMAC: $normalized",
-                                    isSuccess = true,
-                                )
+                                resp.isSuccessful && resp.body()?.ok == true -> {
+                                    // 2026-05-19 fix: 등록 성공 시 device state 즉시 local update.
+                                    // Realtime postgresChangeFlow<Update> 가 cold-start/RLS 로
+                                    // silent fail 하면 UI 가 UNPAIRED 그대로 → "등록 후 변화 없음"
+                                    // 증상. WatchPairResponse 의 device_id 를 신뢰 + 나머지는 알고
+                                    // 있는 값 (userId, MAC, "WATCH") 으로 채움. last_comm_at 은
+                                    // null 유지 → computeStatus 가 DISCONNECTED 반환 (BLE 아직
+                                    // 통신 전, 정상).
+                                    val newDeviceId = resp.body()?.device_id ?: 0
+                                    device = DeviceRow(
+                                        deviceId = newDeviceId,
+                                        deviceType = "WATCH",
+                                        macAddress = normalized,
+                                        userId = userId,
+                                        lastCommAt = null,
+                                    )
+                                    PairResultDialog(
+                                        title = "등록 완료",
+                                        message = "워치가 정상적으로 등록되었습니다.\nMAC: $normalized",
+                                        isSuccess = true,
+                                    )
+                                }
                                 resp.code() == 409 -> PairResultDialog(
                                     title = "등록 실패",
                                     message = "이미 다른 사용자에게 등록된 워치입니다.\n관리자에게 문의하세요.",
@@ -248,6 +265,10 @@ fun PairWatchSection(supabase: SupabaseClient) {
                                 ),
                             )
                             resultDialog = if (resp.isSuccessful) {
+                                // 2026-05-19 fix: 해제 성공 시 device state 즉시 local clear.
+                                // 등록 path 와 동일하게 Realtime 의존성 제거. device=null 로
+                                // status → UNPAIRED → 입력 필드 + 등록 버튼 재표시.
+                                device = null
                                 PairResultDialog(
                                     title = "해제 완료",
                                     message = "워치 페어링이 해제되었습니다.",
