@@ -1,5 +1,6 @@
 package com.example.smart_safety_management.tbm
 
+import com.google.gson.annotations.SerializedName
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -73,13 +74,18 @@ enum class ChangeKind { INSERT, UPDATE, DELETE }
 // (Plan 09-02 의 tbm-start / tbm-checkin / tbm-end / tbm-missed)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// 2026-05-19 fix: Retrofit 은 GsonConverterFactory 사용 → Gson 은 kotlinx.serialization
+// 의 @SerialName 어노테이션을 무시함. snake_case ↔ camelCase 매핑을 강제하려면 Gson
+// 의 @SerializedName 어노테이션을 dual 로 부착해야 함. 미부착 시 Gson 이 Kotlin 필드명
+// (camelCase: leaderUserId) 그대로 JSON 키로 직렬화 → Edge Function 의 snake_case 키
+// (leader_user_id) 와 mismatch → 400 "필수 항목 누락 또는 형식 오류" 응답.
 @Serializable
 data class TbmStartRequest(
     val action: String = "tbm-start",
-    @SerialName("leader_user_id") val leaderUserId: String,
-    @SerialName("group_id") val groupId: Int,
-    @SerialName("work_type") val workType: String,
-    @SerialName("expected_end_at") val expectedEndAt: String,
+    @SerialName("leader_user_id") @SerializedName("leader_user_id") val leaderUserId: String,
+    @SerialName("group_id") @SerializedName("group_id") val groupId: Int,
+    @SerialName("work_type") @SerializedName("work_type") val workType: String,
+    @SerialName("expected_end_at") @SerializedName("expected_end_at") val expectedEndAt: String,
     val location: String? = null,
     val notes: String? = null,
 )
@@ -87,25 +93,25 @@ data class TbmStartRequest(
 @Serializable
 data class TbmStartResponse(
     val ok: Boolean? = null,
-    @SerialName("session_id") val sessionId: Long? = null,
-    @SerialName("checklist_count") val checklistCount: Int? = null,
-    @SerialName("notified_count") val notifiedCount: Int? = null,
+    @SerialName("session_id") @SerializedName("session_id") val sessionId: Long? = null,
+    @SerialName("checklist_count") @SerializedName("checklist_count") val checklistCount: Int? = null,
+    @SerialName("notified_count") @SerializedName("notified_count") val notifiedCount: Int? = null,
     val error: String? = null,
 )
 
 @Serializable
 data class TbmCheckinRequest(
     val action: String = "tbm-checkin",
-    @SerialName("session_id") val sessionId: Long,
-    @SerialName("user_id") val userId: String,
-    @SerialName("signature_url") val signatureUrl: String? = null,
+    @SerialName("session_id") @SerializedName("session_id") val sessionId: Long,
+    @SerialName("user_id") @SerializedName("user_id") val userId: String,
+    @SerialName("signature_url") @SerializedName("signature_url") val signatureUrl: String? = null,
 )
 
 @Serializable
 data class TbmCheckinResponse(
     val ok: Boolean? = null,
-    @SerialName("participant_id") val participantId: Long? = null,
-    @SerialName("signed_at") val signedAt: String? = null,
+    @SerialName("participant_id") @SerializedName("participant_id") val participantId: Long? = null,
+    @SerialName("signed_at") @SerializedName("signed_at") val signedAt: String? = null,
     val idempotent: Boolean? = null,
     val error: String? = null,
 )
@@ -113,14 +119,14 @@ data class TbmCheckinResponse(
 @Serializable
 data class TbmEndRequest(
     val action: String = "tbm-end",
-    @SerialName("session_id") val sessionId: Long,
-    @SerialName("leader_user_id") val leaderUserId: String,
+    @SerialName("session_id") @SerializedName("session_id") val sessionId: Long,
+    @SerialName("leader_user_id") @SerializedName("leader_user_id") val leaderUserId: String,
 )
 
 @Serializable
 data class TbmEndResponse(
     val ok: Boolean? = null,
-    @SerialName("ended_at") val endedAt: String? = null,
-    @SerialName("participant_count") val participantCount: Int? = null,
+    @SerialName("ended_at") @SerializedName("ended_at") val endedAt: String? = null,
+    @SerialName("participant_count") @SerializedName("participant_count") val participantCount: Int? = null,
     val error: String? = null,
 )
