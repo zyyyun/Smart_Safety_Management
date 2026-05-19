@@ -94,7 +94,11 @@ fun PairWatchSection(supabase: SupabaseClient) {
     // (다음 composition 또는 사용자 액션에서 재시도 가능).
     LaunchedEffect(Unit) {
         try {
-            val userId = UserSession.userId ?: return@LaunchedEffect
+            val userId = UserSession.userId ?: run {
+                android.util.Log.w("PairWatchSection", "UserSession.userId is null — skip fetch")
+                return@LaunchedEffect
+            }
+            android.util.Log.i("PairWatchSection", "Initial fetch start: user_id=$userId")
             device = runCatching {
                 supabase.from("devices").select {
                     filter {
@@ -107,6 +111,10 @@ fun PairWatchSection(supabase: SupabaseClient) {
                 android.util.Log.w("PairWatchSection", "Initial devices fetch failed: ${e.message}", e)
                 null
             }
+            android.util.Log.i(
+                "PairWatchSection",
+                "Initial fetch result: device=${device?.let { "id=${it.deviceId} mac=${it.macAddress} last_comm_at=${it.lastCommAt}" } ?: "null"}"
+            )
 
             val ch = supabase.channel("devices_user:$userId")
             val flow = ch.postgresChangeFlow<PostgresAction.Update>(schema = "public") {

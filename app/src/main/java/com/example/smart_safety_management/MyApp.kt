@@ -10,8 +10,10 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.serializer.KotlinXSerializer
 import io.github.jan.supabase.storage.Storage
 import io.ktor.client.engine.cio.CIO
+import kotlinx.serialization.json.Json
 import java.security.MessageDigest
 
 class MyApp : Application() {
@@ -28,6 +30,14 @@ class MyApp : Application() {
             install(Postgrest)
             install(Storage)  // Phase 9 / 09-03 TBM-02 — 수기 서명 PNG 업로드용
             httpEngine = CIO.create()
+            // 2026-05-19 fix: 응답 JSON 의 unknown 필드 무시. 002_tables.sql 의 devices
+            // 가 5 추가 컬럼 (serial_number/battery_level/gps_status/updated_at/firmware_version)
+            // 을 anon 응답에 포함 → strict mode 면 SerializationException → fetch null →
+            // PairWatchSection 재진입 시 paired 상태 손실. lenient mode 로 모든 decode 안전.
+            defaultSerializer = KotlinXSerializer(Json {
+                ignoreUnknownKeys = true
+                coerceInputValues = true  // null → default value coercion (e.g., Boolean? null → false default)
+            })
         }
     }
 

@@ -47,6 +47,16 @@ data class DeviceRow(
     @SerialName("mac_address") val macAddress: String? = null,
     @SerialName("user_id") val userId: String? = null,
     @SerialName("last_comm_at") val lastCommAt: String? = null,
+    // 2026-05-19 fix: 002_tables.sql devices 의 추가 컬럼 — anon PostgREST 응답에
+    // 포함됨. kotlinx.serialization strict mode 가 unknown 필드 만나면
+    // SerializationException → decodeSingleOrNull null 반환 → PairWatchSection
+    // 이 재진입 시 paired row 못 가져옴 → "매번 등록해야 함" 증상.
+    // 모두 옵션 필드로 추가해서 strict/lenient 양쪽에서 동작.
+    @SerialName("serial_number") val serialNumber: String? = null,
+    @SerialName("battery_level") val batteryLevel: Int? = null,
+    @SerialName("gps_status") val gpsStatus: String? = null,
+    @SerialName("updated_at") val updatedAt: String? = null,
+    @SerialName("firmware_version") val firmwareVersion: String? = null,
 )
 
 // Retrofit payload — Edge Function 'watch-ack'
