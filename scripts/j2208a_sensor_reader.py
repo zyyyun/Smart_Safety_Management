@@ -40,19 +40,46 @@ from bleak import BleakClient, BleakScanner
 # ──────────────────────────────────────────
 # j2208a 파이프라인 통합 (per CONTEXT.md D-04 인라인 통합)
 # ──────────────────────────────────────────
-# 실행 위치: PYTHONPATH 가 repo root 를 포함해야 함. 권장 실행 패턴:
-#   cd D:/2026_산업안전/Smart_Safety_Management
-#   python scripts/j2208a_sensor_reader.py
-# 또는 모듈 실행:
-#   python -m scripts.j2208a_sensor_reader
+# 2026-05-19 fix: 실행 패턴 무관하게 repo root 를 sys.path 에 자동 주입.
+# `python scripts/j2208a_sensor_reader.py` 실행 시 sys.path[0] 은 scripts/
+# 디렉터리. cwd 와 무관. → j2208a/ (repo root 의 sibling) 를 못 찾음.
+# 이 스크립트 파일 위치 (scripts/) 의 부모 = repo root 를 강제 prepend.
+import os as _os  # noqa: E402
+_REPO_ROOT = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), ".."))
+if _REPO_ROOT not in sys.path:
+    sys.path.insert(0, _REPO_ROOT)
+# 이전 권장 패턴 (PYTHONPATH 또는 `python -m scripts.j2208a_sensor_reader`) 도 동작.
 # import 실패 시 BLE 데몬은 계속 동작하되 DB write/알림이 비활성화 (개발 fallback).
 try:
     from j2208a.runtime import process_sample  # noqa: E402
     _RUNTIME_OK = True
+    print(f"[+] j2208a.runtime import 성공 (repo_root={_REPO_ROOT}) — DB write/알림 활성")
 except ImportError as _imp_err:
     print(f"[!] j2208a.runtime import 실패 — DB write/알림 비활성화: {_imp_err}")
+    print(f"    sys.path[0]={sys.path[0]}, repo_root 주입 시도={_REPO_ROOT}")
     process_sample = None  # type: ignore[assignment]
     _RUNTIME_OK = False
+
+# Supabase env var 진단 — service_role_key 부재 시 insert/heartbeat 모두 silent fail.
+# 사용자에게 명확한 안내 출력.
+if _RUNTIME_OK:
+    _supa_url = _os.environ.get("SUPABASE_URL")
+    _supa_key = _os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if not _supa_url or not _supa_key:
+        print("[!] Supabase env var 누락 — DB 적재가 silent fail 합니다:")
+        if not _supa_url:
+            print("    - SUPABASE_URL 미설정 (예: https://xbjqxnvemcqubjfflain.supabase.co)")
+        if not _supa_key:
+            print("    - SUPABASE_SERVICE_ROLE_KEY 미설정 (Dashboard → Settings → API → service_role)")
+        print("    PowerShell 예: ")
+        print('      $env:SUPABASE_URL="https://xbjqxnvemcqubjfflain.supabase.co"')
+        print('      $env:SUPABASE_SERVICE_ROLE_KEY="<service_role JWT>"')
+        print('      $env:TEST_DEVICE_ID="1"  # Plan 09-01 seed 정합 (testuser1 워치)')
+        print('      $env:TEST_USER_ID="testuser1"')
+    else:
+        _device_id = _os.environ.get("TEST_DEVICE_ID", "1")
+        _user_id = _os.environ.get("TEST_USER_ID", "testuser1")
+        print(f"[+] Supabase 적재 활성 (device_id={_device_id}, user_id={_user_id})")
 
 # -------------------------------------------------------------------
 # UUID  (출처: BleService.java)
