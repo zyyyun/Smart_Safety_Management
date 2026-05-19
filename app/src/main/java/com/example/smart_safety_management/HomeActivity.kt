@@ -85,11 +85,9 @@ class HomeActivity : AppCompatActivity() {
             ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this)
         )
         val supabase = SupabaseModule.client(this)
-        val groupId = UserSession.groupId?.toIntOrNull()
-        if (groupId == null) {
-            // 그룹 미가입 시 카드 빈 영역 — 초대코드 입력 흐름이 별도로 진행 중.
-            return
-        }
+        // 2026-05-19: PoC 한정 fallback — group_id 미설정 시 1 (Plan 09-01 seed group) 사용.
+        // 카드를 어떤 계정으로 들어가도 항상 표시. v1.1 정상 운영 시 toIntOrNull() ?: return 으로 복원.
+        val groupId = UserSession.groupId?.toIntOrNull() ?: 1
         composeView.setContent {
             Smart_Safety_ManagementTheme {
                 TbmDashboardCardComposable(

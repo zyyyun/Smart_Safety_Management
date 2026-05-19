@@ -39,7 +39,7 @@ class SplashActivity : AppCompatActivity() {
                 UserSession.userName = "테스트"
                 UserSession.userRole = UserRole.MANAGER
                 UserSession.isInviteChecked = true
-                UserSession.groupId = "test_group"
+                UserSession.groupId = "1"  // 2026-05-19: Plan 09-01 seed (testuser1·_w1·_w2·_w3 모두 group_id=1) 정합. Phase 7·9 카드 표시용 — 'test_group' 은 toIntOrNull()=null 이라 TBM/Watch 카드 setup early-return.
                 UserSession.inviteCode = "TEST"
                 UserSession.saveSession(this@SplashActivity)
                 moveToHome()

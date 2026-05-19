@@ -1,7 +1,6 @@
 package com.example.smart_safety_management
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.example.smart_safety_management.tbm.TbmWorkerScreen
@@ -25,16 +24,10 @@ class TbmWorkerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val userId = UserSession.userId ?: run {
-            Toast.makeText(this, "사용자 정보를 찾을 수 없습니다", Toast.LENGTH_SHORT).show()
-            finish()
-            return
-        }
-        val groupId = UserSession.groupId?.toIntOrNull() ?: run {
-            Toast.makeText(this, "그룹 정보가 없습니다. 초대코드를 먼저 입력해주세요", Toast.LENGTH_LONG).show()
-            finish()
-            return
-        }
+        // 2026-05-19: PoC 한정 fallback — userId/groupId 미설정 시 test_user / group_id=1 (Plan 09-01 seed) 사용.
+        // 어떤 계정으로 들어가도 진입 가능. v1.1 정상 운영 시 ?: finish() 로 복원.
+        val userId = UserSession.userId ?: "test_user"
+        val groupId = UserSession.groupId?.toIntOrNull() ?: 1
 
         val sessionHintFromFcm = intent.getLongExtra(EXTRA_SESSION_ID, -1L).takeIf { it > 0 }
 
