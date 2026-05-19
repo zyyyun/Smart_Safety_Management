@@ -48,8 +48,15 @@ from .supabase_writer import (
     insert_raw_event,
     insert_safety_alert,
     insert_wear_state_event,
+    update_device_last_comm_at,
     update_safety_alert_resolved,
 )
+
+
+# Phase 7 BRIDGE-01 — devices.last_comm_at heartbeat throttle (seconds).
+# 60 sec: Phase 7 D-04 의 5분 임계의 1/5 — DISCONNECTED 전이 명확히 detect 가능 +
+# DB 부하 최소화 (분당 1× PATCH per device, Phase 8 D-09 "분당 ≈20×" 대비 1/20).
+HEARTBEAT_INTERVAL_SEC = 60.0
 from .validate import Sample, validate_sample
 
 
@@ -82,6 +89,9 @@ class RuntimeState:
     # COMMS_LOST is skipped when None — prevents phantom WARNING on first
     # process_sample call.
     last_raw_ts: Optional[float] = None
+    # Phase 7 BRIDGE-01 — devices.last_comm_at 마지막 UPDATE 시각 (throttle 용).
+    # None = 아직 한 번도 UPDATE 안 함 (cold-start) → 첫 packet 도착 시 즉시 1회 발사.
+    last_heartbeat_ts: Optional[float] = None
     # Most recent alert_id per type — used to attach Edge Function payload to
     # the matching DB row when emitting a resolution event.
     last_alert_ids: dict = field(default_factory=lambda: {
@@ -194,6 +204,17 @@ def process_sample(
         insert_raw_event(client, DEVICE_ID, ts_iso, cmd, raw_hex, parsed)
     except Exception as e:
         print(f"[runtime] insert_raw_event failed: {e}")
+
+    # Phase 7 BRIDGE-01 — devices.last_comm_at heartbeat (throttled).
+    # 첫 packet 도착 시 즉시 1회 발사 (cold-start → CONNECTED 빠른 전환) +
+    # 이후 HEARTBEAT_INTERVAL_SEC (60s) 마다 1회. Phase 7 D-04 의 5분 임계 대비
+    # 5× 안전 margin. Phase 8 D-09 cameras.last_frame_at 패턴 미러.
+    if rt.last_heartbeat_ts is None or (now_ts - rt.last_heartbeat_ts) >= HEARTBEAT_INTERVAL_SEC:
+        try:
+            update_device_last_comm_at(client, DEVICE_ID, ts_iso)
+            rt.last_heartbeat_ts = now_ts
+        except Exception as e:
+            print(f"[runtime] update_device_last_comm_at failed: {e}")
 
     hr = parsed.get("heart_rate")
     temp = parsed.get("temperature_c")

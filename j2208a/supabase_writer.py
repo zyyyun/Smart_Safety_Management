@@ -170,6 +170,33 @@ def update_safety_alert_resolved(
     ).execute()
 
 
+def update_device_last_comm_at(
+    client: Any,
+    device_id: int,
+    ts_iso: str,
+) -> None:
+    """Update devices.last_comm_at — Phase 7 BRIDGE-01 CONNECTED status trigger.
+
+    Called by runtime.process_sample on every accepted (non-0x28) packet.
+    runtime layer throttles the call to once per 60s per device to avoid
+    DB hammering (Phase 8 D-09 pattern: rate-limited heartbeat). Phase 7
+    PairWatchSection.computeStatus() interprets:
+       last_comm_at <  now() - 5min  → DISCONNECTED  ("끊김" 노랑)
+       last_comm_at >= now() - 5min  → CONNECTED     ("연결됨" 초록)
+
+    Failure is swallowed (Log.warning equivalent) — heartbeat is best-effort,
+    must NEVER break the BLE pipeline. Phase 8 D-09 cameras.last_frame_at
+    pattern 1:1 mirror.
+    """
+    try:
+        client.table("devices").update(
+            {"last_comm_at": ts_iso}
+        ).eq("device_id", device_id).execute()
+    except Exception as e:  # pragma: no cover - 네트워크 transient
+        # 의도된 silent fail — BLE 루프 절대 차단 X
+        print(f"[!] update_device_last_comm_at failed (device_id={device_id}): {e}")
+
+
 # ===================================================================
 # Edge Function call — FCM push (D-12)
 # ===================================================================

@@ -297,3 +297,68 @@ def test_D14_cmd_0x28_does_not_update_last_raw_ts():
         f"0x09 failed to update last_raw_ts (got "
         f"{runtime._runtime.last_raw_ts})"
     )
+
+
+# ──────────────────────────────────────────
+# RT-9·10: Phase 7 BRIDGE-01 — devices.last_comm_at heartbeat (throttled)
+# ──────────────────────────────────────────
+def test_RT9_heartbeat_fires_on_cold_start():
+    """Phase 7 BRIDGE-01 — 첫 packet 도착 시 즉시 1회 devices UPDATE 발사
+    (last_heartbeat_ts == None → 즉시 발사 + last_heartbeat_ts 갱신)."""
+    client = MagicMock()
+    alert_caller = MagicMock(return_value=True)
+    runtime.process_sample(
+        {"heart_rate": 70, "temperature_c": 36.5}, "raw", 0x09,
+        now_ts=1_700_000_000.0,
+        client=client, alert_caller=alert_caller,
+    )
+    # devices table must be touched (heartbeat path)
+    assert "devices" in _table_calls(client), (
+        f"devices.last_comm_at UPDATE not fired on cold-start. "
+        f"Calls: {_table_calls(client)}"
+    )
+    # last_heartbeat_ts updated
+    assert runtime._runtime.last_heartbeat_ts == 1_700_000_000.0, (
+        f"last_heartbeat_ts not updated. "
+        f"Got {runtime._runtime.last_heartbeat_ts}"
+    )
+
+
+def test_RT10_heartbeat_throttled_within_interval():
+    """Phase 7 BRIDGE-01 — HEARTBEAT_INTERVAL_SEC=60 이내 재발사 차단.
+    첫 0x09 패킷 → devices UPDATE 1회. 30s 후 0x09 → 추가 UPDATE 0회.
+    61s 후 0x09 → 추가 UPDATE 1회 (throttle 만료)."""
+    client = MagicMock()
+    alert_caller = MagicMock(return_value=True)
+    # cold-start fire
+    runtime.process_sample(
+        {"heart_rate": 70, "temperature_c": 36.5}, "raw1", 0x09,
+        now_ts=1_700_000_000.0,
+        client=client, alert_caller=alert_caller,
+    )
+    devices_count_1 = sum(1 for c in _table_calls(client) if c == "devices")
+
+    # +30s within throttle window — no additional UPDATE
+    runtime.process_sample(
+        {"heart_rate": 71, "temperature_c": 36.6}, "raw2", 0x09,
+        now_ts=1_700_000_030.0,
+        client=client, alert_caller=alert_caller,
+    )
+    devices_count_2 = sum(1 for c in _table_calls(client) if c == "devices")
+    assert devices_count_2 == devices_count_1, (
+        f"Throttle violated — devices UPDATE fired within 60s interval. "
+        f"count_at_0s={devices_count_1}, count_at_30s={devices_count_2}"
+    )
+
+    # +61s after first — throttle window expired, fire again
+    runtime.process_sample(
+        {"heart_rate": 72, "temperature_c": 36.7}, "raw3", 0x09,
+        now_ts=1_700_000_061.0,
+        client=client, alert_caller=alert_caller,
+    )
+    devices_count_3 = sum(1 for c in _table_calls(client) if c == "devices")
+    assert devices_count_3 == devices_count_1 + 1, (
+        f"devices UPDATE not re-fired after throttle expiry. "
+        f"count_at_0s={devices_count_1}, count_at_61s={devices_count_3} "
+        f"(expected {devices_count_1 + 1})"
+    )
