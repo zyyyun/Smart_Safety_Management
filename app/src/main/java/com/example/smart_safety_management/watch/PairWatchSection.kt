@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -68,12 +70,19 @@ internal fun computeStatus(device: DeviceRow?): WatchStatus {
     return if (staleMin < 5) WatchStatus.CONNECTED else WatchStatus.DISCONNECTED
 }
 
+/** 페어링/언페어링 결과 모달 상태. null = 비표시. */
+internal data class PairResultDialog(
+    val title: String,
+    val message: String,
+    val isSuccess: Boolean,
+)
+
 @Composable
 fun PairWatchSection(supabase: SupabaseClient) {
     var macInput by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
     var pairing by remember { mutableStateOf(false) }
-    var pairResult by remember { mutableStateOf<String?>(null) }
+    var resultDialog by remember { mutableStateOf<PairResultDialog?>(null) }
     var device by remember { mutableStateOf<DeviceRow?>(null) }
     val scope = rememberCoroutineScope()
     val api = remember { buildPairApi() }
@@ -127,10 +136,22 @@ fun PairWatchSection(supabase: SupabaseClient) {
                     val normalized = MacAddressValidator.normalize(macInput)
                     if (!MacAddressValidator.isValid(normalized)) {
                         isError = true
-                        pairResult = "MAC 형식이 올바르지 않습니다"
+                        resultDialog = PairResultDialog(
+                            title = "MAC 형식 오류",
+                            message = "MAC 주소 형식이 올바르지 않습니다.\n예: 21:02:02:06:01:69 (콜론 5개)",
+                            isSuccess = false,
+                        )
                         return@Button
                     }
-                    val userId = UserSession.userId ?: return@Button
+                    val userId = UserSession.userId
+                    if (userId.isNullOrBlank()) {
+                        resultDialog = PairResultDialog(
+                            title = "로그인 필요",
+                            message = "사용자 세션이 만료되었습니다. 앱을 재시작해주세요.",
+                            isSuccess = false,
+                        )
+                        return@Button
+                    }
                     pairing = true
                     scope.launch {
                         try {
@@ -144,14 +165,34 @@ fun PairWatchSection(supabase: SupabaseClient) {
                                     op = "pair",
                                 ),
                             )
-                            pairResult = when {
-                                resp.isSuccessful && resp.body()?.ok == true -> "✓ 등록됨"
-                                resp.code() == 409 -> "이미 다른 사용자에게 등록된 워치입니다"
-                                resp.code() == 400 -> "MAC 형식 오류"
-                                else -> "오류 (${resp.code()})"
+                            resultDialog = when {
+                                resp.isSuccessful && resp.body()?.ok == true -> PairResultDialog(
+                                    title = "등록 완료",
+                                    message = "워치가 정상적으로 등록되었습니다.\nMAC: $normalized",
+                                    isSuccess = true,
+                                )
+                                resp.code() == 409 -> PairResultDialog(
+                                    title = "등록 실패",
+                                    message = "이미 다른 사용자에게 등록된 워치입니다.\n관리자에게 문의하세요.",
+                                    isSuccess = false,
+                                )
+                                resp.code() == 400 -> PairResultDialog(
+                                    title = "등록 실패",
+                                    message = "MAC 주소 형식이 올바르지 않습니다 (서버 검증 실패).",
+                                    isSuccess = false,
+                                )
+                                else -> PairResultDialog(
+                                    title = "등록 실패",
+                                    message = "서버 오류가 발생했습니다 (HTTP ${resp.code()}).\n잠시 후 다시 시도해주세요.",
+                                    isSuccess = false,
+                                )
                             }
                         } catch (e: Exception) {
-                            pairResult = "네트워크 오류"
+                            resultDialog = PairResultDialog(
+                                title = "네트워크 오류",
+                                message = "서버와 통신할 수 없습니다.\n인터넷 연결을 확인해주세요.\n\n상세: ${e.message ?: e.javaClass.simpleName}",
+                                isSuccess = false,
+                            )
                         } finally {
                             pairing = false
                         }
@@ -166,7 +207,15 @@ fun PairWatchSection(supabase: SupabaseClient) {
             Text("MAC: ${device?.macAddress ?: "-"}", fontSize = 13.sp, color = Color.Gray)
             Button(
                 onClick = {
-                    val userId = UserSession.userId ?: return@Button
+                    val userId = UserSession.userId
+                    if (userId.isNullOrBlank()) {
+                        resultDialog = PairResultDialog(
+                            title = "로그인 필요",
+                            message = "사용자 세션이 만료되었습니다. 앱을 재시작해주세요.",
+                            isSuccess = false,
+                        )
+                        return@Button
+                    }
                     pairing = true
                     scope.launch {
                         try {
@@ -179,9 +228,25 @@ fun PairWatchSection(supabase: SupabaseClient) {
                                     op = "unpair",
                                 ),
                             )
-                            pairResult = if (resp.isSuccessful) "해제됨" else "오류 (${resp.code()})"
+                            resultDialog = if (resp.isSuccessful) {
+                                PairResultDialog(
+                                    title = "해제 완료",
+                                    message = "워치 페어링이 해제되었습니다.",
+                                    isSuccess = true,
+                                )
+                            } else {
+                                PairResultDialog(
+                                    title = "해제 실패",
+                                    message = "서버 오류 (HTTP ${resp.code()})",
+                                    isSuccess = false,
+                                )
+                            }
                         } catch (e: Exception) {
-                            pairResult = "네트워크 오류"
+                            resultDialog = PairResultDialog(
+                                title = "네트워크 오류",
+                                message = "서버와 통신할 수 없습니다.\n상세: ${e.message ?: e.javaClass.simpleName}",
+                                isSuccess = false,
+                            )
                         } finally {
                             pairing = false
                         }
@@ -193,14 +258,26 @@ fun PairWatchSection(supabase: SupabaseClient) {
                 Text(if (pairing) "처리 중..." else "해제")
             }
         }
-        pairResult?.let {
-            Text(
-                it,
-                color = if (it.startsWith("✓") || it == "해제됨") Color(0xFF22C55E) else Color(0xFFEF4444),
-                fontSize = 13.sp,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
+    }
+
+    // 결과 모달 (성공/실패 모두 표시)
+    resultDialog?.let { dialog ->
+        AlertDialog(
+            onDismissRequest = { resultDialog = null },
+            title = {
+                Text(
+                    dialog.title,
+                    color = if (dialog.isSuccess) Color(0xFF22C55E) else Color(0xFFEF4444),
+                    fontWeight = FontWeight.Bold,
+                )
+            },
+            text = { Text(dialog.message) },
+            confirmButton = {
+                TextButton(onClick = { resultDialog = null }) {
+                    Text("확인")
+                }
+            },
+        )
     }
 }
 

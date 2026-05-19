@@ -197,7 +197,9 @@ class HomeWorkerActivity : AppCompatActivity() {
     private fun initUI() {
         updateProfile()
         updateWorkerDay()
-        checkInviteCodeDialog()
+        // 2026-05-19: 초대 코드 입력 dialog 자동 노출 제거 (test 브랜치 / Phase 7·9 시연 환경 한정).
+        // 필요 시 SettingActivity 의 명시적 메뉴에서 수동 진입.
+        // checkInviteCodeDialog()
         emergencyContact()
 
         val topBar = findViewById<View>(R.id.top_bar)

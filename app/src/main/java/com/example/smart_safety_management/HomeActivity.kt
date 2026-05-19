@@ -246,7 +246,9 @@ class HomeActivity : AppCompatActivity() {
 
     private fun initUI() {
         updateProfile()
-        checkInviteCodeDialog()
+        // 2026-05-19: 초대 코드 입력 dialog 자동 노출 제거 (test 브랜치 / Phase 7·9 시연 환경 한정).
+        // 필요 시 SettingActivity 의 명시적 메뉴에서 수동 진입.
+        // checkInviteCodeDialog()
         val cal = Calendar.getInstance()
         selectedYear = cal.get(Calendar.YEAR)
         selectedMonth = cal.get(Calendar.MONTH) + 1
@@ -430,11 +432,12 @@ class HomeActivity : AppCompatActivity() {
                             inviteDialog?.dismiss()
                             isInviteDialogShowing = false
                         }
-                        
-                        // ✅ 추가: 서버 확인 결과 초대코드가 미입력 상태라면 팝업 표시
-                        if (!UserSession.isInviteChecked && !isInviteDialogShowing) {
-                            showInviteCodeDialog()
-                        }
+
+                        // 2026-05-19: 서버 응답 기반 초대 코드 dialog 자동 노출도 제거.
+                        // 사용자가 명시적으로 SettingActivity 진입 시에만 입력.
+                        // if (!UserSession.isInviteChecked && !isInviteDialogShowing) {
+                        //     showInviteCodeDialog()
+                        // }
                         updateProfile()
                     }
                 }
