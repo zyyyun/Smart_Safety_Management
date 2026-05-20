@@ -82,9 +82,58 @@ if (-not $SR -or -not $URL) {
     exit 1
 }
 $env:OPENCV_FFMPEG_CAPTURE_OPTIONS = "rtsp_transport;tcp"
+$env:PYTHONUNBUFFERED = "1"  # Live stdout/stderr streaming (no buffering)
 Write-Host "[+] env loaded (SUPABASE_URL=$($URL.Substring(0, [Math]::Min(50,$URL.Length)))...)" -ForegroundColor Green
 $headers = @{"apikey"=$SR; "Authorization"="Bearer $SR"}
 $headersPatch = @{"apikey"=$SR; "Authorization"="Bearer $SR"; "Content-Type"="application/json"; "Prefer"="return=representation"}
+
+# Hardcoded mp4 fallback URLs - used when current cameras backup is already rtsp://
+# (i.e. previous run failed mid-way and didn't restore). Source: 002_tables.sql seed + Phase 1 update.
+$mp4Fallback = @{
+    1 = "https://xbjqxnvemcqubjfflain.supabase.co/storage/v1/object/public/reference-videos/fire/source_v2.mp4"
+    2 = "https://xbjqxnvemcqubjfflain.supabase.co/storage/v1/object/public/reference-videos/fall/E02_001.mp4"
+    3 = "https://xbjqxnvemcqubjfflain.supabase.co/storage/v1/object/public/reference-videos/person/source.mp4"
+    4 = "https://xbjqxnvemcqubjfflain.supabase.co/storage/v1/object/public/reference-videos/forklift/source.mp4"
+    5 = "https://xbjqxnvemcqubjfflain.supabase.co/storage/v1/object/public/reference-videos/helmet/source_v2.mp4"
+}
+
+# ----------------------------------------------------------------------
+# Step 0.5 - Preflight TCP check (camera reachability)
+# ----------------------------------------------------------------------
+# Parse host + port from RTSP URL (default port 554)
+$rtspParsed = [Uri]$RtspUrl
+$cameraHost = $rtspParsed.Host
+$cameraPort = if ($rtspParsed.Port -gt 0) { $rtspParsed.Port } else { 554 }
+Write-Host ""
+Write-Host "[Step 0.5] Preflight: TCP connect ${cameraHost}:${cameraPort} (timeout 3s)" -ForegroundColor Yellow
+$tcpClient = New-Object System.Net.Sockets.TcpClient
+$preflightOk = $false
+try {
+    $iar = $tcpClient.BeginConnect($cameraHost, $cameraPort, $null, $null)
+    $waited = $iar.AsyncWaitHandle.WaitOne(3000, $false)
+    if ($waited -and $tcpClient.Connected) {
+        $tcpClient.EndConnect($iar)
+        $preflightOk = $true
+        Write-Host "  [+] TCP connect OK - camera reachable" -ForegroundColor Green
+    } else {
+        Write-Host "  [!] TCP connect TIMEOUT - camera unreachable at ${cameraHost}:${cameraPort}" -ForegroundColor Red
+    }
+} catch {
+    Write-Host "  [!] TCP connect FAILED - $($_.Exception.Message)" -ForegroundColor Red
+} finally {
+    $tcpClient.Close()
+}
+if (-not $preflightOk) {
+    Write-Host ""
+    Write-Host "Camera not reachable. Check:" -ForegroundColor Red
+    Write-Host "  1. Camera powered ON + WiFi/Ethernet connected" -ForegroundColor Red
+    Write-Host "  2. PC on same network as camera (ping $cameraHost)" -ForegroundColor Red
+    Write-Host "  3. Camera IP is $cameraHost (or change -RtspUrl param)" -ForegroundColor Red
+    Write-Host "  4. RTSP port $cameraPort not blocked by firewall" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Aborting (no cameras patched, no DB changes)." -ForegroundColor Red
+    exit 1
+}
 
 # ----------------------------------------------------------------------
 # Step 1 - Backup cameras (for restore)
@@ -95,10 +144,23 @@ $camFilter = ($CameraIds | ForEach-Object { "$_" }) -join ","
 $urlBackup = "$URL/rest/v1/cameras?camera_id=in.($camFilter)" + "&" + "select=camera_id,live_url_detail" + "&" + "order=camera_id"
 $camsBefore = Invoke-RestMethod -Method Get -Uri $urlBackup -Headers $headers
 $backupMap = @{}
+$rtspLeftover = 0
 foreach ($c in $camsBefore) {
-    $backupMap[$c.camera_id] = $c.live_url_detail
-    $truncated = if ($c.live_url_detail.Length -gt 80) { $c.live_url_detail.Substring(0, 80) + "..." } else { $c.live_url_detail }
-    Write-Host "  camera_id=$($c.camera_id) <- $truncated" -ForegroundColor Gray
+    $currentUrl = $c.live_url_detail
+    # Safety: previous run may have left cameras on rtsp:// (failed mid-way without restore).
+    # Use hardcoded mp4 fallback to ensure restore lands on a real mp4 URL.
+    if ($currentUrl -match "^rtsp://" -and $mp4Fallback.ContainsKey($c.camera_id)) {
+        $rtspLeftover++
+        $backupMap[$c.camera_id] = $mp4Fallback[$c.camera_id]
+        Write-Host "  camera_id=$($c.camera_id) <- [LEFTOVER rtsp://, using mp4 fallback]" -ForegroundColor Yellow
+    } else {
+        $backupMap[$c.camera_id] = $currentUrl
+        $truncated = if ($currentUrl.Length -gt 80) { $currentUrl.Substring(0, 80) + "..." } else { $currentUrl }
+        Write-Host "  camera_id=$($c.camera_id) <- $truncated" -ForegroundColor Gray
+    }
+}
+if ($rtspLeftover -gt 0) {
+    Write-Host "  [!] $rtspLeftover cameras were already on rtsp:// (previous run didn't restore). mp4 fallback applied." -ForegroundColor Yellow
 }
 
 # ----------------------------------------------------------------------
@@ -136,18 +198,38 @@ $mainPy = Join-Path $RepoRoot "ai_agent\main.py"
 # 'Continue' for the subprocess call only, then restore.
 $prevEAP = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
+Write-Host "  (NOTE: first cycle ~30-50s for model load + RTSP capture per camera)" -ForegroundColor Magenta
+Write-Host "  (Live output below — DarkGray = progress, Green = detection)" -ForegroundColor Magenta
 Push-Location (Join-Path $RepoRoot "ai_agent")
 try {
     for ($i = 1; $i -le $NumCycles; $i++) {
-        Write-Host "  cycle $i/$NumCycles start ..." -ForegroundColor Cyan
-        # 2>&1 redirect — stderr lines become ErrorRecord objects in $cycleOut.
-        # Select-String stringifies each item so [DETECT] line capture still works.
-        $cycleOut = & $python $mainPy --once-detect 2>&1
-        # Force string conversion before Select-String (avoid ErrorRecord pitfalls)
-        $detectLines = $cycleOut | ForEach-Object { $_.ToString() } | Select-String -Pattern "\[DETECT\]|\[FUSION\]|\[FALL\]"
-        foreach ($line in $detectLines) {
-            Write-Host "    $line" -ForegroundColor Green
+        $cycleStart = Get-Date
+        Write-Host ""
+        Write-Host "  ===== cycle $i/$NumCycles start =====" -ForegroundColor Cyan
+        # Python -u = unbuffered stdio. Pipe streams line-by-line.
+        # 2>&1 merges stderr (where Python logging writes). Each line becomes
+        # either string (stdout) or ErrorRecord (stderr) — .ToString() normalizes.
+        # ForEach-Object yields the line both to console AND to the outer
+        # variable so we can post-process [DETECT] lines after the cycle.
+        $cycleOut = @()
+        & $python -u $mainPy --once-detect 2>&1 | ForEach-Object {
+            $lineStr = $_.ToString()
+            $cycleOut += $lineStr
+            # Highlight DETECT/FUSION/FALL lines (success — green)
+            if ($lineStr -match "\[DETECT\]|\[FUSION\]|\[FALL\]") {
+                Write-Host "    $lineStr" -ForegroundColor Green
+            }
+            # Progress milestones (DarkGray — quieter)
+            elseif ($lineStr -match "detector loaded|감지 사이클|capture_rtsp|cv2.VideoCapture|httpx.*PATCH|HTTP/2 200") {
+                Write-Host "    $lineStr" -ForegroundColor DarkGray
+            }
+            # Errors/warnings (Yellow)
+            elseif ($lineStr -match "\[ERR|\[WARN|ERROR|Exception|Traceback|SnapshotError") {
+                Write-Host "    $lineStr" -ForegroundColor Yellow
+            }
         }
+        $cycleSec = [Math]::Round(((Get-Date) - $cycleStart).TotalSeconds, 1)
+        Write-Host "  ===== cycle $i/$NumCycles done (${cycleSec}s) =====" -ForegroundColor Cyan
         if ($i -lt $NumCycles) {
             Start-Sleep -Seconds $CycleInterval
         }
