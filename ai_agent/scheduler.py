@@ -35,7 +35,82 @@ from fusion_configs import FUSION_CONFIGS
 from fusion_helpers import compute_fusion_collision, compute_fusion_helmet_missing
 from snapshot import SnapshotError, capture
 from supabase_client import SupabaseBridge
-from yolo_detector import GenericYoloDetector
+from yolo_detector import DetectResult, GenericYoloDetector
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Phase 8 RTSP-02 시연 evidence — capture 이미지에 bbox + label annotation.
+# detection_events.image_url 의 capture 이미지를 detector 가 어떤 좌표를
+# 검출했는지 한 눈에 보이도록 그림. 시연 슬라이드 / 운영 dashboard 양쪽에서
+# detector 신뢰성을 사용자 가시화. 처리 시간 < 5ms (cv2.rectangle + putText).
+#
+# 색상 컨벤션 (BGR — OpenCV 기본):
+#   fire     → 빨강     (0, 0, 255)
+#   helmet   → 노랑     (0, 255, 255)
+#   forklift → 주황     (0, 128, 255)
+#   person   → 초록     (0, 255, 0)
+#   fall     → 자주     (255, 0, 255)
+#   FUSION   → 시안     (255, 255, 0)
+#   default  → 빨강
+_BBOX_COLOR_BGR = {
+    "fire": (0, 0, 255),
+    "helmet": (0, 255, 255),
+    "hardhat_missing": (0, 255, 255),
+    "forklift": (0, 128, 255),
+    "person": (0, 255, 0),
+    "fall": (255, 0, 255),
+    "forklift_collision": (255, 255, 0),
+}
+
+
+def _annotate_capture_with_bbox(
+    image_path: Path,
+    bboxes_with_labels: list[tuple[tuple[float, float, float, float], str, float]],
+    event_key: str,
+) -> bool:
+    """Capture 이미지에 bbox + label 을 그려 같은 path 에 덮어쓰기.
+
+    Args:
+        image_path: scheduler 가 capture 한 local JPEG (upload 전).
+        bboxes_with_labels: [((x1,y1,x2,y2), label, confidence), ...]
+        event_key: 색상 매핑 키 (fire/helmet/forklift/person/fall/hardhat_missing/forklift_collision).
+
+    Returns:
+        True 면 덮어쓰기 성공, False 면 실패 (실패 시 원본 그대로 upload — 시연
+        evidence 만 손해, pipeline 차단 X).
+    """
+    try:
+        img = cv2.imread(str(image_path))
+        if img is None:
+            return False
+        color = _BBOX_COLOR_BGR.get(event_key, (0, 0, 255))
+        thickness = max(2, img.shape[1] // 500)  # 1920 width → thickness 3
+        font_scale = max(0.6, img.shape[1] / 2400)
+        for (x1, y1, x2, y2), label, conf in bboxes_with_labels:
+            x1i, y1i, x2i, y2i = int(x1), int(y1), int(x2), int(y2)
+            cv2.rectangle(img, (x1i, y1i), (x2i, y2i), color, thickness)
+            text = f"{label} {conf:.2f}" if conf is not None else str(label)
+            (tw, th), _ = cv2.getTextSize(
+                text, cv2.FONT_HERSHEY_SIMPLEX, font_scale, thickness
+            )
+            # Label 배경 — 검은 직사각형 (가독성)
+            label_y = max(y1i - 6, th + 4)
+            cv2.rectangle(
+                img,
+                (x1i, label_y - th - 4),
+                (x1i + tw + 4, label_y + 4),
+                (0, 0, 0),
+                -1,
+            )
+            cv2.putText(
+                img, text, (x1i + 2, label_y),
+                cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, thickness,
+                lineType=cv2.LINE_AA,
+            )
+        ok = cv2.imwrite(str(image_path), img)
+        return bool(ok)
+    except Exception:
+        return False
 
 
 log = logging.getLogger(__name__)
@@ -281,6 +356,16 @@ def _process_detection_for_camera(
                 f"conf={result.confidence:.2f}"
             )
 
+        # Phase 8 RTSP-02 시연 evidence — upload 직전에 bbox + label annotate.
+        # result.bbox = (x1, y1, x2, y2). result.label, result.confidence 도 그림.
+        # 실패해도 silent (원본 capture 그대로 upload).
+        if result.bbox is not None:
+            _annotate_capture_with_bbox(
+                tmp_path,
+                [(result.bbox, result.label or event_key, result.confidence or 0.0)],
+                event_key,
+            )
+
         public_url, _path = bridge.upload_detection_snapshot(
             camera_id, cfg.get("storage_prefix", event_key), tmp_path
         )
@@ -422,6 +507,21 @@ def _process_fusion_for_camera(
         )
 
     # 7. 알람 발사
+    # Phase 8 RTSP-02 시연 evidence — fusion bbox 다중 annotate (upload 직전).
+    # iou_gt: forklift + person 모두 그림 / hardhat_missing: person 만 그림.
+    try:
+        bbox_list: list[tuple[tuple[float, float, float, float], str, float]] = []
+        for det_key, results in det_results.items():
+            for r in results:
+                if r.bbox is not None:
+                    bbox_list.append(
+                        (r.bbox, r.label or det_key, r.confidence or 0.0)
+                    )
+        if bbox_list:
+            _annotate_capture_with_bbox(tmp_path, bbox_list, fusion_key)
+    except Exception:
+        pass
+
     try:
         public_url, _ = bridge.upload_detection_snapshot(
             camera_id, cfg.get("storage_prefix", fusion_key), tmp_path
