@@ -14,11 +14,21 @@
 #   6. Print capture image URLs (direct browser access)
 #
 # Options:
-#   -RtspUrl       : camera RTSP URL (default rtsp://192.168.0.13/live)
-#   -NumCycles     : scheduler iterations (default 5, fire 5-frame rule)
-#   -CycleInterval : wait between cycles in seconds (default 2)
-#   -SkipRestore   : skip mp4 restore (debug only, manual SQL needed!)
-#   -CameraIds     : which camera_ids to patch (default 1..5)
+#   -RtspUrl          : camera RTSP URL (default rtsp://192.168.0.13/live)
+#   -NumCycles        : scheduler iterations (default 5, fire 5-frame rule)
+#   -CycleInterval    : wait between cycles in seconds (default 2)
+#   -SkipRestore      : skip mp4 restore (debug only, manual SQL needed!)
+#   -CameraIds        : which camera_ids to patch (default 1..5)
+#   -DetectorsEnabled : detector subset for this run (override DETECTORS_ENABLED env).
+#                       Examples: "fire" / "fire,helmet" / "" (=.env default)
+#   -EnableFall       : keep fall cycle on (default: off when -DetectorsEnabled is set)
+#   -FireOnly         : alias for -DetectorsEnabled "fire" -EnableFall:$false
+#
+# Single-detector demo example (fire only, fastest):
+#   .\scripts\demo_rtsp_real_camera.ps1 -FireOnly -CameraIds 1 -NumCycles 5
+#   - camera_id=1 RTSP, fire detector only (no helmet/forklift/person/fall)
+#   - 5 cycles satisfies fire frames_required=5 (alarm fires on cycle 5)
+#   - ~30-50s total (vs full detectors ~3-5min)
 #
 # NOTE (2026-05-20 architecture update):
 # scheduler now auto-applies ALL detectors (fire/helmet/forklift/person/fall)
@@ -42,8 +52,23 @@ param(
     [int]$NumCycles = 5,
     [int]$CycleInterval = 2,
     [switch]$SkipRestore,
-    [int[]]$CameraIds = @(1, 2, 3, 4, 5)
+    [int[]]$CameraIds = @(1, 2, 3, 4, 5),
+    # 2026-05-20: detector subset override. Empty string = use .env default.
+    # Examples:
+    #   -DetectorsEnabled "fire"                  # fire only (single-target demo)
+    #   -DetectorsEnabled "fire,helmet"           # 2 detectors
+    #   -DetectorsEnabled "fire,helmet,forklift,person"  # full 4 (= default)
+    # fall is a separate cycle; -EnableFall switch controls it.
+    [string]$DetectorsEnabled = "",
+    [switch]$EnableFall,
+    [switch]$FireOnly  # alias: -FireOnly == -DetectorsEnabled "fire" + fall disabled
 )
+
+# FireOnly alias resolution (must run BEFORE env override below)
+if ($FireOnly) {
+    $DetectorsEnabled = "fire"
+    $EnableFall = $false
+}
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
@@ -56,6 +81,8 @@ Write-Host "==========================================================" -Foregro
 Write-Host ""
 Write-Host " RtspUrl        : $RtspUrl"
 Write-Host " CameraIds      : $($CameraIds -join ', ')"
+Write-Host " Detectors      : $(if ($FireOnly) { 'fire ONLY (--FireOnly)' } elseif ($DetectorsEnabled) { $DetectorsEnabled } else { '(from .env)' })"
+Write-Host " Fall cycle     : $(if ($EnableFall) { 'enabled' } else { 'disabled' })"
 Write-Host " NumCycles      : $NumCycles (satisfies fire frames_required=5)"
 Write-Host " CycleInterval  : $CycleInterval seconds"
 Write-Host " SkipRestore    : $SkipRestore"
@@ -83,6 +110,24 @@ if (-not $SR -or -not $URL) {
 }
 $env:OPENCV_FFMPEG_CAPTURE_OPTIONS = "rtsp_transport;tcp"
 $env:PYTHONUNBUFFERED = "1"  # Live stdout/stderr streaming (no buffering)
+
+# 2026-05-20: detector subset override (-DetectorsEnabled / -FireOnly).
+# If empty -> keep .env default. If set -> override DETECTORS_ENABLED for this run only.
+if ($DetectorsEnabled) {
+    $env:DETECTORS_ENABLED = $DetectorsEnabled
+    Write-Host "[+] DETECTORS_ENABLED override = $DetectorsEnabled" -ForegroundColor Cyan
+} else {
+    Write-Host "[+] DETECTORS_ENABLED (from .env) = $($env:DETECTORS_ENABLED)" -ForegroundColor DarkCyan
+}
+# Fall cycle is separate — explicit toggle via -EnableFall (default: disabled in subset mode)
+if (-not $EnableFall -and $DetectorsEnabled) {
+    $env:FALL_ENABLED_CAMERA_IDS = ""
+    Write-Host "[+] FALL cycle DISABLED (subset mode, no -EnableFall)" -ForegroundColor Cyan
+} elseif ($EnableFall) {
+    # restore .env default if user explicitly asked
+    Write-Host "[+] FALL cycle ENABLED (FALL_ENABLED_CAMERA_IDS = $($env:FALL_ENABLED_CAMERA_IDS))" -ForegroundColor Cyan
+}
+
 Write-Host "[+] env loaded (SUPABASE_URL=$($URL.Substring(0, [Math]::Min(50,$URL.Length)))...)" -ForegroundColor Green
 $headers = @{"apikey"=$SR; "Authorization"="Bearer $SR"}
 $headersPatch = @{"apikey"=$SR; "Authorization"="Bearer $SR"; "Content-Type"="application/json"; "Prefer"="return=representation"}
