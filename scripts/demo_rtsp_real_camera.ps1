@@ -121,20 +121,32 @@ Write-Host "  (User: keep stage stable in front of camera)" -ForegroundColor Mag
 $cycleStartUtc = (Get-Date).ToUniversalTime()
 $python = "C:\Users\ANNA\miniconda3\python.exe"
 $mainPy = Join-Path $RepoRoot "ai_agent\main.py"
+# 2026-05-20 fix: Python ai_agent logging defaults to stderr. PowerShell 5.1 with
+# $ErrorActionPreference='Stop' treats EACH stderr line from native exe as
+# NativeCommandError → halts script on first log line. Workaround: switch to
+# 'Continue' for the subprocess call only, then restore.
+$prevEAP = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 Push-Location (Join-Path $RepoRoot "ai_agent")
-for ($i = 1; $i -le $NumCycles; $i++) {
-    Write-Host "  cycle $i/$NumCycles start ..." -ForegroundColor Cyan
-    $cycleOut = & $python $mainPy --once-detect 2>&1
-    # Extract [DETECT] / [FUSION] / [FALL] lines
-    $detectLines = $cycleOut | Select-String -Pattern "\[DETECT\]|\[FUSION\]|\[FALL\]"
-    foreach ($line in $detectLines) {
-        Write-Host "    $line" -ForegroundColor Green
+try {
+    for ($i = 1; $i -le $NumCycles; $i++) {
+        Write-Host "  cycle $i/$NumCycles start ..." -ForegroundColor Cyan
+        # 2>&1 redirect — stderr lines become ErrorRecord objects in $cycleOut.
+        # Select-String stringifies each item so [DETECT] line capture still works.
+        $cycleOut = & $python $mainPy --once-detect 2>&1
+        # Force string conversion before Select-String (avoid ErrorRecord pitfalls)
+        $detectLines = $cycleOut | ForEach-Object { $_.ToString() } | Select-String -Pattern "\[DETECT\]|\[FUSION\]|\[FALL\]"
+        foreach ($line in $detectLines) {
+            Write-Host "    $line" -ForegroundColor Green
+        }
+        if ($i -lt $NumCycles) {
+            Start-Sleep -Seconds $CycleInterval
+        }
     }
-    if ($i -lt $NumCycles) {
-        Start-Sleep -Seconds $CycleInterval
-    }
+} finally {
+    Pop-Location
+    $ErrorActionPreference = $prevEAP
 }
-Pop-Location
 $cycleEndUtc = (Get-Date).ToUniversalTime()
 $elapsedSec = [Math]::Round(($cycleEndUtc - $cycleStartUtc).TotalSeconds, 1)
 Write-Host "  done (${elapsedSec}s elapsed)" -ForegroundColor Green
