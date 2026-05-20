@@ -1,33 +1,30 @@
 # =============================================================================
-# Phase 8 RTSP-02 — Drift X3 실기기 시연 자동화 스크립트
+# Phase 8 RTSP-02 - Drift X3 real device demo automation script
 # =============================================================================
-# 더블클릭 또는 PowerShell 에서 실행:
+# Double-click or run from PowerShell:
 #   .\scripts\demo_rtsp_real_camera.ps1
 #
-# 동작:
-#   1. ai_agent/.env 자동 로드 (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY 등)
-#   2. cameras 1·2·3·4·5 모두 live_url_detail → rtsp://192.168.0.13/live PATCH
-#   3. ai_agent main.py --once-detect 를 N cycle 연속 실행
-#      (-NumCycles default 5 — fire frames_required=5 충족용)
-#   4. 신규 detection_events 출력 + 지연 측정
-#   5. cameras 5 모두 mp4 URL 원복 (PATCH)
-#   6. capture 이미지 URL 출력 (브라우저에서 직접 확인 가능)
+# Steps:
+#   1. Auto-load ai_agent/.env (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)
+#   2. PATCH cameras 1..5 live_url_detail -> rtsp://192.168.0.13/live
+#   3. Run ai_agent main.py --once-detect for N cycles
+#      (-NumCycles default 5, satisfies fire frames_required=5)
+#   4. Print new detection_events + latency measurement
+#   5. Restore cameras 1..5 to original mp4 URLs (PATCH)
+#   6. Print capture image URLs (direct browser access)
 #
-# 옵션:
-#   -RtspUrl       : 카메라 RTSP URL (default rtsp://192.168.0.13/live)
-#   -NumCycles     : scheduler 반복 횟수 (default 5, fire 5연속 룰 충족)
-#   -CycleInterval : cycle 간 대기 (default 2초)
-#   -SkipRestore   : mp4 원복 skip (디버깅용, 시연 후엔 반드시 원복!)
-#   -CameraIds     : RTSP 점프할 camera_id 배열 (default 1..5)
+# Options:
+#   -RtspUrl       : camera RTSP URL (default rtsp://192.168.0.13/live)
+#   -NumCycles     : scheduler iterations (default 5, fire 5-frame rule)
+#   -CycleInterval : wait between cycles in seconds (default 2)
+#   -SkipRestore   : skip mp4 restore (debug only, manual SQL needed!)
+#   -CameraIds     : which camera_ids to patch (default 1..5)
 #
-# Phase 1 fire `frames_required=5` 룰 충족용 — 1 cycle 만 돌리면 silent drop.
-# helmet=3, fire=5, forklift=1, person=1.
-#
-# 시연 절차 (사용자):
-#   1. 카메라 IP (default 192.168.0.13) PC 와 같은 네트워크 확인
-#   2. drift_test.py 로 카메라 화면 1회 사전 확인 (선택)
-#   3. 카메라 앞 stage 구성 (본인 + 화재 이미지 + 안전모 등)
-#   4. 본 스크립트 실행 → 60초 후 결과 콘솔 출력 + capture URL
+# Pre-flight (user):
+#   1. Camera IP (default 192.168.0.13) reachable on same WiFi as PC
+#   2. Optional: run drift_test.py once to verify camera stream
+#   3. Stage in front of camera (person + fire image + helmet + etc.)
+#   4. Execute this script -> ~60s -> evidence URLs in console
 # =============================================================================
 
 [CmdletBinding()]
@@ -45,23 +42,23 @@ Set-Location $RepoRoot
 
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host " Phase 8 RTSP-02 — Drift X3 실기기 시연 자동화 스크립트" -ForegroundColor Cyan
+Write-Host " Phase 8 RTSP-02 - Drift X3 Real Device Demo" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host " RtspUrl        : $RtspUrl"
 Write-Host " CameraIds      : $($CameraIds -join ', ')"
-Write-Host " NumCycles      : $NumCycles (fire frames_required=5 충족용)"
-Write-Host " CycleInterval  : $CycleInterval 초"
+Write-Host " NumCycles      : $NumCycles (satisfies fire frames_required=5)"
+Write-Host " CycleInterval  : $CycleInterval seconds"
 Write-Host " SkipRestore    : $SkipRestore"
 Write-Host ""
 
-# ─────────────────────────────────────────────────────────────────────
-# Step 0 — env 로드
-# ─────────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# Step 0 - Load env from ai_agent/.env
+# ----------------------------------------------------------------------
 $envPath = Join-Path $RepoRoot "ai_agent\.env"
 if (-not (Test-Path $envPath)) {
-    Write-Host "[!] ai_agent\.env 파일 부재. 실행 중단." -ForegroundColor Red
-    Write-Host "    Supabase env (URL + SERVICE_ROLE_KEY) 가 필요합니다." -ForegroundColor Red
+    Write-Host "[!] ai_agent\.env not found. Aborting." -ForegroundColor Red
+    Write-Host "    Need SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY." -ForegroundColor Red
     exit 1
 }
 Get-Content $envPath | ForEach-Object {
@@ -72,60 +69,63 @@ Get-Content $envPath | ForEach-Object {
 $SR = $env:SUPABASE_SERVICE_ROLE_KEY
 $URL = $env:SUPABASE_URL
 if (-not $SR -or -not $URL) {
-    Write-Host "[!] SUPABASE_URL 또는 SUPABASE_SERVICE_ROLE_KEY 미설정. ai_agent\.env 확인." -ForegroundColor Red
+    Write-Host "[!] SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY missing in ai_agent\.env" -ForegroundColor Red
     exit 1
 }
 $env:OPENCV_FFMPEG_CAPTURE_OPTIONS = "rtsp_transport;tcp"
-Write-Host "[+] env 로드 완료 (SUPABASE_URL=$($URL.Substring(0, [Math]::Min(40,$URL.Length)))...)" -ForegroundColor Green
+Write-Host "[+] env loaded (SUPABASE_URL=$($URL.Substring(0, [Math]::Min(50,$URL.Length)))...)" -ForegroundColor Green
 $headers = @{"apikey"=$SR; "Authorization"="Bearer $SR"}
 $headersPatch = @{"apikey"=$SR; "Authorization"="Bearer $SR"; "Content-Type"="application/json"; "Prefer"="return=representation"}
 
-# ─────────────────────────────────────────────────────────────────────
-# Step 1 — cameras 백업 (원복용)
-# ─────────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# Step 1 - Backup cameras (for restore)
+# ----------------------------------------------------------------------
 Write-Host ""
-Write-Host "[Step 1] cameras 백업 (원복용)" -ForegroundColor Yellow
+Write-Host "[Step 1] Backup cameras (for restore)" -ForegroundColor Yellow
 $camFilter = ($CameraIds | ForEach-Object { "$_" }) -join ","
-$camsBefore = Invoke-RestMethod -Method Get -Uri "$URL/rest/v1/cameras?camera_id=in.($camFilter)&select=camera_id,live_url_detail&order=camera_id" -Headers $headers
+$urlBackup = "$URL/rest/v1/cameras?camera_id=in.($camFilter)" + "&" + "select=camera_id,live_url_detail" + "&" + "order=camera_id"
+$camsBefore = Invoke-RestMethod -Method Get -Uri $urlBackup -Headers $headers
 $backupMap = @{}
 foreach ($c in $camsBefore) {
     $backupMap[$c.camera_id] = $c.live_url_detail
-    Write-Host "  camera_id=$($c.camera_id) ← $($c.live_url_detail.Substring(0, [Math]::Min(80, $c.live_url_detail.Length)))..." -ForegroundColor Gray
+    $truncated = if ($c.live_url_detail.Length -gt 80) { $c.live_url_detail.Substring(0, 80) + "..." } else { $c.live_url_detail }
+    Write-Host "  camera_id=$($c.camera_id) <- $truncated" -ForegroundColor Gray
 }
 
-# ─────────────────────────────────────────────────────────────────────
-# Step 2 — cameras N개 모두 RTSP 점프
-# ─────────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# Step 2 - PATCH cameras to RTSP URL
+# ----------------------------------------------------------------------
 Write-Host ""
-Write-Host "[Step 2] cameras → RTSP 점프 ($RtspUrl)" -ForegroundColor Yellow
+Write-Host "[Step 2] PATCH cameras -> RTSP ($RtspUrl)" -ForegroundColor Yellow
 $patchBody = '{"live_url_detail":"' + $RtspUrl + '"}'
 foreach ($id in $CameraIds) {
     $null = Invoke-RestMethod -Method Patch -Uri "$URL/rest/v1/cameras?camera_id=eq.$id" -Headers $headersPatch -Body $patchBody
-    Write-Host "  camera_id=$id ✓" -ForegroundColor Green
+    Write-Host "  camera_id=$id OK" -ForegroundColor Green
 }
 
-# ─────────────────────────────────────────────────────────────────────
-# Step 3 — detection_events 사전 최대 event_id 기록 (신규 row 식별)
-# ─────────────────────────────────────────────────────────────────────
-$preMax = Invoke-RestMethod -Method Get -Uri "$URL/rest/v1/detection_events?order=event_id.desc&limit=1&select=event_id" -Headers $headers
+# ----------------------------------------------------------------------
+# Step 3 - Record PRE_MAX event_id (to identify new rows)
+# ----------------------------------------------------------------------
+$urlPreMax = "$URL/rest/v1/detection_events?order=event_id.desc" + "&" + "limit=1" + "&" + "select=event_id"
+$preMax = Invoke-RestMethod -Method Get -Uri $urlPreMax -Headers $headers
 $preMaxId = if ($preMax.Count -gt 0) { $preMax[0].event_id } else { 0 }
 Write-Host ""
 Write-Host "[Step 3] PRE_MAX event_id = $preMaxId" -ForegroundColor Yellow
 
-# ─────────────────────────────────────────────────────────────────────
-# Step 4 — scheduler N cycle 연속 실행
-# ─────────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# Step 4 - Run scheduler N cycles
+# ----------------------------------------------------------------------
 Write-Host ""
-Write-Host "[Step 4] scheduler --once-detect × $NumCycles cycles" -ForegroundColor Yellow
-Write-Host "  (사용자: 카메라 앞에서 stage 안정 유지)" -ForegroundColor Magenta
+Write-Host "[Step 4] scheduler --once-detect x $NumCycles cycles" -ForegroundColor Yellow
+Write-Host "  (User: keep stage stable in front of camera)" -ForegroundColor Magenta
 $cycleStartUtc = (Get-Date).ToUniversalTime()
 $python = "C:\Users\ANNA\miniconda3\python.exe"
 $mainPy = Join-Path $RepoRoot "ai_agent\main.py"
 Push-Location (Join-Path $RepoRoot "ai_agent")
 for ($i = 1; $i -le $NumCycles; $i++) {
-    Write-Host "  cycle $i/$NumCycles 시작 ..." -ForegroundColor Cyan
+    Write-Host "  cycle $i/$NumCycles start ..." -ForegroundColor Cyan
     $cycleOut = & $python $mainPy --once-detect 2>&1
-    # [DETECT] line 추출
+    # Extract [DETECT] / [FUSION] / [FALL] lines
     $detectLines = $cycleOut | Select-String -Pattern "\[DETECT\]|\[FUSION\]|\[FALL\]"
     foreach ($line in $detectLines) {
         Write-Host "    $line" -ForegroundColor Green
@@ -136,36 +136,42 @@ for ($i = 1; $i -le $NumCycles; $i++) {
 }
 Pop-Location
 $cycleEndUtc = (Get-Date).ToUniversalTime()
-Write-Host "  완료 ($([Math]::Round(($cycleEndUtc - $cycleStartUtc).TotalSeconds, 1))초)" -ForegroundColor Green
+$elapsedSec = [Math]::Round(($cycleEndUtc - $cycleStartUtc).TotalSeconds, 1)
+Write-Host "  done (${elapsedSec}s elapsed)" -ForegroundColor Green
 
-# ─────────────────────────────────────────────────────────────────────
-# Step 5 — 신규 detection_events 검증
-# ─────────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# Step 5 - Verify new detection_events
+# ----------------------------------------------------------------------
 Write-Host ""
-Write-Host "[Step 5] 신규 detection_events (event_id > $preMaxId)" -ForegroundColor Yellow
-$newEvents = Invoke-RestMethod -Method Get -Uri "$URL/rest/v1/detection_events?event_id=gt.$preMaxId&select=event_id,camera_id,device_name,accuracy,risk_level,detected_at,capture_id&order=event_id.asc" -Headers $headers
-Write-Host "  신규 row: $($newEvents.Count) 건" -ForegroundColor $(if ($newEvents.Count -gt 0) { 'Green' } else { 'Yellow' })
+Write-Host "[Step 5] New detection_events (event_id > $preMaxId)" -ForegroundColor Yellow
+$urlNew = "$URL/rest/v1/detection_events?event_id=gt.$preMaxId" + "&" + "select=event_id,camera_id,device_name,accuracy,risk_level,detected_at,capture_id" + "&" + "order=event_id.asc"
+$newEvents = Invoke-RestMethod -Method Get -Uri $urlNew -Headers $headers
+$newCount = $newEvents.Count
+$color = if ($newCount -gt 0) { 'Green' } else { 'Yellow' }
+Write-Host "  new rows: $newCount" -ForegroundColor $color
 
-if ($newEvents.Count -gt 0) {
+if ($newCount -gt 0) {
     foreach ($e in $newEvents) {
-        Write-Host "    event_id=$($e.event_id) camera=$($e.camera_id) ($($e.device_name)) accuracy=$([Math]::Round($e.accuracy,3)) risk=$($e.risk_level) detected_at=$($e.detected_at)" -ForegroundColor Green
+        $acc = [Math]::Round($e.accuracy, 3)
+        Write-Host "    event_id=$($e.event_id) camera=$($e.camera_id) ($($e.device_name)) accuracy=$acc risk=$($e.risk_level) detected_at=$($e.detected_at)" -ForegroundColor Green
     }
 
-    # capture URL 표시
+    # capture image URLs
     Write-Host ""
-    Write-Host "[Step 5b] Capture 이미지 URL (브라우저에 붙여넣으면 직접 확인 가능)" -ForegroundColor Yellow
+    Write-Host "[Step 5b] Capture image URLs (open in browser)" -ForegroundColor Yellow
     $capIds = ($newEvents | ForEach-Object { $_.capture_id } | Where-Object { $_ -ne $null }) -join ","
     if ($capIds) {
-        $caps = Invoke-RestMethod -Method Get -Uri "$URL/rest/v1/camera_captures?capture_id=in.($capIds)&select=capture_id,camera_id,image_url,event_type" -Headers $headers
+        $urlCaps = "$URL/rest/v1/camera_captures?capture_id=in.($capIds)" + "&" + "select=capture_id,camera_id,image_url,event_type"
+        $caps = Invoke-RestMethod -Method Get -Uri $urlCaps -Headers $headers
         foreach ($c in $caps) {
             Write-Host "    [capture_id=$($c.capture_id)] camera=$($c.camera_id) event_type='$($c.event_type)'" -ForegroundColor Cyan
             Write-Host "    $($c.image_url)" -ForegroundColor White
         }
     }
 
-    # 지연 측정 — camera 별 last_frame_at 와 detected_at 비교
+    # latency measurement
     Write-Host ""
-    Write-Host "[Step 5c] 지연 측정 (capture → DB insert, SC #2 ≤10s)" -ForegroundColor Yellow
+    Write-Host "[Step 5c] Latency (capture -> DB insert, SC #2 must be <=10s)" -ForegroundColor Yellow
     foreach ($e in $newEvents) {
         $cam = Invoke-RestMethod -Method Get -Uri "$URL/rest/v1/cameras?camera_id=eq.$($e.camera_id)&select=last_frame_at" -Headers $headers
         if ($cam.Count -gt 0 -and $cam[0].last_frame_at) {
@@ -174,66 +180,70 @@ if ($newEvents.Count -gt 0) {
                 $detUtc = [DateTime]::SpecifyKind([DateTime]::Parse($e.detected_at), [DateTimeKind]::Utc)
                 $latency = ($detUtc - $capUtc).TotalSeconds
                 $verdict = if ($latency -le 10 -and $latency -ge 0) { "PASS" } else { "WARN" }
-                $color = if ($verdict -eq "PASS") { "Green" } else { "Yellow" }
-                Write-Host "    event_id=$($e.event_id) capture=$($cam[0].last_frame_at) → insert=$($e.detected_at) → 지연 $([Math]::Round($latency, 2))s [$verdict]" -ForegroundColor $color
+                $lcolor = if ($verdict -eq "PASS") { "Green" } else { "Yellow" }
+                $latencyR = [Math]::Round($latency, 2)
+                Write-Host "    event_id=$($e.event_id) capture=$($cam[0].last_frame_at) -> insert=$($e.detected_at) -> latency ${latencyR}s [$verdict]" -ForegroundColor $lcolor
             } catch {
-                Write-Host "    event_id=$($e.event_id) 지연 측정 실패: $($_.Exception.Message)" -ForegroundColor Gray
+                Write-Host "    event_id=$($e.event_id) latency parse failed: $($_.Exception.Message)" -ForegroundColor Gray
             }
         }
     }
 } else {
-    Write-Host "  [!] 신규 row 0 — 가능한 원인:" -ForegroundColor Yellow
-    Write-Host "      - 카메라 시야에 검출 가능한 객체 부재" -ForegroundColor Yellow
-    Write-Host "      - fire frames_required=5 미충족 (NumCycles 늘려보세요)" -ForegroundColor Yellow
-    Write-Host "      - RTSP 연결 실패 → cameras.last_frame_at 미갱신" -ForegroundColor Yellow
+    Write-Host "  [!] No new rows. Possible causes:" -ForegroundColor Yellow
+    Write-Host "      - No detectable object in camera frame" -ForegroundColor Yellow
+    Write-Host "      - fire frames_required=5 not met (try larger -NumCycles)" -ForegroundColor Yellow
+    Write-Host "      - RTSP connect failed -> cameras.last_frame_at not updated" -ForegroundColor Yellow
 }
 
-# ─────────────────────────────────────────────────────────────────────
-# Step 6 — cameras 원복
-# ─────────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# Step 6 - Restore cameras to mp4
+# ----------------------------------------------------------------------
 Write-Host ""
 if (-not $SkipRestore) {
-    Write-Host "[Step 6] cameras 원복" -ForegroundColor Yellow
+    Write-Host "[Step 6] Restore cameras to mp4" -ForegroundColor Yellow
     foreach ($id in $CameraIds) {
         $orig = $backupMap[$id]
         if ($orig) {
             $restoreBody = ConvertTo-Json @{ live_url_detail = $orig } -Compress
             $null = Invoke-RestMethod -Method Patch -Uri "$URL/rest/v1/cameras?camera_id=eq.$id" -Headers $headersPatch -Body $restoreBody
-            Write-Host "  camera_id=$id → 원복 ✓" -ForegroundColor Green
+            Write-Host "  camera_id=$id restored OK" -ForegroundColor Green
         }
     }
-    # 검증
-    $camsAfter = Invoke-RestMethod -Method Get -Uri "$URL/rest/v1/cameras?camera_id=in.($camFilter)&select=camera_id,live_url_detail&order=camera_id" -Headers $headers
+    $urlAfter = "$URL/rest/v1/cameras?camera_id=in.($camFilter)" + "&" + "select=camera_id,live_url_detail" + "&" + "order=camera_id"
+    $camsAfter = Invoke-RestMethod -Method Get -Uri $urlAfter -Headers $headers
     $stillRtsp = $camsAfter | Where-Object { $_.live_url_detail -match "^rtsp://" }
     if ($stillRtsp.Count -eq 0) {
-        Write-Host "  [✓] cameras $($CameraIds -join '·') 모두 mp4 원복 확인" -ForegroundColor Green
+        Write-Host "  [+] all cameras restored to mp4 OK" -ForegroundColor Green
     } else {
-        Write-Host "  [!] 일부 cameras 가 여전히 RTSP — 수동 확인 필요:" -ForegroundColor Red
+        Write-Host "  [!] some cameras still RTSP - manual fix needed:" -ForegroundColor Red
         $stillRtsp | ForEach-Object { Write-Host "    camera_id=$($_.camera_id) live_url=$($_.live_url_detail)" -ForegroundColor Red }
     }
 } else {
-    Write-Host "[Step 6] SkipRestore=on — cameras 원복 SKIP (수동 원복 필요!)" -ForegroundColor Yellow
-    Write-Host "         원복 SQL:" -ForegroundColor Yellow
+    Write-Host "[Step 6] SkipRestore=on - SKIPPED (manual restore needed!)" -ForegroundColor Yellow
+    Write-Host "         Restore SQL:" -ForegroundColor Yellow
     foreach ($id in $CameraIds) {
         Write-Host "         UPDATE cameras SET live_url_detail = '$($backupMap[$id])' WHERE camera_id = $id;" -ForegroundColor Yellow
     }
 }
 
-# ─────────────────────────────────────────────────────────────────────
-# Step 7 — 요약
-# ─────────────────────────────────────────────────────────────────────
+# ----------------------------------------------------------------------
+# Step 7 - Summary
+# ----------------------------------------------------------------------
+$totalSec = [Math]::Round(((Get-Date).ToUniversalTime() - $cycleStartUtc).TotalSeconds, 1)
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host " 시연 완료 — Phase 8 RTSP-02" -ForegroundColor Cyan
+Write-Host " Demo done - Phase 8 RTSP-02" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host " 신규 detection_events: $($newEvents.Count) 건"
-Write-Host " 총 소요: $([Math]::Round(((Get-Date).ToUniversalTime() - $cycleStartUtc).TotalSeconds, 1))초"
+Write-Host " new detection_events: $newCount rows"
+Write-Host " total elapsed       : ${totalSec}s"
 Write-Host ""
-if ($newEvents.Count -gt 0) {
-    Write-Host " 📸 capture 이미지에 bbox + label 그려져 있음 (scheduler annotate_capture_with_bbox)" -ForegroundColor Green
-    Write-Host " 📝 시연 슬라이드 evidence:" -ForegroundColor Green
-    Write-Host "    - event_id $($newEvents[0].event_id)..$($newEvents[-1].event_id) (DB 영구 적재)"
-    Write-Host "    - capture URL public (위 Step 5b)"
-    Write-Host "    - 지연 측정 (위 Step 5c, ≤10s SC #2 검증)"
+if ($newCount -gt 0) {
+    Write-Host " [+] capture images have bbox + label drawn (scheduler annotate_capture_with_bbox)" -ForegroundColor Green
+    Write-Host " [+] demo slide evidence:" -ForegroundColor Green
+    $firstId = $newEvents[0].event_id
+    $lastId = $newEvents[-1].event_id
+    Write-Host "    - event_id $firstId..$lastId (persisted in DB)"
+    Write-Host "    - capture URLs public (see Step 5b)"
+    Write-Host "    - latency measured (see Step 5c, SC #2 <=10s)"
 }
 Write-Host ""
