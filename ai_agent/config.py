@@ -9,7 +9,12 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
+# 2026-05-20: override=False 명시화 — 이미 process env 에 set 된 값 보존.
+# PowerShell 스크립트 (예: demo_rtsp_real_camera.ps1 의 -FireOnly) 가
+# $env:DETECTORS_ENABLED = "fire" 같이 override 한 후 spawn 한 Python 의
+# load_dotenv 가 .env 의 원래 값 ("fire,helmet,forklift,person") 으로
+# 덮어쓰면 안 됨. python-dotenv 의 default 도 override=False 지만 명시.
+load_dotenv(override=False)
 
 
 def _required(key: str) -> str:

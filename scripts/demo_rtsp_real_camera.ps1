@@ -264,8 +264,12 @@ try {
             if ($lineStr -match "\[DETECT\]|\[FUSION\]|\[FALL\]") {
                 Write-Host "    $lineStr" -ForegroundColor Green
             }
+            # Active detectors / settings (Cyan — important config visibility)
+            elseif ($lineStr -match "설정 로드 완료|detectors=|DETECTORS_ENABLED|FALL_ENABLED") {
+                Write-Host "    $lineStr" -ForegroundColor Cyan
+            }
             # Progress milestones (DarkGray — quieter)
-            elseif ($lineStr -match "detector loaded|감지 사이클|capture_rtsp|cv2.VideoCapture|httpx.*PATCH|HTTP/2 200") {
+            elseif ($lineStr -match "detector loaded|감지 사이클|capture_rtsp|cv2.VideoCapture|httpx.*PATCH|HTTP/2 200|no_alert_yet") {
                 Write-Host "    $lineStr" -ForegroundColor DarkGray
             }
             # Errors/warnings (Yellow)
