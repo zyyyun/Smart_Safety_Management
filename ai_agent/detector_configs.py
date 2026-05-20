@@ -22,24 +22,32 @@ from __future__ import annotations
 
 DETECTOR_CONFIGS: dict[str, dict] = {
     "fire": {
-        "framework": "yolov5",
-        "weights": r"D:\2025_산업안전\산업안전\모델 7종\화재 탐지\fire_best.pt",
+        # 2026-05-20 FIRE-ADV-01 적용 — yolov26-fire-detection (HuggingFace
+        # SalahALHaismawi/yolov26-fire-detection) 모델 교체. Ultralytics
+        # YOLOv26-S, Roboflow 8939 image 학습, MIT 라이센스.
+        # 이전: yolov5 + fire_best.pt + conf 0.10 (D-19 fallback, v0.5 baseline)
+        # 신규: yolov8 path (ultralytics YOLO) + yolov26 best.pt + conf 0.25 (default)
+        # classes: {0: 'fire', 1: 'other', 2: 'smoke'} — smoke 자동 분리됨
+        #   (FIRE-ADV-02 의 일부 자동 진행 — 단 risk_level 차등은 후속)
+        "framework": "yolov8",
+        "weights": r"D:\2025_산업안전\산업안전\모델 7종\화재 탐지\yolov26_fire_best.pt",
         "event_name": "화재",
         "risk_level": "DANGER",
         "camera_ids": [1],
-        # D-19 fallback (2026-05-04): 보유 가중치 fire_best.pt 의 사용자 제공 데이터셋
-        # (불꽃/0087·연기/0096·정상/0077) batch 측정 결과 max conf 0.156. D-04 의 0.5
-        # 임계 절대 미달. fire_aihub_0087.mp4 frame 300 (seek=10s) max 0.142 검증.
-        # 0.10 임계 = v0.5 baseline (project_legacy_assets.md 의 검증된 운영값).
-        # Phase 2 frames_required (fire 5 연속) 결합 시 운영급 의미 확보.
-        # v1.1 의 AI-Hub fine-tune (옵션 C) 으로 진정한 0.5+ 도달 예정.
-        "conf_thres": 0.10,
+        # YOLO26 default conf 0.25 — D-19 fallback (0.10) 해제, 운영 임계 정상화.
+        # 검증 후 0.30~0.50 으로 조정 가능 (사용자 test).
+        "conf_thres": 0.25,
         "iou_thres": 0.45,
-        # Phase 2 MODEL-01 / D-04: 5 cycle 연속 fire 검출 시에만 알람 (false positive 흡수).
-        # D-19 fallback (conf 0.10) 의 운영급 의미는 frames_required 와 결합으로 완성됨 (D-08).
+        # Phase 2 MODEL-01 frames_required 5 유지 (YOLO26 안정성 검증 전).
+        # 사용자 test 후 조정 가능 — 새 모델이 single-frame 에서 안정적이면 1~3 으로
+        # 단축 검토. 단축 시 false positive 위험 ↑ → 시간축 fusion (FIRE-ADV-03) 추가
+        # 도입 필요.
         "frames_required": 5,
         "img_size": 640,
-        "target_classes": None,
+        # target_classes=['fire','smoke'] — 'other' 클래스는 noise 가능 (Roboflow
+        # dataset 의 ambiguous 라벨), 안전 위해 fire/smoke 만 알람 발사.
+        # 'other' 도 detect_all() 결과에는 포함되지만 단독 알람 trigger X.
+        "target_classes": ["fire", "smoke"],
         "storage_prefix": "fire",
     },
     # Phase 3 D-04: helmet 단독 알람 경로 → fusion 으로 대체 (ROADMAP Phase 3 SC #2).
