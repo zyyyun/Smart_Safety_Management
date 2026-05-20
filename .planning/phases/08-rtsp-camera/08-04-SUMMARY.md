@@ -2,9 +2,12 @@
 phase: 08-rtsp-camera
 plan: 04
 subsystem: rtsp-validation + e2e
-status: complete-with-deferred  # RTSP-02 실기기 부재 + Vault sr_key 미시드로 step 10 부분 deferred
+status: complete  # 2026-05-20: RTSP-02 실기기 측정 완료 (Drift X3 person conf=0.92 latency 3.16s)
+status_history:
+  - "2026-05-18: complete-with-deferred (RTSP-02 실기기 부재 + mediamtx 합성으로 부분 충족)"
+  - "2026-05-20: complete (Drift X3 실기기 ↘ rtsp://192.168.0.13/live ↘ scheduler 1 cycle ↘ camera_id=3 person event_id=46 conf=0.92 capture→insert 3.16s 측정)"
 
-tags: [phase-8, rtsp, mediamtx, ffmpeg, synthetic-validation, e2e, backoff, healthcheck-roundtrip, RTSP-02-deferred, vault-sr-key-deferred, T-8-04]
+tags: [phase-8, rtsp, mediamtx, ffmpeg, drift-x3, real-rtsp-verified, e2e, backoff, healthcheck-roundtrip, T-8-04]
 
 # Dependency graph
 requires:
@@ -53,7 +56,7 @@ key-files:
 
 key-decisions:
   - "Vault `service_role_key` 미시드 상태 진행 — Wave 4 prerequisite (08-02·03 SUMMARY 명시) 미충족이지만 step 10 (5분 round-trip FCM 도착) 만 영향. 본 plan 의 step 8·9 (capture E2E + backoff + 회복) 는 무관하게 모두 검증 완료. 사용자 Dashboard 시드 후 다음 cron tick (≤1분) 부터 자연 동작."
-  - "RTSP-02 (Drift X3 실기기 ≤10s 지연 측정) 명시적 deferred — mediamtx 로컬 ≈0초 측정으로 SC #2 의 'detection_events row + 1 cycle' 부분 충족, '실기기 측정' 부분만 v1.1 6월 LP-3 검단·포천 설치 시점."
+  - "RTSP-02 실기기 검증 ✓ COMPLETE (2026-05-20) — 사용자 PC + Drift X3 (192.168.0.13) WiFi 연결 + drift_test.py preflight 통과 후 cameras 1·2·3·4·5 모두 RTSP URL 점프 + scheduler 1 cycle (--once-detect) 실행. camera_id=3 (person 매핑) 에서 사용자 카메라 앞에 서기 → event_id=46 person 검출 conf=0.92 + accuracy=0.9156 + risk_level=CAUTION + Storage capture 이미지 업로드. capture 시점 (cameras.last_frame_at=01:47:26.199 UTC) → DB insert 시점 (detected_at=01:47:29.356 UTC) **지연 3.16s** — SC #2 의 10s 임계 ≪ pass. 시연 후 cameras 5 모두 mp4 URL 원복 (PostgREST PATCH 5회 → ✓ mp4 확인). ai_agent/tests 28/28 회귀 PASS."
   - "PostgREST PATCH 로 cameras 임시 갱신 + 원복 (psql 미설치 환경) — scripts/restore_cameras_mp4.sql 는 Dashboard SQL Editor 또는 향후 psql 가용 시 직접 실행용 보관, 본 검증은 PostgREST curl 로 수동 PATCH 수행."
 
 patterns-established:
@@ -64,8 +67,8 @@ patterns-established:
 
 requirements-completed:
   - RTSP-01  # snapshot.capture_rtsp + URL scheme dispatch (08-01) + scheduler last_frame_at wiring (08-03) + mediamtx 합성 E2E 검증 (본 plan)
+  - RTSP-02  # 2026-05-20 실기기 검증 완료 — Drift X3 (rtsp://192.168.0.13/live) + cameras 5 점프 + scheduler 1 cycle + camera_id=3 person event_id=46 conf=0.92 적재 + capture→insert 지연 3.16s (10s 임계 ≪ pass)
   - RTSP-03  # backoff + cameras_healthcheck() + Edge Function camera-down/recovered (08-01·02·03) + 합성 backoff 검증 + recovery 검증 (본 plan)
-# RTSP-02 partial — '실기기 측정' 부분만 deferred, '1 cycle detection_events 적재' 는 충족 (camera_id=4 forklift 6건)
 
 # Metrics
 duration: ~50min  # Task 1 scripts ~15min + Task 2 validation cycles + 3min 대기 + cleanup ~35min

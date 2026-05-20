@@ -136,10 +136,12 @@
   파일 경로 대신 `rtsp://...` URL 처리. `cameras.live_url_detail` 의 RTSP URL
   지원 + `cv2.VideoCapture` 또는 `ffmpeg-python` 으로 frame 추출. mp4 fallback
   유지 (영상 없을 때 데모 모드).
-- [ ] **RTSP-02**: Drift X3 카메라 ≥ 1대 실기기 RTSP 연동 검증 — `cameras`
-  테이블에 Drift X3 RTSP URL 등록 + 1 detection cycle 실측 (forklift 또는
-  person detector) + `detection_events` 적재 확인. SUMMARY 에 실측 frame rate
-  / 지연 (감지~insert ≤ 10s) 기록.
+- [x] **RTSP-02**: Drift X3 카메라 ≥ 1대 실기기 RTSP 연동 검증 ✓ 2026-05-20 —
+  `cameras` 1·2·3·4·5 모두 RTSP URL (`rtsp://192.168.0.13/live`) 점프 + scheduler
+  `--once-detect` 1 cycle → camera_id=3 (person 매핑) event_id=46 person conf=0.92
+  accuracy=0.9156 risk_level=CAUTION + Storage capture 이미지 업로드 완료. 지연
+  **3.16s** (capture 01:47:26.199 → insert 01:47:29.356 UTC, SC #2 ≤10s ≪ pass).
+  시연 후 cameras 5 모두 mp4 원복 + ai_agent/tests 28/28 PASS.
 - [ ] **RTSP-03**: RTSP 안정성 — 끊김 시 재연결 (최대 N=3 회 backoff), 헬스체크
   (마지막 frame 수신 시각 추적), 끊김 N분 지속 시 운영 알림 (FCM 또는 로그).
   `cameras.last_frame_at` 컬럼 추가 + 헬스체크 SQL.
@@ -219,7 +221,7 @@
 | BRIDGE-02 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | ✓ Complete (백엔드 07-02 e2298a2 + UI 07-03 ebcd623) |
 | BRIDGE-03 | Phase 7 | 워치-앱 양방향 연동 (수요일 마감)   | ✓ Complete (백엔드 07-02 3eb872d + UI 07-03 d3d3baf) |
 | RTSP-01   | Phase 8 | Drift X3 RTSP 실시간 카메라         | ✓ Complete (백엔드 08-01 capture_rtsp 715c277 + 08-03 scheduler health wiring 00aeedf + 08-04 mediamtx 합성 E2E 85370c5 — 6 cycles RTSP capture + last_frame_at 갱신 + camera_id=4 forklift detection_events 6건) |
-| RTSP-02   | Phase 8 | Drift X3 RTSP 실시간 카메라         | ⏸ DEFERRED (실기기 부재 — v1.1 6월 검단·포천 설치 직전 LP-3). 08-04 mediamtx 합성 충족 = SC #2 의 "1 cycle detection_events + 추론 ≤10s" 부분 충족 (mediamtx 로컬 ≈0초). 실기기 측정 부분만 deferred. |
+| RTSP-02   | Phase 8 | Drift X3 RTSP 실시간 카메라         | ✓ Complete 2026-05-20 — Drift X3 (rtsp://192.168.0.13/live) 실기기 검증 완료. cameras 1·2·3·4·5 모두 RTSP 점프 → scheduler --once-detect 1 cycle → camera_id=3 (person) event_id=46 conf=0.92 accuracy=0.9156 risk_level=CAUTION 적재 + Storage capture 이미지 업로드. capture (cameras.last_frame_at=01:47:26.199 UTC) → DB insert (detected_at=01:47:29.356 UTC) 지연 **3.16s** (SC #2 10s 임계 ≪ pass). 시연 후 cameras 5 모두 mp4 원복 ✓ + ai_agent/tests 28/28 PASS. |
 | RTSP-03   | Phase 8 | Drift X3 RTSP 실시간 카메라         | ✓ Complete (백엔드 08-02 cameras_healthcheck 0131ffa + 08-03 case camera-down/recovered c8c7b6d + scheduler health wiring 00aeedf + 08-04 backoff 검증 ~101s + recovery 검증). 5분 cron round-trip FCM 도착 = Vault sr_key Dashboard 시드 후 자연 동작 (08-04 SUMMARY User Setup Required). |
 | TBM-01    | Phase 9 | TBM 현장 작업자 가이드              | ✓ Complete (09-01 f044fac · 20d2c7f, 2026-05-18) — 013_tbm_schema.sql 운영 DB 적용 + 4 신규 테이블 + RLS + Realtime publication ADD 4 + tbm-signatures Storage + pg_cron tbm_missed_attendance_minute + 5 templates 시드 + 7/7 isolation assertions PASS |
 | TBM-02    | Phase 9 | TBM 현장 작업자 가이드              | ✓ Complete (09-03 c94ee1c · 8df2ced · f4d3f3b · 5f52800 · bfd0cec, 2026-05-18) — Android tbm/ 12 main + 4 TDD test (Phase 7 watch/ 1:1 미러 + Dynamic session_id 2-stage Realtime + SignatureCanvas Pitfall 1·2 + ExpectedEndAtValidator Pitfall 8) + storage-kt:2.2.0 + MyApp.install(Storage) + 2 신규 Activity + ComposeView 임베드 (manager 첫 + worker 추가) + FCM tbm_alert 분기 + 48 unit tests PASS (tbm/ 21 + watch/ 26 + Example 1) + T-9-01/06/12/13/14/15 mitigation + 회귀 watch/ + Daily*.kt + ai_agent/ diff 0 |
