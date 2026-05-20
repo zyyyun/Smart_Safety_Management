@@ -63,6 +63,47 @@ _BBOX_COLOR_BGR = {
 }
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 2026-05-20 architecture 정정 — RTSP 실 카메라는 모든 detector/fusion/fall 자동 적용.
+# detector_configs.py 의 camera_ids 1:1 매핑은 mp4 시연 카메라 (TEST-CAM-01~05)
+# 한정. 실 RTSP 카메라는 어떤 상황이 일어날지 사전에 모르므로 5종 detector 모두
+# 같은 frame 검토.
+# 분기 기준: cameras.live_url_detail 이 'rtsp://' 또는 'rtsps://' 로 시작하면 RTSP.
+# ─────────────────────────────────────────────────────────────────────────────
+def _is_rtsp_camera(camera: dict[str, Any]) -> bool:
+    """cameras row 의 live_url_detail 이 RTSP URL 이면 True."""
+    url = camera.get("live_url_detail") or ""
+    return url.lower().startswith(("rtsp://", "rtsps://"))
+
+
+def _expand_target_cameras(
+    base_camera_ids: list[int],
+    all_cams: list[dict[str, Any]],
+    cams_by_id: dict[int, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """detector_configs 의 1:1 매핑된 카메라 + 모든 RTSP 카메라 (자동 포함, dedup).
+
+    Args:
+        base_camera_ids: detector_configs 또는 fusion_configs 의 'camera_ids' (mp4 시연용 매핑).
+        all_cams: bridge.fetch_active_cameras() 전체 결과.
+        cams_by_id: {camera_id: camera_row} dict.
+
+    Returns:
+        실행 대상 camera row 리스트 (set 기반 dedup, 안정적 순서).
+    """
+    target_ids: set[int] = set()
+    # 1. mp4 시연 매핑 (camera_configs 의 camera_ids — 보통 단일 ID)
+    for cid in base_camera_ids:
+        if cid in cams_by_id:
+            target_ids.add(cid)
+    # 2. RTSP 카메라 자동 추가 (모든 detector/fusion/fall 5종 적용 — 운영 카메라)
+    for cam in all_cams:
+        if _is_rtsp_camera(cam):
+            target_ids.add(int(cam["camera_id"]))
+    # 정렬된 순서 — log 가독성
+    return [cams_by_id[cid] for cid in sorted(target_ids) if cid in cams_by_id]
+
+
 def _annotate_capture_with_bbox(
     image_path: Path,
     bboxes_with_labels: list[tuple[tuple[float, float, float, float], str, float]],
@@ -277,7 +318,9 @@ def run_fall_cycle(
         log.error("카메라 목록 조회 실패: %s", e)
         return
 
-    targets = [c for c in all_cams if int(c["camera_id"]) in enabled_ids]
+    # 2026-05-20: fall 도 RTSP 카메라 자동 포함 (architecture 정정 — RTSP 는 5종 모두).
+    cams_by_id = {int(c["camera_id"]): c for c in all_cams}
+    targets = _expand_target_cameras(list(enabled_ids), all_cams, cams_by_id)
     if not targets:
         log.info("활성 대상 카메라 없음")
         return
@@ -576,12 +619,11 @@ def run_detection_cycle(
         if cfg.get("disabled", False):
             log.debug("[%s] disabled=True, 단독 알람 스킵 (fusion 전용, D-04)", event_key)
             continue
-        target_cams = [
-            cams_by_id[cid] for cid in cfg["camera_ids"] if cid in cams_by_id
-        ]
+        # 2026-05-20: RTSP 실 카메라는 모든 detector 자동 포함 (architecture 정정).
+        target_cams = _expand_target_cameras(cfg["camera_ids"], all_cams, cams_by_id)
         if not target_cams:
             log.debug(
-                "[%s] 매핑 카메라 %s 중 활성된 것 없음", event_key, cfg["camera_ids"]
+                "[%s] 매핑 카메라 %s + RTSP 자동 포함 모두 없음", event_key, cfg["camera_ids"]
             )
             continue
         for cam in target_cams:
@@ -594,13 +636,12 @@ def run_detection_cycle(
                 log.info(msg)
 
     # [Phase 3 addition] fusion loop — after detector loop (D-05, D-12)
+    # 2026-05-20: RTSP 실 카메라는 모든 fusion 자동 포함 (architecture 정정).
     for fusion_key, fcfg in FUSION_CONFIGS.items():
-        f_target_cams = [
-            cams_by_id[cid] for cid in fcfg["camera_ids"] if cid in cams_by_id
-        ]
+        f_target_cams = _expand_target_cameras(fcfg["camera_ids"], all_cams, cams_by_id)
         if not f_target_cams:
             log.debug(
-                "[FUSION] %s: 매핑 카메라 %s 중 활성된 것 없음",
+                "[FUSION] %s: 매핑 카메라 %s + RTSP 자동 포함 모두 없음",
                 fusion_key, fcfg["camera_ids"],
             )
             continue

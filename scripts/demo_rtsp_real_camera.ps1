@@ -20,6 +20,15 @@
 #   -SkipRestore   : skip mp4 restore (debug only, manual SQL needed!)
 #   -CameraIds     : which camera_ids to patch (default 1..5)
 #
+# NOTE (2026-05-20 architecture update):
+# scheduler now auto-applies ALL detectors (fire/helmet/forklift/person/fall)
+# + fusion to ANY camera whose live_url_detail starts with 'rtsp://'.
+# detector_configs.py camera_ids 1:1 mapping is ONLY for mp4 demo cameras.
+# So patching even 1 camera to RTSP is enough to trigger all 5 detectors
+# on that single camera stream. The default -CameraIds 1..5 still works
+# (all 5 cameras pointing to same RTSP stream — redundant but harmless),
+# but you can pass `-CameraIds 1` to keep other cameras on their mp4 demos.
+#
 # Pre-flight (user):
 #   1. Camera IP (default 192.168.0.13) reachable on same WiFi as PC
 #   2. Optional: run drift_test.py once to verify camera stream
