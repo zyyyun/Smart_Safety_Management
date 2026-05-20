@@ -174,6 +174,22 @@
   QR/NFC 매일 체크인), 게이트웨이 벤더 비교, 알림 채널 (SMS/카카오톡 알림톡),
   개인정보 정책 (보관·익명화·열람권), 충전 운용 절차, 펌웨어 동결 정책 → v1.1
   별도 결정 phase
+- **화재 검출 고도화 (FIRE-ADV 시리즈)** — Phase 1 의 D-19 fallback (conf 0.10)
+  은 v0.5 baseline 임시조치. 운영급 도달 위해 별도 phase 필요. 후보:
+  - **FIRE-ADV-01 (모델 교체)**: 현재 `fire_best.pt` (사용자 제공 v0.5 baseline)
+    의 한계 — 진정한 conf 0.5+ 미달. AI Hub 화재 dataset 자체 학습 또는 YOLO8/26
+    공개 fire model 평가. 운영 임계 conf 0.5 복원 + frames_required=5 재검토.
+  - **FIRE-ADV-02 (smoke 분리)**: 불꽃 (flame) vs 연기 (smoke) 별도 라벨링 →
+    발화 초기 (smoke only) vs 본격 화재 (flame+smoke) 구분. 알람 severity 차등
+    (CAUTION → WARNING → DANGER).
+  - **FIRE-ADV-03 (다중 프레임 fusion)**: 단일 frame conf 대신 시간축 평균 conf
+    + bbox overlap (IoU) 안정성 검사. false positive 추가 흡수.
+  - **FIRE-ADV-04 (환경 sensor 결합)**: 온도/CO/연기 환경 sensor + 비전 fire
+    cross-check. LP-6 연동.
+  - **FIRE-ADV-05 (운영 알람 강화)**: 화재 검출 시 즉시 FCM + 작업자 대피 음성
+    (PTT) + 119 신고 prompt + 화재감지기 BLE/아크차단기 cross-trigger.
+  → v1.1 별도 phase (또는 YOLO26 전면 마이그레이션과 함께). 자세한 scaffold:
+  `.planning/BACKLOG.md` FIRE-ADV 섹션.
 
 ---
 
