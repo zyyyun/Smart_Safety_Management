@@ -27,6 +27,9 @@
     <!-- Foreground Service 권한 추가 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <!-- 2026-05-21 — feature_rtps_test / plan v3.1: RtspPocService foregroundServiceType="dataSync"
+         Android 14 (targetSdk=34) 에서 사실상 필수. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- 2026-05-21 — Sprint A.2.1: Drift X3 페어링용 폰 WiFi SSID 자동 감지 -->
@@ -264,6 +267,16 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <!-- 2026-05-21 — feature_rtps_test / plan v3.1 / S4
+             RTSP PoC frame sampler Foreground Service. ExoPlayer + ImageReader 로
+             RTSP 영상을 5초 cycle 마다 JPEG 1장 추출 → Supabase Storage upload.
+             본부 PC 의 ai_agent/rtsp_poc_pull.py 가 polling 으로 처리. -->
+        <service
+            android:name=".rtsp.RtspPocService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <!-- ✅ FCM 서비스 등록 -->
         <service

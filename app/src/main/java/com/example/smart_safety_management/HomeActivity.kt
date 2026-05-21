@@ -81,6 +81,9 @@ class HomeActivity : AppCompatActivity() {
 
         // 2026-05-21 — Sprint A.2: profile_bar 좌측 카메라 페어링 미니카드 (manager 전용)
         setupCameraMiniCard()
+
+        // 2026-05-21 — feature_rtps_test / plan v3.1 / S3: RTSP PoC 토글 (manager 전용)
+        setupRtspPocToggle()
     }
 
     private fun launchCameraPairing() {
@@ -114,6 +117,48 @@ class HomeActivity : AppCompatActivity() {
             isFocusable = true
             bringToFront()
             setOnClickListener { launchCameraPairing() }
+        }
+    }
+
+    /**
+     * 2026-05-21 — feature_rtps_test branch / plan v3.1 / S3.
+     *
+     * view_profile_bar.xml 의 btn_rtsp_poc 토글. ExoPlayer + ImageReader 로
+     * RTSP frame 5초마다 캡처해 Supabase Storage 의 rtsp-poc bucket 에 업로드.
+     * 본부 PC 의 ai_agent/rtsp_poc_pull.py 가 polling 으로 처리.
+     *
+     * 진행 중 / 정지 상태는 [com.example.smart_safety_management.rtsp.RtspPocService.isRunning]
+     * AtomicBoolean 으로 동기화. 버튼 text 도 그에 따라 START/STOP 토글.
+     */
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    private fun setupRtspPocToggle() {
+        val btn = findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_rtsp_poc)
+            ?: return
+        btn.visibility = View.VISIBLE
+        btn.text = if (com.example.smart_safety_management.rtsp.RtspPocService.isRunning.get())
+            "RTSP POC STOP" else "RTSP POC START"
+
+        btn.setOnClickListener {
+            val serviceClass = com.example.smart_safety_management.rtsp.RtspPocService::class.java
+            if (com.example.smart_safety_management.rtsp.RtspPocService.isRunning.get()) {
+                stopService(Intent(this, serviceClass))
+                btn.text = "RTSP POC START"
+                Toast.makeText(this, "RTSP PoC 중지", Toast.LENGTH_SHORT).show()
+            } else {
+                val intent = Intent(this, serviceClass).apply {
+                    putExtra(
+                        com.example.smart_safety_management.rtsp.RtspPocService.EXTRA_CAMERA_ID,
+                        1,
+                    )
+                    putExtra(
+                        com.example.smart_safety_management.rtsp.RtspPocService.EXTRA_RTSP_URL,
+                        "rtsp://192.168.0.13/live",
+                    )
+                }
+                ContextCompat.startForegroundService(this, intent)
+                btn.text = "RTSP POC STOP"
+                Toast.makeText(this, "RTSP PoC 시작 (cycle 5초)", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
