@@ -87,19 +87,33 @@ function Assert-Admin {
 }
 
 function Resolve-NssmPath {
+    # IMPORTANT: accumulate into $found and return ONCE at the end. Do NOT use
+    # early `return` after lines that may emit to the success pipeline (e.g. native
+    # commands like winget) -- in PS 5.1 the function's return value collects
+    # everything written to stdout, so an early return after a polluted line gives
+    # the caller an array of "winget progress garbage + actual path" and `& $nssm`
+    # then tries to execute the garbage. Capture winget output into $null.
+    $found = $null
+
     # 1) Already on PATH?
     $cmd = Get-Command nssm -ErrorAction SilentlyContinue
-    if ($cmd) { return $cmd.Source }
+    if ($cmd) { $found = $cmd.Source }
 
     # 2) Local sidecar
-    $localNssm = Join-Path $PSScriptRoot "_nssm\nssm.exe"
-    if (Test-Path $localNssm) { return $localNssm }
+    if (-not $found) {
+        $localNssm = Join-Path $PSScriptRoot "_nssm\nssm.exe"
+        if (Test-Path $localNssm) { $found = $localNssm }
+    }
 
     # 3) winget install (Windows 11)
-    if (Get-Command winget -ErrorAction SilentlyContinue) {
-        Write-Host "NSSM not found. Attempting: winget install NSSM.NSSM" -ForegroundColor Yellow
+    if (-not $found -and (Get-Command winget -ErrorAction SilentlyContinue)) {
+        Write-Host "NSSM not found. Attempting: winget install NSSM.NSSM (this may take ~30s)" -ForegroundColor Yellow
         try {
-            winget install --id NSSM.NSSM --silent --accept-source-agreements --accept-package-agreements
+            # $null = ... captures both stdout and the return value, preventing
+            # winget's verbose progress bars + Korean status text from polluting
+            # this function's pipeline. Stderr (small in --silent mode) is left
+            # alone so real errors surface to console.
+            $null = winget install --id NSSM.NSSM --silent --accept-source-agreements --accept-package-agreements
         } catch {
             Write-Warning "winget invocation failed: $_"
         }
@@ -107,14 +121,19 @@ function Resolve-NssmPath {
         $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
         $userPath    = [Environment]::GetEnvironmentVariable("Path", "User")
         $env:Path    = "$machinePath;$userPath"
+
         $cmd = Get-Command nssm -ErrorAction SilentlyContinue
-        if ($cmd) { return $cmd.Source }
-        # Common winget Links location fallback
-        $wingetLink = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Links\nssm.exe"
-        if (Test-Path $wingetLink) { return $wingetLink }
+        if ($cmd) {
+            $found = $cmd.Source
+        } else {
+            # Common winget Links location fallback
+            $wingetLink = Join-Path $env:LOCALAPPDATA "Microsoft\WinGet\Links\nssm.exe"
+            if (Test-Path $wingetLink) { $found = $wingetLink }
+        }
     }
 
-    throw @"
+    if (-not $found) {
+        throw @"
 NSSM not installed. Pick ONE install path:
   1) winget install NSSM.NSSM            (recommended on Windows 11)
   2) choco install nssm                  (if Chocolatey present)
@@ -122,6 +141,8 @@ NSSM not installed. Pick ONE install path:
      $localNssm
 Then re-run this script.
 "@
+    }
+    return $found
 }
 
 function Format-StatusColor($status) {
