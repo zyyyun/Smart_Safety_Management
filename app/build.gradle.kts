@@ -162,6 +162,15 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:storage-kt:2.2.0")
     implementation("io.ktor:ktor-client-cio:2.3.9")
 
+    // 2026-05-21 — Sprint A.2.1: Drift X3 카메라 QR 페어링 (QR 생성 only).
+    // core 만으로 BitMatrix → Bitmap 직접 변환 가능, 스캔용 android-embedded 는 불필요.
+    implementation("com.google.zxing:core:3.5.3")
+
+    // 2026-05-21 — Sprint A.1.1: Nordic Android BLE library (J2208A 워치 BLE master 포팅).
+    // Plan 의 2.7.x 권고를 2.11.0 (latest stable, 2026) 으로 bump.
+    // 2주 sprint 동안 살아남을 dep 이므로 current minor 핀.
+    implementation("no.nordicsemi.android:ble-ktx:2.11.0")
+
     // Phase 7 / Pitfall 2 — minSdk 24 + supabase-kt minSdk 26 → core library desugaring 필수
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 

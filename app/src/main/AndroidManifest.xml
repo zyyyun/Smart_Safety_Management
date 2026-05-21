@@ -29,6 +29,23 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- 2026-05-21 — Sprint A.2.1: Drift X3 페어링용 폰 WiFi SSID 자동 감지 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <!-- 2026-05-21 — Sprint A.1.1: J2208A 워치 BLE master (PC bleak 의존성 제거) -->
+    <!-- Android 12+ runtime BLE 권한 -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Android 11- backwards compat -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <!-- Android 14+ BLE FGS subtype -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -282,6 +299,18 @@
             android:name=".TbmWorkerActivity"
             android:exported="false"
             android:label="TBM 가이드" />
+
+        <!-- 2026-05-21 — 워치 신체 정보 상세 화면 (WatchMiniCardComposable tap) -->
+        <activity
+            android:name=".watch.WatchDetailActivity"
+            android:exported="false"
+            android:label="내 신체 정보" />
+
+        <!-- 2026-05-21 — Sprint A.2: Drift X3 카메라 QR 페어링 + 등록 -->
+        <activity
+            android:name=".camera.CameraPairingActivity"
+            android:exported="false"
+            android:label="카메라 페어링" />
     </application>
 
 </manifest>

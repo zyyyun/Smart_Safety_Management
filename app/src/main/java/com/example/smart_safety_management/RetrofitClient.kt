@@ -24,6 +24,7 @@ object RetrofitClient {
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .addInterceptor(SupabaseRoutingInterceptor())
+            .addInterceptor(SupabaseAuthInterceptor())  // 2026-05-20: anon JWT header 강제
             .connectTimeout(60, TimeUnit.SECONDS)
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(120, TimeUnit.SECONDS)
@@ -44,6 +45,30 @@ object RetrofitClient {
 
     val pttApi: PttApi by lazy {
         retrofit.create(PttApi::class.java)
+    }
+}
+
+/**
+ * 2026-05-20 — Supabase Edge Functions 가 verify_jwt=true 라 모든 호출에
+ * `Authorization: Bearer <anon-key>` + `apikey: <anon-key>` 헤더 필요.
+ * 401 "UNAUTHORIZED_NO_AUTH_HEADER" 방지.
+ *
+ * 호출자가 직접 헤더 지정한 경우 (예: Edge Function 안에서 service_role 호출 등) 는 보존.
+ */
+class SupabaseAuthInterceptor : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val req = chain.request()
+        if (req.header("Authorization") != null && req.header("apikey") != null) {
+            return chain.proceed(req)
+        }
+        val builder = req.newBuilder()
+        if (req.header("Authorization") == null) {
+            builder.addHeader("Authorization", "Bearer ${BuildConfig.SUPABASE_ANON_KEY}")
+        }
+        if (req.header("apikey") == null) {
+            builder.addHeader("apikey", BuildConfig.SUPABASE_ANON_KEY)
+        }
+        return chain.proceed(builder.build())
     }
 }
 
@@ -111,6 +136,7 @@ class SupabaseRoutingInterceptor : Interceptor {
         "/reset_workplace_location" to Route("workplace", "reset_location"),
         "/register_workplace_location" to Route("workplace", "register_location"),
         "/delete_cameras" to Route("cameras", "delete"),
+        "/register_camera" to Route("cameras", "register"), // 2026-05-21 Sprint A.2.3
         "/update_event_status" to Route("detection", "update_status"),
         "/handle_false_positive" to Route("detection", "handle_false_positive"),
         "/mark_notifications_read" to Route("notifications", "mark_read"),
