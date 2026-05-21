@@ -167,9 +167,30 @@ dependencies {
     implementation("com.google.zxing:core:3.5.3")
 
     // 2026-05-21 — Sprint A.1.1: Nordic Android BLE library (J2208A 워치 BLE master 포팅).
-    // Plan 의 2.7.x 권고를 2.11.0 (latest stable, 2026) 으로 bump.
-    // 2주 sprint 동안 살아남을 dep 이므로 current minor 핀.
-    implementation("no.nordicsemi.android:ble-ktx:2.11.0")
+    //
+    // 버전 선정: 2.7.5 (2024-04-29, 1.9-era 마지막 patch).
+    // 금지 (Pitfall 1 확장): 2.8.0+ 은 Kotlin 2.x stdlib 를 트랜지티브로 끌고 옴 →
+    //   우리의 Compose Compiler 1.5.10 + supabase-kt 2.2.0 Kotlin 1.9.22 lock 과 충돌.
+    //   증상: "Class 'kotlin.Unit' was compiled with an incompatible version of Kotlin.
+    //   The actual metadata version is 2.2.0, but the compiler version 1.9.0 can read
+    //   versions up to 2.0.0."
+    //   A.1 sprint 가 끝날 때까지 2.7.x 라인 유지. 향후 전체 Kotlin 2.x 마이그레이션
+    //   시점에 한꺼번에 bump.
+    implementation("no.nordicsemi.android:ble-ktx:2.7.5")
+
+    // 2026-05-21 — 트랜지티브 stdlib defensive lock (모든 dep 의 transitive Kotlin stdlib
+    // 을 1.9.22 로 강제). 새 dep 추가 시 위 metadata 충돌 재발 방지.
+    constraints {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.22") {
+            because("프로젝트 Kotlin 1.9.22 lock — Compose Compiler 1.5.10 ABI 호환 유지")
+        }
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22") {
+            because("same as above")
+        }
+        implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22") {
+            because("same as above")
+        }
+    }
 
     // Phase 7 / Pitfall 2 — minSdk 24 + supabase-kt minSdk 26 → core library desugaring 필수
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
