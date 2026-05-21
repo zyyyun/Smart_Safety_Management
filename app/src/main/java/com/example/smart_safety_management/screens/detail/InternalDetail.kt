@@ -32,6 +32,8 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.common.PlaybackException
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.example.smart_safety_management.LiveCardItem
@@ -366,7 +368,7 @@ private fun SmartPreviewCard(
     val c = LocalSafeColors.current
     val bg = if (c.isDark) c.surface else Color.White
 
-    val isVideo = !imageUrl.isNullOrBlank() && (imageUrl.contains(".m3u8") || imageUrl.contains(".mp4"))
+    val isVideo = isPlayableStreamUrl(imageUrl)
 
     Box(
         modifier = modifier
@@ -376,7 +378,7 @@ private fun SmartPreviewCard(
             .background(bg)
     ) {
         if (isVideo) {
-            VideoPlayer(url = imageUrl!!, modifier = Modifier.fillMaxSize())
+            VideoPlayer(url = imageUrl!!.trim(), modifier = Modifier.fillMaxSize())
         } else {
             if (!imageUrl.isNullOrBlank()) {
                 AsyncImage(
@@ -504,6 +506,14 @@ interface HasCctvStreamIds {
     val siteStreamId: String?
 }
 
+private fun isPlayableStreamUrl(url: String?): Boolean {
+    val normalized = url?.trim()?.lowercase() ?: return false
+    return normalized.startsWith("rtsp://") ||
+        normalized.startsWith("rtsps://") ||
+        normalized.contains(".m3u8") ||
+        normalized.contains(".mp4")
+}
+
 @Composable
 fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -512,10 +522,22 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
     var isPlaying by remember { mutableStateOf(true) }
     var currentPosition by remember { mutableStateOf(0L) }
     var duration by remember { mutableStateOf(0L) }
+    var playbackError by remember(url) { mutableStateOf<String?>(null) }
+    val isRtsp = remember(url) {
+        url.startsWith("rtsp://", ignoreCase = true) ||
+            url.startsWith("rtsps://", ignoreCase = true)
+    }
 
-    val exoPlayer = remember {
+    val exoPlayer = remember(url) {
         ExoPlayer.Builder(context).build().apply {
             setMediaItem(MediaItem.fromUri(Uri.parse(url)))
+            repeatMode = if (isRtsp) Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ONE
+            addListener(object : Player.Listener {
+                override fun onPlayerError(error: PlaybackException) {
+                    playbackError = error.localizedMessage ?: "라이브 연결 실패"
+                    Log.e("InternalDetail", "Live playback failed: $url", error)
+                }
+            })
             prepare()
             playWhenReady = true
         }
@@ -541,32 +563,52 @@ fun VideoPlayer(url: String, modifier: Modifier = Modifier) {
             factory = {
                 PlayerView(context).apply {
                     player = exoPlayer
-                    useController = false // Hide default controller
+                    useController = true
                     layoutParams = FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)
                 }
+            },
+            update = { view ->
+                if (view.player !== exoPlayer) view.player = exoPlayer
             },
             modifier = Modifier.fillMaxSize()
         )
 
+        if (playbackError != null) {
+            ConnectionPill(
+                text = "라이브 연결 실패",
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(10.dp)
+            )
+        } else if (isRtsp) {
+            ConnectionPill(
+                text = "RTSP 라이브",
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(10.dp)
+            )
+        }
 
-        val progress = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
-        val timeText = formatTime(currentPosition)
+        if (!isRtsp) {
+            val progress = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
+            val timeText = formatTime(currentPosition)
 
-        LivePlaybackController(
-            sliderPosition = progress,
-            onSliderValueChange = { newVal ->
-                val newPos = (newVal * duration).toLong()
-                exoPlayer.seekTo(newPos)
-                currentPosition = newPos // Immediate feedback
-            },
-            timeText = timeText,
-            isPlaying = isPlaying,
-            onPlayPauseClick = {
-                if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
-                isPlaying = !isPlaying // Immediate feedback
-            },
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+            LivePlaybackController(
+                sliderPosition = progress,
+                onSliderValueChange = { newVal ->
+                    val newPos = (newVal * duration).toLong()
+                    exoPlayer.seekTo(newPos)
+                    currentPosition = newPos
+                },
+                timeText = timeText,
+                isPlaying = isPlaying,
+                onPlayPauseClick = {
+                    if (exoPlayer.isPlaying) exoPlayer.pause() else exoPlayer.play()
+                    isPlaying = !isPlaying
+                },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
     }
 }
 

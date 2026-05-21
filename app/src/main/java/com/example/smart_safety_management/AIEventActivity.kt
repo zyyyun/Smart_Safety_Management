@@ -29,16 +29,28 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 class AIEventActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 2026-05-20 — FCM data.type='ai_event' push 탭 시 detail 직접 진입.
+        // MyFirebaseMessagingService.showAiEventNotification 이 putExtra(EXTRA_EVENT_ID).
+        // -1 (no extra) 면 기존 default "detect" 리스트 진입.
+        val initialEventId = intent.getIntExtra(EXTRA_EVENT_ID, -1).takeIf { it > 0 }
+
         setContent {
             Smart_Safety_ManagementTheme {
-                AIEventNavigation()
+                AIEventNavigation(initialEventId = initialEventId)
             }
         }
+    }
+
+    companion object {
+        const val EXTRA_EVENT_ID = "extra_event_id"
+        const val EXTRA_RISK_LEVEL = "extra_risk_level"
+        const val EXTRA_CAMERA_ID = "extra_camera_id"
     }
 }
 
 @Composable
-fun AIEventNavigation() {
+fun AIEventNavigation(initialEventId: Int? = null) {
     val navController = rememberNavController()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -68,7 +80,8 @@ fun AIEventNavigation() {
         Surface(modifier = Modifier.padding(paddingValues)) {
             NavHost(
                 navController = navController,
-                startDestination = "detect"
+                startDestination = if (initialEventId != null && initialEventId > 0)
+                    "detail/$initialEventId" else "detect",
             ) {
                 composable("detect") {
                     AIEventDetectScreen(

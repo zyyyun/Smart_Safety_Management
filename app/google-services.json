@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "892747177104",
-    "project_id": "smart-safety-management-3cf43",
-    "storage_bucket": "smart-safety-management-3cf43.firebasestorage.app"
+    "project_number": "877169530594",
+    "project_id": "smart-safety-2026",
+    "storage_bucket": "smart-safety-2026.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:892747177104:android:674e1163238144837c8c15",
+        "mobilesdk_app_id": "1:877169530594:android:08b8e512b4cf19903f70bb",
         "android_client_info": {
           "package_name": "com.example.smart_safety_management"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAII0m6mxZ2xIlVvemJP4x-4U3S2jFRWEc"
+          "current_key": "AIzaSyBHdhXDvf9fMhk8IUtYZ074GeCUw2btqis"
         }
       ],
       "services": {

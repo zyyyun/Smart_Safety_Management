@@ -1,0 +1,10 @@
+{
+  "version": "1.0",
+  "project_code": "SSM",
+  "project_title": "Smart Safety Management",
+  "workflow": {
+    "research": false,
+    "ui_brand": false,
+    "text_mode": false
+  }
+}

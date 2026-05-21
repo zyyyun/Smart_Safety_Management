@@ -29,6 +29,23 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- 2026-05-21 — Sprint A.2.1: Drift X3 페어링용 폰 WiFi SSID 자동 감지 -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <!-- 2026-05-21 — Sprint A.1.1: J2208A 워치 BLE master (PC bleak 의존성 제거) -->
+    <!-- Android 12+ runtime BLE 권한 -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <!-- Android 11- backwards compat -->
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <!-- Android 14+ BLE FGS subtype -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -231,19 +248,15 @@
             android:exported="false"/>
 
 
-        <!-- ✅ 카카오 네이티브 앱 키 대표 Default Native AppKey 넣는곳-->
-        <meta-data
-            android:name="com.kakao.sdk.AppKey"
-            android:value="ac06bf15c3f3dc080afb2a22bed9dfba" />
         <!-- ✅ 카카오 SDK 키 대표 Default Native AppKey 넣는곳-->
         <meta-data
             android:name="com.kakao.sdk.AppKey"
-            android:value="ac06bf15c3f3dc080afb2a22bed9dfba" />
+            android:value="${kakaoNativeAppKey}" />
 
         <!-- ✅ 카카오 VectorMap 키 (추가) 대표 Default Native AppKey 넣는곳 -->
         <meta-data
             android:name="com.kakao.vectormap.APP_KEY"
-            android:value="ac06bf15c3f3dc080afb2a22bed9dfba" />
+            android:value="${kakaoNativeAppKey}" />
 
         <!-- 위치 전송 Foreground Service 등록 -->
         <service
@@ -264,6 +277,36 @@
         <activity android:name=".FireAlarmManageActivity" />
         <activity android:name=".screens.afci.ArcBreakerManageActivity" />
         <activity android:name=".SettingWorkplaceAreaActivity" />
+
+        <!-- Phase 7 / 07-03 BRIDGE-02 — 워치 알림 전용 화면 (AIEventActivity 와 별도) -->
+        <activity
+            android:name=".SafetyAlertsActivity"
+            android:exported="false"
+            android:label="워치 알림" />
+
+        <!-- Phase 9 / 09-03 TBM-02 — manager TBM 대시보드 (D-06, T-9-13 manager only) -->
+        <activity
+            android:name=".TbmDashboardActivity"
+            android:exported="false"
+            android:label="TBM 대시보드" />
+
+        <!-- Phase 9 / 09-03 TBM-02 — worker TBM 가이드 (D-07) -->
+        <activity
+            android:name=".TbmWorkerActivity"
+            android:exported="false"
+            android:label="TBM 가이드" />
+
+        <!-- 2026-05-21 — 워치 신체 정보 상세 화면 (WatchMiniCardComposable tap) -->
+        <activity
+            android:name=".watch.WatchDetailActivity"
+            android:exported="false"
+            android:label="내 신체 정보" />
+
+        <!-- 2026-05-21 — Sprint A.2: Drift X3 카메라 QR 페어링 + 등록 -->
+        <activity
+            android:name=".camera.CameraPairingActivity"
+            android:exported="false"
+            android:label="카메라 페어링" />
     </application>
 
 </manifest>

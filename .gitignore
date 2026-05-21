@@ -28,3 +28,44 @@ server/serviceAccountKey.json
 
 
 app/google-services.json
+
+# -- 레퍼런스 영상 (개발 테스트용, 대용량 + 저작권 민감)
+reference_media/**
+!reference_media/README.md
+
+# -- ai_agent 환경변수
+ai_agent/.env
+ai_agent/__pycache__/
+
+# -- 프로젝트 루트 환경변수 (J2208A BLE 클라이언트 — per CONTEXT.md D-12)
+#    .env.example 만 커밋하고 실제 .env 는 절대 커밋 금지 (service_role key 보호).
+.env
+
+# -- Python bytecode (project-wide — j2208a/, scripts/, tests/, etc.)
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# -- AI 모델 가중치 (대용량, 자동 다운로드 또는 레거시 폴더 직접 참조)
+# yolov8x.pt 는 ultralytics 가 첫 실행 시 130MB 자동 다운로드.
+# fire_best.pt, hard_hat_best.pt, best.pt(forklift), yolov7-w6-pose.pt 는
+# D:\2025_산업안전\산업안전\모델 7종\ 직접 참조 (.env 의 절대경로).
+**/*.pt
+ai_agent/yolov5_cache/
+ai_agent/yolov8_cache/
+
+# -- Firebase 서비스 계정 (FCM HTTP v1 인증용) — Supabase Secret 으로만 주입
+service-account*.json
+firebase-adminsdk*.json
+
+# -- Phase 8 RTSP 합성 검증 (mediamtx binary 30MB, 검증 도구만 — 무커밋)
+bin/
+
+# -- Sprint A.3 PC service 로그 (RotatingFileHandler + NSSM stdout/stderr 산물)
+logs/*.log
+logs/*.log.*
+
+# -- NSSM 바이너리 (winget 또는 수동 설치 — 커밋 금지)
+scripts/_nssm/*.exe
+scripts/_nssm/*.zip
+scripts/_nssm/*.dll

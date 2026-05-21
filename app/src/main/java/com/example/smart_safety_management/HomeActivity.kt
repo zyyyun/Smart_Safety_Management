@@ -39,6 +39,19 @@ import android.util.Log
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+// Phase 9 / 09-03 TBM-02 — ComposeView 임베드 (첫 manager 카드, Pitfall 12 Theme 래핑 강제)
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import com.example.smart_safety_management.tbm.TbmDashboardCardComposable
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.watch.SupabaseModule
+import io.github.jan.supabase.postgrest.from
+// 2026-05-21 — watch mini card delegate (by mutableStateOf) 와 LaunchedEffect 용
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 
 class HomeActivity : AppCompatActivity() {
 
@@ -49,6 +62,7 @@ class HomeActivity : AppCompatActivity() {
     private var inviteDialog: androidx.appcompat.app.AlertDialog? = null
     private var selectedYear: Int = 0
     private var selectedMonth: Int = 0 // 1~12
+    private var lastCameraPairingLaunchAtMs: Long = 0L
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,6 +72,141 @@ class HomeActivity : AppCompatActivity() {
         setContentView(R.layout.main_home)
 
         initUI()
+
+        // Phase 9 / 09-03 TBM-02 — manager TBM 대시보드 카드 (D-06)
+        setupTbmDashboardCard()
+
+        // 2026-05-21 — profile_bar 우측 워치 미니카드 (HomeWorkerActivity 패턴 미러)
+        setupWatchMiniCard()
+
+        // 2026-05-21 — Sprint A.2: profile_bar 좌측 카메라 페어링 미니카드 (manager 전용)
+        setupCameraMiniCard()
+    }
+
+    private fun launchCameraPairing() {
+        val now = System.currentTimeMillis()
+        if (now - lastCameraPairingLaunchAtMs < 600L) return
+        lastCameraPairingLaunchAtMs = now
+
+        Log.d("CameraMiniCard", "tapped - launching CameraPairingActivity")
+        Toast.makeText(
+            this,
+            "카메라 페어링 화면 이동",
+            Toast.LENGTH_SHORT,
+        ).show()
+        startActivity(
+            Intent(
+                this,
+                com.example.smart_safety_management.camera.CameraPairingActivity::class.java,
+            )
+        )
+    }
+
+    /**
+     * 2026-05-21 — Sprint A.2: 상단 카메라 페어링 버튼.
+     * ComposeView 대신 native MaterialButton 을 써서 profile bar/scroll 레이어에서도
+     * Android View 터치 이벤트를 확실하게 받는다.
+     */
+    private fun setupCameraMiniCard() {
+        findViewById<View>(R.id.btn_camera_pairing)?.apply {
+            visibility = View.VISIBLE
+            isClickable = true
+            isFocusable = true
+            bringToFront()
+            setOnClickListener { launchCameraPairing() }
+        }
+    }
+
+    /**
+     * 2026-05-21 — view_profile_bar.xml 의 watch_mini_card_compose ComposeView 에
+     * WatchMiniCardComposable (paired) 또는 EmptyWatchMiniCard (unpaired) 표시.
+     *
+     * 페어링 상태는 devices 테이블에서 SELECT (HomeWorkerActivity:138-147 패턴 동일).
+     * 탭 → WatchDetailActivity (paired) 또는 DeviceManage (unpaired).
+     */
+    private fun setupWatchMiniCard() {
+        val composeView = findViewById<ComposeView>(R.id.watch_mini_card_compose) ?: return
+        composeView.setViewCompositionStrategy(
+            ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this)
+        )
+        val supabase = SupabaseModule.client(this)
+        composeView.setContent {
+            Smart_Safety_ManagementTheme {
+                var pairedDeviceId by remember { mutableStateOf<Int?>(null) }
+                var loaded by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    val uid = UserSession.userId
+                    if (uid != null) {
+                        pairedDeviceId = try {
+                            supabase.from("devices").select {
+                                filter {
+                                    eq("user_id", uid)
+                                    eq("device_type", "WATCH")
+                                }
+                                limit(1)
+                            }.decodeSingleOrNull<com.example.smart_safety_management.watch.DeviceRow>()
+                                ?.deviceId
+                        } catch (_: Exception) {
+                            null
+                        }
+                    }
+                    loaded = true
+                }
+                if (!loaded) return@Smart_Safety_ManagementTheme
+                val deviceId = pairedDeviceId
+                if (deviceId != null) {
+                    com.example.smart_safety_management.watch.WatchMiniCardComposable(
+                        deviceId = deviceId,
+                        supabase = supabase,
+                        onCardTap = {
+                            val intent = Intent(
+                                this@HomeActivity,
+                                com.example.smart_safety_management.watch.WatchDetailActivity::class.java,
+                            ).apply { putExtra("device_id", deviceId) }
+                            startActivity(intent)
+                        },
+                    )
+                } else {
+                    com.example.smart_safety_management.watch.EmptyWatchMiniCard(
+                        onCardTap = {
+                            startActivity(Intent(this@HomeActivity, SettingDeviceManagementActivity::class.java))
+                        },
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Phase 9 / 09-03 TBM-02 — main_home.xml 의 tbm_dashboard_compose ComposeView 에
+     * TbmDashboardCardComposable 을 setContent. Pitfall 12 (HomeActivity 첫 ComposeView
+     * Theme 래핑 강제) 적용.
+     *
+     * ViewCompositionStrategy.DisposeOnLifecycleDestroyed: Activity 파괴 시 Composition
+     * 해제 → Realtime channel.unsubscribe() 호출 → WSS slot 해소 (Phase 7 D-01 패턴).
+     *
+     * 권한 가드는 TbmDashboardActivity 의 onCreate 에서 다시 검증 (manager only).
+     */
+    private fun setupTbmDashboardCard() {
+        val composeView = findViewById<ComposeView>(R.id.tbm_dashboard_compose) ?: return
+        composeView.setViewCompositionStrategy(
+            ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this)
+        )
+        val supabase = SupabaseModule.client(this)
+        // 2026-05-19: PoC 한정 fallback — group_id 미설정 시 1 (Plan 09-01 seed group) 사용.
+        // 카드를 어떤 계정으로 들어가도 항상 표시. v1.1 정상 운영 시 toIntOrNull() ?: return 으로 복원.
+        val groupId = UserSession.groupId?.toIntOrNull() ?: 1
+        composeView.setContent {
+            Smart_Safety_ManagementTheme {
+                TbmDashboardCardComposable(
+                    groupId = groupId,
+                    supabase = supabase,
+                    onClickDashboard = {
+                        startActivity(Intent(this@HomeActivity, TbmDashboardActivity::class.java))
+                    },
+                )
+            }
+        }
     }
 
     private val addDailyLauncher =
@@ -203,7 +352,9 @@ class HomeActivity : AppCompatActivity() {
 
     private fun initUI() {
         updateProfile()
-        checkInviteCodeDialog()
+        // 2026-05-19: 초대 코드 입력 dialog 자동 노출 제거 (test 브랜치 / Phase 7·9 시연 환경 한정).
+        // 필요 시 SettingActivity 의 명시적 메뉴에서 수동 진입.
+        // checkInviteCodeDialog()
         val cal = Calendar.getInstance()
         selectedYear = cal.get(Calendar.YEAR)
         selectedMonth = cal.get(Calendar.MONTH) + 1
@@ -387,11 +538,12 @@ class HomeActivity : AppCompatActivity() {
                             inviteDialog?.dismiss()
                             isInviteDialogShowing = false
                         }
-                        
-                        // ✅ 추가: 서버 확인 결과 초대코드가 미입력 상태라면 팝업 표시
-                        if (!UserSession.isInviteChecked && !isInviteDialogShowing) {
-                            showInviteCodeDialog()
-                        }
+
+                        // 2026-05-19: 서버 응답 기반 초대 코드 dialog 자동 노출도 제거.
+                        // 사용자가 명시적으로 SettingActivity 진입 시에만 입력.
+                        // if (!UserSession.isInviteChecked && !isInviteDialogShowing) {
+                        //     showInviteCodeDialog()
+                        // }
                         updateProfile()
                     }
                 }

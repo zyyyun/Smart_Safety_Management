@@ -20,16 +20,13 @@
             android:id="@+id/top_bar"
             layout="@layout/view_top_app_bar" />
 
-    </com.google.android.material.appbar.AppBarLayout>
+        <include
+            android:id="@+id/profile_bar"
+            layout="@layout/view_profile_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
-    <!-- 프로필바 -->
-    <include
-        android:id="@+id/profile_bar"
-        layout="@layout/view_profile_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="?attr/actionBarSize"
-        android:elevation="0dp" />
+    </com.google.android.material.appbar.AppBarLayout>
 
     <!-- ===================== -->
     <!-- 스크롤 영역 (본문) -->
@@ -42,7 +39,7 @@
         android:layout_marginBottom="56dp"
         android:clipToPadding="false"
         android:fillViewport="true"
-        android:paddingTop="135dp">
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -66,6 +63,16 @@
                     android:orientation="vertical"
                     android:paddingBottom="16dp"
                     android:paddingTop="24dp">
+
+                    <!-- Phase 9 / 09-03 TBM-02 — manager TBM 대시보드 카드 (D-06)
+                         첫 ComposeView 임베드 위치 = manager 홈 진입 시 캘린더 위.
+                         setContent 는 HomeActivity.setupTbmDashboardCard() 에서. -->
+                    <androidx.compose.ui.platform.ComposeView
+                        android:id="@+id/tbm_dashboard_compose"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="24dp"
+                        android:layout_marginBottom="16dp" />
 
                     <!-- 캘린더 섹션 -->
                     <LinearLayout

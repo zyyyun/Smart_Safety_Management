@@ -210,7 +210,7 @@ fun ActionDetailScreen(
                                         fontFamily = Pretendard
                                     )
                                     Text(
-                                        text = "${viewModel.eventDetail?.eventName ?: "이벤트"}가 감지되었습니다.",
+                                        text = "${viewModel.eventDetail?.eventName ?: "이벤트"}이(가) 감지되었습니다.",
                                         color = CategoryColor,
                                         fontSize = 14.sp,
                                         fontFamily = Pretendard,

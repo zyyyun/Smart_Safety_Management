@@ -388,6 +388,28 @@ data class DeleteCamerasResponse(
     val message: String
 )
 
+// 2026-05-21 — Sprint A.2.3: Drift X3 QR 페어링 후 cameras 등록
+data class RegisterCameraRequest(
+    @SerializedName("device_name") val deviceName: String,
+    @SerializedName("device_code") val deviceCode: String,
+    @SerializedName("install_area") val installArea: String,
+    @SerializedName("group_id") val groupId: Int,
+    @SerializedName("live_url") val liveUrl: String,
+    @SerializedName("live_url_detail") val liveUrlDetail: String,
+    @SerializedName("installation_address") val installationAddress: String,
+    @SerializedName("status") val status: String = "정상",
+    @SerializedName("shooting_interval") val shootingInterval: Int = 1,
+    @SerializedName("environment_type") val environmentType: String = "실외",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+)
+
+data class RegisterCameraResponse(
+    @SerializedName("camera_id") val cameraId: Int,
+    @SerializedName("live_url_detail") val liveUrlDetail: String? = null,
+    @SerializedName("yolo_agent_pickup") val yoloAgentPickup: String? = null,
+)
+
 data class GetUserInfoResponse(
     @SerializedName("user_id") val userId: String,
     val name: String,
@@ -764,6 +786,10 @@ interface SignUpService {
 
     @POST("/delete_cameras")
     fun deleteCameras(@Body request: DeleteCamerasRequest): Call<DeleteCamerasResponse>
+
+    // 2026-05-21 — Sprint A.2.3: Drift X3 QR 페어링 후 카메라 등록
+    @POST("/register_camera")
+    fun registerCamera(@Body request: RegisterCameraRequest): Call<RegisterCameraResponse>
 
     @GET("/get_user_info")
     fun getUserInfo(@Query("user_id") userId: String): Call<GetUserInfoResponse>

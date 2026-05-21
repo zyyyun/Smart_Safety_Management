@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -13,6 +15,8 @@ import com.google.firebase.messaging.RemoteMessage
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
@@ -31,7 +35,53 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
 
-        // 알림 내용이 있다면 직접 알림을 생성해서 보여줌
+        // Phase 7 / 07-03 BRIDGE-02 — data payload 'type=watch_alert' 분기.
+        // FCM payload (Phase 4 D-11): { type:"watch_alert", alert_type, severity, alert_id }
+        val data = remoteMessage.data
+        if (data["type"] == "watch_alert") {
+            showWatchAlertNotification(
+                title = remoteMessage.notification?.title ?: "워치 알림",
+                body = remoteMessage.notification?.body ?: data["alert_type"] ?: "이벤트 발생",
+                alertId = data["alert_id"]?.toLongOrNull() ?: -1L,
+                alertType = data["alert_type"] ?: "",
+            )
+            return
+        }
+
+        // Phase 9 / 09-03 TBM-02 — data payload 'type=tbm_alert' 분기 (D-09).
+        // FCM payload: { type:"tbm_alert", action_in_app, session_id, work_type }
+        // - action_in_app == "tbm-started" → worker = TbmWorkerActivity, manager = TbmDashboardActivity
+        // - action_in_app == "tbm-missed"  → worker = TbmWorkerActivity (직접 진입)
+        // - action_in_app == "tbm-ended"   → 표시만 (notification tray)
+        // channel_id = fcm_default_channel (Option B, Android 코드 변경 0 원칙)
+        if (data["type"] == "tbm_alert") {
+            showTbmAlertNotification(
+                title = remoteMessage.notification?.title ?: "TBM 알림",
+                body = remoteMessage.notification?.body ?: data["action_in_app"] ?: "TBM 세션 알림",
+                sessionId = data["session_id"]?.toLongOrNull() ?: -1L,
+                actionInApp = data["action_in_app"] ?: "",
+            )
+            return
+        }
+
+        // 2026-05-20 — data payload 'type=ai_event' 분기.
+        // Edge Function `supabase/functions/_shared/ai_events.ts:153-166` 가 발사하는 FCM:
+        //   { type:"ai_event", event_id, risk_level, camera_id }
+        // scheduler.py 가 fire/smoke 검출 시 register_ai_event → createAiEvent → 본 push.
+        // pendingIntent → AIEventActivity (extras event_id → detail/{eventId} 자동 진입).
+        if (data["type"] == "ai_event") {
+            showAiEventNotification(
+                title = remoteMessage.notification?.title ?: "AI 감지 알림",
+                body = remoteMessage.notification?.body ?: data["risk_level"] ?: "이상 상황 감지",
+                eventId = data["event_id"]?.toIntOrNull() ?: -1,
+                riskLevel = data["risk_level"] ?: "",
+                cameraId = data["camera_id"]?.toIntOrNull() ?: -1,
+                captureImageUrl = data["capture_image_url"] ?: data["image_url"],
+            )
+            return
+        }
+
+        // 일반 알림은 기존 흐름 유지 (data['type'] 없음 + notification 만 있는 경우)
         remoteMessage.notification?.let {
             showNotification(it.title, it.body)
         }
@@ -66,6 +116,207 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         }
 
         notificationManager.notify(0, notificationBuilder.build())
+    }
+
+    /**
+     * Phase 7 / 07-03 BRIDGE-02 — 워치 알림 전용 채널 (watch_alerts) +
+     * pendingIntent → SafetyAlertsActivity (alert_id extras).
+     *
+     * extras 의 alert_id 는 신뢰 X — SafetyAlertsScreen 진입 시 DB 재조회 (T-7-07 mitigate).
+     */
+    private fun showWatchAlertNotification(title: String, body: String, alertId: Long, alertType: String) {
+        val intent = Intent(this, SafetyAlertsActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (alertId > 0) putExtra("alert_id", alertId)
+            putExtra("alert_type", "watch_alert")
+            putExtra("watch_alert_type", alertType)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            alertId.toInt().takeIf { it > 0 } ?: 0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val channelId = "watch_alerts"
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "워치 안전 알림",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+        // alert_id 를 notification id 로 사용 → 같은 alert 재push 시 갱신만 (D-09 알림 전이)
+        notificationManager.notify(alertId.toInt().takeIf { it > 0 } ?: 1, notificationBuilder.build())
+    }
+
+    /**
+     * Phase 9 / 09-03 TBM-02 — TBM 알림 push 처리 (D-09).
+     *
+     * channel_id = fcm_default_channel (Option B, Phase 8 일관) — 신규 채널 생성 X,
+     * Android 코드 변경 0 원칙. v1.1 에서 'tbm_alerts' 채널 분리 검토.
+     *
+     * pendingIntent → UserRole 분기 (D-09):
+     *   - MANAGER → TbmDashboardActivity (extras 부재 — Activity 가 자체 fetch)
+     *   - WORKER  → TbmWorkerActivity (extras EXTRA_SESSION_ID 전달)
+     *
+     * extras 의 session_id 는 신뢰 X (T-9-12 mitigation) — Activity 진입 시 DB 재조회로
+     * 권한/상태 확인. session_id 는 hint 로만 사용 (Phase 7 D-02 anti-pattern 회피).
+     */
+    private fun showTbmAlertNotification(
+        title: String,
+        body: String,
+        sessionId: Long,
+        @Suppress("UNUSED_PARAMETER") actionInApp: String,
+    ) {
+        // UserRole 분기 — manager = Dashboard, worker = WorkerActivity
+        val targetActivity = if (UserSession.userRole == UserRole.MANAGER) {
+            TbmDashboardActivity::class.java
+        } else {
+            TbmWorkerActivity::class.java
+        }
+
+        val intent = Intent(this, targetActivity).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (sessionId > 0 && targetActivity == TbmWorkerActivity::class.java) {
+                putExtra(TbmWorkerActivity.EXTRA_SESSION_ID, sessionId)
+            }
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            sessionId.toInt().takeIf { it > 0 } ?: 0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Option B (Phase 8 일관, Pitfall 3 회피): fcm_default_channel 재사용.
+        val channelId = "fcm_default_channel"
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "기본 알림",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            notificationManager.createNotificationChannel(channel)
+        }
+        // session_id 를 notification id 로 사용 → 같은 세션 재push 시 갱신만 (D-09 알림 전이)
+        notificationManager.notify(
+            sessionId.toInt().takeIf { it > 0 } ?: 2,
+            notificationBuilder.build(),
+        )
+    }
+
+    /**
+     * 2026-05-20 — AI 검출 이벤트 (fire/smoke 등) 전용 push.
+     *
+     * channel_id = "ai_events" (신규, IMPORTANCE_HIGH) — watch_alerts 와 분리해
+     * 사용자가 채널별 silencing 가능. 시연 + 운영에서 alert 무음 방지.
+     *
+     * pendingIntent → AIEventActivity (extras EXTRA_EVENT_ID, EXTRA_RISK_LEVEL,
+     * EXTRA_CAMERA_ID). AIEventActivity 가 EXTRA_EVENT_ID > 0 이면 detail route 로
+     * 자동 진입 (capture 이미지 + bbox + 위치 즉시 표시).
+     *
+     * extras 의 event_id 는 hint 로만 사용 — Activity 진입 시 DB 재조회 (T-watch-alert
+     * D-02 패턴 일관, FCM 변조 거부).
+     */
+    private fun showAiEventNotification(
+        title: String,
+        body: String,
+        eventId: Int,
+        riskLevel: String,
+        cameraId: Int,
+        captureImageUrl: String?,
+    ) {
+        val intent = Intent(this, AIEventActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (eventId > 0) putExtra(AIEventActivity.EXTRA_EVENT_ID, eventId)
+            if (riskLevel.isNotEmpty()) putExtra(AIEventActivity.EXTRA_RISK_LEVEL, riskLevel)
+            if (cameraId > 0) putExtra(AIEventActivity.EXTRA_CAMERA_ID, cameraId)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            eventId.takeIf { it > 0 } ?: 0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val channelId = "ai_events"
+        val captureBitmap = loadNotificationBitmap(captureImageUrl)
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+
+        if (captureBitmap != null) {
+            notificationBuilder
+                .setLargeIcon(captureBitmap)
+                .setStyle(
+                    NotificationCompat.BigPictureStyle()
+                        .bigPicture(captureBitmap)
+                        .bigLargeIcon(null as Bitmap?)
+                        .setSummaryText(body)
+                )
+        } else {
+            notificationBuilder.setStyle(NotificationCompat.BigTextStyle().bigText(body))
+        }
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "AI 감지 알림",
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "화재·연기·지게차·사람 등 AI 카메라 이상 상황 감지 알림"
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+        // event_id 를 notification id 로 사용 → 같은 event 재push 시 갱신만 (중복 X)
+        notificationManager.notify(
+            eventId.takeIf { it > 0 } ?: 3,
+            notificationBuilder.build(),
+        )
+    }
+
+    private fun loadNotificationBitmap(imageUrl: String?): Bitmap? {
+        val raw = imageUrl?.trim().orEmpty()
+        if (!raw.startsWith("http://") && !raw.startsWith("https://")) return null
+
+        return try {
+            val connection = (URL(raw).openConnection() as HttpURLConnection).apply {
+                connectTimeout = 2_000
+                readTimeout = 2_000
+                instanceFollowRedirects = true
+            }
+            connection.inputStream.use { stream ->
+                BitmapFactory.decodeStream(stream)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "AI event notification image load failed: $raw", e)
+            null
+        }
     }
 
     private fun sendRegistrationToServer(token: String) {

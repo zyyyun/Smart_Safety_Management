@@ -32,8 +32,11 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
+import androidx.compose.foundation.clickable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -67,6 +70,9 @@ data class ProcessedEventData(
 @Composable
 fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
     var selectedFilter by remember { mutableStateOf("전체") }
+    // 2026-05-21 — Sprint B.2.3: 날짜 chip. default "오늘" 으로 시연·검단 PPT 때
+    // 옛 detection_events 노이즈가 화면 상단을 가리지 않도록 함.
+    var selectedDateFilter by remember { mutableStateOf("오늘") }
 
     // ✅ 서버 데이터 상태 관리
     var rawEvents by remember { mutableStateOf<List<DetectionEventDTO>>(emptyList()) }
@@ -123,7 +129,9 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
     }
 
     // ✅ [최적화] 데이터 가공 로직을 백그라운드 스레드로 이동 (UI 버벅임 방지)
-    LaunchedEffect(rawEvents) {
+    // 2026-05-21 Sprint B.2: selectedDateFilter 도 의존성에 추가, 날짜 필터 적용 +
+    // detectedAt DESC 정렬 (server-side ORDER BY 명시 부재 대비 클라이언트 safety net).
+    LaunchedEffect(rawEvents, selectedDateFilter) {
         withContext(Dispatchers.Default) {
             val pending = mutableListOf<EventData>()
             val completed = mutableListOf<EventData>()
@@ -136,7 +144,11 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
             // SimpleDateFormat 재사용을 위한 인스턴스 생성 (반복문 밖에서 1회 생성)
             val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
-            rawEvents.forEach { dto ->
+            // Sprint B.2.3: KST 기준 날짜 필터 + B.2.2: detectedAt DESC 정렬
+            val dateFiltered = filterEventsByDateRange(rawEvents, selectedDateFilter)
+            val sorted = dateFiltered.sortedByDescending { it.detectedAt }
+
+            sorted.forEach { dto ->
                 val eventData = dto.toEventData(dateFormat)
 
                 // 위험도 카운트 집계
@@ -157,7 +169,7 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
             }
 
             val newCounts = mapOf(
-                "전체" to rawEvents.size,
+                "전체" to sorted.size,
                 "위험" to countDanger,
                 "경고" to countWarning,
                 "주의" to countCaution
@@ -185,6 +197,10 @@ fun AIEventDetectScreen(onEventClick: (EventData) -> Unit = {}) {
                 MyTopAppBar(Color.Transparent, hasUnreadNotifications)
                 MySecondaryTopAppBar(selectedFilter, processedData.counts, Color.Transparent) { newFilter ->
                     selectedFilter = newFilter
+                }
+                // 2026-05-21 Sprint B.2.3: 기간 필터 chip row
+                DateFilterRow(selectedDateFilter, Color.Transparent) { newDateFilter ->
+                    selectedDateFilter = newDateFilter
                 }
             }
 
@@ -449,7 +465,7 @@ fun DetectionEventDTO.toEventData(formatter: SimpleDateFormat? = null): EventDat
         id = this.eventId,
         accidentType = mapRiskLevel(this.riskLevel),
         location = this.installArea ?: "알 수 없음",
-        content = "${this.eventName ?: "알 수 없는 이벤트"}가 감지되었습니다.",
+        content = "${this.eventName ?: "알 수 없는 이벤트"}이(가) 감지되었습니다.",
         occurrenceTime = calculateTimeAgo(this.detectedAt, formatter),
         deviceName = this.deviceName ?: "",
         accuracy = "${this.accuracy ?: 0}%"
@@ -521,6 +537,108 @@ fun FilterButton(text: String, count: Int, isSelected: Boolean, onClick: () -> U
                     color = if (isLight) MainOrange else (if (isSelected) MainOrange else TextLight)
                 )
             }
+        }
+    }
+}
+
+// ─── 2026-05-21 Sprint B.2.3: 날짜 필터 ───────────────────────────────────
+//
+// `detected_at` 는 서버에서 "yyyy-MM-dd HH:mm:ss" KST 형식 문자열로 옴
+// (calculateTimeAgo 가 bare SimpleDateFormat 로 파싱 성공하는 게 증거).
+// 날짜 부분 (앞 10자) 만 잘라 KST today 와 lexicographic 비교 → 정확.
+//
+// "오늘"   = 오늘 KST 00:00 ~ 23:59
+// "어제"   = 어제 KST 00:00 ~ 23:59
+// "최근 7일" = 오늘 포함 직전 7일
+// "전체"   = 필터 없음
+fun filterEventsByDateRange(events: List<DetectionEventDTO>, filter: String): List<DetectionEventDTO> {
+    if (filter == "전체" || events.isEmpty()) return events
+
+    val tz = TimeZone.getTimeZone("Asia/Seoul")
+    val dateFmt = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = tz }
+    val cal = Calendar.getInstance(tz)
+
+    return when (filter) {
+        "오늘" -> {
+            val today = dateFmt.format(cal.time)
+            events.filter { it.detectedAt.take(10) == today }
+        }
+        "어제" -> {
+            cal.add(Calendar.DAY_OF_MONTH, -1)
+            val yesterday = dateFmt.format(cal.time)
+            events.filter { it.detectedAt.take(10) == yesterday }
+        }
+        "최근 7일" -> {
+            cal.add(Calendar.DAY_OF_MONTH, -6) // 오늘 포함 7일
+            val cutoff = dateFmt.format(cal.time)
+            events.filter { it.detectedAt.take(10) >= cutoff }
+        }
+        else -> events
+    }
+}
+
+@Composable
+fun DateFilterRow(selected: String, backgroundColor: Color, onChange: (String) -> Unit) {
+    TopAppBar(
+        backgroundColor = backgroundColor,
+        contentColor = Color.White,
+        modifier = Modifier.height(40.dp),
+        elevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
+        ) {
+            Text(
+                text = "기간",
+                color = if (MaterialTheme.colors.isLight) Color.White.copy(alpha = 0.85f) else TextLight,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(end = 10.dp)
+            )
+            DateFilterChip("오늘", selected == "오늘") { onChange("오늘") }
+            Spacer(Modifier.width(6.dp))
+            DateFilterChip("어제", selected == "어제") { onChange("어제") }
+            Spacer(Modifier.width(6.dp))
+            DateFilterChip("최근 7일", selected == "최근 7일") { onChange("최근 7일") }
+            Spacer(Modifier.width(6.dp))
+            DateFilterChip("전체", selected == "전체") { onChange("전체") }
+        }
+    }
+}
+
+@Composable
+fun DateFilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val isLight = MaterialTheme.colors.isLight
+    val bgColor = when {
+        selected && isLight -> Color.White
+        selected && !isLight -> MainOrange.copy(alpha = 0.36f)
+        else -> Color.White.copy(alpha = 0.15f)
+    }
+    val textColor = when {
+        selected && isLight -> MainOrange
+        selected && !isLight -> Color.White
+        else -> Color.White.copy(alpha = 0.85f)
+    }
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = bgColor,
+        modifier = Modifier
+            .clickable { onClick() }
+            .height(26.dp),
+        elevation = 0.dp
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.padding(horizontal = 12.dp)
+        ) {
+            Text(
+                text = label,
+                color = textColor,
+                fontSize = 12.sp,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+            )
         }
     }
 }

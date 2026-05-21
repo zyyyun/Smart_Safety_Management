@@ -1,5 +1,6 @@
 package com.example.smart_safety_management
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -36,6 +37,12 @@ class PlaceSearchViewModel(
 
                     _loading.value = true
                     try {
+                        if (restApiKey.isBlank() || restApiKey.startsWith("SAMPLE")) {
+                            Log.e("KakaoPlaceSearch", "Kakao REST API key is missing. Set kakao.restApiKey in local.properties.")
+                            _items.value = emptyList()
+                            return@collectLatest
+                        }
+
                         val auth = "KakaoAK $restApiKey"
                         val res = api.keywordSearch(auth, q, 10)
 

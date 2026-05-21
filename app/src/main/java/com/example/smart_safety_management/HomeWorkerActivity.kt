@@ -44,6 +44,22 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 import android.location.LocationManager
 import android.content.Context
+// Phase 7 / 07-03 BRIDGE-01 — ComposeView + Realtime
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.watch.DeviceRow
+import com.example.smart_safety_management.watch.EmptyWatchPrompt
+import com.example.smart_safety_management.watch.SupabaseModule
+import com.example.smart_safety_management.watch.WatchCardComposable
+// Phase 9 / 09-03 TBM-02 — TBM 카드 (worker)
+import com.example.smart_safety_management.tbm.TbmWorkerCardComposable
+import io.github.jan.supabase.postgrest.from
 
 
 class HomeWorkerActivity : AppCompatActivity() {
@@ -83,12 +99,109 @@ class HomeWorkerActivity : AppCompatActivity() {
 
         initUI()
         checkLocationPermission()
+
+        // Phase 7 / 07-03 BRIDGE-01 — J2208A 워치 카드 (ComposeView 임베드)
+        setupWatchCard()
+
+        // Phase 9 / 09-03 TBM-02 — TBM 카드 (D-07, watch_card_compose 아래)
+        setupTbmCard()
+
+        // Phase 7 / 07-03 BRIDGE-02 — FCM watch_alert intent 라우팅
+        // intent extras 의 alert_type='watch_alert' 시 SafetyAlertsActivity 진입.
+        // (alert_id 는 신뢰 X — DB 재조회 가 source of truth)
+        if (intent?.getStringExtra("alert_type") == "watch_alert") {
+            val alertId = intent.getLongExtra("alert_id", -1L)
+            startActivity(Intent(this, SafetyAlertsActivity::class.java).apply {
+                if (alertId > 0) putExtra("alert_id", alertId)
+            })
+        }
+    }
+
+    /**
+     * Phase 7 / 07-03 BRIDGE-01 — main_home_worker.xml 의 watch_card_compose ComposeView
+     * 에 WatchCardComposable 을 setContent. supabase Realtime 채널의 lifecycle 은
+     * Compose collectLatest 의 cancellation finally 블록에서 unsubscribe (D-01).
+     *
+     * ViewCompositionStrategy.DisposeOnLifecycleDestroyed: Activity 파괴 시 Composition
+     * 해제 → Realtime channel.unsubscribe() 호출 → WSS slot 해소.
+     */
+    private fun setupWatchCard() {
+        val composeView = findViewById<ComposeView>(R.id.watch_card_compose) ?: return
+        composeView.setViewCompositionStrategy(
+            ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this)
+        )
+        val supabase = SupabaseModule.client(this)
+        composeView.setContent {
+            Smart_Safety_ManagementTheme {
+                var pairedDeviceId by remember { mutableStateOf<Int?>(null) }
+                var loaded by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    val userId = UserSession.userId ?: run { loaded = true; return@LaunchedEffect }
+                    pairedDeviceId = supabase.from("devices").select {
+                        filter {
+                            eq("user_id", userId)
+                            eq("device_type", "WATCH")
+                        }
+                        limit(1)
+                    }.decodeSingleOrNull<DeviceRow>()?.deviceId
+                    loaded = true
+                }
+                if (loaded) {
+                    val devId = pairedDeviceId
+                    if (devId != null) {
+                        WatchCardComposable(
+                            deviceId = devId,
+                            supabase = supabase,
+                            onCardTap = {
+                                startActivity(Intent(this@HomeWorkerActivity, SafetyAlertsActivity::class.java))
+                            },
+                        )
+                    } else {
+                        EmptyWatchPrompt(onClick = {
+                            startActivity(Intent(this@HomeWorkerActivity, SettingDeviceManagementActivity::class.java))
+                        })
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Phase 9 / 09-03 TBM-02 — main_home_worker.xml 의 tbm_card_compose ComposeView 에
+     * TbmWorkerCardComposable 을 setContent. Phase 7 setupWatchCard 1:1 미러.
+     */
+    private fun setupTbmCard() {
+        val composeView = findViewById<ComposeView>(R.id.tbm_card_compose) ?: return
+        composeView.setViewCompositionStrategy(
+            ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this)
+        )
+        val supabase = SupabaseModule.client(this)
+        // 2026-05-19: PoC 한정 fallback — userId/groupId 미설정 시 test_user / group_id=1 (Plan 09-01 seed) 사용.
+        // 어떤 계정으로 들어가도 카드 표시. v1.1 정상 운영 시 ?: return 으로 복원.
+        val userId = UserSession.userId ?: "test_user"
+        val groupId = UserSession.groupId?.toIntOrNull() ?: 1
+        composeView.setContent {
+            Smart_Safety_ManagementTheme {
+                TbmWorkerCardComposable(
+                    groupId = groupId,
+                    userId = userId,
+                    supabase = supabase,
+                    onClickGuide = { sessionId ->
+                        startActivity(Intent(this@HomeWorkerActivity, TbmWorkerActivity::class.java).apply {
+                            putExtra(TbmWorkerActivity.EXTRA_SESSION_ID, sessionId)
+                        })
+                    },
+                )
+            }
+        }
     }
 
     private fun initUI() {
         updateProfile()
         updateWorkerDay()
-        checkInviteCodeDialog()
+        // 2026-05-19: 초대 코드 입력 dialog 자동 노출 제거 (test 브랜치 / Phase 7·9 시연 환경 한정).
+        // 필요 시 SettingActivity 의 명시적 메뉴에서 수동 진입.
+        // checkInviteCodeDialog()
         emergencyContact()
 
         val topBar = findViewById<View>(R.id.top_bar)
@@ -224,7 +337,7 @@ class HomeWorkerActivity : AppCompatActivity() {
                             id = dto.eventId,
                             accidentType = mapRiskLevel(dto.riskLevel),
                             location = dto.installArea ?: "알 수 없음",
-                            content = "${dto.eventName ?: "알 수 없는 이벤트"}가 감지되었습니다.",
+                            content = "${dto.eventName ?: "알 수 없는 이벤트"}이(가) 감지되었습니다.",
                             occurrenceTime = calculateTimeAgo(dto.detectedAt),
                             deviceName = dto.deviceName ?: "",
                             accuracy = "${dto.accuracy ?: 0}%"

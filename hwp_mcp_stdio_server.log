@@ -1,0 +1,151 @@
+2026-05-14 16:06:44,634 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-14 16:06:44,696 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-14 16:06:44,707 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-14 16:09:20,195 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-14 16:09:20,263 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-14 16:09:20,268 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-14 16:09:20,308 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-14 16:09:20,323 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-14 16:09:20,325 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-14 16:09:20,325 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-14 16:10:04,422 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-05-14 16:10:04,423 - hwp-mcp-stdio-server - INFO - Creating HwpController instance...
+2026-05-14 16:10:04,426 - hwp-controller - WARNING - GetActiveObject 실패: (-2147221021, '작업을 사용할 수 없습니다.', None, None)
+2026-05-14 16:10:05,952 - hwp-controller - INFO - Dispatch로 HWP에 연결됨 (새 창이 열렸을 수 있음)
+2026-05-14 16:10:06,018 - hwp-mcp-stdio-server - INFO - Successfully connected to HWP program
+2026-05-14 16:10:09,709 - hwp-mcp-stdio-server - INFO - Successfully created new document
+2026-05-14 16:15:46,628 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-14 16:15:46,658 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-14 16:15:46,660 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-14 16:15:46,697 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-14 16:15:46,710 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-14 16:15:46,712 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-14 16:15:46,713 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-14 17:09:08,670 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-05-14 17:09:08,677 - hwp-mcp-stdio-server - INFO - Creating HwpController instance...
+2026-05-14 17:09:08,689 - hwp-controller - WARNING - GetActiveObject 실패: (-2147221021, '작업을 사용할 수 없습니다.', None, None)
+2026-05-14 17:09:10,815 - hwp-controller - INFO - Dispatch로 HWP에 연결됨 (새 창이 열렸을 수 있음)
+2026-05-14 17:09:10,897 - hwp-mcp-stdio-server - INFO - Successfully connected to HWP program
+2026-05-14 17:09:11,425 - hwp-mcp-stdio-server - INFO - Successfully opened document: C:\Users\ANNA\Downloads\VLM 기반 위험상황 인식.탐지 AI모델 파인튜닝용 데이터 구조정의서_v1.hwp
+2026-05-14 17:09:16,312 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-05-14 17:09:16,349 - hwp-mcp-stdio-server - INFO - Successfully retrieved document text
+2026-05-14 17:11:12,661 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-05-14 17:11:12,663 - hwp-mcp-stdio-server - WARNING - HWP connection lost ((-2147023174, 'RPC 서버를 사용할 수 없습니다.', None, None)), attempting to reconnect...
+2026-05-14 17:11:12,664 - hwp-mcp-stdio-server - INFO - Creating HwpController instance...
+2026-05-14 17:11:12,664 - hwp-controller - WARNING - GetActiveObject 실패: (-2147221021, '작업을 사용할 수 없습니다.', None, None)
+2026-05-14 17:11:13,891 - hwp-controller - INFO - Dispatch로 HWP에 연결됨 (새 창이 열렸을 수 있음)
+2026-05-14 17:11:13,958 - hwp-mcp-stdio-server - INFO - Successfully connected to HWP program
+2026-05-14 17:11:14,047 - hwp-mcp-stdio-server - INFO - Successfully closed document (save=False, suppress_dialog=True)
+2026-05-15 16:06:02,050 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-05-15 16:06:02,748 - hwp-mcp-stdio-server - INFO - Successfully opened document: D:\2026_산업안전\Smart_Safety_Management\docs\VLM 기반 위험상황 인식.탐지 AI모델 파인튜닝용 데이터 구조정의서_v2.hwp
+2026-05-15 16:06:10,067 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-05-15 16:06:10,097 - hwp-mcp-stdio-server - INFO - Successfully retrieved document text
+2026-05-15 16:07:01,052 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-05-15 16:07:01,091 - hwp-mcp-stdio-server - INFO - Successfully closed document (save=False, suppress_dialog=True)
+2026-05-15 16:54:36,166 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-15 16:54:36,222 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-15 16:54:36,224 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-15 16:54:36,272 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-15 16:54:36,289 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-15 16:54:36,290 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-15 16:54:36,291 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-15 18:33:50,956 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-15 18:33:51,022 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-15 18:33:51,024 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-15 18:33:51,072 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-15 18:33:51,096 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-15 18:33:51,098 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-15 18:33:51,098 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-15 18:42:55,589 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-15 18:42:55,636 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-15 18:42:55,638 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-15 18:42:55,704 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-15 18:42:55,730 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-15 18:42:55,734 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-15 18:42:55,735 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-18 10:35:15,905 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-18 10:35:16,070 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-18 10:35:16,073 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-18 10:35:16,150 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-18 10:35:16,240 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-18 10:35:16,242 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-18 10:35:16,243 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-18 10:58:31,898 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-18 10:58:32,004 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-18 10:58:32,005 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-18 10:58:32,044 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-18 10:58:32,059 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-18 10:58:32,061 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-18 10:58:32,061 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-18 13:28:38,181 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-18 13:28:38,404 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-18 13:28:38,407 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-18 13:28:38,497 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-18 13:28:38,537 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-18 13:28:38,547 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-18 13:28:38,548 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-18 14:04:14,623 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-05-18 14:04:14,628 - hwp-mcp-stdio-server - INFO - Creating HwpController instance...
+2026-05-18 14:04:14,633 - hwp-controller - WARNING - GetActiveObject 실패: (-2147221021, '작업을 사용할 수 없습니다.', None, None)
+2026-05-18 14:04:20,372 - hwp-controller - INFO - Dispatch로 HWP에 연결됨 (새 창이 열렸을 수 있음)
+2026-05-18 14:04:20,440 - hwp-mcp-stdio-server - INFO - Successfully connected to HWP program
+2026-05-18 14:04:48,692 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-05-18 14:04:50,960 - hwp-mcp-stdio-server - INFO - Successfully saved document to: D:\2026_산업안전\Smart_Safety_Management\docs\PASS_라벨링가이드_외주발주용_v1.hwp
+2026-05-18 14:04:57,893 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-05-18 14:04:58,033 - hwp-mcp-stdio-server - INFO - Successfully closed document (save=False, suppress_dialog=True)
+2026-05-19 10:09:43,751 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-19 10:09:43,814 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-19 10:09:43,815 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-19 10:09:43,854 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-19 10:09:43,872 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-19 10:09:43,874 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-19 10:09:43,874 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-19 10:11:13,696 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-19 10:11:13,741 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-19 10:11:13,743 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-19 10:11:13,778 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-19 10:11:13,838 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-19 10:11:13,839 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-19 10:11:13,840 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-19 10:15:36,918 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-19 10:15:37,091 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-19 10:15:37,093 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-19 10:15:37,169 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-19 10:15:37,229 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-19 10:15:37,231 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-19 10:15:37,232 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-20 13:11:19,658 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-20 13:11:19,890 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-20 13:11:19,895 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-20 13:11:20,076 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-20 13:11:20,523 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-20 13:11:20,554 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-20 13:11:20,555 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-20 14:13:16,833 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-20 14:13:16,871 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-20 14:13:16,872 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-20 14:13:16,907 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-20 14:13:16,920 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-20 14:13:16,922 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-20 14:13:16,923 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-21 13:59:28,204 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-21 13:59:28,495 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-21 13:59:28,498 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-21 13:59:28,667 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-21 13:59:28,767 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-21 13:59:28,769 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-21 13:59:28,770 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-21 16:58:57,520 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-21 16:58:57,696 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-21 16:58:57,700 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-21 16:58:57,782 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-21 16:58:57,812 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-21 16:58:57,815 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-21 16:58:57,816 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
+2026-05-21 16:59:00,732 - hwp-mcp-stdio-server - INFO - FastMCP successfully imported
+2026-05-21 16:59:00,798 - hwp-mcp-stdio-server - INFO - HwpController imported successfully
+2026-05-21 16:59:00,804 - hwp-mcp-stdio-server - INFO - HwpTableTools imported successfully
+2026-05-21 16:59:00,863 - hwp-mcp-stdio-server - INFO - Starting HWP MCP stdio server
+2026-05-21 16:59:00,886 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-05-21 16:59:00,888 - mcp.server.lowlevel.server - INFO - Processing request of type ListPromptsRequest
+2026-05-21 16:59:00,889 - mcp.server.lowlevel.server - INFO - Processing request of type ListResourcesRequest
