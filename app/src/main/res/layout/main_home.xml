@@ -22,14 +22,21 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- 프로필바 -->
+    <!-- 프로필바.
+         2026-05-21 — elevation 0dp → 6dp.
+         CoordinatorLayout 의 자식 z-order = elevation > declaration order.
+         NestedScrollView (paddingTop=135dp + match_parent) 가 profile_bar 와 동일
+         영역을 덮으면서 뒤에 선언돼 위에 깔려 워치/카메라 미니카드 클릭을 모두
+         가로챘음 (둘 다 click 비반응 증상의 진짜 원인).
+         elevation 6dp 로 profile_bar 의 click target 우선순위를 NestedScrollView
+         위로 올림. 시각적 그림자는 본 카드 배경색 (orange500_gray950) 으로 가려짐. -->
     <include
         android:id="@+id/profile_bar"
         layout="@layout/view_profile_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="?attr/actionBarSize"
-        android:elevation="0dp" />
+        android:elevation="6dp" />
 
     <!-- ===================== -->
     <!-- 스크롤 영역 (본문) -->
