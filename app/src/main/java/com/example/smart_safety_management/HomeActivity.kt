@@ -98,6 +98,14 @@ class HomeActivity : AppCompatActivity() {
             Smart_Safety_ManagementTheme {
                 com.example.smart_safety_management.camera.CameraMiniCard(
                     onCardTap = {
+                        // 2026-05-21 디버그: 클릭 자체가 detect 됐는지 logcat + toast.
+                        // 한 번 동작 확인 후 다음 commit 에서 제거 예정.
+                        Log.d("CameraMiniCard", "tapped — launching CameraPairingActivity")
+                        Toast.makeText(
+                            this@HomeActivity,
+                            "카메라 페어링 화면 이동",
+                            Toast.LENGTH_SHORT,
+                        ).show()
                         startActivity(
                             Intent(
                                 this@HomeActivity,
