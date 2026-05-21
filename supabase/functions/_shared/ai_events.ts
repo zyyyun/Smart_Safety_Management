@@ -71,6 +71,34 @@ export async function createAiEvent(
     eventTypeId = newType.id as number;
   }
 
+  // 2.5. Server-side dedup (Sprint B.1, 2026-05-21)
+  // 같은 (camera_id, type_id) 의 직전 N분 row 가 있으면 INSERT 도, capture 생성도,
+  // FCM push 도 모두 skip. agent 메모리 cooldown 이 재시작 시 reset 되는 문제와
+  // 다중 detector 가 같은 frame 에서 fire 5회 연속 trigger 하는 push 폭주를
+  // 서버 측에서 한 곳에서 차단. 인덱스: idx_detection_events_camera_id 이용.
+  // env DUP_WINDOW_MIN: 시연 단축 = "2", 운영 기본 = "10".
+  const dupWindowMin = parseInt(Deno.env.get("DUP_WINDOW_MIN") ?? "10", 10);
+  if (dupWindowMin > 0) {
+    const sinceIso = new Date(Date.now() - dupWindowMin * 60_000).toISOString();
+    const { data: recent, error: dupErr } = await admin
+      .from("detection_events")
+      .select("event_id")
+      .eq("camera_id", camera_id)
+      .eq("type_id", eventTypeId)
+      .gte("detected_at", sinceIso)
+      .limit(1);
+    // dup 조회 실패는 INSERT 흐름 막지 않음 — 보수적으로 진행.
+    if (!dupErr && recent && recent.length > 0) {
+      return ok({
+        ok: true,
+        skipped: true,
+        reason: "dup_window",
+        dup_window_min: dupWindowMin,
+        existing_event_id: recent[0].event_id,
+      }, 200);
+    }
+  }
+
   // 3. camera_captures row
   const { data: capture, error: capErr } = await admin
     .from("camera_captures")
