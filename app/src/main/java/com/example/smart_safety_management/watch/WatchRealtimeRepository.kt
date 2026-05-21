@@ -32,11 +32,16 @@ class WatchRealtimeRepository(private val supabase: SupabaseClient) {
 
     fun deviceWatchFlow(deviceId: Int): Flow<DeviceWatchSnapshot> = flow {
         // 초기 fetch — Realtime 은 미래 변경만 push, 현재 snapshot 은 select 로.
-        supabase.from("device_watches").select {
-            filter { eq("device_id", deviceId) }
-            order("updated_at", Order.DESCENDING)
-            limit(1)
-        }.decodeSingleOrNull<DeviceWatchSnapshot>()?.let { emit(it) }
+        // 2026-05-21: device_watches PK = device_id (1 row) → order 불필요.
+        // order("updated_at") 은 컬럼 부재로 BadRequestRestException → main thread crash 회피.
+        try {
+            supabase.from("device_watches").select {
+                filter { eq("device_id", deviceId) }
+                limit(1)
+            }.decodeSingleOrNull<DeviceWatchSnapshot>()?.let { emit(it) }
+        } catch (_: Exception) {
+            // 초기 fetch 실패는 silent. Realtime channel 가 곧 push 함.
+        }
 
         val channel = supabase.channel("device_watches:$deviceId")
         val changes = channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {

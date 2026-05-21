@@ -20,19 +20,13 @@
             android:id="@+id/top_bar"
             layout="@layout/view_top_app_bar" />
 
-    </com.google.android.material.appbar.AppBarLayout>
+        <include
+            android:id="@+id/profile_bar"
+            layout="@layout/view_profile_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
 
-    <!-- 프로필바.
-         2026-05-21 — elevation 0dp → 6dp (main_home.xml 동일 fix).
-         NestedScrollView 가 profile_bar 와 같은 영역을 덮어 워치 미니카드 클릭
-         비반응 발생. CoordinatorLayout 자식 z-order = elevation > declaration order. -->
-    <include
-        android:id="@+id/profile_bar"
-        layout="@layout/view_profile_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="?attr/actionBarSize"
-        android:elevation="6dp" />
+    </com.google.android.material.appbar.AppBarLayout>
 
     <!-- ===================== -->
     <!-- 스크롤 영역 (본문) -->
@@ -44,7 +38,7 @@
         android:layout_marginTop="0dp"
         android:clipToPadding="false"
         android:fillViewport="true"
-        android:paddingTop="135dp">
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <FrameLayout
             android:layout_width="match_parent"

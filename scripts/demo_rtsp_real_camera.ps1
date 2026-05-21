@@ -261,20 +261,28 @@ try {
             $lineStr = $_.ToString()
             $cycleOut += $lineStr
             # Highlight DETECT/FUSION/FALL lines (success — green)
-            if ($lineStr -match "\[DETECT\]|\[FUSION\]|\[FALL\]") {
+            if ($lineStr -match "\[DETECT\]|\[FUSION\] camera_id|\[FALL\]") {
                 Write-Host "    $lineStr" -ForegroundColor Green
             }
+            # No-fire / progress signals (Magenta — critical for diagnosis)
+            elseif ($lineStr -match "\[no_detect\]|\[no_alert_yet\]|\[no_fusion") {
+                Write-Host "    $lineStr" -ForegroundColor Magenta
+            }
             # Active detectors / settings (Cyan — important config visibility)
-            elseif ($lineStr -match "설정 로드 완료|detectors=|DETECTORS_ENABLED|FALL_ENABLED") {
+            elseif ($lineStr -match "detectors=|DETECTORS_ENABLED|FALL_ENABLED|===") {
                 Write-Host "    $lineStr" -ForegroundColor Cyan
             }
             # Progress milestones (DarkGray — quieter)
-            elseif ($lineStr -match "detector loaded|감지 사이클|capture_rtsp|cv2.VideoCapture|httpx.*PATCH|HTTP/2 200|no_alert_yet") {
+            elseif ($lineStr -match "detector loaded|capture_rtsp|cv2.VideoCapture|httpx.*PATCH|HTTP/2 200") {
                 Write-Host "    $lineStr" -ForegroundColor DarkGray
             }
             # Errors/warnings (Yellow)
-            elseif ($lineStr -match "\[ERR|\[WARN|ERROR|Exception|Traceback|SnapshotError") {
+            elseif ($lineStr -match "\[ERR|\[WARN|ERROR|Exception|Traceback|SnapshotError|not in detectors dict") {
                 Write-Host "    $lineStr" -ForegroundColor Yellow
+            }
+            # Everything else — show in default color (NEVER swallow lines)
+            else {
+                Write-Host "    $lineStr"
             }
         }
         $cycleSec = [Math]::Round(((Get-Date) - $cycleStart).TotalSeconds, 1)

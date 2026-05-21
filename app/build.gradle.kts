@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +8,22 @@ plugins {
     // (Kotlin 1.9.22 매칭 — libs.versions.toml 의 kotlin 버전과 동일하게 유지)
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.22"
 }
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { load(it) }
+    }
+}
+
+fun String.asBuildConfigString(): String =
+    "\"${replace("\\", "\\\\").replace("\"", "\\\"")}\""
+
+val kakaoNativeAppKey: String =
+    (localProperties.getProperty("kakao.nativeAppKey") ?: "b5282649bc815793990d92669375ea72").trim()
+
+val kakaoRestApiKey: String =
+    (localProperties.getProperty("kakao.restApiKey") ?: "").trim()
 
 android {
     namespace = "com.example.smart_safety_management"
@@ -35,6 +53,9 @@ android {
         //  `supabase projects list` 의 실제 ref 로 정정 — 2026-05-14)
         buildConfigField("String", "SUPABASE_URL", "\"https://xbjqxnvemcqubjfflain.supabase.co\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhianF4bnZlbWNxdWJqZmZsYWluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMzkwMDEsImV4cCI6MjA5MTgxNTAwMX0.o3vm5icG-6Lk6R3cAt-LDh-Gr-HKDn2B0PFVtuFXXus\"")
+        buildConfigField("String", "KAKAO_NATIVE_APP_KEY", kakaoNativeAppKey.asBuildConfigString())
+        buildConfigField("String", "KAKAO_REST_API_KEY", kakaoRestApiKey.asBuildConfigString())
+        manifestPlaceholders["kakaoNativeAppKey"] = kakaoNativeAppKey
     }
 
     buildTypes {
@@ -111,6 +132,7 @@ dependencies {
     implementation(libs.gson)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
     implementation("androidx.media3:media3-exoplayer:1.4.1")
+    implementation("androidx.media3:media3-exoplayer-rtsp:1.4.1")
     implementation("androidx.media3:media3-ui:1.4.1")
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.maps.android:maps-compose:4.4.1")

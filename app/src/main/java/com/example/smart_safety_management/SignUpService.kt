@@ -397,12 +397,17 @@ data class RegisterCameraRequest(
     @SerializedName("live_url") val liveUrl: String,
     @SerializedName("live_url_detail") val liveUrlDetail: String,
     @SerializedName("installation_address") val installationAddress: String,
+    @SerializedName("status") val status: String = "정상",
+    @SerializedName("shooting_interval") val shootingInterval: Int = 1,
+    @SerializedName("environment_type") val environmentType: String = "실외",
     val latitude: Double? = null,
     val longitude: Double? = null,
 )
 
 data class RegisterCameraResponse(
-    @SerializedName("camera_id") val cameraId: Int
+    @SerializedName("camera_id") val cameraId: Int,
+    @SerializedName("live_url_detail") val liveUrlDetail: String? = null,
+    @SerializedName("yolo_agent_pickup") val yoloAgentPickup: String? = null,
 )
 
 data class GetUserInfoResponse(

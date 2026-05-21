@@ -476,9 +476,20 @@ Deno.serve(async (req) => {
         if (!session) return err("session insert returned null", 500);
 
         // 3. checklists bulk insert (JSONB array order 보장 — Pitfall 11)
-        const items = (tmpl.checklist as string[]).map((text, idx) => ({
-          session_id: session.session_id, item_idx: idx, item_text: text,
-        }));
+        // 2026-05-20 Change 2 — 마지막 row 로 "추가 작업 사항" 자유 입력 항목 자동 추가.
+        // sentinel item_text = '추가 작업 사항' (정확 일치). UI 가 이 row 만 다르게
+        // 렌더 (item_text 대신 OutlinedTextField 로 note 컬럼 직접 입력). 기존
+        // tbm_checklists.note 컬럼 (013:73) 재활용, DB 마이그레이션 0.
+        const items: Array<{ session_id: number; item_idx: number; item_text: string; note: string | null }> =
+          (tmpl.checklist as string[]).map((text, idx) => ({
+            session_id: session.session_id, item_idx: idx, item_text: text, note: null,
+          }));
+        items.push({
+          session_id: session.session_id,
+          item_idx: items.length,
+          item_text: "추가 작업 사항",
+          note: null,
+        });
         const { error: cErr } = await supabase.from("tbm_checklists").insert(items);
         if (cErr) return err(cErr.message, 500);
 

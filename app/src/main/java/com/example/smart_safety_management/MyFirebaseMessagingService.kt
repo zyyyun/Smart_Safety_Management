@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -13,6 +15,8 @@ import com.google.firebase.messaging.RemoteMessage
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.net.HttpURLConnection
+import java.net.URL
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
@@ -56,6 +60,23 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
                 body = remoteMessage.notification?.body ?: data["action_in_app"] ?: "TBM 세션 알림",
                 sessionId = data["session_id"]?.toLongOrNull() ?: -1L,
                 actionInApp = data["action_in_app"] ?: "",
+            )
+            return
+        }
+
+        // 2026-05-20 — data payload 'type=ai_event' 분기.
+        // Edge Function `supabase/functions/_shared/ai_events.ts:153-166` 가 발사하는 FCM:
+        //   { type:"ai_event", event_id, risk_level, camera_id }
+        // scheduler.py 가 fire/smoke 검출 시 register_ai_event → createAiEvent → 본 push.
+        // pendingIntent → AIEventActivity (extras event_id → detail/{eventId} 자동 진입).
+        if (data["type"] == "ai_event") {
+            showAiEventNotification(
+                title = remoteMessage.notification?.title ?: "AI 감지 알림",
+                body = remoteMessage.notification?.body ?: data["risk_level"] ?: "이상 상황 감지",
+                eventId = data["event_id"]?.toIntOrNull() ?: -1,
+                riskLevel = data["risk_level"] ?: "",
+                cameraId = data["camera_id"]?.toIntOrNull() ?: -1,
+                captureImageUrl = data["capture_image_url"] ?: data["image_url"],
             )
             return
         }
@@ -202,6 +223,100 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             sessionId.toInt().takeIf { it > 0 } ?: 2,
             notificationBuilder.build(),
         )
+    }
+
+    /**
+     * 2026-05-20 — AI 검출 이벤트 (fire/smoke 등) 전용 push.
+     *
+     * channel_id = "ai_events" (신규, IMPORTANCE_HIGH) — watch_alerts 와 분리해
+     * 사용자가 채널별 silencing 가능. 시연 + 운영에서 alert 무음 방지.
+     *
+     * pendingIntent → AIEventActivity (extras EXTRA_EVENT_ID, EXTRA_RISK_LEVEL,
+     * EXTRA_CAMERA_ID). AIEventActivity 가 EXTRA_EVENT_ID > 0 이면 detail route 로
+     * 자동 진입 (capture 이미지 + bbox + 위치 즉시 표시).
+     *
+     * extras 의 event_id 는 hint 로만 사용 — Activity 진입 시 DB 재조회 (T-watch-alert
+     * D-02 패턴 일관, FCM 변조 거부).
+     */
+    private fun showAiEventNotification(
+        title: String,
+        body: String,
+        eventId: Int,
+        riskLevel: String,
+        cameraId: Int,
+        captureImageUrl: String?,
+    ) {
+        val intent = Intent(this, AIEventActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (eventId > 0) putExtra(AIEventActivity.EXTRA_EVENT_ID, eventId)
+            if (riskLevel.isNotEmpty()) putExtra(AIEventActivity.EXTRA_RISK_LEVEL, riskLevel)
+            if (cameraId > 0) putExtra(AIEventActivity.EXTRA_CAMERA_ID, cameraId)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            eventId.takeIf { it > 0 } ?: 0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        val channelId = "ai_events"
+        val captureBitmap = loadNotificationBitmap(captureImageUrl)
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+
+        if (captureBitmap != null) {
+            notificationBuilder
+                .setLargeIcon(captureBitmap)
+                .setStyle(
+                    NotificationCompat.BigPictureStyle()
+                        .bigPicture(captureBitmap)
+                        .bigLargeIcon(null as Bitmap?)
+                        .setSummaryText(body)
+                )
+        } else {
+            notificationBuilder.setStyle(NotificationCompat.BigTextStyle().bigText(body))
+        }
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "AI 감지 알림",
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "화재·연기·지게차·사람 등 AI 카메라 이상 상황 감지 알림"
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+        // event_id 를 notification id 로 사용 → 같은 event 재push 시 갱신만 (중복 X)
+        notificationManager.notify(
+            eventId.takeIf { it > 0 } ?: 3,
+            notificationBuilder.build(),
+        )
+    }
+
+    private fun loadNotificationBitmap(imageUrl: String?): Bitmap? {
+        val raw = imageUrl?.trim().orEmpty()
+        if (!raw.startsWith("http://") && !raw.startsWith("https://")) return null
+
+        return try {
+            val connection = (URL(raw).openConnection() as HttpURLConnection).apply {
+                connectTimeout = 2_000
+                readTimeout = 2_000
+                instanceFollowRedirects = true
+            }
+            connection.inputStream.use { stream ->
+                BitmapFactory.decodeStream(stream)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "AI event notification image load failed: $raw", e)
+            null
+        }
     }
 
     private fun sendRegistrationToServer(token: String) {

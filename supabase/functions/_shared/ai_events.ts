@@ -36,6 +36,7 @@ export async function createAiEvent(
   params: CreateAiEventParams,
 ): Promise<Response> {
   const { camera_id, accuracy, risk_level, event_name, image_url } = params;
+  const captureImageUrl = typeof image_url === "string" ? image_url.trim() : "";
 
   if (!camera_id || !event_name || !risk_level) {
     return err("camera_id, event_name, risk_level are required");
@@ -104,7 +105,7 @@ export async function createAiEvent(
     .from("camera_captures")
     .insert({
       camera_id,
-      image_url: image_url ?? "",
+      image_url: captureImageUrl,
       event_type: event_name,
     })
     .select("capture_id")
@@ -185,11 +186,18 @@ export async function createAiEvent(
         }에서 ${event_name}이(가) 감지되었습니다. (정확도: ${
           Math.round(accuracy * 100)
         }%)`,
+        imageUrl: captureImageUrl || undefined,
         data: {
           type: "ai_event",
           event_id: String(detEvent.event_id),
           risk_level,
           camera_id: String(camera_id),
+          ...(captureImageUrl
+            ? {
+              capture_image_url: captureImageUrl,
+              image_url: captureImageUrl,
+            }
+            : {}),
         },
       }).catch((e) => console.error("[FCM] ai_events push failed:", e));
     }
@@ -199,6 +207,7 @@ export async function createAiEvent(
     {
       event_id: detEvent.event_id,
       capture_id: capture.capture_id,
+      capture_image_url: captureImageUrl,
     },
     201,
   );

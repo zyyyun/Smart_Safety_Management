@@ -66,17 +66,22 @@ fun WatchCardComposable(
             }
         } else {
             // D-01 polling fallback (5초)
+            // 2026-05-21: device_watches PK = device_id (1 row). order 불필요.
+            // crash 방지 try-catch + order("updated_at") 제거.
             while (true) {
-                snapshot = supabase.from("device_watches").select {
-                    filter { eq("device_id", deviceId) }
-                    order("updated_at", Order.DESCENDING)
-                    limit(1)
-                }.decodeSingleOrNull()
-                lastActiveAlert = supabase.from("safety_alerts").select {
-                    filter { eq("device_id", deviceId) }
-                    order("raised_at", Order.DESCENDING)
-                    limit(20)
-                }.decodeList<SafetyAlertRow>().firstOrNull { it.resolvedAt == null }
+                try {
+                    snapshot = supabase.from("device_watches").select {
+                        filter { eq("device_id", deviceId) }
+                        limit(1)
+                    }.decodeSingleOrNull()
+                    lastActiveAlert = supabase.from("safety_alerts").select {
+                        filter { eq("device_id", deviceId) }
+                        order("raised_at", Order.DESCENDING)
+                        limit(20)
+                    }.decodeList<SafetyAlertRow>().firstOrNull { it.resolvedAt == null }
+                } catch (_: Exception) {
+                    // silent — polling best-effort
+                }
                 delay(5_000)
             }
         }

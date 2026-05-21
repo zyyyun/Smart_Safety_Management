@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="ANNA Inc. - PASS Project">
+<title>PASS 산업안전 데이터셋 라벨링 가이드 (외주 발주용) v1.0</title>
+<style>
+
+:root {
+  --bg: #ffffff;
+  --fg: #1f1f1f;
+  --muted: #595959;
+  --accent: #000000;
+  --border: #cccccc;
+  --table-head: #e8e8e8;
+  --code-bg: #f5f5f5;
+  --note-border: #666666;
+  --warn-border: #c00000;
+}
+* { box-sizing: border-box; }
+html { font-size: 16px; }
+body {
+  font-family: '굴림체', Gulim, '맑은 고딕', 'Malgun Gothic', sans-serif;
+  color: var(--fg); background: var(--bg);
+  max-width: 960px; margin: 0 auto; padding: 40px 32px 80px;
+  line-height: 1.7; word-break: keep-all;
+}
+h1, h2, h3, h4, h5 {
+  font-family: '맑은 고딕', 'Malgun Gothic', '굴림체', sans-serif;
+  color: #000;
+  margin: 1.8em 0 0.6em;
+  line-height: 1.4;
+}
+h1 {
+  font-size: 1.9rem; font-weight: bold;
+  padding-bottom: 0.4em; border-bottom: 2px solid var(--accent);
+  margin-top: 2.4em;
+}
+h1:first-of-type { margin-top: 0.4em; }
+h2 {
+  font-size: 1.35rem; font-weight: bold;
+  padding-left: 0.4em; border-left: 4px solid var(--accent);
+  background: #f0f0f0; padding: 0.4em 0.6em;
+}
+h3 { font-size: 1.1rem; font-weight: bold; color: #2e2e2e; margin-top: 1.4em; }
+h4 { font-size: 1rem; font-weight: bold; color: #404040; }
+p { margin: 0.4em 0 0.6em; }
+ul, ol { margin: 0.4em 0 0.8em; padding-left: 1.8em; }
+li { margin: 0.2em 0; }
+strong { font-weight: bold; color: #000; }
+em { font-style: italic; }
+hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+
+/* 표 */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.8em 0 1.2em;
+  font-size: 0.92rem;
+}
+th, td {
+  border: 1px solid #999;
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  background: var(--table-head);
+  font-family: '맑은 고딕', 'Malgun Gothic', sans-serif;
+  font-weight: bold;
+  text-align: center;
+}
+tr:nth-child(2n) td { background: #fafafa; }
+
+/* 인용구 (▶ 박스) */
+blockquote {
+  border-left: 4px solid var(--note-border);
+  background: #f5f5f5;
+  padding: 0.7em 1em;
+  margin: 0.8em 0;
+  color: #2e2e2e;
+}
+blockquote p { margin: 0.3em 0; }
+blockquote strong { color: #000000; }
+
+/* 코드 */
+code {
+  font-family: 'Consolas', 'D2Coding', monospace;
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: #000000;
+}
+pre {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  padding: 16px 20px;
+  border-radius: 4px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  margin: 1em 0;
+}
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* 메타 표지 영역 */
+.cover {
+  border: 1px solid var(--border);
+  padding: 28px 32px;
+  margin-bottom: 32px;
+  background: #fafafa;
+  text-align: center;
+}
+.cover h1 { border: none; padding: 0; margin: 0.2em 0; font-size: 1.7rem; }
+.cover .meta { font-size: 0.95rem; color: var(--muted); margin-top: 0.6em; }
+
+/* 출력 */
+@media print {
+  body { max-width: none; padding: 0; }
+  h1 { page-break-before: always; }
+  h1:first-of-type { page-break-before: avoid; }
+  pre, blockquote, table { page-break-inside: avoid; }
+}
+
+</style>
+</head>
+<body>
+<h1 id="pass">PASS 산업안전 데이터셋 라벨링 가이드 (외주 발주용)</h1>
+<blockquote>
+<p><strong>주관기관</strong> : 주식회사 애나 (ANNA Inc.)<br>
+<strong>버전</strong> : v1.0  │  <strong>발행일</strong> : 2026-05-15<br>
+<strong>용도</strong> : 라벨링 용역사 / 라벨러 작업 지침서</p>
+</blockquote>
+<hr>
+<h2 id="0">0. 시작하기 전에</h2>
+<h3 id="01">0.1 본 가이드는 무엇인가요?</h3>
+<p>본 가이드는 <strong>산업 현장 영상·이미지에서 위험 상황을 찾아내고 표시하는 작업(라벨링)</strong> 의 방법을 정리한 문서입니다.</p>
+<ul>
+<li>작업 대상 : 공장·물류·건설 현장 사진과 영상</li>
+<li>작업 내용 : 위험한 장면에 사각형 박스를 그리고 이름표를 붙임</li>
+<li>코딩 지식 필요 없음 — 본 가이드의 표와 예시만 그대로 따라하면 됩니다.</li>
+</ul>
+<h3 id="02">0.2 작업 흐름 한눈에 보기</h3>
+<pre><code>1) 발주처가 제공한 사진·영상을 받는다
+        ↓
+2) 라벨링 도구(발주처 지정)에서 파일을 연다
+        ↓
+3) §1 클래스 표에서 사진에 해당하는 위험 상황을 찾는다
+        ↓
+4) 화면 속 위험 객체에 사각형(Bounding Box)을 그린다
+        ↓
+5) 박스에 이름표(라벨)를 붙인다 — 예: fire, person, machine
+        ↓
+6) &quot;COCO 형식으로 내보내기&quot; 버튼을 클릭한다
+        ↓
+7) 결과물을 PM(작업 관리자)에게 제출한다
+</code></pre>
+<h3 id="03-3">0.3 꼭 지켜야 할 3가지</h3>
+<ol>
+<li><strong>단순함</strong> — 박스 그리기 + 이름 붙이기. 이 두 가지만 합니다.</li>
+<li><strong>정확성</strong> — 헷갈리면 §1 클래스 표와 §2 예시를 보세요. 그래도 모르면 <strong>PM에게 문의</strong>.</li>
+<li><strong>품질</strong> — 박스는 객체에 딱 맞게. 너무 크거나 작으면 재작업.</li>
+</ol>
+<hr>
+<h2 id="1">1. 라벨링 대상 클래스 (전체)</h2>
+<p>본 발주의 라벨링 대상은 다음 <strong>8개 위험 상황 + 1개 정상 상황</strong> 입니다.</p>
+<h3 id="11">1.1 클래스 정의 표 (가장 중요)</h3>
+<table>
+<thead>
+<tr>
+<th>코드</th>
+<th>한글 이름</th>
+<th>라벨 스트링 (영문)</th>
+<th>위험도</th>
+<th>한 줄 설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AC-001</strong></td>
+<td>화재 / 연기</td>
+<td><code>fire</code>, <code>smoke</code></td>
+<td>Critical</td>
+<td>작업장 안에 불이 났거나 연기가 나는 상황</td>
+</tr>
+<tr>
+<td><strong>AC-002</strong></td>
+<td>작업자 끼임</td>
+<td><code>entrapment</code>, <code>person</code>, <code>machine</code></td>
+<td>Critical</td>
+<td>작업자의 팔·다리·몸이 기계에 끼인 상황</td>
+</tr>
+<tr>
+<td><strong>AC-003</strong></td>
+<td>낙상 / 쓰러짐</td>
+<td><code>fall_collapse</code>, <code>person</code></td>
+<td>Critical</td>
+<td>작업자가 바닥에 쓰러진 상황 (높이에서 떨어진 게 아님)</td>
+</tr>
+<tr>
+<td><strong>AC-004</strong></td>
+<td>추락</td>
+<td><code>fall_height</code>, <code>person</code></td>
+<td>Critical</td>
+<td>작업자가 사다리·발판·지붕 등 높은 곳에서 떨어진 상황</td>
+</tr>
+<tr>
+<td><strong>AC-005</strong></td>
+<td>지게차 충돌 / 가동구역 진입</td>
+<td><code>forklift_collision</code>, <code>forklift</code>, <code>person</code>, <code>hazardous_zone</code></td>
+<td>Warning ~ Critical</td>
+<td>지게차가 작업자에게 가까이 왔거나, 지게차 가동 구역에 작업자가 들어간 상황</td>
+</tr>
+<tr>
+<td><strong>AC-006</strong></td>
+<td>안전모 미착용</td>
+<td><code>no_helmet</code>, <code>person</code></td>
+<td>Notice</td>
+<td>작업자가 안전모를 안 쓴 상황 (안전모 의무 구역)</td>
+</tr>
+<tr>
+<td><strong>AC-007</strong></td>
+<td>작업자 건강 이상</td>
+<td><code>health_anomaly</code>, <code>person</code></td>
+<td>Warning ~ Critical</td>
+<td>작업자가 비틀거리거나 컨디션이 안 좋아 보이는 상황</td>
+</tr>
+<tr>
+<td><strong>AC-008</strong></td>
+<td>가스누출 / 질식 / 위험구역 진입</td>
+<td><code>gas_leak</code>, <code>person</code>, <code>hazardous_zone</code></td>
+<td>Critical</td>
+<td>가스센서 경보가 울린 구역, 또는 가스·화학물질 구역에 작업자가 들어간 상황</td>
+</tr>
+<tr>
+<td><strong>AC-000</strong></td>
+<td>정상 상황</td>
+<td><code>normal</code></td>
+<td>—</td>
+<td>위험 상황이 없는 평범한 작업 사진. <strong>박스 없이</strong> 그냥 정상으로 분류만</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12">1.2 위험도 의미</h3>
+<table>
+<thead>
+<tr>
+<th>위험도</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Critical</strong></td>
+<td>즉각적 인명 위험 — 사람이 다치거나 죽을 수 있는 상황</td>
+</tr>
+<tr>
+<td><strong>Warning</strong></td>
+<td>사고 발생 가능성 높음 — 곧 위험해질 수 있는 상황</td>
+</tr>
+<tr>
+<td><strong>Notice</strong></td>
+<td>규정 위반 또는 경미한 위험 — 안전 수칙 위반</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13">1.3 라벨 스트링 사용 규칙</h3>
+<ul>
+<li>모든 라벨 스트링은 <strong>소문자 + 언더스코어(<code>_</code>)</strong> 형식</li>
+<li>영문 철자 그대로 사용 (한글 라벨 금지)</li>
+<li>표 외에 임의 라벨 생성 금지 — 본 표에 없는 스트링은 사용하지 않음</li>
+</ul>
+<hr>
+<h2 id="2">2. 클래스별 상세 가이드 및 예시</h2>
+<p>각 클래스마다 다음 5가지를 안내합니다.<br>
+- <strong>언제 라벨링하나</strong> (상황 정의)<br>
+- <strong>무엇에 박스를 그리나</strong> (대상 객체)<br>
+- <strong>어떤 라벨을 붙이나</strong> (라벨 스트링)<br>
+- <strong>이런 건 라벨링 안 함</strong> (오라벨 방지)<br>
+- <strong>이미지 + JSON 예시</strong> (실제 결과물 모양)</p>
+<hr>
+<h3 id="21-ac-001">2.1 AC-001 화재 / 연기</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>언제 라벨링하나</strong></td>
+<td>사진/영상에 빨강·주황·노랑 불꽃이 보이거나, 회색·검은색·흰색 연기가 보일 때</td>
+</tr>
+<tr>
+<td><strong>무엇에 박스를 그리나</strong></td>
+<td>(1) 화염이 보이는 영역 / (2) 연기가 보이는 영역 — 둘이 다 보이면 박스를 <strong>각각 따로</strong> 그림</td>
+</tr>
+<tr>
+<td><strong>라벨 스트링</strong></td>
+<td>화염은 <code>fire</code>, 연기는 <code>smoke</code></td>
+</tr>
+<tr>
+<td><strong>위험도</strong></td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_1">이런 건 라벨링 안 함 (오라벨 방지)</h4>
+<ul>
+<li>용접할 때 튀는 작은 스파크 (점 같은 불꽃)</li>
+<li>흰 김 / 수증기 / 물안개</li>
+<li>석양·조명 때문에 빨갛게 보이는 부분</li>
+<li>빨간색 옷·표지판</li>
+</ul>
+<h4 id="_2">라벨링 예시</h4>
+<blockquote>
+<p><strong>[이미지 예시 #1]</strong><br>
+공장 내 화재 발생 사진. 빨간 불꽃이 작업대 위에 보이고, 그 위로 회색 연기가 피어오름.<br>
+- <code>fire</code> 박스 : 불꽃 영역만 둘러쌈<br>
+- <code>smoke</code> 박스 : 연기 영역만 둘러쌈</p>
+<p><em>(실제 이미지는 발주처가 제공)</em></p>
+</blockquote>
+<h4 id="coco-json">COCO JSON 결과물 예시</h4>
+<pre><code class="language-json">{
+  &quot;image_id&quot;: 1,
+  &quot;file_name&quot;: &quot;AC001_fire_0001.jpg&quot;,
+  &quot;annotations&quot;: [
+    { &quot;id&quot;: 101, &quot;category_id&quot;: 1, &quot;category_name&quot;: &quot;fire&quot;,
+      &quot;bbox&quot;: [320, 180, 210, 155], &quot;area&quot;: 32550 },
+    { &quot;id&quot;: 102, &quot;category_id&quot;: 2, &quot;category_name&quot;: &quot;smoke&quot;,
+      &quot;bbox&quot;: [280, 100, 380, 240], &quot;area&quot;: 91200 }
+  ]
+}
+</code></pre>
+<hr>
+<h3 id="22-ac-002">2.2 AC-002 작업자 끼임</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>언제 라벨링하나</strong></td>
+<td>작업자 신체(손·팔·다리)가 기계(프레스·롤러·컨베이어 등)에 <strong>물려있는</strong> 사진</td>
+</tr>
+<tr>
+<td><strong>무엇에 박스를 그리나</strong></td>
+<td>(1) 작업자 전체 — <code>person</code> / (2) 기계 — <code>machine</code></td>
+</tr>
+<tr>
+<td><strong>라벨 스트링</strong></td>
+<td>끼임 상황 자체는 <code>entrapment</code>, 그 안의 객체는 <code>person</code>, <code>machine</code></td>
+</tr>
+<tr>
+<td><strong>위험도</strong></td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_3">이런 건 라벨링 안 함</h4>
+<ul>
+<li>작업자가 의자에 앉아서 휴식 중</li>
+<li>작업자가 공구로 일하는 자세 (잠시 정지)</li>
+<li>볼트 조이기·정밀 작업 등 의도적으로 가만히 있는 자세</li>
+</ul>
+<h4 id="vs">끼임 vs 정상 구별 기준</h4>
+<ul>
+<li>끼임 : <code>person</code> 박스와 <code>machine</code> 박스가 <strong>반 이상 겹쳐있음</strong></li>
+<li>정상 : 박스가 가까이 있지만 안 겹침</li>
+</ul>
+<h4 id="_4">라벨링 예시</h4>
+<blockquote>
+<p><strong>[이미지 예시 #2]</strong><br>
+A동 프레스 라인. 작업자 W-017 의 우측 팔이 프레스 기계에 끼인 모습.<br>
+- <code>person</code> 박스 : 작업자 전신<br>
+- <code>machine</code> 박스 : 프레스 기계 (위에서 누르는 부분)<br>
+- 두 박스가 겹친 부분 → 끼임으로 판정</p>
+</blockquote>
+<hr>
+<h3 id="23-ac-003">2.3 AC-003 낙상 / 쓰러짐</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>언제 라벨링하나</strong></td>
+<td>작업자가 <strong>같은 높이의 바닥에서</strong> 쓰러진 사진 (높은 곳에서 떨어진 게 아님)</td>
+</tr>
+<tr>
+<td><strong>무엇에 박스를 그리나</strong></td>
+<td>쓰러진 작업자 전체</td>
+</tr>
+<tr>
+<td><strong>라벨 스트링</strong></td>
+<td><code>fall_collapse</code>, <code>person</code></td>
+</tr>
+<tr>
+<td><strong>위험도</strong></td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<h4 id="vs_1">낙상 vs 추락 구별</h4>
+<ul>
+<li><strong>낙상 (AC-003)</strong> : 같은 바닥에서 쓰러짐. 발이 바닥에 있다가 그 자리에 쓰러짐.</li>
+<li><strong>추락 (AC-004)</strong> : 사다리·발판·계단 등 <strong>높은 곳에서 떨어짐</strong>.</li>
+</ul>
+<h4 id="_5">이런 건 라벨링 안 함</h4>
+<ul>
+<li>작업자가 천천히 앉는 자세 (휴식·작업 자세)</li>
+<li>도구를 줍기 위해 잠깐 숙임</li>
+<li>의도적 바닥 작업 (배관·청소 등)</li>
+</ul>
+<h4 id="_6">라벨링 예시</h4>
+<blockquote>
+<p><strong>[이미지 예시 #3]</strong><br>
+C동 조립 라인 바닥에 작업자가 옆으로 쓰러져 있는 모습.<br>
+- <code>person</code> 박스 : 쓰러진 작업자 전신 (가로로 누운 자세)</p>
+</blockquote>
+<hr>
+<h3 id="24-ac-004">2.4 AC-004 추락</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>언제 라벨링하나</strong></td>
+<td>작업자가 사다리·발판·고소작업대·지붕 등 <strong>높은 곳에서 떨어진</strong> 사진</td>
+</tr>
+<tr>
+<td><strong>무엇에 박스를 그리나</strong></td>
+<td>떨어진 작업자 + (가능하면) 추락 시작 위치</td>
+</tr>
+<tr>
+<td><strong>라벨 스트링</strong></td>
+<td><code>fall_height</code>, <code>person</code></td>
+</tr>
+<tr>
+<td><strong>위험도</strong></td>
+<td>Critical</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_7">이런 건 라벨링 안 함</h4>
+<ul>
+<li>엘리베이터·리프트로 내려가는 모습</li>
+<li>계단을 내려가는 모습 (걸어서)</li>
+<li>물건이 떨어지는 모습 (인체가 아님)</li>
+</ul>
+<h4 id="_8">추가 표시할 것 — 안전대 착용 여부</h4>
+<p>사진에 작업자가 <strong>안전대(harness)를 안 차고 있는 게 보이면</strong> 추가 박스:<br>
+- <code>no_safety_harness</code> (안전대 미착용 표시)</p>
+<h4 id="_9">라벨링 예시</h4>
+<blockquote>
+<p><strong>[이미지 예시 #4]</strong><br>
+D동 외벽 발판에서 작업자가 떨어져 지면에 누워있는 모습.<br>
+- <code>person</code> 박스 : 지면에 떨어진 작업자<br>
+- <code>no_safety_harness</code> : 안전대를 안 차고 있다면 추가</p>
+</blockquote>
+<hr>
+<h3 id="25-ac-005">2.5 AC-005 지게차 충돌 / 가동구역 진입</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>언제 라벨링하나</strong></td>
+<td>(A) 지게차가 작업자에게 <strong>가까이 다가오는</strong> 사진 (3m 이내) OR (B) 지게차 가동 구역(노란 선·경고 테이프 안)에 작업자가 들어간 사진</td>
+</tr>
+<tr>
+<td><strong>무엇에 박스를 그리나</strong></td>
+<td>(1) 지게차 — <code>forklift</code> / (2) 작업자 — <code>person</code> / (3) 가동 구역 표시 영역 — <code>hazardous_zone</code> (선·테이프로 표시된 구역)</td>
+</tr>
+<tr>
+<td><strong>라벨 스트링</strong></td>
+<td>상황은 <code>forklift_collision</code> (충돌 위험) 또는 <code>forklift_zone_entry</code> (구역 진입). 객체는 <code>forklift</code>, <code>person</code>, <code>hazardous_zone</code></td>
+</tr>
+<tr>
+<td><strong>위험도</strong></td>
+<td>거리 ≤ 3m : Warning / 거리 ≤ 1.5m : Critical</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_10">이런 건 라벨링 안 함</h4>
+<ul>
+<li>지게차가 작업자 옆을 단순 통과 (작업자 방향 안 향함)</li>
+<li>정지 중인 지게차 옆에 작업자가 있음</li>
+<li>작업허가 받은 작업자의 작업 (안전망 안에서)</li>
+</ul>
+<h4 id="_11">라벨링 예시</h4>
+<blockquote>
+<p><strong>[이미지 예시 #5]</strong><br>
+E동 물류 통로. 지게차 FLT-03 이 작업자 W-028 방향으로 직진 중, 거리 약 1.3m.<br>
+- <code>forklift</code> 박스 : 지게차 전체<br>
+- <code>person</code> 박스 : 작업자 전체<br>
+- 두 박스 거리가 좁음 → 충돌 위험</p>
+</blockquote>
+<hr>
+<h3 id="26-ac-006">2.6 AC-006 안전모 미착용</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>언제 라벨링하나</strong></td>
+<td>안전모 의무 구역에서 작업자가 안전모를 <strong>안 쓴</strong> 사진</td>
+</tr>
+<tr>
+<td><strong>무엇에 박스를 그리나</strong></td>
+<td>(1) 작업자 머리 영역 — <code>head</code> / (2) 작업자 전체 — <code>person</code></td>
+</tr>
+<tr>
+<td><strong>라벨 스트링</strong></td>
+<td><code>no_helmet</code>, <code>head</code>, <code>person</code></td>
+</tr>
+<tr>
+<td><strong>위험도</strong></td>
+<td>Notice (단, 고소작업·화재·가스 동반 시 Warning 격상 — PM 판단)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_12">이런 건 라벨링 안 함</h4>
+<ul>
+<li>일반 모자·두건만 쓴 경우 (안전모 색상이 아닌 경우)</li>
+<li>안전모 의무 구역 밖에서 안 쓴 경우</li>
+<li>사진이 너무 어두워서 안전모 여부 확실치 않음</li>
+</ul>
+<h4 id="_13">라벨링 예시</h4>
+<blockquote>
+<p><strong>[이미지 예시 #6]</strong><br>
+A동 Zone-A 입구. 작업자가 안전 조끼만 입고 안전모는 안 쓴 모습.<br>
+- <code>head</code> 박스 : 머리 부위만 (안전모가 없는 게 보임)<br>
+- <code>person</code> 박스 : 작업자 전체</p>
+</blockquote>
+<hr>
+<h3 id="27-ac-007">2.7 AC-007 작업자 건강 이상</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>언제 라벨링하나</strong></td>
+<td>작업자가 비틀거리거나, 휘청거리거나, 사행(좌우 흔들림) 패턴으로 걷는 사진. (쓰러지지는 않았지만 컨디션이 안 좋아 보임)</td>
+</tr>
+<tr>
+<td><strong>무엇에 박스를 그리나</strong></td>
+<td>작업자 전체</td>
+</tr>
+<tr>
+<td><strong>라벨 스트링</strong></td>
+<td><code>health_anomaly</code>, <code>person</code></td>
+</tr>
+<tr>
+<td><strong>위험도</strong></td>
+<td>Warning (쓰러지면 AC-003 으로 다시 분류)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_14">이런 건 라벨링 안 함</h4>
+<ul>
+<li>격렬한 작업 직후 잠깐 쉬는 모습</li>
+<li>정상 보행</li>
+<li>무거운 물건 들고 균형 잡는 모습</li>
+</ul>
+<h4 id="_15">라벨링 예시</h4>
+<blockquote>
+<p><strong>[이미지 예시 #7]</strong><br>
+F동 조립 라인. 작업자 W-072 가 비틀거리며 걷는 모습. 좌우 균형이 흔들림.<br>
+- <code>person</code> 박스 : 작업자 전체 (자세가 불안정해 보임)</p>
+</blockquote>
+<hr>
+<h3 id="28-ac-008">2.8 AC-008 가스누출 / 질식 / 위험구역 진입</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>언제 라벨링하나</strong></td>
+<td>(A) 가스누출이 의심되는 시각 단서가 보이는 사진 OR (B) 가스·밀폐공간·화학물질 구역에 작업자가 들어간 사진</td>
+</tr>
+<tr>
+<td><strong>무엇에 박스를 그리나</strong></td>
+<td>(1) 작업자 — <code>person</code> / (2) 구역 표시 — <code>hazardous_zone</code> / (3) 시각 단서 — 아래 추가 표시 참조</td>
+</tr>
+<tr>
+<td><strong>라벨 스트링</strong></td>
+<td>상황은 <code>gas_leak</code> (가스누출 의심) 또는 <code>gas_zone_entry</code> (위험구역 진입). 객체는 <code>person</code>, <code>hazardous_zone</code></td>
+</tr>
+<tr>
+<td><strong>위험도</strong></td>
+<td>가스 알람 동반 시 Critical / zone 진입 단독 시 Warning</td>
+</tr>
+</tbody>
+</table>
+<h4 id="_16">추가 표시할 시각 단서 (보이면 박스)</h4>
+<ul>
+<li><code>liquid_spill</code> : 액체가 바닥에 흘러있음</li>
+<li><code>drum_damage</code> : 드럼통이 찌그러지거나 파손됨</li>
+<li><code>colored_plume</code> : 색이 있는 연기·가스 구름</li>
+<li><code>missing_respirator</code> : 작업자가 호흡보호구를 안 쓰고 있음</li>
+<li><code>ghs_pictogram</code> : 화학물질 위험 표시(GHS 마크) 가 보임</li>
+</ul>
+<h4 id="_17">이런 건 라벨링 안 함</h4>
+<ul>
+<li>용접·도장 작업 시 정상 발생하는 흄/연기</li>
+<li>단순 청소 작업 중 사용한 물 자국</li>
+</ul>
+<h4 id="_18">라벨링 예시</h4>
+<blockquote>
+<p><strong>[이미지 예시 #8]</strong><br>
+A동 밀폐탱크 내부. 작업자 W-088 이 호흡보호구 없이 탱크 내부에서 작업 중. 탱크 하부에 액체가 흘러있음.<br>
+- <code>person</code> 박스 : 작업자<br>
+- <code>missing_respirator</code> 박스 : 작업자 얼굴·코·입 부위 (호흡보호구 없음)<br>
+- <code>liquid_spill</code> 박스 : 탱크 하부 액체 영역<br>
+- <code>hazardous_zone</code> 박스 : 탱크 내부 전체</p>
+</blockquote>
+<hr>
+<h3 id="29-ac-000">2.9 AC-000 정상 상황</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>언제 라벨링하나</strong></td>
+<td>위 8개 위험 상황이 전혀 없는 평범한 작업 사진</td>
+</tr>
+<tr>
+<td><strong>무엇에 박스를 그리나</strong></td>
+<td><strong>박스 안 그림</strong> (객체 라벨링 없음)</td>
+</tr>
+<tr>
+<td><strong>라벨 스트링</strong></td>
+<td>이미지 분류만 <code>normal</code></td>
+</tr>
+<tr>
+<td><strong>위험도</strong></td>
+<td>없음</td>
+</tr>
+</tbody>
+</table>
+<p>정상 사진은 사진 파일을 <code>AC-000_normal/</code> 폴더에 넣고, 별도 박스 없이 <code>category: normal</code> 만 표기합니다.</p>
+<hr>
+<h2 id="3">3. 클래스별 라벨링 수량 계획 (균등 할당)</h2>
+<p>PM은 작업 분배 시 다음 비율을 지켜야 합니다. 어느 한 클래스만 많거나 적으면 안 됩니다.</p>
+<table>
+<thead>
+<tr>
+<th>코드</th>
+<th>클래스</th>
+<th>목표 수량</th>
+<th>비율 (전체 대비)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AC-001</td>
+<td>화재 / 연기</td>
+<td><strong>800장</strong></td>
+<td>약 6%</td>
+</tr>
+<tr>
+<td>AC-002</td>
+<td>끼임</td>
+<td><strong>600장</strong></td>
+<td>약 4%</td>
+</tr>
+<tr>
+<td>AC-003</td>
+<td>낙상 / 쓰러짐</td>
+<td><strong>800장</strong></td>
+<td>약 6%</td>
+</tr>
+<tr>
+<td>AC-004</td>
+<td>추락</td>
+<td><strong>600장</strong></td>
+<td>약 4%</td>
+</tr>
+<tr>
+<td>AC-005</td>
+<td>지게차 충돌 / zone</td>
+<td><strong>1,000장</strong></td>
+<td>약 7%</td>
+</tr>
+<tr>
+<td>AC-006</td>
+<td>안전모 미착용</td>
+<td><strong>1,000장</strong></td>
+<td>약 7%</td>
+</tr>
+<tr>
+<td>AC-007</td>
+<td>건강 이상</td>
+<td><strong>800장</strong></td>
+<td>약 6%</td>
+</tr>
+<tr>
+<td>AC-008</td>
+<td>가스 / zone</td>
+<td><strong>1,000장</strong></td>
+<td>약 7%</td>
+</tr>
+<tr>
+<td>—</td>
+<td>(위험 상황 소계)</td>
+<td><strong>6,600장</strong></td>
+<td>약 47%</td>
+</tr>
+<tr>
+<td>AC-000</td>
+<td>정상 상황 (Negative)</td>
+<td><strong>7,000장</strong></td>
+<td>약 50%</td>
+</tr>
+<tr>
+<td>—</td>
+<td>(다중 라벨 — §4 참조)</td>
+<td><strong>400장</strong></td>
+<td>약 3%</td>
+</tr>
+<tr>
+<td></td>
+<td><strong>합계</strong></td>
+<td><strong>약 14,000장</strong></td>
+<td><strong>100%</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="31">3.1 라벨링 분포 추가 요구사항</h3>
+<p>각 클래스 내에서도 다음 비율을 지켜야 합니다.</p>
+<table>
+<thead>
+<tr>
+<th>분포 축</th>
+<th>권장 비율</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>시간대</strong></td>
+<td>주간 60% / 야간 30% / 교대 전환 10%</td>
+</tr>
+<tr>
+<td><strong>조도</strong></td>
+<td>주광 40% / 형광등 30% / 저조도 15% / 야간 인공조명 15%</td>
+</tr>
+<tr>
+<td><strong>계절·기상</strong></td>
+<td>봄·가을 40% / 여름(고온) 30% / 겨울(저온) 20% / 우천 10%</td>
+</tr>
+<tr>
+<td><strong>합성 vs 실데이터</strong></td>
+<td>실데이터 ≥ 60% / 합성·시뮬레이션 ≤ 40% (AC-002·004·008 은 합성 ≤ 60% 허용)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="4">4. 다중 라벨 (한 사진에 여러 상황이 동시 발생)</h2>
+<p>한 사진에 위험 상황이 <strong>2개 이상 동시 발생</strong>한 경우, 각 상황을 모두 박스로 표시합니다.</p>
+<h3 id="41">4.1 다중 라벨 예시</h3>
+<blockquote>
+<p>작업자가 안전모 안 쓴 채로 추락한 경우 :<br>
+- <code>person</code> 박스 (떨어진 작업자)<br>
+- <code>fall_height</code> (추락 상황 라벨)<br>
+- <code>no_helmet</code> (안전모 미착용 추가)</p>
+</blockquote>
+<h3 id="42">4.2 다중 라벨 정리 규칙</h3>
+<ul>
+<li>활성화된 모든 클래스의 라벨을 모두 표시</li>
+<li>박스가 같은 객체(예: <code>person</code>)면 박스는 1개만, 라벨 스트링만 여러 개 부착</li>
+<li>다중 라벨 사진은 <code>AC-MULTI_combo/</code> 별도 폴더에 저장</li>
+</ul>
+<h3 id="43-primary">4.3 다중 라벨 우선순위 (primary 클래스 결정)</h3>
+<p>사진 폴더 분류 시 다음 우선순위로 primary 클래스를 결정:</p>
+<ol>
+<li><strong>즉각적 외상</strong> (Critical 외상) 우선 : AC-004 추락 &gt; AC-002 끼임 &gt; AC-005 충돌</li>
+<li><strong>환경 위협</strong> (다수 인명 영향) : AC-001 화재 &gt; AC-008 가스</li>
+<li><strong>쓰러짐 사건</strong> : AC-003 낙상 (생체 이상 동반 시 AC-007 secondary)</li>
+<li><strong>위험구역 진입</strong> : AC-005 또는 AC-008 (단독 시)</li>
+<li><strong>규정 위반</strong> : AC-006 안전모</li>
+</ol>
+<hr>
+<h2 id="5-negative-sample">5. Negative Sample (정상 사진) 구성</h2>
+<p>정상 사진은 위험 상황 사진과 거의 같은 양(약 50%)이 필요합니다. <strong>AI 가 "위험"과 "정상"을 구분하는 법을 배워야 하기 때문</strong>입니다.</p>
+<h3 id="51-3">5.1 정상 사진의 3가지 종류</h3>
+<table>
+<thead>
+<tr>
+<th>종류</th>
+<th>비율</th>
+<th>설명</th>
+<th>예시</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>환경 매칭 정상</strong></td>
+<td>50%</td>
+<td>위험 사진과 <strong>같은 장소·시간대</strong>의 정상 작업 사진</td>
+<td>AC-001 화재 사진이 B동 2구역에서 찍혔다면, 같은 B동 2구역의 정상 작업 사진을 정상 페어로</td>
+</tr>
+<tr>
+<td><strong>헷갈리기 쉬운 정상 (Hard Negative)</strong></td>
+<td>35%</td>
+<td>위험처럼 보이지만 실제로는 정상인 사진</td>
+<td>용접 스파크, 수증기, 자발적 휴식 자세, 의도적 바닥 작업 등 (§2 각 클래스의 "이런 건 라벨링 안 함" 참조)</td>
+</tr>
+<tr>
+<td><strong>일반 정상</strong></td>
+<td>15%</td>
+<td>평범한 작업 사진</td>
+<td>일상 작업 사진</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-hard-negative">5.2 Hard Negative 슬롯 (필수 수집)</h3>
+<p>각 클래스의 오라벨 방지 사례를 별도 슬롯으로 채워야 합니다.</p>
+<table>
+<thead>
+<tr>
+<th>클래스</th>
+<th>Hard Negative 사례 (필수 수집)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AC-001 화재</td>
+<td>용접 스파크, 수증기·증기, 석양·조명 반사</td>
+</tr>
+<tr>
+<td>AC-002 끼임</td>
+<td>자발적 휴식 정지, 공구 조작 중 손 정지, 의도적 고정 작업(볼트 조임)</td>
+</tr>
+<tr>
+<td>AC-003 낙상</td>
+<td>자발적 웅크림·앉음, 도구 줍기, 의도적 바닥 작업</td>
+</tr>
+<tr>
+<td>AC-004 추락</td>
+<td>엘리베이터·리프트 하강, 계단 하강, 화물 낙하 (인체 아님)</td>
+</tr>
+<tr>
+<td>AC-005 충돌</td>
+<td>작업자 구역 우회 통과, 정지 중인 지게차, 유리벽 분리</td>
+</tr>
+<tr>
+<td>AC-006 안전모</td>
+<td>모자·두건 착용, 의무 구역 외 이동</td>
+</tr>
+<tr>
+<td>AC-007 건강</td>
+<td>격렬한 작업 후 일시적 비틀거림, 무거운 물건 들기</td>
+</tr>
+<tr>
+<td>AC-008 가스</td>
+<td>용접·도장 정상 흄, 청소용 액체</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="6">6. 라벨링 도구 및 파일 포맷</h2>
+<h3 id="61">6.1 사용 도구</h3>
+<ul>
+<li><strong>CVAT</strong> (Computer Vision Annotation Tool) 또는 발주처가 지정하는 라벨링 환경</li>
+<li>도구 접속·계정은 발주처가 제공</li>
+</ul>
+<h3 id="62-coco-dataset">6.2 파일 포맷 — COCO Dataset</h3>
+<p>라벨링 결과는 <strong>COCO format JSON</strong> 으로 저장합니다. CVAT 에서 <code>Export Task → COCO 1.0</code> 클릭하면 자동 생성됩니다.</p>
+<p>COCO 는 라벨링 데이터의 가장 일반적인 표준 형식입니다. 라벨러가 직접 JSON 을 손으로 쓸 필요는 없습니다.</p>
+<h3 id="63-bounding-box">6.3 Bounding Box 좌표 규약</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>규약</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>형식</td>
+<td><code>[x_min, y_min, width, height]</code></td>
+</tr>
+<tr>
+<td>단위</td>
+<td>픽셀 (절대 좌표)</td>
+</tr>
+<tr>
+<td>기준점</td>
+<td>이미지 <strong>좌상단</strong>을 (0, 0) 으로</td>
+</tr>
+<tr>
+<td>정규화</td>
+<td>사용 안 함 (CVAT 기본값 사용)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>예시</strong> : <code>bbox: [320, 180, 210, 155]</code><br>
+→ 이미지의 (320, 180) 위치에서 시작해서 가로 210픽셀 × 세로 155픽셀짜리 박스</p>
+</blockquote>
+<h3 id="64">6.4 이미지 사양</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>기준</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>해상도</td>
+<td>최소 1280×720 (HD) 이상</td>
+</tr>
+<tr>
+<td>형식</td>
+<td>JPEG (.jpg)</td>
+</tr>
+<tr>
+<td>색공간</td>
+<td>RGB (컬러)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="65">6.5 박스 크기 최소 기준</h3>
+<ul>
+<li>Bounding Box 최소 크기 : <strong>16×16 픽셀</strong></li>
+<li>그보다 작은 객체는 박스를 그리지 않음</li>
+</ul>
+<hr>
+<h2 id="7">7. 납품 폴더 구조</h2>
+<p>라벨링 완료 후 다음 폴더 구조로 압축하여 PM에게 제출합니다.</p>
+<pre><code>PASS_라벨링결과_v1.0/
+├── AC-001_fire_smoke/
+│   ├── images/                    # 화재 이미지 (.jpg)
+│   │   ├── AC001_0001.jpg
+│   │   ├── AC001_0002.jpg
+│   │   └── ...
+│   ├── annotations.json           # COCO JSON (CVAT export)
+│   └── labeler_notes.txt          # 라벨러 메모 (선택)
+│
+├── AC-002_entrapment/             # 끼임
+├── AC-003_fall_collapse/          # 낙상
+├── AC-004_fall_height/            # 추락
+├── AC-005_forklift_zone/          # 지게차·구역
+├── AC-006_no_helmet/              # 안전모 미착용
+├── AC-007_health_anomaly/         # 건강 이상
+├── AC-008_gas_zone/               # 가스·구역
+│
+├── AC-MULTI_combo/                # 다중 라벨 사진
+│
+├── AC-000_normal/                 # 정상 사진
+│   ├── images/
+│   └── annotations.json           # category: &quot;normal&quot; 만 표기
+│
+└── README.txt                     # 납품 분량·작업자 정보
+</code></pre>
+<hr>
+<h2 id="8">8. 라벨링 품질 기준 및 검수</h2>
+<p>PM 은 납품된 라벨링 결과를 다음 기준으로 검수합니다. <strong>통과 못 하면 재작업</strong> 요청.</p>
+<h3 id="81">8.1 품질 기준</h3>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>기준</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>해상도</strong></td>
+<td>모든 이미지 ≥ 1280×720</td>
+</tr>
+<tr>
+<td><strong>박스 크기</strong></td>
+<td>모든 박스 ≥ 16×16 픽셀</td>
+</tr>
+<tr>
+<td><strong>박스 정확도</strong></td>
+<td>객체 윤곽에 딱 맞음 (여백 ≤ 5%)</td>
+</tr>
+<tr>
+<td><strong>라벨 일치도</strong></td>
+<td>같은 사진을 두 사람이 라벨링했을 때 75% 이상 일치</td>
+</tr>
+<tr>
+<td><strong>누락 없음</strong></td>
+<td>한 사진의 모든 위험 객체에 박스</td>
+</tr>
+<tr>
+<td><strong>중복 없음</strong></td>
+<td>동일 이미지 여러 번 제출 금지</td>
+</tr>
+</tbody>
+</table>
+<h3 id="82">8.2 거부(재작업) 사유</h3>
+<p>다음 발견 시 <strong>해당 분 전체 거부</strong>, 재작업 요청 (재작업 비용 라벨링 업체 부담).</p>
+<ul>
+<li>박스가 객체와 동떨어져 있음</li>
+<li>클래스 라벨이 명백히 잘못 부착됨 (예: 화재인데 <code>smoke</code> 만, 또는 <code>entrapment</code> 표기)</li>
+<li>정상 사진을 위험 상황으로 라벨 (False Positive)</li>
+<li>위험 상황을 정상으로 라벨 (False Negative)</li>
+<li>얼굴 가림 처리 누락 발견 (§9)</li>
+<li>동일 이미지 중복 제출 발견</li>
+<li>라벨 스트링이 본 가이드 §1.1 표 외 임의 생성</li>
+</ul>
+<h3 id="83">8.3 이중 라벨링 (품질 보강)</h3>
+<p>전체 사진의 <strong>20%</strong> 는 <strong>2명의 라벨러가 독립적으로</strong> 라벨링합니다.<br>
+- 두 결과가 일치 → 정상 통과<br>
+- 두 결과가 불일치 → PM(시니어 라벨러) 가 판정</p>
+<hr>
+<h2 id="9-pii">9. PII (개인정보) 처리</h2>
+<p>본 발주의 모든 이미지에는 <strong>얼굴 자동 블러(Blur) 처리</strong> 가 이미 적용된 상태로 라벨러에게 제공됩니다.</p>
+<h3 id="91">9.1 라벨러 책임</h3>
+<ul>
+<li>라벨러는 별도로 얼굴을 가릴 필요 <strong>없습니다</strong></li>
+<li>다음을 발견하면 <strong>PM에게 즉시 보고</strong> :</li>
+<li>얼굴 블러가 안 된 사진</li>
+<li>이름표·사번이 또렷이 보이는 사진</li>
+<li>회사 도면·기밀 모니터 화면이 또렷이 보이는 사진</li>
+</ul>
+<h3 id="92-id">9.2 작업자 ID 표기</h3>
+<p>사진에 작업자가 보일 경우 임의 ID 로 부르기 (예: W-042). <strong>실명 사용 금지</strong>.</p>
+<hr>
+<h2 id="10-faq">10. FAQ — 헷갈리는 케이스 모음</h2>
+<h3 id="q1">Q1. 사진에 연기만 있고 불꽃이 안 보여요. 어떤 라벨?</h3>
+<p><strong>A.</strong> <code>smoke</code> 박스만. <code>fire</code> 박스는 만들지 않음.</p>
+<h3 id="q2">Q2. 작업자가 바닥에 앉아있어요. 낙상인가요?</h3>
+<p><strong>A.</strong> 자세를 보세요.<br>
+- <strong>천천히 앉은 자세</strong> (다리 접고 안정적) → 정상. 라벨 안 함.<br>
+- <strong>갑자기 쓰러진 모습</strong> (몸이 비틀려 있거나 한쪽으로 기울어짐) → AC-003.</p>
+<h3 id="q3-1m">Q3. 지게차가 작업자 옆 1m 거리로 지나가요. 충돌?</h3>
+<p><strong>A.</strong> 지게차의 <strong>이동 방향</strong>을 보세요.<br>
+- 지게차가 작업자 <strong>방향으로 향함</strong> → AC-005 (Critical).<br>
+- 지게차가 작업자 <strong>옆을 단순 통과</strong> → 정상.</p>
+<h3 id="q4">Q4. 안전모는 썼는데 위에 다른 모자를 같이 썼어요.</h3>
+<p><strong>A.</strong> 안전모가 보이면 정상. 라벨 안 함.</p>
+<h3 id="q5">Q5. 작업자가 안전모를 손에 들고 있어요.</h3>
+<p><strong>A.</strong> <strong>AC-006 미착용</strong> 으로 라벨. 들고 있는 건 착용이 아님.</p>
+<h3 id="q6">Q6. 사진이 너무 어두워서 위험 상황인지 안 보여요.</h3>
+<p><strong>A.</strong> <strong>PM 에게 사진 자체를 거부 요청</strong>. 강제로 라벨하지 말 것.</p>
+<h3 id="q7-ac-007-ac-003">Q7. 작업자가 비틀거리며 걷다가 결국 쓰러져요. AC-007 인가요 AC-003 인가요?</h3>
+<p><strong>A.</strong> <strong>쓰러진 시점부터</strong> AC-003 으로 분류 (낙상 우선). 비틀거리던 부분은 secondary 라벨로 <code>health_anomaly</code> 추가.</p>
+<h3 id="q8">Q8. 가스센서 경보가 울렸지만 작업자가 없어요.</h3>
+<p><strong>A.</strong> 라벨 안 함. <strong>작업자가 있을 때만</strong> AC-008.</p>
+<h3 id="q9">Q9. 박스를 어디까지 크게 그려야 하나요?</h3>
+<p><strong>A.</strong> 객체의 <strong>외곽선에 딱 맞게</strong>. 여백은 5% 이내. 너무 크면 재작업.</p>
+<h3 id="q10-1-2">Q10. 한 사진에 끼임 작업자 1명, 옆에 일하는 정상 작업자 2명이 있어요.</h3>
+<p><strong>A.</strong><br>
+- 끼인 작업자 : <code>person</code> 박스 + 끼인 기계의 <code>machine</code> 박스 + 상황 <code>entrapment</code><br>
+- 정상 작업자 2명 : 박스 없음 (정상이라 라벨링 안 함)</p>
+<h3 id="q11">Q11. 사진에 정확히 뭐가 있는지 모르겠어요.</h3>
+<p><strong>A.</strong> <strong>PM 에게 문의</strong>. 본인 판단으로 라벨링 후 재작업 발생 시 본인 손해.</p>
+<h3 id="q12-cvat">Q12. CVAT 에서 클래스가 안 보여요.</h3>
+<p><strong>A.</strong> CVAT 관리자에게 문의. 본 가이드 §1.1 의 라벨 스트링이 모두 도구에 등록되어 있어야 함.</p>
+<hr>
+<h2 id="11_1">11. 작업 기록 및 메모</h2>
+<p>각 사진의 라벨링 결과에는 다음을 자동 기록 (CVAT 가 자동 처리) :</p>
+<pre><code class="language-json">{
+  &quot;labeler_id&quot;: &quot;LBL-XXX&quot;,          // PM 이 부여한 본인 ID
+  &quot;labeled_at&quot;: &quot;2026-XX-XXT00:00:00+09:00&quot;,
+  &quot;review_status&quot;: &quot;submitted&quot;
+}
+</code></pre>
+<p>라벨러 본인이 직접 추가 메모할 사항이 있으면 <code>labeler_notes.txt</code> 파일에 기록.</p>
+<hr>
+<h2 id="12_1">12. 작업 분량 및 일정</h2>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>기준</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1인 일일 작업량</td>
+<td>최대 200장 (라벨 피로 방지)</td>
+</tr>
+<tr>
+<td>일일 1인 라벨링 평균 시간</td>
+<td>약 25분 / 샘플 (다중 객체 사진 기준)</td>
+</tr>
+<tr>
+<td>전체 작업 기간</td>
+<td>별도 협의 (분할 4회 납품 권장)</td>
+</tr>
+<tr>
+<td>라벨러 자격</td>
+<td>산업안전 도메인 사전 교육 4시간 이상 (KOSHA 안전관리자 기초 또는 동등)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="13_1">13. 문의 채널</h2>
+<table>
+<thead>
+<tr>
+<th>문의 유형</th>
+<th>담당</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>라벨링 사양·클래스 헷갈리는 케이스</td>
+<td><strong>PM</strong></td>
+</tr>
+<tr>
+<td>CVAT 도구 사용·접속</td>
+<td>CVAT 관리자</td>
+</tr>
+<tr>
+<td>보안·PII 발견 보고</td>
+<td>발주처 보안 담당</td>
+</tr>
+<tr>
+<td>분쟁·재작업 합의</td>
+<td>라벨링 업체 ↔ 발주처 PM</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="a">부록 A. 전체 라벨 스트링 일람표</h2>
+<p>라벨러가 사용할 수 있는 라벨 스트링은 <strong>다음 목록에 한정</strong> 합니다. 임의 생성 금지.</p>
+<h3 id="a1-situation">A.1 상황(situation) 라벨</h3>
+<pre><code>[&quot;fire&quot;, &quot;smoke&quot;, &quot;entrapment&quot;, &quot;fall_collapse&quot;, &quot;fall_height&quot;,
+ &quot;forklift_collision&quot;, &quot;forklift_zone_entry&quot;,
+ &quot;no_helmet&quot;, &quot;health_anomaly&quot;,
+ &quot;gas_leak&quot;, &quot;gas_zone_entry&quot;, &quot;normal&quot;]
+</code></pre>
+<h3 id="a2-object">A.2 객체(object) 라벨</h3>
+<pre><code>[&quot;person&quot;, &quot;machine&quot;, &quot;forklift&quot;, &quot;head&quot;,
+ &quot;hazardous_zone&quot;, &quot;no_safety_harness&quot;,
+ &quot;liquid_spill&quot;, &quot;drum_damage&quot;, &quot;colored_plume&quot;,
+ &quot;missing_respirator&quot;, &quot;ghs_pictogram&quot;]
+</code></pre>
+<h3 id="a3-severity">A.3 위험도(severity) 표기</h3>
+<pre><code>[&quot;Critical&quot;, &quot;Warning&quot;, &quot;Notice&quot;]
+</code></pre>
+<hr>
+<h2 id="b">부록 B. 라벨링 단계별 체크리스트</h2>
+<p>라벨러가 매 사진마다 확인할 체크리스트.</p>
+<pre><code>□ 1. 사진의 위험 상황 종류를 §1.1 표에서 찾았는가?
+□ 2. 정상 사진이면 박스 없이 AC-000 폴더에 저장했는가?
+□ 3. 위험 상황이면 §2 해당 절을 다시 읽었는가?
+□ 4. &quot;이런 건 라벨링 안 함&quot; 케이스인지 확인했는가?
+□ 5. 박스를 객체에 딱 맞게 그렸는가? (여백 ≤ 5%)
+□ 6. 박스 크기가 ≥ 16×16 픽셀인가?
+□ 7. 라벨 스트링이 §1.1 표 또는 부록 A 에 있는가?
+□ 8. 한 사진에 여러 상황 시 모두 박스를 그렸는가? (§4)
+□ 9. 얼굴 블러 누락·이름표 노출 발견 시 PM에 보고했는가?
+□ 10. CVAT 에서 COCO format 으로 export 했는가?
+</code></pre>
+<hr>
+<blockquote>
+<p><strong>본 가이드는 외주 라벨링 작업자(라벨러)와 PM 을 위한 발주 사양서입니다.</strong><br>
+데이터 모델·AI 학습 관련 문서는 발주처 내부 별도 산출물(VLM 데이터 구조정의서_v2)을 참조하십시오.</p>
+</blockquote>
+</body>
+</html>

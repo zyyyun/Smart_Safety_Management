@@ -3,7 +3,7 @@ package com.example.smart_safety_management.camera
 // 2026-05-21 — Sprint A.2 (PC 의존성 제거 plan A.2.1 + A.2.3)
 //
 // Drift X3 카메라 QR 페어링 흐름:
-//   1. 사용자가 카메라 등록 정보 입력 (install_area, installation_address)
+//   1. 사용자가 카메라 이름 입력 (Drift X3는 이동식이므로 설치 구역/주소는 앱에서 받지 않음)
 //   2. WiFi 정보 입력 (폰의 현재 SSID 자동 감지 + 비밀번호 수동 입력)
 //   3. QR 생성: "17|<SSID>|<PASSWORD>|rtsp"
 //      └ Drift X3 매뉴얼 기반 프로토콜 (코드 ref 0건, 사용자 매뉴얼 reading 의존).
@@ -57,9 +57,19 @@ import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
 import com.google.zxing.common.BitMatrix
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.net.InetSocketAddress
+import java.net.Socket
 
 class CameraPairingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,13 +84,17 @@ class CameraPairingActivity : ComponentActivity() {
     }
 }
 
+private const val MOBILE_CAMERA_AREA = "이동식"
+private const val MOBILE_CAMERA_ADDRESS = "이동식 카메라"
+private const val WIFI_PREFS_NAME = "camera_pairing_wifi"
+private const val WIFI_PASSWORD_KEY_PREFIX = "password:"
+
 @Composable
 fun CameraPairingScreen(onDone: () -> Unit) {
     val ctx = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
-    // Step 1: 카메라 등록 정보
-    var installArea by remember { mutableStateOf("") }
-    var installationAddress by remember { mutableStateOf("") }
+    // Step 1: 카메라 이름
     var deviceName by remember { mutableStateOf("Drift X3") }
 
     // Step 2: WiFi
@@ -109,13 +123,24 @@ fun CameraPairingScreen(onDone: () -> Unit) {
             ssid = readCurrentSsid(ctx) ?: ""
         }
     }
+    LaunchedEffect(ssid) {
+        loadSavedWifiPassword(ctx, ssid)?.let { savedPassword ->
+            if (wifiPassword != savedPassword) {
+                wifiPassword = savedPassword
+            }
+        }
+    }
 
     // Step 3: QR
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     // Step 4: Camera register
     var cameraIp by remember { mutableStateOf("") }
+    var rtspPath by remember { mutableStateOf("live") }
     var isRegistering by remember { mutableStateOf(false) }
+    var isScanningRtsp by remember { mutableStateOf(false) }
+    var rtspScanMessage by remember { mutableStateOf<String?>(null) }
+    var rtspCandidates by remember { mutableStateOf<List<String>>(emptyList()) }
 
     Column(
         modifier = Modifier
@@ -137,25 +162,11 @@ fun CameraPairingScreen(onDone: () -> Unit) {
         )
 
         // ── Step 1 ──────────────────────────────────────────────
-        StepCard(stepNumber = 1, title = "카메라 등록 정보") {
+        StepCard(stepNumber = 1, title = "카메라 이름") {
             OutlinedTextField(
                 value = deviceName,
                 onValueChange = { deviceName = it },
                 label = { Text("장치 이름") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = installArea,
-                onValueChange = { installArea = it },
-                label = { Text("설치 구역 (예: A동 입구)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = installationAddress,
-                onValueChange = { installationAddress = it },
-                label = { Text("설치 주소") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -199,8 +210,10 @@ fun CameraPairingScreen(onDone: () -> Unit) {
                     if (ssid.isBlank() || wifiPassword.isBlank()) {
                         Toast.makeText(ctx, "SSID 와 비밀번호 모두 입력", Toast.LENGTH_SHORT).show()
                     } else {
+                        val qrSsid = ssid.trim()
+                        saveWifiPassword(ctx, qrSsid, wifiPassword)
                         // Drift X3 QR 프로토콜 (사용자 매뉴얼 reading, 코드 ref 0)
-                        val qrText = "17|$ssid|$wifiPassword|rtsp"
+                        val qrText = "17|$qrSsid|$wifiPassword|rtsp"
                         qrBitmap = generateQrBitmap(qrText, sizePx = 720)
                     }
                 },
@@ -226,18 +239,69 @@ fun CameraPairingScreen(onDone: () -> Unit) {
         }
 
         // ── Step 4 ──────────────────────────────────────────────
-        StepCard(stepNumber = 4, title = "카메라 IP 입력 + 등록") {
+        StepCard(stepNumber = 4, title = "카메라 RTSP 입력 + 등록") {
+            Button(
+                onClick = {
+                    isScanningRtsp = true
+                    rtspScanMessage = "같은 WiFi 대역에서 RTSP 포트(554)를 찾는 중..."
+                    rtspCandidates = emptyList()
+                    coroutineScope.launch {
+                        val candidates = scanRtspHostsOnCurrentWifi(ctx)
+                        rtspCandidates = candidates
+                        isScanningRtsp = false
+                        if (candidates.isNotEmpty()) {
+                            cameraIp = candidates.first()
+                            rtspScanMessage = if (candidates.size == 1) {
+                                "RTSP 후보 1개 감지: ${candidates.first()}"
+                            } else {
+                                "RTSP 후보 ${candidates.size}개 감지. 첫 번째 IP를 자동 입력했습니다."
+                            }
+                        } else {
+                            rtspScanMessage = "RTSP 후보를 찾지 못했습니다. 카메라 WiFi 연결 또는 같은 네트워크 여부를 확인하세요."
+                        }
+                    }
+                },
+                enabled = !isScanningRtsp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (isScanningRtsp) "RTSP 자동 감지 중..." else "RTSP IP 자동 감지")
+            }
+            rtspScanMessage?.let { message ->
+                Text(
+                    text = message,
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
+            if (rtspCandidates.size > 1) {
+                Text(
+                    text = "후보: ${rtspCandidates.joinToString()}",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
             OutlinedTextField(
                 value = cameraIp,
                 onValueChange = { cameraIp = it },
-                label = { Text("카메라 IP (예: 192.168.0.13)") },
+                label = { Text("카메라 IP 또는 호스트 (예: 192.168.0.13)") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                 modifier = Modifier.fillMaxWidth()
             )
-            if (cameraIp.isNotBlank()) {
+            OutlinedTextField(
+                value = rtspPath,
+                onValueChange = { rtspPath = it },
+                label = { Text("RTSP 경로 (예: live)") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                modifier = Modifier.fillMaxWidth()
+            )
+            val previewRtspUrl = remember(cameraIp, rtspPath) {
+                buildRtspUrl(cameraIp, rtspPath)
+            }
+            if (previewRtspUrl != null) {
                 Text(
-                    text = "RTSP URL: rtsp://$cameraIp/live",
+                    text = "RTSP URL: $previewRtspUrl",
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
@@ -245,19 +309,18 @@ fun CameraPairingScreen(onDone: () -> Unit) {
             Button(
                 onClick = {
                     val groupId = UserSession.groupId?.toIntOrNull()
+                    val rtspUrl = buildRtspUrl(cameraIp, rtspPath)
                     when {
                         groupId == null -> Toast.makeText(ctx, "그룹 정보 없음 — 다시 로그인", Toast.LENGTH_SHORT).show()
-                        installArea.isBlank() || installationAddress.isBlank() ->
-                            Toast.makeText(ctx, "Step 1 입력 누락", Toast.LENGTH_SHORT).show()
-                        cameraIp.isBlank() -> Toast.makeText(ctx, "카메라 IP 입력", Toast.LENGTH_SHORT).show()
+                        deviceName.isBlank() -> Toast.makeText(ctx, "장치 이름 입력", Toast.LENGTH_SHORT).show()
+                        cameraIp.isBlank() -> Toast.makeText(ctx, "카메라 IP 또는 호스트 입력", Toast.LENGTH_SHORT).show()
+                        rtspUrl == null -> Toast.makeText(ctx, "RTSP 주소 형식을 확인해 주세요", Toast.LENGTH_SHORT).show()
                         else -> {
                             isRegistering = true
                             registerCamera(
                                 ctx = ctx,
                                 deviceName = deviceName,
-                                installArea = installArea,
-                                installationAddress = installationAddress,
-                                cameraIp = cameraIp,
+                                rtspUrl = rtspUrl,
                                 groupId = groupId,
                                 onComplete = {
                                     isRegistering = false
@@ -334,6 +397,23 @@ private fun readCurrentSsid(ctx: Context): String? {
     }
 }
 
+private fun loadSavedWifiPassword(ctx: Context, ssid: String): String? {
+    val normalizedSsid = ssid.trim()
+    if (normalizedSsid.isBlank()) return null
+    return ctx.getSharedPreferences(WIFI_PREFS_NAME, Context.MODE_PRIVATE)
+        .getString(WIFI_PASSWORD_KEY_PREFIX + normalizedSsid, null)
+        ?.takeIf { it.isNotEmpty() }
+}
+
+private fun saveWifiPassword(ctx: Context, ssid: String, password: String) {
+    val normalizedSsid = ssid.trim()
+    if (normalizedSsid.isBlank() || password.isBlank()) return
+    ctx.getSharedPreferences(WIFI_PREFS_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .putString(WIFI_PASSWORD_KEY_PREFIX + normalizedSsid, password)
+        .apply()
+}
+
 /**
  * QR 비트맵 생성 (ZXing core only — android-embedded 의존 없이 BitMatrix → Bitmap 직접 변환).
  */
@@ -353,6 +433,73 @@ private fun generateQrBitmap(content: String, sizePx: Int = 720): Bitmap {
     return bmp
 }
 
+private fun buildRtspUrl(hostOrUrl: String, pathInput: String): String? {
+    val raw = hostOrUrl.trim()
+    if (raw.isBlank() || raw.any { it.isWhitespace() }) return null
+
+    val scheme = when {
+        raw.startsWith("rtsps://", ignoreCase = true) -> "rtsps"
+        else -> "rtsp"
+    }
+    val withoutScheme = raw.replaceFirst(Regex("^rtsps?://", RegexOption.IGNORE_CASE), "")
+    val host = withoutScheme.substringBefore("/").trim()
+    if (host.isBlank() || host.any { it.isWhitespace() }) return null
+
+    val pathFromUrl = withoutScheme.substringAfter("/", missingDelimiterValue = "")
+    val path = (pathFromUrl.ifBlank { pathInput })
+        .trim()
+        .trim('/')
+        .ifBlank { "live" }
+    if (path.any { it.isWhitespace() }) return null
+
+    return "$scheme://$host/$path"
+}
+
+private suspend fun scanRtspHostsOnCurrentWifi(ctx: Context): List<String> = withContext(Dispatchers.IO) {
+    val prefix = currentWifiIpv4Prefix(ctx) ?: return@withContext emptyList()
+    coroutineScope {
+        val limit = Semaphore(32)
+        (1..254).map { hostSuffix ->
+            async {
+                val host = "$prefix.$hostSuffix"
+                limit.withPermit {
+                    if (isTcpPortOpen(host, 554, timeoutMs = 180)) host else null
+                }
+            }
+        }.awaitAll().filterNotNull()
+    }
+}
+
+private fun currentWifiIpv4Prefix(ctx: Context): String? {
+    return try {
+        val wifi = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            ?: return null
+        @Suppress("DEPRECATION")
+        val ipAddress = wifi.connectionInfo?.ipAddress ?: return null
+        if (ipAddress == 0) return null
+
+        val first = ipAddress and 0xff
+        val second = ipAddress shr 8 and 0xff
+        val third = ipAddress shr 16 and 0xff
+        if (first == 0 || first == 127) return null
+
+        "$first.$second.$third"
+    } catch (_: SecurityException) {
+        null
+    }
+}
+
+private fun isTcpPortOpen(host: String, port: Int, timeoutMs: Int): Boolean {
+    return try {
+        Socket().use { socket ->
+            socket.connect(InetSocketAddress(host, port), timeoutMs)
+        }
+        true
+    } catch (_: Exception) {
+        false
+    }
+}
+
 /**
  * cameras 테이블 INSERT — Edge Function cameras/register 호출.
  * RTSP URL 패턴: rtsp://${ip}/live (Drift X3 표준, memory: 검증 완료 in Phase 8 RTSP-02).
@@ -360,22 +507,20 @@ private fun generateQrBitmap(content: String, sizePx: Int = 720): Bitmap {
 private fun registerCamera(
     ctx: Context,
     deviceName: String,
-    installArea: String,
-    installationAddress: String,
-    cameraIp: String,
+    rtspUrl: String,
     groupId: Int,
     onComplete: () -> Unit,
     onError: () -> Unit,
 ) {
-    val liveUrl = "rtsp://$cameraIp/live"
+    val deviceCode = "DRIFTX3-${Integer.toHexString(rtspUrl.hashCode())}"
     val request = RegisterCameraRequest(
         deviceName = deviceName,
-        deviceCode = "DRIFTX3-$cameraIp", // best-effort 식별자
-        installArea = installArea,
+        deviceCode = deviceCode,
+        installArea = MOBILE_CAMERA_AREA,
         groupId = groupId,
-        liveUrl = liveUrl,
-        liveUrlDetail = liveUrl,
-        installationAddress = installationAddress,
+        liveUrl = rtspUrl,
+        liveUrlDetail = rtspUrl,
+        installationAddress = MOBILE_CAMERA_ADDRESS,
     )
     RetrofitClient.instance.registerCamera(request).enqueue(object : Callback<RegisterCameraResponse> {
         override fun onResponse(

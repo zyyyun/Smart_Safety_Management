@@ -26,6 +26,7 @@ const ANDROID_CHANNEL_ID = "fcm_default_channel";
 export type FcmPayload = {
   title: string;
   body: string;
+  imageUrl?: string;
   data?: Record<string, string>;
 };
 
@@ -180,10 +181,17 @@ async function fcmSendOne(
   const body = {
     message: {
       token: fcmToken,
-      notification: { title: payload.title, body: payload.body },
+      notification: {
+        title: payload.title,
+        body: payload.body,
+        ...(payload.imageUrl ? { image: payload.imageUrl } : {}),
+      },
       ...(payload.data ? { data: payload.data } : {}),
       android: {
-        notification: { channel_id: ANDROID_CHANNEL_ID },
+        notification: {
+          channel_id: ANDROID_CHANNEL_ID,
+          ...(payload.imageUrl ? { image: payload.imageUrl } : {}),
+        },
         priority: "HIGH",
       },
     },

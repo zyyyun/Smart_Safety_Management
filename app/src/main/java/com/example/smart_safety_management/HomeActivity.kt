@@ -62,6 +62,7 @@ class HomeActivity : AppCompatActivity() {
     private var inviteDialog: androidx.appcompat.app.AlertDialog? = null
     private var selectedYear: Int = 0
     private var selectedMonth: Int = 0 // 1~12
+    private var lastCameraPairingLaunchAtMs: Long = 0L
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,39 +83,37 @@ class HomeActivity : AppCompatActivity() {
         setupCameraMiniCard()
     }
 
+    private fun launchCameraPairing() {
+        val now = System.currentTimeMillis()
+        if (now - lastCameraPairingLaunchAtMs < 600L) return
+        lastCameraPairingLaunchAtMs = now
+
+        Log.d("CameraMiniCard", "tapped - launching CameraPairingActivity")
+        Toast.makeText(
+            this,
+            "카메라 페어링 화면 이동",
+            Toast.LENGTH_SHORT,
+        ).show()
+        startActivity(
+            Intent(
+                this,
+                com.example.smart_safety_management.camera.CameraPairingActivity::class.java,
+            )
+        )
+    }
+
     /**
-     * 2026-05-21 — Sprint A.2: view_profile_bar.xml 의 camera_mini_card_compose
-     * ComposeView 에 CameraMiniCard 를 부착. 탭 → CameraPairingActivity 진입.
-     *
-     * 페어링 상태가 없는 단순 액션 카드 (워치는 1:1 페어링 상태가 있지만 카메라는
-     * N 개 등록 가능 → "추가" 액션만 의미 있음).
+     * 2026-05-21 — Sprint A.2: 상단 카메라 페어링 버튼.
+     * ComposeView 대신 native MaterialButton 을 써서 profile bar/scroll 레이어에서도
+     * Android View 터치 이벤트를 확실하게 받는다.
      */
     private fun setupCameraMiniCard() {
-        val composeView = findViewById<ComposeView>(R.id.camera_mini_card_compose) ?: return
-        composeView.setViewCompositionStrategy(
-            ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this)
-        )
-        composeView.setContent {
-            Smart_Safety_ManagementTheme {
-                com.example.smart_safety_management.camera.CameraMiniCard(
-                    onCardTap = {
-                        // 2026-05-21 디버그: 클릭 자체가 detect 됐는지 logcat + toast.
-                        // 한 번 동작 확인 후 다음 commit 에서 제거 예정.
-                        Log.d("CameraMiniCard", "tapped — launching CameraPairingActivity")
-                        Toast.makeText(
-                            this@HomeActivity,
-                            "카메라 페어링 화면 이동",
-                            Toast.LENGTH_SHORT,
-                        ).show()
-                        startActivity(
-                            Intent(
-                                this@HomeActivity,
-                                com.example.smart_safety_management.camera.CameraPairingActivity::class.java,
-                            )
-                        )
-                    }
-                )
-            }
+        findViewById<View>(R.id.btn_camera_pairing)?.apply {
+            visibility = View.VISIBLE
+            isClickable = true
+            isFocusable = true
+            bringToFront()
+            setOnClickListener { launchCameraPairing() }
         }
     }
 

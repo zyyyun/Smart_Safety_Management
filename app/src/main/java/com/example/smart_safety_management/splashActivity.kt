@@ -35,7 +35,11 @@ class SplashActivity : AppCompatActivity() {
         // 테스트 모드: 로그인 우회 - 로고 애니메이션 후 바로 홈으로 이동
         fadeLogo.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
-                UserSession.userId = "test_user"
+                // 2026-05-20 — userId 도 seed 정합 (Plan 09-01 seed = testuser1·_w1·_w2·_w3).
+                // 직전까지 'test_user' 였는데 DB profiles 에 그 row 없어서 모든 Edge Function
+                // 호출 (홈/AI/history/location 등) 이 empty 반환 → 모든 화면 로딩 정지.
+                // testuser1 = manager owner of group_id=1 (010_watch_pipeline.sql:148).
+                UserSession.userId = "testuser1"
                 UserSession.userName = "테스트"
                 UserSession.userRole = UserRole.MANAGER
                 UserSession.isInviteChecked = true

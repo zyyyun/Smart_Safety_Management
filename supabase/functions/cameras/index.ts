@@ -191,6 +191,7 @@ async function handleRegister(admin: Admin, body: Record<string, unknown>) {
   const {
     device_name, device_code, install_area, group_id,
     live_url, live_url_detail, installation_address,
+    status, shooting_interval, environment_type,
     latitude, longitude,
   } = body as {
     device_name: string;
@@ -200,28 +201,62 @@ async function handleRegister(admin: Admin, body: Record<string, unknown>) {
     live_url: string;
     live_url_detail: string;
     installation_address: string;
+    status?: string;
+    shooting_interval?: number;
+    environment_type?: string;
     latitude?: number;
     longitude?: number;
   };
 
+  if (!device_name || !device_code || !install_area || !group_id || !installation_address) {
+    return err("device_name, device_code, install_area, group_id, installation_address are required");
+  }
+
+  const normalizedLiveUrl = normalizeRtspUrl(live_url);
+  const normalizedLiveUrlDetail = normalizeRtspUrl(live_url_detail);
+  if (!normalizedLiveUrl || !normalizedLiveUrlDetail) {
+    return err("live_url and live_url_detail must be rtsp:// or rtsps:// URLs");
+  }
+
+  const interval = Number.isFinite(shooting_interval)
+    ? Math.max(1, Math.floor(Number(shooting_interval)))
+    : 1;
+
   const { data, error } = await admin
     .from("cameras")
-    .insert({
+    .upsert({
       device_name,
       device_code,
       install_area,
       group_id,
-      live_url,
-      live_url_detail,
+      live_url: normalizedLiveUrl,
+      live_url_detail: normalizedLiveUrlDetail,
       installation_address,
+      status: status ?? "정상",
+      shooting_interval: interval,
+      environment_type: environment_type ?? "실외",
       latitude: latitude ?? null,
       longitude: longitude ?? null,
+      last_comm_date: new Date().toISOString(),
+    }, {
+      onConflict: "device_code",
     })
-    .select("camera_id")
+    .select("camera_id, live_url_detail")
     .single();
 
   if (error) return err(error.message, 500);
-  return ok({ camera_id: data.camera_id }, 201);
+  return ok({
+    camera_id: data.camera_id,
+    live_url_detail: data.live_url_detail,
+    yolo_agent_pickup: "live_url_detail_rtsp",
+  }, 201);
+}
+
+function normalizeRtspUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!/^(rtsps?):\/\/[^/\s]+\/[^\s]+$/i.test(trimmed)) return null;
+  return trimmed;
 }
 
 // ──────────────────────────────────────────────

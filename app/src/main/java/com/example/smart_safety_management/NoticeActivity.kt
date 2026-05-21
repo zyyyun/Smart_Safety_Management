@@ -25,6 +25,7 @@ class NoticeActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("NoticeActivity", "onCreate ENTER session.userId=${UserSession.userId}")
         setContentView(R.layout.notice)
 
         // ===============================
@@ -67,11 +68,13 @@ class NoticeActivity : AppCompatActivity() {
 
     private fun fetchNotifications() {
         val userId = UserSession.userId ?: return
+        Log.d("NoticeActivity", "fetchNotifications user_id=$userId")
 
         RetrofitClient.instance.getNotifications(userId).enqueue(object : Callback<GetNotificationsResponse> {
             override fun onResponse(call: Call<GetNotificationsResponse>, response: Response<GetNotificationsResponse>) {
                 if (response.isSuccessful) {
                     val notifications = response.body()?.notifications ?: emptyList()
+                    Log.d("NoticeActivity", "got ${notifications.size} notifications")
                     noticeList.clear()
                     noticeList.addAll(notifications.map { dto ->
                         NoticeItem(
@@ -85,13 +88,23 @@ class NoticeActivity : AppCompatActivity() {
                     adapter.notifyDataSetChanged()
                     updateUIState()
                 } else {
-                    Toast.makeText(this@NoticeActivity, "알림을 불러오지 못했습니다.", Toast.LENGTH_SHORT).show()
+                    val errBody = try { response.errorBody()?.string() } catch (_: Exception) { null }
+                    Log.e("NoticeActivity", "HTTP ${response.code()} for user_id=$userId body=$errBody")
+                    Toast.makeText(
+                        this@NoticeActivity,
+                        "알림을 불러오지 못했습니다. (HTTP ${response.code()})",
+                        Toast.LENGTH_LONG,
+                    ).show()
                 }
             }
 
             override fun onFailure(call: Call<GetNotificationsResponse>, t: Throwable) {
-                Log.e("NoticeActivity", "Error fetching notifications", t)
-                Toast.makeText(this@NoticeActivity, "네트워크 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                Log.e("NoticeActivity", "Error fetching notifications for user_id=$userId", t)
+                Toast.makeText(
+                    this@NoticeActivity,
+                    "네트워크 오류: ${t.javaClass.simpleName} ${t.message}",
+                    Toast.LENGTH_LONG,
+                ).show()
             }
         })
     }

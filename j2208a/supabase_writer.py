@@ -170,6 +170,103 @@ def update_safety_alert_resolved(
     ).execute()
 
 
+def upsert_device(
+    client: Any,
+    user_id: str,
+    mac_address: str,
+    firmware_version: Optional[str] = None,
+    battery_level: Optional[int] = None,
+) -> Optional[int]:
+    """2026-05-21 — BLE 스크립트가 워치 connect 직후 호출하는 devices 자동 등록.
+
+    카메라의 update_camera_health 패턴 미러 (스크립트 → supabase 자동 등록 →
+    앱이 별도 PairWatchSection 없이 자동 인식).
+
+    Schema (010_watch_pipeline.sql:147 seed 와 정합):
+        serial_number = 'J2208A-{MAC.upper()}'
+        device_type   = 'WATCH'
+        mac_address   = MAC.upper()
+        user_id       = 호출자 (default 'testuser1')
+
+    Race-safe user_id 보존 정책:
+        1. 기존 row + user_id 가 다른 사용자 → user_id 보존 (pair 침범 금지).
+           메타데이터 (firmware_version, last_comm_at) 만 update.
+        2. 기존 row + user_id NULL or 같음 → user_id set + 메타데이터 update.
+        3. 부재 → 신규 INSERT.
+
+    Args:
+        client: service_role supabase Client (RLS 우회).
+        user_id: pair 대상 user. 환경변수 WATCH_OWNER_USER_ID 또는 default.
+        mac_address: BLE MAC (예: "21:02:02:06:01:69"). 대소문자 무관.
+        firmware_version: BLE notify packet 에서 추출 가능 시. None 이면 기존 유지.
+        battery_level: 초기 배터리 (옵션).
+
+    Returns:
+        device_id (int). 호출 실패 시 None — silent fail (BLE 루프 차단 안 함).
+    """
+    mac_upper = mac_address.upper()
+    serial = f"J2208A-{mac_upper}"
+    try:
+        existing = client.table("devices").select(
+            "device_id, user_id, firmware_version"
+        ).eq("serial_number", serial).limit(1).execute()
+        rows = getattr(existing, "data", None) or []
+
+        if rows:
+            row = rows[0]
+            device_id = int(row["device_id"])
+            existing_user_id = row.get("user_id")
+            update_payload: dict[str, Any] = {}
+            if firmware_version:
+                update_payload["firmware_version"] = firmware_version
+            if battery_level is not None:
+                update_payload["battery_level"] = battery_level
+            # Pair 침범 금지 — 다른 user 에게 이미 pair 됐으면 user_id 보존.
+            if existing_user_id is None or existing_user_id == user_id:
+                update_payload["user_id"] = user_id
+                print(
+                    f"[+] upsert_device: existing device_id={device_id} "
+                    f"serial={serial} user_id={user_id} (set/refresh)"
+                )
+            else:
+                print(
+                    f"[+] upsert_device: existing device_id={device_id} "
+                    f"serial={serial} user_id={existing_user_id} preserved "
+                    f"(caller={user_id} skipped to protect pair)"
+                )
+            if update_payload:
+                client.table("devices").update(update_payload).eq(
+                    "device_id", device_id
+                ).execute()
+            return device_id
+
+        # 신규 INSERT
+        insert_payload: dict[str, Any] = {
+            "device_type": "WATCH",
+            "serial_number": serial,
+            "mac_address": mac_upper,
+            "user_id": user_id,
+        }
+        if firmware_version:
+            insert_payload["firmware_version"] = firmware_version
+        if battery_level is not None:
+            insert_payload["battery_level"] = battery_level
+        resp = client.table("devices").insert(insert_payload).execute()
+        new_rows = getattr(resp, "data", None) or []
+        if new_rows:
+            device_id = int(new_rows[0]["device_id"])
+            print(
+                f"[+] upsert_device: INSERTED device_id={device_id} "
+                f"serial={serial} user_id={user_id}"
+            )
+            return device_id
+        return None
+    except Exception as e:  # pragma: no cover - 네트워크/스키마 transient
+        # 의도된 silent fail — BLE 루프 절대 차단 X
+        print(f"[!] upsert_device failed (mac={mac_upper}, user={user_id}): {e}")
+        return None
+
+
 def update_device_last_comm_at(
     client: Any,
     device_id: int,

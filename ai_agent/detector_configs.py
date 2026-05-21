@@ -34,15 +34,13 @@ DETECTOR_CONFIGS: dict[str, dict] = {
         "event_name": "화재",
         "risk_level": "DANGER",
         "camera_ids": [1],
-        # YOLO26 default conf 0.25 — D-19 fallback (0.10) 해제, 운영 임계 정상화.
-        # 검증 후 0.30~0.50 으로 조정 가능 (사용자 test).
-        "conf_thres": 0.25,
+        # 2026-05-20 user decision (PPT demo trigger): conf 0.5 단일 frame 검출 즉시 storage 업로드.
+        # 정상 폴더 FPR 측정 (verify_fire_yolov26.py): conf 0.40 기준 0.8%, 0.25 기준 2.8%.
+        # conf 0.5 면 더 낮음. 단일 frame trigger 대신 frames_required=5 게이트는 시연용으로 해제.
+        # 운영 복귀 시 conf 0.25 + frames_required 5 또는 conf 0.40 + frames_required 3 권장.
+        "conf_thres": 0.5,
         "iou_thres": 0.45,
-        # Phase 2 MODEL-01 frames_required 5 유지 (YOLO26 안정성 검증 전).
-        # 사용자 test 후 조정 가능 — 새 모델이 single-frame 에서 안정적이면 1~3 으로
-        # 단축 검토. 단축 시 false positive 위험 ↑ → 시간축 fusion (FIRE-ADV-03) 추가
-        # 도입 필요.
-        "frames_required": 5,
+        "frames_required": 1,
         "img_size": 640,
         # target_classes=['fire','smoke'] — 'other' 클래스는 noise 가능 (Roboflow
         # dataset 의 ambiguous 라벨), 안전 위해 fire/smoke 만 알람 발사.

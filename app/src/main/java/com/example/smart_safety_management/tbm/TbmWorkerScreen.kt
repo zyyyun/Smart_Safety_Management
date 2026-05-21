@@ -124,26 +124,16 @@ fun TbmWorkerScreen(
             }
         }
 
-        // 체크리스트 (read-only)
+        // 체크리스트 — 2026-05-20 Change 2: ChecklistRow 공유 (admin/worker 동일 UI).
+        // 워커도 체크박스 toggle + "추가 작업 사항" row 자유 입력 가능
+        // (014_tbm_checklists_write_policy.sql 의 UPDATE RLS 허용 + ChecklistRow 의
+        // freetext 분기). 정형 row 도 체크박스 toggle 가능 (PoC parity — v1.1 에서
+        // leader-only 강화 예정).
         Text("체크리스트", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         Spacer(Modifier.height(8.dp))
-        LazyColumn(modifier = Modifier.fillMaxWidth().height(220.dp)) {
-            items(checklists) { item ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        if (item.isChecked) "✓" else "○",
-                        color = if (item.isChecked) Color(0xFF22C55E) else Color.Gray,
-                        fontSize = 18.sp,
-                    )
-                    Text(
-                        "  ${item.itemText}",
-                        fontSize = 14.sp,
-                        color = if (item.isChecked) Color.Black else Color.Gray,
-                    )
-                }
+        Column(modifier = Modifier.fillMaxWidth()) {
+            checklists.forEach { item ->
+                ChecklistRow(item = item, repo = repo, scope = scope)
             }
         }
         Spacer(Modifier.height(12.dp))

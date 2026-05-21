@@ -60,6 +60,20 @@ except ImportError as _imp_err:
     process_sample = None  # type: ignore[assignment]
     _RUNTIME_OK = False
 
+# 2026-05-21 — 워치 자동 등록 (PairWatchSection 우회).
+# connect 성공 직후 1회 devices UPSERT — 카메라의 update_camera_health 패턴 미러.
+# user_id = env WATCH_OWNER_USER_ID, default testuser1 (010 seed 정합).
+try:
+    from j2208a.supabase_writer import upsert_device, get_client  # noqa: E402
+    _AUTO_REGISTER_OK = True
+except ImportError as _imp_err:
+    print(f"[!] j2208a.supabase_writer import 실패 — 자동 등록 비활성화: {_imp_err}")
+    upsert_device = None  # type: ignore[assignment]
+    get_client = None  # type: ignore[assignment]
+    _AUTO_REGISTER_OK = False
+
+WATCH_OWNER_USER_ID = _os.environ.get("WATCH_OWNER_USER_ID", "testuser1")
+
 # Supabase env var 진단 — service_role_key 부재 시 insert/heartbeat 모두 silent fail.
 # 사용자에게 명확한 안내 출력.
 if _RUNTIME_OK:
@@ -480,7 +494,9 @@ async def demo(address: Optional[str]) -> None:
             return
 
     print(f"[*] 자동 재연결 모드 (target={address}) — Ctrl+C 로 종료")
+    print(f"[*] WATCH_OWNER_USER_ID = {WATCH_OWNER_USER_ID} (env override 가능)")
     backoff = 3
+    device_registered = False  # 자동 등록 idempotent flag (재연결 시 중복 호출 안 함)
     try:
         while True:
             cli = J2208AClient(address)
@@ -500,6 +516,22 @@ async def demo(address: Optional[str]) -> None:
                 backoff = min(backoff * 2, 30)
                 continue
             backoff = 3  # 연결 성공 시 백오프 리셋
+
+            # 2026-05-21 — 워치 자동 등록 (PairWatchSection 우회).
+            # connect 성공 직후 1회 devices UPSERT. user_id 환경변수 default testuser1.
+            # firmware_version / battery_level 은 BLE notify 응답 이후라 None 으로
+            # 호출 → 기존 row 의 값 유지. 실패해도 BLE 루프 차단 안 함 (silent).
+            if not device_registered and _AUTO_REGISTER_OK:
+                try:
+                    sb_client = get_client()
+                    upsert_device(
+                        sb_client,
+                        user_id=WATCH_OWNER_USER_ID,
+                        mac_address=address,
+                    )
+                    device_registered = True
+                except Exception as e:
+                    print(f"[!] 자동 등록 실패 (계속 진행): {e}")
 
             try:
                 await _run_session(cli, disconnected)

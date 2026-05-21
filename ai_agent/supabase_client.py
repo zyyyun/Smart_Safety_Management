@@ -38,12 +38,17 @@ class SupabaseBridge:
         """live_url_detail이 채워진 카메라 목록."""
         result = (
             self._client.table("cameras")
-            .select("camera_id, device_name, install_area, live_url_detail")
+            .select("camera_id, device_name, install_area, live_url_detail, status")
             .not_.is_("live_url_detail", "null")
             .neq("live_url_detail", "")
             .execute()
         )
-        return list(result.data or [])
+        cameras = list(result.data or [])
+        for camera in cameras:
+            url = camera.get("live_url_detail")
+            if isinstance(url, str):
+                camera["live_url_detail"] = url.strip()
+        return cameras
 
     # ────────────────────────────────────────
     # storage

@@ -69,6 +69,18 @@ data class TbmParticipantRow(
  */
 enum class ChangeKind { INSERT, UPDATE, DELETE }
 
+/**
+ * 2026-05-20 Change 1 — public.groups row (admin 의 다중 그룹 TBM 생성용).
+ * 002_tables.sql:25-30 의 4 컬럼만. group_name 컬럼은 schema 에 없으므로 표시는
+ * invite_code 를 사용 ("#${groupId} (${inviteCode})" 형식).
+ */
+@Serializable
+data class GroupRow(
+    @SerialName("group_id") val groupId: Int,
+    @SerialName("invite_code") val inviteCode: String,
+    @SerialName("manager_id") val managerId: String,
+)
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Retrofit payload — Edge Function `/functions/v1/notifications` 4 actions
 // (Plan 09-02 의 tbm-start / tbm-checkin / tbm-end / tbm-missed)

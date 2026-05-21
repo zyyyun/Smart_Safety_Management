@@ -72,8 +72,12 @@ _BBOX_COLOR_BGR = {
 # ─────────────────────────────────────────────────────────────────────────────
 def _is_rtsp_camera(camera: dict[str, Any]) -> bool:
     """cameras row 의 live_url_detail 이 RTSP URL 이면 True."""
-    url = camera.get("live_url_detail") or ""
+    url = (camera.get("live_url_detail") or "").strip()
     return url.lower().startswith(("rtsp://", "rtsps://"))
+
+
+def _count_rtsp_cameras(cameras: list[dict[str, Any]]) -> int:
+    return sum(1 for camera in cameras if _is_rtsp_camera(camera))
 
 
 def _expand_target_cameras(
@@ -223,7 +227,11 @@ def run_cycle(bridge: SupabaseBridge, settings: Settings) -> None:
         log.info("활성 카메라가 없습니다.")
         return
 
-    log.info("대상 카메라 %d개 처리 시작", len(cameras))
+    log.info(
+        "대상 카메라 %d개 처리 시작 (RTSP=%d)",
+        len(cameras),
+        _count_rtsp_cameras(cameras),
+    )
     with ThreadPoolExecutor(max_workers=min(8, len(cameras))) as pool:
         futures = [
             pool.submit(_process_single_camera, bridge, settings, cam)
@@ -318,6 +326,13 @@ def run_fall_cycle(
         log.error("카메라 목록 조회 실패: %s", e)
         return
 
+    log.info(
+        "fall 대상 후보: total=%d rtsp=%d configured=%s",
+        len(all_cams),
+        _count_rtsp_cameras(all_cams),
+        list(enabled_ids),
+    )
+
     # 2026-05-20: fall 도 RTSP 카메라 자동 포함 (architecture 정정 — RTSP 는 5종 모두).
     cams_by_id = {int(c["camera_id"]): c for c in all_cams}
     targets = _expand_target_cameras(list(enabled_ids), all_cams, cams_by_id)
@@ -371,7 +386,29 @@ def _process_detection_for_camera(
         if img is None:
             return f"[DETECT_ERR] camera_id={camera_id} event={event_key}: cv2.imread failed"
 
-        result = detector.detect(img)
+        # fire detector 같은 다중 클래스 모델은 동일 프레임에서 fire+smoke 가
+        # 함께 나올 수 있으므로 detect_all() 결과를 우선 사용한다.
+        # 테스트 stub 호환을 위해 detect_all 이 없으면 detect() 단건으로 폴백.
+        all_results: list[DetectResult]
+        detect_all_fn = getattr(detector, "detect_all", None)
+        if callable(detect_all_fn):
+            raw_results = detect_all_fn(img)
+            if isinstance(raw_results, list):
+                all_results = [r for r in raw_results if r.is_detected]
+                primary_result = (
+                    max(
+                        all_results,
+                        key=lambda r: (float(r.confidence or 0.0), float(r.inference_ms or 0.0)),
+                    )
+                    if all_results
+                    else DetectResult(is_detected=False)
+                )
+            else:
+                primary_result = detector.detect(img)
+                all_results = [primary_result] if primary_result.is_detected else []
+        else:
+            primary_result = detector.detect(img)
+            all_results = [primary_result] if primary_result.is_detected else []
 
         # Phase 2 MODEL-02: buffer push (cooldown skip 이 아닌 모든 detect 결과를 누적).
         # maxlen 은 DETECTOR_CONFIGS 의 max frames_required (현재 fire 5).
@@ -381,12 +418,12 @@ def _process_detection_for_camera(
         if buffer is None:
             buffer = deque(maxlen=max(5, frames_required))
             _detection_buffer[cooldown_key] = buffer
-        buffer.append(bool(result.is_detected))
+        buffer.append(bool(all_results))
 
-        if not result.is_detected:
+        if not all_results:
             return (
                 f"[no_detect] camera_id={camera_id} event={event_key} "
-                f"inf={result.inference_ms:.0f}ms"
+                f"inf={primary_result.inference_ms:.0f}ms"
             )
 
         # Phase 2 MODEL-02: N 연속 검사 — 최근 N 결과가 모두 True 일 때만 알람 발사.
@@ -396,16 +433,21 @@ def _process_detection_for_camera(
             return (
                 f"[no_alert_yet] camera_id={camera_id} event={event_key} "
                 f"frames={sum(recent)}/{frames_required} "
-                f"conf={result.confidence:.2f}"
+                f"conf={float(primary_result.confidence or 0.0):.2f}"
             )
 
         # Phase 8 RTSP-02 시연 evidence — upload 직전에 bbox + label annotate.
-        # result.bbox = (x1, y1, x2, y2). result.label, result.confidence 도 그림.
+        # all_results 의 bbox 들을 모두 그림 (예: fire + smoke 동시 검출).
         # 실패해도 silent (원본 capture 그대로 upload).
-        if result.bbox is not None:
+        bbox_list = [
+            (r.bbox, r.label or event_key, float(r.confidence or 0.0))
+            for r in all_results
+            if r.bbox is not None
+        ]
+        if bbox_list:
             _annotate_capture_with_bbox(
                 tmp_path,
-                [(result.bbox, result.label or event_key, result.confidence or 0.0)],
+                bbox_list,
                 event_key,
             )
 
@@ -416,7 +458,7 @@ def _process_detection_for_camera(
             camera_id=camera_id,
             event_name=cfg["event_name"],
             risk_level=cfg["risk_level"],
-            accuracy=float(result.confidence or 0.0),
+            accuracy=float(primary_result.confidence or 0.0),
             image_url=public_url,
         )
         # Phase 2 MODEL-02: 알람 발사 후 buffer reset (D-02).
@@ -424,9 +466,11 @@ def _process_detection_for_camera(
         buffer.clear()
         _detection_cooldown[cooldown_key] = now
         event_id = event.get("event_id")
+        labels = sorted({(r.label or event_key) for r in all_results})
+        labels_str = ",".join(labels)
         return (
             f"[DETECT] camera_id={camera_id} event={event_key} "
-            f"label={result.label} conf={result.confidence:.2f} "
+            f"labels={labels_str} conf={float(primary_result.confidence or 0.0):.2f} "
             f"event_id={event_id} url={public_url}"
         )
     except SnapshotError as e:
@@ -610,6 +654,12 @@ def run_detection_cycle(
         return
 
     cams_by_id = {int(c["camera_id"]): c for c in all_cams}
+    log.info(
+        "detection 대상 후보: total=%d rtsp=%d enabled=%s",
+        len(all_cams),
+        _count_rtsp_cameras(all_cams),
+        list(detectors.keys()),
+    )
 
     for event_key, detector in detectors.items():
         cfg = DETECTOR_CONFIGS.get(event_key)
@@ -630,14 +680,28 @@ def run_detection_cycle(
             msg = _process_detection_for_camera(
                 bridge, settings, event_key, detector, cfg, cam
             )
-            if msg.startswith(("[no_detect]", "[detect_skip_cooldown]", "[no_alert_yet]")):
+            # 2026-05-20: detection diagnosis visibility — keep no_detect / no_alert_yet
+            # at INFO so demo console shows whether model sees fire (per-frame) vs.
+            # frames_required gate (5-consecutive). Only cooldown stays at debug.
+            if msg.startswith("[detect_skip_cooldown]"):
                 log.debug(msg)
             else:
                 log.info(msg)
 
     # [Phase 3 addition] fusion loop — after detector loop (D-05, D-12)
     # 2026-05-20: RTSP 실 카메라는 모든 fusion 자동 포함 (architecture 정정).
+    # 2026-05-20: fusion 의 detectors_required 가 detectors dict 에 모두 로드돼야만
+    # 진행 — fire-only 같은 subset 모드에서 fusion path 가 per-camera WARNING 노이즈
+    # 만 만들고 어차피 [FUSION_ERR] 로 즉시 fail 했던 것 정리.
     for fusion_key, fcfg in FUSION_CONFIGS.items():
+        required = fcfg.get("detectors_required", [])
+        missing = [d for d in required if d not in detectors]
+        if missing:
+            log.debug(
+                "[FUSION] %s skipped — required detectors %s not enabled (current: %s)",
+                fusion_key, missing, list(detectors.keys()),
+            )
+            continue
         f_target_cams = _expand_target_cameras(fcfg["camera_ids"], all_cams, cams_by_id)
         if not f_target_cams:
             log.debug(

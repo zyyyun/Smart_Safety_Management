@@ -44,6 +44,13 @@ class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        val kakaoNativeAppKey = BuildConfig.KAKAO_NATIVE_APP_KEY
+        if (kakaoNativeAppKey.isBlank() || kakaoNativeAppKey.startsWith("SAMPLE")) {
+            Log.e("KakaoMap", "Kakao native app key is missing. Set kakao.nativeAppKey in local.properties.")
+        } else {
+            KakaoMapSdk.init(this, kakaoNativeAppKey)
+        }
+
         // 키 해시 로그 찍기
         printKeyHash()
 
