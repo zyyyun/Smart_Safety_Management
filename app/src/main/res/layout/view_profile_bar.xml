@@ -35,7 +35,8 @@
     <LinearLayout
         android:layout_marginStart="12dp"
         android:orientation="vertical"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
+        android:layout_weight="1"
         android:layout_height="wrap_content"
         android:gravity="center_vertical">
 
@@ -76,5 +77,20 @@
             android:textColor="@color/orange50"
             android:textSize="15sp" />
     </LinearLayout>
+
+    <!-- 2026-05-21 — Sprint A.2: 카메라 페어링 미니카드 (워치 좌측, manager 전용,
+         HomeActivity 가 setupCameraMiniCard 로 활성화). 탭 → CameraPairingActivity. -->
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/camera_mini_card_compose"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp" />
+
+    <!-- 2026-05-21 — 우측 워치 미니카드 (HomeActivity 가 setupWatchMiniCard 로 활성화) -->
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/watch_mini_card_compose"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="10dp" />
 
 </LinearLayout>

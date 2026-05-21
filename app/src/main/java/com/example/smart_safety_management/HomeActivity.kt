@@ -45,6 +45,13 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import com.example.smart_safety_management.tbm.TbmDashboardCardComposable
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.watch.SupabaseModule
+import io.github.jan.supabase.postgrest.from
+// 2026-05-21 — watch mini card delegate (by mutableStateOf) 와 LaunchedEffect 용
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 
 class HomeActivity : AppCompatActivity() {
 
@@ -67,6 +74,100 @@ class HomeActivity : AppCompatActivity() {
 
         // Phase 9 / 09-03 TBM-02 — manager TBM 대시보드 카드 (D-06)
         setupTbmDashboardCard()
+
+        // 2026-05-21 — profile_bar 우측 워치 미니카드 (HomeWorkerActivity 패턴 미러)
+        setupWatchMiniCard()
+
+        // 2026-05-21 — Sprint A.2: profile_bar 좌측 카메라 페어링 미니카드 (manager 전용)
+        setupCameraMiniCard()
+    }
+
+    /**
+     * 2026-05-21 — Sprint A.2: view_profile_bar.xml 의 camera_mini_card_compose
+     * ComposeView 에 CameraMiniCard 를 부착. 탭 → CameraPairingActivity 진입.
+     *
+     * 페어링 상태가 없는 단순 액션 카드 (워치는 1:1 페어링 상태가 있지만 카메라는
+     * N 개 등록 가능 → "추가" 액션만 의미 있음).
+     */
+    private fun setupCameraMiniCard() {
+        val composeView = findViewById<ComposeView>(R.id.camera_mini_card_compose) ?: return
+        composeView.setViewCompositionStrategy(
+            ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this)
+        )
+        composeView.setContent {
+            Smart_Safety_ManagementTheme {
+                com.example.smart_safety_management.camera.CameraMiniCard(
+                    onCardTap = {
+                        startActivity(
+                            Intent(
+                                this@HomeActivity,
+                                com.example.smart_safety_management.camera.CameraPairingActivity::class.java,
+                            )
+                        )
+                    }
+                )
+            }
+        }
+    }
+
+    /**
+     * 2026-05-21 — view_profile_bar.xml 의 watch_mini_card_compose ComposeView 에
+     * WatchMiniCardComposable (paired) 또는 EmptyWatchMiniCard (unpaired) 표시.
+     *
+     * 페어링 상태는 devices 테이블에서 SELECT (HomeWorkerActivity:138-147 패턴 동일).
+     * 탭 → WatchDetailActivity (paired) 또는 DeviceManage (unpaired).
+     */
+    private fun setupWatchMiniCard() {
+        val composeView = findViewById<ComposeView>(R.id.watch_mini_card_compose) ?: return
+        composeView.setViewCompositionStrategy(
+            ViewCompositionStrategy.DisposeOnLifecycleDestroyed(this)
+        )
+        val supabase = SupabaseModule.client(this)
+        composeView.setContent {
+            Smart_Safety_ManagementTheme {
+                var pairedDeviceId by remember { mutableStateOf<Int?>(null) }
+                var loaded by remember { mutableStateOf(false) }
+                LaunchedEffect(Unit) {
+                    val uid = UserSession.userId
+                    if (uid != null) {
+                        pairedDeviceId = try {
+                            supabase.from("devices").select {
+                                filter {
+                                    eq("user_id", uid)
+                                    eq("device_type", "WATCH")
+                                }
+                                limit(1)
+                            }.decodeSingleOrNull<com.example.smart_safety_management.watch.DeviceRow>()
+                                ?.deviceId
+                        } catch (_: Exception) {
+                            null
+                        }
+                    }
+                    loaded = true
+                }
+                if (!loaded) return@Smart_Safety_ManagementTheme
+                val deviceId = pairedDeviceId
+                if (deviceId != null) {
+                    com.example.smart_safety_management.watch.WatchMiniCardComposable(
+                        deviceId = deviceId,
+                        supabase = supabase,
+                        onCardTap = {
+                            val intent = Intent(
+                                this@HomeActivity,
+                                com.example.smart_safety_management.watch.WatchDetailActivity::class.java,
+                            ).apply { putExtra("device_id", deviceId) }
+                            startActivity(intent)
+                        },
+                    )
+                } else {
+                    com.example.smart_safety_management.watch.EmptyWatchMiniCard(
+                        onCardTap = {
+                            startActivity(Intent(this@HomeActivity, SettingDeviceManagementActivity::class.java))
+                        },
+                    )
+                }
+            }
+        }
     }
 
     /**
