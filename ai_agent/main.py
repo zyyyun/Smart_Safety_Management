@@ -15,7 +15,10 @@ from __future__ import annotations
 
 import argparse
 import logging
+import logging.handlers
+import os
 import sys
+from pathlib import Path
 
 from config import load_settings
 from detector_configs import DETECTOR_CONFIGS
@@ -31,10 +34,50 @@ from yolo_detector import GenericYoloDetector
 
 
 def _configure_logging(level: str) -> None:
-    logging.basicConfig(
-        level=getattr(logging, level, logging.INFO),
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    """2026-05-21 — Sprint A.3: headless service 화 대응.
+
+    Console (stderr) + RotatingFileHandler 둘 다 설치:
+    - Service 환경 (no console) 에서도 logs/ai_agent.log 에 영구 기록
+    - 5 MB × 5 rotation = 최근 25 MB 보존, 디스크 폭주 방지
+    - 환경변수 AI_AGENT_LOG_DIR 로 위치 override 가능 (default: ai_agent/../logs)
+    """
+    log_level = getattr(logging, level, logging.INFO)
+    fmt = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     )
+
+    root = logging.getLogger()
+    root.setLevel(log_level)
+    # 중복 handler 방지 (재호출 시 add 안 함)
+    if any(isinstance(h, logging.handlers.RotatingFileHandler) for h in root.handlers):
+        return
+
+    # 기존 console handler 가 있으면 format 통일, 없으면 추가
+    has_console = any(isinstance(h, logging.StreamHandler) and not isinstance(h, logging.FileHandler)
+                      for h in root.handlers)
+    if not has_console:
+        console = logging.StreamHandler()
+        console.setFormatter(fmt)
+        root.addHandler(console)
+
+    # 파일 핸들러 — service 모드의 진실 source
+    log_dir = Path(os.environ.get(
+        "AI_AGENT_LOG_DIR",
+        str(Path(__file__).resolve().parent.parent / "logs"),
+    ))
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_dir / "ai_agent.log",
+            maxBytes=5 * 1024 * 1024,
+            backupCount=5,
+            encoding="utf-8",
+        )
+        file_handler.setFormatter(fmt)
+        root.addHandler(file_handler)
+    except OSError as e:
+        # 파일 쓰기 실패해도 console 로깅은 살아남음 (service 모드면 stderr 가 service event log)
+        logging.warning("로그 파일 핸들러 초기화 실패: %s (console only)", e)
 
 
 def _load_fall_detector(settings) -> FallDetector:
