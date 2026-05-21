@@ -37,6 +37,10 @@ reference_media/**
 ai_agent/.env
 ai_agent/__pycache__/
 
+# -- RTSP PoC state (feature_rtps_test branch) — 마지막 처리 Storage object key
+ai_agent/.rtsp_poc_state.json
+ai_agent/.rtsp_poc_state.tmp
+
 # -- 프로젝트 루트 환경변수 (J2208A BLE 클라이언트 — per CONTEXT.md D-12)
 #    .env.example 만 커밋하고 실제 .env 는 절대 커밋 금지 (service_role key 보호).
 .env
