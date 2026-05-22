@@ -194,21 +194,30 @@ def _pull_one_camera(
                         event_key=detector_cfg["storage_prefix"],
                         local_path=tmp_path,
                     )
-                    bridge.register_ai_event(
+                    event_response = bridge.register_ai_event(
                         camera_id=camera_id,
                         event_name=detector_cfg["event_name"],
                         risk_level=detector_cfg["risk_level"],
                         accuracy=float(result.confidence or 0.0),
                         image_url=image_url,
                     )
-                    events += 1
-                    log.info(
-                        "AI event 등록: camera_id=%s conf=%.3f event=%s url=%s",
-                        camera_id,
-                        result.confidence,
-                        detector_cfg["event_name"],
-                        image_url,
-                    )
+                    if event_response.get("skipped"):
+                        log.info(
+                            "AI event skipped: camera_id=%s reason=%s existing_event_id=%s",
+                            camera_id,
+                            event_response.get("reason", "-"),
+                            event_response.get("existing_event_id", "-"),
+                        )
+                    else:
+                        events += 1
+                        log.info(
+                            "AI event registered: camera_id=%s conf=%.3f event=%s event_id=%s url=%s",
+                            camera_id,
+                            result.confidence,
+                            detector_cfg["event_name"],
+                            event_response.get("event_id", "-"),
+                            image_url,
+                        )
                 finally:
                     tmp_path.unlink(missing_ok=True)
             except Exception as e:
