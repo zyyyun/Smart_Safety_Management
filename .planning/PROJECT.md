@@ -118,30 +118,23 @@
   interval job 을 추가했다. 등록된 RTSP URL 이 `unknown/unreachable → reachable` 로 전이되면
   기존 YOLO detection/fall cycle 을 자동 구동하며, 중복 실행 방지 lock 과 unit tests 를 포함한다.
 
-## Current Milestone: v1.0 5월 PPT 데모
+## Current Milestone: v1.1 앱 전체 완성도
 
-**Goal:** 5월 중순 PPT 데모에서 (1) 5종 AI 비전 감지가 운영급 임계 (conf 0.5+) 와
-룰 충실도 (frames 연속·bbox 겹침) 로 동작 + (2) J2208A 워치 1인 데이터 파이프라인
-이 S2~S4 (Validate→Aggregate→Derive) 를 거쳐 wear-state 분류·위험 알림·대시보드
-까지 완결 — 두 트랙이 단일 PPT 흐름으로 통합 시연.
+**Goal:** 검단·포천 6월 설치 전, 앱이 사용자에게 "완성된 제품" 으로 보이도록 **UX 일관성·신뢰성·TBM 정합성** 끌어올림. v1.0 의 deferred phase 들은 별 milestone (v1.2) 으로 분리, 본 milestone 은 앱 완성도에만 집중.
 
-**Target features (비전 트랙):**
-- 의미 일관 데모 영상 교체 (helmet/fire — head 검출/conf 0.5+ 가능 영상으로)
-- 룰 충실도 단계 1 (frames_required) 및 단계 2 (bbox 겹침/공간 매칭)
-- 임시조치 복원 — fire/helmet conf 0.5+, helmet target_classes ['head']
+**Sources**: 2026-05-22 ~ 2026-05-23 `/office-hours` brainstorm 7 backlog items + KOSHA `230209 작업 전 안전점검회의 가이드`
 
-**Target features (워치 트랙 — J2208A 플랜 Phase 1):**
-- BLE notification 파이프라인 S2 Validate (quality flag GOOD/WARMUP/NOISY/INVALID)
-- S3 Aggregate (5초/30초/1분 집계, GOOD 비율 < 50% 결측 표기)
-- Wear-state state machine (OFF/WARMUP/TRANSIENT/WORN/ABNORMAL) + 5초 sliding
-  window 다수결
-- S4 Derive 최소 위험 판정 (탈착 OFF 5분 / 통신두절 / 빈맥 1차 임계) + FCM 알림
-- Supabase 적재 (`raw_events` 7일 TTL · `wear_state_events` · `minute_summary` ·
-  `safety_alerts` · `devices` · `workers`)
+**Target features:**
+- **Phase 11** 일관 시각 언어 정립 — 입구 (Splash → SignUp → LogIn → Home) · Home 카드 4종 · Setting* Activity 시리즈의 시각 언어 통일
+- **Phase 12** TBM 재설계 (KOSHA 가이드 흡수) — 작업·공정별 다중 세션 (UNIQUE 제거 + work_scope 추가) + 회의록 양식 핵심 필드 schema mapping + SLAM 행동요령 + 도금/금속가공 도메인 OPS 3종 seed + 관리자 OPS 카탈로그 UI
+- **Phase 13** 데이터 신뢰성 + 정보구조 — 일일 안전점검 등록 날짜 mismatch fix + 실시간 카메라 전경/현장 분리 → 단일 통합
+- **Phase 14** 6월 설치 사전 UAT — Phase 11·12·13 변경분 + v1.0 deferred 항목 종합 회귀 + 현장 환경 사전 점검표 + 3 역할 (manager/worker/general_manager) 1일 사이클 walkthrough 캡처
 
-**Target features (공통):**
-- 2단계 정량 지표 정의 + 검증셋 자동 평가 스크립트 (비전 + 워치 raw 수신율 포함)
-- 5종 비전 + 워치 카드/추이/알림 통합 시연 흐름 + Android(또는 웹) 캡처 + PPT 슬라이드
+**Out of scope (v1.1 명시 제외):**
+- v1.0 의 deferred phases (Phase 4·04 24h 워치 실측 / Phase 5 평가 / Phase 6 PPT / Phase 7·04 / Phase 9·04) → v1.2
+- 가이드 12종 OPS 中 도금/금속가공 비도메인 (크레인·컨베이어·후크·샤클·혼합기 등) → 6월 현장 조사 후 OPS 카탈로그 추가
+- YOLO26 전면 마이그레이션 (FIRE-ADV BACKLOG) → v2.0
+- 워치 트랙 Phase 2 (J2208A 다중 작업자) → v1.2
 
 ## Evolution
 
