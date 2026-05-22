@@ -2,7 +2,7 @@
 
 > **Project Code**: SSM
 > **Bootstrapped from existing context** on 2026-04-29 (sources: `docs/PROJECT_SPEC.md`, `docs/J2208A_안전관리_시스템_PLAN.md`, memory files, prior plan `iridescent-percolating-fox.md`, 25+ commits).
-> **Last updated**: 2026-05-14 (Phase 3 ✓ COMPLETE — bbox fusion: FUSION-01·02 validated. **마일스톤 확장: Phase 7·8·9 추가** — 워치-앱 양방향 (수요일 2026-05-20 마감), Drift X3 RTSP, TBM 가이드. REQ 19→28.)
+> **Last updated**: 2026-05-22 (**v1.0 milestone ✓ SHIPPED** — scope-reduced close. 6/10 phases complete (1·2·3·8·9·10) + 2 partial (4·7), Phase 5·6 v1.1 이월. 25/28 REQ validated.)
 
 ---
 
@@ -76,6 +76,17 @@
 - **환경센서·평면도 자동화·화재 3단계 매뉴얼** → LP-6 이후 / v2.x
 - **Next-5/6/7/8/9** (PTT 음성·JWT 활성화·SMS Solapi·릴리즈 빌드·main PR) → v0.9
   또는 v1.1 별도 마일스톤
+- **Phase 5 (평가 — 2단계 정량 지표)** → **v1.1 이월** (2026-05-22 결정). v1.0 종결
+  시 not started. 비전+워치 정량 지표 정의 + 자동 측정 스크립트는 6월 검단·포천
+  설치 + 9월 1차 정량 평가 사이클에 정착.
+- **Phase 6 (데모 빌드 — 통합 시연·캡처·PPT)** → **v1.1 이월** (2026-05-22 결정).
+  5월 PPT 데모 마감 (2026-05-15 계획) 이미 경과 + 백엔드/인프라 검증과 분리하여
+  별 milestone 으로 정착이 효율적. v1.1 에서 6월 현장 설치 결과·9월 평가와 함께
+  통합 데모 자료 재구성.
+- **Phase 4 04-04 (24h 워치 실측)** → v1.1 (사용자 24h 워치 착용 의사결정 대기).
+- **Phase 7-04 (단축 PoC + E2E 시연)** → v1.1 또는 6월 현장 설치 직전 (autonomous:
+  false, 시연 환경 가용 시점).
+- **Phase 9-04 (1일 사이클 manual 시연)** → v1.1 또는 6월 현장 설치 직전.
 
 ## Key Decisions
 
@@ -97,13 +108,15 @@
   경보 상태 *전이* 시점에만 발송. 본 원칙은 워치/비전 모두에 일관 적용.
 - **단일 source of truth**: `.planning/PROJECT.md` 가 신규 SoT. `docs/PROJECT_SPEC.md`
   는 v0 보존본 (read-only). 이후 사실관계 갱신은 PROJECT.md 가 우선.
-- **2026-05-22**: Phase 10 신설 — `feature_rtps_test` 브랜치에서 GSD 흐름 밖으로 진행된
-  RTSP PoC (R1 ExoPlayer+ImageReader 실패 → R3 LibVLC takeSnapshot compile 실패 → R3a
-  LibVLC+TextureView 동작 확인) 를 GSD phase 로 흡수. PR #1 (zyyyun/Smart_Safety_Management,
-  test→main) 생성. 6월 검단·포천 설치 전 **Approach 4 (현장 PC/Jetson) vs Approach 5
-  (모바일 frame sampler)** architecture decision 확정이 목적. v1 PoC 화면 ON 의존 한계
-  (Activity-bound) 로 production-ready 아님 — Approach 5 v2 별도 검증 또는 Approach 4
-  채택 의사결정 필요.
+- **2026-05-22**: Phase 10 신설 후 방향 전환 — 초기에는 `feature_rtps_test` 브랜치의
+  모바일 frame sampler PoC (R1 ExoPlayer+ImageReader 실패 → R3 LibVLC takeSnapshot compile
+  실패 → R3a LibVLC+TextureView 동작 확인) 를 흡수했으나, 새 전제는 **PC와 카메라가
+  같은 LAN**. 따라서 active path 는 모바일 relay 가 아니라 **PC service 가 등록된 RTSP
+  URL 수신 가능 상태를 자동 probe 하고 기존 YOLO detection cycle 을 즉시 구동**하는 운영
+  자동화로 전환. 모바일 frame sampler 는 historical evidence 로 보존.
+- **2026-05-22**: Phase 10 완료 — `SmartSafetyAiAgent` service path 에 RTSP auto-detect
+  interval job 을 추가했다. 등록된 RTSP URL 이 `unknown/unreachable → reachable` 로 전이되면
+  기존 YOLO detection/fall cycle 을 자동 구동하며, 중복 실행 방지 lock 과 unit tests 를 포함한다.
 
 ## Current Milestone: v1.0 5월 PPT 데모
 

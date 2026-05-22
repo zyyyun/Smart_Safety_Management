@@ -7,6 +7,37 @@
 
 ## Shipped
 
+### v1.0 — 5월 PPT 데모 (scope-reduced close)
+
+- **Status**: Shipped (scope-reduced)
+- **Started**: 2026-04-29
+- **Completed**: 2026-05-22
+- **Duration**: ~24일 (계획 critical path ≈ 3주 + 수요일 추가)
+- **Phases completed**: 6/10 — Phase 1·2·3 (비전 5종 / 운영급 임계 + frames 연속 + bbox fusion) · Phase 8 (Drift X3 RTSP 실기기 검증 person conf 0.92 latency 3.16s) · Phase 9 (TBM 현장 작업자 가이드 4 테이블 + Edge Function 4 case + Android `tbm/` 12 main + 48 unit tests PASS) · Phase 10 (LAN RTSP auto-detect — PC service + TCP probe + reachable 전이 YOLO 자동 구동, ai_agent 31/31 PASS)
+- **Phases partial**: 2 — Phase 4 (Wave 1·2 ✓ J2208A BLE notification S2~S4 + Supabase 적재, Wave 3 24h 실측 04-04 ⏸) · Phase 7 (07-01·02·03 ✓ 워치-앱 양방향 백엔드 + Android UI, 07-04 단축 PoC 시연 ⏸ deferred)
+- **Phases deferred to v1.1**:
+  - Phase 5 (평가 — 2단계 정량 지표) — not started, v1.1 이월 결정 (2026-05-22)
+  - Phase 6 (데모 빌드 — 통합 시연·캡처·PPT) — not started, v1.1 이월 결정 (2026-05-22)
+  - Phase 4 04-04 (24h 워치 실측) — user 의사결정 대기
+  - Phase 7-04 (단축 PoC + E2E 시연) — 시연 환경 부재 (autonomous: false)
+  - Phase 9-04 (1일 사이클 manual 시연) — 사용자 가용 시점 이연
+- **Requirements validated**: 25/28 (89%) — DATA/MODEL/FUSION/BRIDGE/RTSP/TBM 트랙 전부 + WATCH Wave 1·2 부분. 미달: WATCH-04 (24h 운영) + EVAL-01·02·03 (Phase 5) + DEMO-01·02·03·04 (Phase 6)
+- **Key milestones**:
+  - 5종 AI 비전 detector E2E (`09f2764`) + 운영급 임계 복원 (Phase 1·2)
+  - bbox fusion (지게차+사람 IoU / 헬멧 hardhat_is_on) — Phase 3 (22/22 pytest PASS)
+  - Phase 8 Drift X3 실기기 RTSP-02 검증 (`48f09ac`) — person event_id=46 conf=0.92 latency 3.16s ≪ SC #2 10s
+  - Phase 9 TBM 13 commits Wave 1·2·3 (`f044fac` → `bfd0cec`) — autonomous chain 성공
+  - Phase 10 LAN RTSP auto-detect (2026-05-22) — pivot 후 same-LAN PC service path 잠금
+- **Key decisions** (PROJECT.md 참조):
+  - YOLO26 마이그레이션 시점 = 6월~ (검단·포천 설치 직전 LP-3 와 함께)
+  - 신호 해석 원칙 (J2208A 플랜 §3) + 알림 전이 원칙 (§6) — 워치/비전 일관 적용
+  - Phase 10 pivot (2026-05-22) — 모바일 frame sampler PoC → PC same-LAN auto-detect
+- **PR**: #1 (zyyyun/Smart_Safety_Management, test→main) — 2026-05-22 생성
+- **Scope reduction rationale**: 5월 PPT 데모 마감 (≈ 2026-05-15 계획) 이미 지난 상태 + Phase 5·6 의 정량 지표·PPT 통합 자료는 백엔드/인프라 검증과 분리하여 별 milestone (v1.1) 으로 정착이 회고·재투입 효율성 우위. 백엔드·인프라·실기기 검증의 v1.0 핵심 가치 (운영급 임계 + 룰 충실도 + 워치 1인 파이프라인 + Drift X3 + TBM + LAN 자동화) 는 모두 도달.
+- **Next milestone**: v1.1 (6월 검단·포천 설치 + Phase 5·6 평가/PPT)
+
+---
+
 ### v0.5 — LP-2 확장 4종 detector
 
 - **Status**: Shipped
@@ -58,13 +89,4 @@
 
 ## Active
 
-### v1.0 — 5월 PPT 데모
-
-- **Status**: Planning
-- **Started**: 2026-04-29
-- **Target**: 5월 중순 (≈ 3주 critical path)
-- **Goal**: 5월 PPT 데모에서 5종 AI 비전 + J2208A 워치 1인 파이프라인이 단일 시연
-  흐름으로 통합 동작. 수요측 예산 편성 트리거 단일 목표.
-- **Tracks**: 비전 (Phase 1·2·3 chained) + 워치 (Phase 4 병렬) + 평가/데모
-  (Phase 5·6 통합)
-- **Reference**: `.planning/REQUIREMENTS.md`, `.planning/ROADMAP.md`
+_(no active milestone — v1.1 시작 시 `/gsd-new-milestone` 으로 신설)_
