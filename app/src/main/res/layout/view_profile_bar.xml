@@ -144,4 +144,14 @@
         app:backgroundTint="#33FFFFFF"
         app:cornerRadius="12dp" />
 
+    <!-- 2026-05-22 — R3a fallback (feature_rtps_test / plan v3.1).
+         LibVLC 의 vlcVout.setVideoView(TextureView) 가 attached view 필요.
+         invisible 1×1dp 라 시각 영향 0. HomeActivity 가 SurfaceTexture 의 default
+         buffer size 를 1280×720 으로 설정 + textureView.getBitmap(w, h) 로 capture. -->
+    <TextureView
+        android:id="@+id/rtsp_poc_texture"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:visibility="invisible" />
+
 </LinearLayout>

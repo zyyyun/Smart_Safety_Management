@@ -52,6 +52,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
+// 2026-05-22 — feature_rtps_test / plan v3.1 / R3a — LibVLC + TextureView capture
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import io.github.jan.supabase.storage.storage
 
 class HomeActivity : AppCompatActivity() {
 
@@ -120,46 +125,173 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * 2026-05-21 — feature_rtps_test branch / plan v3.1 / S3.
-     *
-     * view_profile_bar.xml 의 btn_rtsp_poc 토글. ExoPlayer + ImageReader 로
-     * RTSP frame 5초마다 캡처해 Supabase Storage 의 rtsp-poc bucket 에 업로드.
-     * 본부 PC 의 ai_agent/rtsp_poc_pull.py 가 polling 으로 처리.
-     *
-     * 진행 중 / 정지 상태는 [com.example.smart_safety_management.rtsp.RtspPocService.isRunning]
-     * AtomicBoolean 으로 동기화. 버튼 text 도 그에 따라 START/STOP 토글.
-     */
-    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    // ────────────────────────────────────────
+    // 2026-05-22 — feature_rtps_test / plan v3.1 / R3a (LibVLC + TextureView)
+    // ────────────────────────────────────────
+    //
+    // R1 (ExoPlayer + ImageReader) 가 Android 10 buffer format mismatch (0x7fa30c06
+    // vs 0x1 RGBA) 로 fail. R3 (LibVLC + takeSnapshot) 도 LibVLC Android Java
+    // wrapper 가 takeSnapshot 미노출로 compile fail. R3a = LibVLC + invisible
+    // TextureView(1x1dp) + lifecycleScope + textureView.getBitmap(w, h).
+    //
+    // Activity-bound: HomeActivity 가 살아있고 화면 ON 상태에서만 capture (plan
+    // v3.1 risk #5 = 화면 ON 유지 가정과 align).
+    // RtspPocService.kt 는 삭제됨 (R3a 에서 Service 무용).
+    //
+    // design doc : .planning/explorations/2026-05-21_rtsp_mobile_relay_architecture.md (Approach 5)
+    // plan       : ~/.claude/plans/feature-rtps-test-shimmering-fiddle.md (v3.1)
+
+    private var rtspPocLibVlc: org.videolan.libvlc.LibVLC? = null
+    private var rtspPocPlayer: org.videolan.libvlc.MediaPlayer? = null
+    private var rtspPocJob: kotlinx.coroutines.Job? = null
+    private var rtspPocCycleCount: Int = 0
+    private var rtspPocUploadCount: Int = 0
+
     private fun setupRtspPocToggle() {
         val btn = findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_rtsp_poc)
             ?: return
         btn.visibility = View.VISIBLE
-        btn.text = if (com.example.smart_safety_management.rtsp.RtspPocService.isRunning.get())
-            "RTSP POC STOP" else "RTSP POC START"
+        btn.text = if (rtspPocJob?.isActive == true) "RTSP POC STOP" else "RTSP POC START"
 
         btn.setOnClickListener {
-            val serviceClass = com.example.smart_safety_management.rtsp.RtspPocService::class.java
-            if (com.example.smart_safety_management.rtsp.RtspPocService.isRunning.get()) {
-                stopService(Intent(this, serviceClass))
+            if (rtspPocJob?.isActive == true) {
+                stopRtspPoc()
                 btn.text = "RTSP POC START"
                 Toast.makeText(this, "RTSP PoC 중지", Toast.LENGTH_SHORT).show()
             } else {
-                val intent = Intent(this, serviceClass).apply {
-                    putExtra(
-                        com.example.smart_safety_management.rtsp.RtspPocService.EXTRA_CAMERA_ID,
-                        1,
-                    )
-                    putExtra(
-                        com.example.smart_safety_management.rtsp.RtspPocService.EXTRA_RTSP_URL,
-                        "rtsp://192.168.0.13/live",
-                    )
-                }
-                ContextCompat.startForegroundService(this, intent)
+                startRtspPoc()
                 btn.text = "RTSP POC STOP"
-                Toast.makeText(this, "RTSP PoC 시작 (cycle 5초)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "RTSP PoC 시작 (cycle 5초, 화면 ON 유지 필요)", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun startRtspPoc() {
+        val textureView = findViewById<android.view.TextureView>(R.id.rtsp_poc_texture) ?: run {
+            Toast.makeText(this, "rtsp_poc_texture not found", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val options = arrayListOf(
+            "--rtsp-tcp",
+            "--no-audio",
+            "--network-caching=200",
+            "--avcodec-hw=any",
+        )
+        val vlc = org.videolan.libvlc.LibVLC(this, options)
+        rtspPocLibVlc = vlc
+
+        val rtspUrl = "rtsp://192.168.0.13/live"
+        val media = org.videolan.libvlc.Media(vlc, android.net.Uri.parse(rtspUrl)).apply {
+            setHWDecoderEnabled(true, false)
+        }
+
+        val player = org.videolan.libvlc.MediaPlayer(vlc).apply {
+            setMedia(media)
+        }
+        media.release()
+
+        // TextureView 의 SurfaceTexture 가 attached 후에 setVideoView 가능. 이미 attached
+        // (HomeActivity setContentView 이후). invisible 이라도 surfaceTexture 는 valid.
+        val vout = player.vlcVout
+        vout.setVideoView(textureView)
+        vout.setWindowSize(1280, 720)
+        vout.attachViews()
+
+        player.setEventListener { event ->
+            when (event.type) {
+                org.videolan.libvlc.MediaPlayer.Event.EncounteredError ->
+                    Log.e("RtspPoc", "VLC EncounteredError")
+                org.videolan.libvlc.MediaPlayer.Event.Vout ->
+                    Log.i("RtspPoc", "VLC vout active count=${event.voutCount}")
+                org.videolan.libvlc.MediaPlayer.Event.Playing ->
+                    Log.i("RtspPoc", "VLC playing")
+                org.videolan.libvlc.MediaPlayer.Event.EndReached ->
+                    Log.w("RtspPoc", "VLC EndReached")
+            }
+        }
+
+        rtspPocPlayer = player
+        player.play()
+
+        rtspPocCycleCount = 0
+        rtspPocUploadCount = 0
+
+        rtspPocJob = lifecycleScope.launch {
+            // first frame decode + TextureView 의 SurfaceTexture 가 frame 받기 대기
+            kotlinx.coroutines.delay(3000L)
+            while (isActive) {
+                try {
+                    captureAndUploadOneFrame(textureView)
+                } catch (e: Exception) {
+                    Log.e("RtspPoc", "cycle 예외", e)
+                }
+                kotlinx.coroutines.delay(5000L)
+            }
+        }
+        Log.i("RtspPoc", "started cam=1 url=$rtspUrl (R3a LibVLC + TextureView)")
+    }
+
+    private suspend fun captureAndUploadOneFrame(textureView: android.view.TextureView) {
+        rtspPocCycleCount += 1
+        val bitmap = textureView.getBitmap(1280, 720) ?: run {
+            Log.w("RtspPoc", "getBitmap null cycle=$rtspPocCycleCount (SurfaceTexture 미수신?)")
+            return
+        }
+
+        val jpegBytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val out = java.io.ByteArrayOutputStream(64 * 1024)
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
+            bitmap.recycle()
+            out.toByteArray()
+        }
+        if (jpegBytes.isEmpty()) {
+            Log.w("RtspPoc", "JPEG empty cycle=$rtspPocCycleCount")
+            return
+        }
+
+        try {
+            val ts = System.currentTimeMillis()
+            val path = "cam1/$ts.jpg"
+            val client = SupabaseModule.client(this@HomeActivity)
+            client.storage.from("rtsp-poc").upload(path = path, data = jpegBytes, upsert = false)
+            rtspPocUploadCount += 1
+            Log.i("RtspPoc", "upload OK cycle=$rtspPocCycleCount size=${jpegBytes.size} path=$path")
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_rtsp_poc)
+                    ?.text = "RTSP POC STOP ($rtspPocUploadCount)"
+            }
+        } catch (e: Exception) {
+            Log.e("RtspPoc", "Storage upload 실패", e)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (rtspPocJob != null || rtspPocPlayer != null) {
+            Log.i("RtspPoc", "Activity onDestroy → stopRtspPoc")
+            stopRtspPoc()
+        }
+    }
+
+    private fun stopRtspPoc() {
+        rtspPocJob?.cancel()
+        rtspPocJob = null
+
+        try { rtspPocPlayer?.stop() } catch (e: Exception) { Log.w("RtspPoc", "stop: ${e.message}") }
+        try { rtspPocPlayer?.vlcVout?.detachViews() } catch (e: Exception) {
+            Log.w("RtspPoc", "detachViews: ${e.message}")
+        }
+        try { rtspPocPlayer?.release() } catch (e: Exception) {
+            Log.w("RtspPoc", "player release: ${e.message}")
+        }
+        rtspPocPlayer = null
+
+        try { rtspPocLibVlc?.release() } catch (e: Exception) {
+            Log.w("RtspPoc", "libvlc release: ${e.message}")
+        }
+        rtspPocLibVlc = null
+        Log.i("RtspPoc", "stopped (cycles=$rtspPocCycleCount uploads=$rtspPocUploadCount)")
     }
 
     /**

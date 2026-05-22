@@ -134,6 +134,12 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-exoplayer-rtsp:1.4.1")
     implementation("androidx.media3:media3-ui:1.4.1")
+    // 2026-05-22 — R3 fallback (feature_rtps_test / plan v3.1) RTSP PoC 용.
+    // Android 10 (API 29) 에서 ExoPlayer + ImageReader 가 buffer format mismatch
+    // (producer output 0x7fa30c06 vs ImageReader RGBA_8888) 로 first frame 캡처
+    // 실패 → VideoLAN 공식 LibVLC 의 MediaPlayer.takeSnapshot 으로 교체. ABI 전체
+    // 포함 (~25-30MB APK 증가). RtspPocService.kt 만 사용.
+    implementation("org.videolan.android:libvlc-all:3.6.0")
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.maps.android:maps-compose:4.4.1")
     implementation("org.osmdroid:osmdroid-android:6.1.18")
