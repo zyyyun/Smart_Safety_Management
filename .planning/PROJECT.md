@@ -97,6 +97,13 @@
   경보 상태 *전이* 시점에만 발송. 본 원칙은 워치/비전 모두에 일관 적용.
 - **단일 source of truth**: `.planning/PROJECT.md` 가 신규 SoT. `docs/PROJECT_SPEC.md`
   는 v0 보존본 (read-only). 이후 사실관계 갱신은 PROJECT.md 가 우선.
+- **2026-05-22**: Phase 10 신설 — `feature_rtps_test` 브랜치에서 GSD 흐름 밖으로 진행된
+  RTSP PoC (R1 ExoPlayer+ImageReader 실패 → R3 LibVLC takeSnapshot compile 실패 → R3a
+  LibVLC+TextureView 동작 확인) 를 GSD phase 로 흡수. PR #1 (zyyyun/Smart_Safety_Management,
+  test→main) 생성. 6월 검단·포천 설치 전 **Approach 4 (현장 PC/Jetson) vs Approach 5
+  (모바일 frame sampler)** architecture decision 확정이 목적. v1 PoC 화면 ON 의존 한계
+  (Activity-bound) 로 production-ready 아님 — Approach 5 v2 별도 검증 또는 Approach 4
+  채택 의사결정 필요.
 
 ## Current Milestone: v1.0 5월 PPT 데모
 
