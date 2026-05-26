@@ -107,83 +107,127 @@ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
+-- KOSHA 가이드 한국어 본문 (도금 도메인). 2026-05-26 영어 → 한국어 교체.
 INSERT INTO public.tbm_templates
     (work_type, title, description, hazards, controls, key_actions, checks, target_detector, is_active, is_custom)
 VALUES
 (
     'forklift',
-    'Forklift movement',
-    'Plating shop material movement with forklift or pallet jack.',
+    '지게차 작업',
+    '도금 라인 자재·완제품 운반 시 사용. 운전자격·출입통제·안전벨트 3대 핵심조치.',
     '[
-      {"id":"h1","text":"Collision with nearby worker"},
-      {"id":"h2","text":"Blind spot while reversing"},
-      {"id":"h3","text":"Load drop or tilt"},
-      {"id":"h4","text":"Slippery floor near wet process"}
+      {"id":"h1","text":"보행자와 충돌 (좁은 통로·시야 사각)"},
+      {"id":"h2","text":"적재물 낙하 (포크 과적·불균형 적재)"},
+      {"id":"h3","text":"전도 (속도 과다·급정거·경사로)"},
+      {"id":"h4","text":"협착 (포크·마스트·차체와의 끼임)"}
     ]'::jsonb,
     '[
-      {"id":"c1","hazard_id":"h1","level":"control","text":"Separate pedestrian path before movement"},
-      {"id":"c2","hazard_id":"h2","level":"control","text":"Use spotter for reversing or narrow aisle"},
-      {"id":"c3","hazard_id":"h3","level":"substitute","text":"Keep load low and balanced"},
-      {"id":"c4","hazard_id":"h4","level":"control","text":"Remove water and check floor condition before entry"}
+      {"id":"c1","hazard_id":"h1","level":"substitute","text":"좁은 통로에 지게차 진입 금지 (대체 통로 사용)"},
+      {"id":"c2","hazard_id":"h1","level":"control","text":"보행자 출입통제 라인 및 유도자 배치"},
+      {"id":"c3","hazard_id":"h2","level":"control","text":"포크 적재 한도 표시 + 운전자 적재 전 확인"},
+      {"id":"c4","hazard_id":"h3","level":"control","text":"제한속도 5km/h 이하 + 급정거 금지"},
+      {"id":"c5","hazard_id":"h3","level":"control","text":"안전벨트 착용 확인 (전도 시 차체 이탈 방지)"},
+      {"id":"c6","hazard_id":"h4","level":"control","text":"포크 작업반경 1m 내 출입금지선 표시"}
     ]'::jsonb,
     '[
-      {"id":"a1","text":"Confirm travel route"},
-      {"id":"a2","text":"Check horn and warning light"},
-      {"id":"a3","text":"Stop work if pedestrian path is mixed"}
+      {"id":"a1","text":"운전자격 확인 (지게차 면허 + 사업장 내 운전 허가)"},
+      {"id":"a2","text":"출입통제 라인 + 유도자 배치 (보행자 분리)"},
+      {"id":"a3","text":"안전벨트 착용 확인 (전도 시 차체 이탈 방지)"}
     ]'::jsonb,
-    '["Route is clear","Workers know the movement plan","Forklift warning devices checked","Load is secured"]'::jsonb,
+    '[
+      "운전자격 확인 (면허 + 사내 허가증)",
+      "지게차 작업계획서 비치",
+      "안전수칙 미준수 시 작업중지 권한 명시",
+      "후방경광등 / 후진경보음 동작 확인",
+      "포크·체인·마스트 외관 점검",
+      "안전벨트 동작 확인",
+      "타이어 마모·공기압 점검",
+      "작업장 통로 폭 확보 + 노면 평탄",
+      "출입통제 라인·표지 설치",
+      "유도자 1명 이상 배치 (사각지대 보행자 안내)",
+      "적재물 결속·균형 확인",
+      "포크 1~2단 (지면 가까이) 이동",
+      "운전자 안전벨트 착용",
+      "급정거·급회전 금지"
+    ]'::jsonb,
     'forklift',
     TRUE,
     FALSE
 ),
 (
     'chemical',
-    'Chemical handling',
-    'Acid, alkali, and plating solution handling.',
+    '화학물질 취급 (산세·도금액)',
+    '황산·염산·질산 등 산세조, 니켈·크롬·시안화물 도금조 취급 시 노출·튐·증기 흡입 위험 관리.',
     '[
-      {"id":"h1","text":"Splash to eye or skin"},
-      {"id":"h2","text":"Fume exposure"},
-      {"id":"h3","text":"Wrong chemical mixing"},
-      {"id":"h4","text":"Spill around tank or transfer line"}
+      {"id":"h1","text":"산·알칼리 튐 → 피부·눈 손상"},
+      {"id":"h2","text":"유증기 흡입 → 호흡기·점막 손상"},
+      {"id":"h3","text":"시안화물 누출 → 청산 가스 생성 (산 접촉 시)"},
+      {"id":"h4","text":"폐액 혼합 → 발열·돌비"}
     ]'::jsonb,
     '[
-      {"id":"c1","hazard_id":"h1","level":"control","text":"Wear face shield, goggles, gloves, and apron"},
-      {"id":"c2","hazard_id":"h2","level":"control","text":"Confirm local exhaust and ventilation"},
-      {"id":"c3","hazard_id":"h3","level":"eliminate","text":"Read label and SDS before transfer"},
-      {"id":"c4","hazard_id":"h4","level":"control","text":"Prepare spill kit and rinse route"}
+      {"id":"c1","hazard_id":"h1","level":"eliminate","text":"무인 자동공급 라인으로 대체 (인력 투입 제거)"},
+      {"id":"c2","hazard_id":"h1","level":"substitute","text":"산·도금조 분리 격벽 + 펌프 자동공급"},
+      {"id":"c3","hazard_id":"h1","level":"control","text":"내산 장갑·고글·앞치마·안면보호구 착용"},
+      {"id":"c4","hazard_id":"h2","level":"control","text":"국소배기장치 후드 위치·풍속 점검 (0.4m/s 이상)"},
+      {"id":"c5","hazard_id":"h3","level":"control","text":"시안조와 산조 동일 동선 금지 (혼입 사고 차단)"},
+      {"id":"c6","hazard_id":"h4","level":"control","text":"폐액 분류 보관·혼합 작업 금지 (지정 처리업체 위탁)"}
     ]'::jsonb,
     '[
-      {"id":"a1","text":"Check PPE before opening container"},
-      {"id":"a2","text":"Confirm SDS and label"},
-      {"id":"a3","text":"Keep emergency wash path clear"}
+      {"id":"a1","text":"MSDS 비치 + 작업자 교육 이수 확인"},
+      {"id":"a2","text":"보호구 완전착용 (내산 장갑·고글·앞치마·호흡보호구)"},
+      {"id":"a3","text":"비상샤워·세안기 가동 확인 + 5m 이내 위치"}
     ]'::jsonb,
-    '["PPE checked","Ventilation checked","SDS checked","Spill kit ready"]'::jsonb,
+    '[
+      "MSDS 게시 + 작업자 숙지",
+      "보호구 (내산 장갑·고글·앞치마·호흡보호구) 착용",
+      "비상샤워·세안기 동작 확인 + 5m 이내 위치",
+      "국소배기장치 가동 (후드 풍속 0.4m/s 이상)",
+      "산조·도금조·시안조 동선 분리",
+      "약품 농도·온도 표시판 부착",
+      "폐액 분리 보관 + 라벨링",
+      "환기 상태 (체류 가스 측정 50ppm 이하)",
+      "비상연락망 + 응급조치 절차 게시",
+      "출입통제 + 외부인 진입 차단"
+    ]'::jsonb,
     'fire',
     TRUE,
     FALSE
 ),
 (
     'hot_work',
-    'Hot work and heat treatment',
-    'Hot surfaces, drying, heating, and thermal process support.',
+    '고온·열처리 작업',
+    '전기도금 라인 발열·열처리로·건조로 운영 시 화상·화재·증기 위험 관리.',
     '[
-      {"id":"h1","text":"Burn from hot surface"},
-      {"id":"h2","text":"Fire from nearby combustible material"},
-      {"id":"h3","text":"Heat stress"},
-      {"id":"h4","text":"Unexpected equipment restart"}
+      {"id":"h1","text":"고온 표면 접촉 → 화상"},
+      {"id":"h2","text":"가연성 도금액 인접 → 발화·화재"},
+      {"id":"h3","text":"고온 증기·미스트 흡입 → 호흡기 손상"},
+      {"id":"h4","text":"열처리로 폭발 (가스 누출·과압)"}
     ]'::jsonb,
     '[
-      {"id":"c1","hazard_id":"h1","level":"control","text":"Use heat-resistant gloves and mark hot zone"},
-      {"id":"c2","hazard_id":"h2","level":"eliminate","text":"Remove combustible material before start"},
-      {"id":"c3","hazard_id":"h3","level":"control","text":"Set rest and hydration interval"},
-      {"id":"c4","hazard_id":"h4","level":"eliminate","text":"Apply lockout before maintenance"}
+      {"id":"c1","hazard_id":"h4","level":"eliminate","text":"열처리로 자동 인터록 (도어 열림 시 가열 차단)"},
+      {"id":"c2","hazard_id":"h1","level":"substitute","text":"고온부 단열재 피복 + 안전망 설치"},
+      {"id":"c3","hazard_id":"h1","level":"control","text":"내열 장갑·앞치마·안면보호구 착용"},
+      {"id":"c4","hazard_id":"h2","level":"control","text":"열처리로 주변 2m 가연물 비치 금지"},
+      {"id":"c5","hazard_id":"h3","level":"control","text":"강제배기 + 외부 토출 (실내 농도 25ppm 이하)"},
+      {"id":"c6","hazard_id":"h4","level":"control","text":"가스 누출 감지기 + 자동 차단밸브"}
     ]'::jsonb,
     '[
-      {"id":"a1","text":"Clear combustible material"},
-      {"id":"a2","text":"Confirm fire extinguisher location"},
-      {"id":"a3","text":"Mark hot surface and isolation status"}
+      {"id":"a1","text":"가연물 격리 + 소화기 5m 이내 비치"},
+      {"id":"a2","text":"내열 보호구 완전착용 (장갑·앞치마·안면보호구)"},
+      {"id":"a3","text":"가스 누출 감지기 정상 + 비상정지 버튼 위치 숙지"}
     ]'::jsonb,
-    '["Combustibles cleared","Fire extinguisher nearby","Hot zone marked","Rest plan confirmed"]'::jsonb,
+    '[
+      "열처리로·건조로 외관·인터록 점검",
+      "고온부 단열 피복 + 안전망 상태",
+      "내열 장갑·앞치마·안면보호구 착용",
+      "주변 2m 가연물 제거",
+      "소화기·소화전 5m 이내 비치 + 점검필 확인",
+      "가스 누출 감지기 동작 (가연성 25%LEL 이하)",
+      "강제배기·국소배기 가동",
+      "비상정지 버튼 위치·동작 확인",
+      "온도 표시판 + 작업 한계 온도 게시",
+      "통신수단 + 비상연락망"
+    ]'::jsonb,
     'fire',
     TRUE,
     FALSE
