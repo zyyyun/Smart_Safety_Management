@@ -22,7 +22,7 @@ predecessor: v1.0 (SHIPPED 2026-05-22, ROADMAP.v1.0.md)
 >
 > **Critical path**: ≈ 2~3주 (6월 검단·포천 설치 이전 마감)
 >
-> **Numbering**: v1.0 이 Phase 10 에서 종결되어 v1.1 은 Phase 11~14.
+> **Numbering**: v1.0 이 Phase 10 에서 종결되어 v1.1 은 Phase 11~15.
 
 ---
 
@@ -31,20 +31,24 @@ predecessor: v1.0 (SHIPPED 2026-05-22, ROADMAP.v1.0.md)
 - [ ] **Phase 11: 일관 시각 언어 정립** — 입구·Home·Setting* 의 UI 패턴 통일
 - [ ] **Phase 12: TBM 재설계 (KOSHA 가이드 흡수)** — 작업·공정별 다중 세션 + 회의록 양식 매핑 + 도메인 OPS + 관리자 UI
 - [ ] **Phase 13: 데이터 신뢰성 + 정보구조 정리** — 일일점검 날짜 mismatch + 실시간 카메라 통합
-- [ ] **Phase 14: 6월 설치 사전 UAT** — 변경분 회귀 + 현장 환경 사전 점검 + 3 역할 walkthrough
+- [ ] **Phase 15: ai_agent Docker 컨테이너화** — Phase 10 NSSM 서비스 폐기, Docker container 로 전환. 운영 검증 가능성 + 6월 설치 deployment 단순화
+- [ ] **Phase 14: 6월 설치 사전 UAT** — 변경분 회귀 + 현장 환경 사전 점검 + 3 역할 walkthrough (Phase 15 의 Docker 환경에서 검증)
 
 ## Phase Summary
 
-| #  | Phase                          | REQs | Criteria | Depends on | Est. duration |
-|----|--------------------------------|------|----------|------------|---------------|
-| 11 | 일관 시각 언어 정립            | 3    | 4        | —          | 1주          |
-| 12 | TBM 재설계                     | 5    | 5        | —          | 1~1.5주      |
-| 13 | 데이터 신뢰성 + 정보구조       | 2    | 3        | —          | 2~3일        |
-| 14 | 6월 설치 사전 UAT             | 3    | 4        | 11·12·13   | 3~5일        |
+| #  | Phase                          | REQs | Criteria | Depends on    | Est. duration |
+|----|--------------------------------|------|----------|---------------|---------------|
+| 11 | 일관 시각 언어 정립            | 3    | 4        | —             | 1주          |
+| 12 | TBM 재설계                     | 5    | 5        | —             | 1~1.5주      |
+| 13 | 데이터 신뢰성 + 정보구조       | 2    | 3        | —             | 2~3일        |
+| 15 | ai_agent Docker 컨테이너화     | 3    | 5        | —             | 3~5일        |
+| 14 | 6월 설치 사전 UAT             | 3    | 4        | 11·12·13·15   | 3~5일        |
 
-**Dependency graph**: 11 ∥ 12 ∥ 13 (모두 병렬 가능) → 14 (회귀 검증)
+**Dependency graph**: 11 ∥ 12 ∥ 13 ∥ 15 (모두 병렬 가능) → 14 (회귀 검증, Docker 환경)
 
-**Total**: 13 requirements, 16 success criteria, ≈ 2.5~3주 critical path
+**Total**: 16 requirements, 21 success criteria, ≈ 3~3.5주 critical path
+
+**Note (Phase 15 신설 — 2026-05-23)**: debug session `fire-only-grey-light` 진행 중 NSSM 서비스의 운영·검증 어려움이 architectural 문제로 확인됨 (Suspect 5: RTSP 동시 접속 경합 + admin PowerShell 요구 + service status 불투명). Docker 화로 architectural fix. Phase 10 의 NSSM 서비스 (`SmartSafetyAiAgent`) 는 superseded — 코드 (`scheduler.py` 의 RTSP autodetect 등) 는 보존, deployment 만 교체.
 
 ---
 
@@ -83,14 +87,26 @@ predecessor: v1.0 (SHIPPED 2026-05-22, ROADMAP.v1.0.md)
   3. 회귀: `detection_events.capture_id` ↔ `camera_captures` 매핑 0 변경, `daily_safety_check` 의 기존 row 영향 없음, RealTimeActivity 가 사용하던 두 camera_id (전경·현장) 가 사용자 view 에서 단일 화면으로 통합되어도 백엔드 capture 흐름은 유지.
 **Plans**: TBD (`/gsd-discuss-phase 13` 후 결정)
 
+### Phase 15: ai_agent Docker 컨테이너화
+**Goal**: Phase 10 의 NSSM Windows 서비스 (`SmartSafetyAiAgent`) 를 폐기하고 ai_agent 를 Docker 컨테이너로 전환하여, 사용자가 "도는지 안 도는지" 를 `docker ps` 한 줄로 확인 가능 + admin PowerShell 의존 제거 + 6월 검단·포천 설치 deploy 를 image pull 만으로 단순화한다.
+**Depends on**: 없음 (병렬 진입 가능). Phase 10 의 `scheduler.py` RTSP autodetect 코드는 그대로 컨테이너 안에서 실행.
+**Requirements**: DOCKER-01, DOCKER-02, DOCKER-03
+**Success Criteria** (what must be TRUE):
+  1. `ai_agent/Dockerfile` + `docker-compose.yml` 작성 + `docker compose up -d ai_agent` 한 줄로 detection cycle 자동 시작, `docker ps` 로 running 확인 가능 (DOCKER-01).
+  2. 컨테이너 안에서 Drift X3 RTSP 도달 가능 (host network mode 또는 RTSP 포트 명시 매핑) + Phase 8 baseline (person conf 0.92 / latency 3.16s) 재현 (DOCKER-01).
+  3. Phase 10 의 NSSM 서비스 (`SmartSafetyAiAgent`) deprecation 절차 + nssm.exe 제거 명령 + container 전환 가이드 문서화 — 사용자가 마이그레이션 1줄씩 따라 갈 수 있는 수준 (DOCKER-03).
+  4. 6월 검단·포천 설치 deploy 절차 문서화 — image 빌드 (`docker build`) → tar 저장 (`docker save`) → 현장 PC 로드 (`docker load`) + `.env` 파일 배치 + `docker compose up -d` (DOCKER-02).
+  5. 회귀: ai_agent 31/31 PASS (컨테이너 안 pytest), Phase 8 RTSP-02 baseline 유지, `detection_events` / `cameras` 적재 동작 0 변경, `register_ai_event` Supabase 호출 정상 (DOCKER-01·02·03 합산).
+**Plans**: TBD (`/gsd-discuss-phase 15` 후 결정)
+
 ### Phase 14: 6월 설치 사전 UAT
-**Goal**: Phase 11·12·13 변경분 + v1.0 의 deferred 항목들을 종합 회귀하고, 검단·포천 현장 환경 사전 점검 + 사용자 3 역할 1일 사이클 walkthrough 를 통해 설치 직전 마지막 신뢰성 확보.
-**Depends on**: Phase 11, 12, 13
+**Goal**: Phase 11·12·13·15 변경분 + v1.0 의 deferred 항목들을 종합 회귀하고, 검단·포천 현장 환경 사전 점검 + 사용자 3 역할 1일 사이클 walkthrough 를 Docker 환경에서 진행하여 설치 직전 마지막 신뢰성 확보.
+**Depends on**: Phase 11, 12, 13, 15 (Docker 환경에서 UAT 실시)
 **Requirements**: UAT-01, UAT-02, UAT-03
 **Success Criteria** (what must be TRUE):
-  1. Phase 11·12·13 변경분 + v1.0 의 deferred 항목 (Phase 4·04 / 7·04 / 9·04) 종합 회귀 PASS — ai_agent · j2208a · Android unit test 전체 GREEN + Phase 8 RTSP-02 baseline (person conf 0.92 / latency 3.16s) 유지 (UAT-01).
-  2. 검단·포천 현장 환경 사전 점검표 작성 + 모든 항목 확인 — 네트워크 (WiFi SSID / 셀룰러 신호 / Drift X3 RTSP 도달성) + 기기 (Android 폰 spec / J2208A 워치 / Drift X3 카메라 펌웨어) + 계정 (manager + worker 시드 / 그룹 매핑) (UAT-02).
-  3. 사용자 3 역할 (manager / worker / general_manager) 의 1일 사이클 walkthrough 캡처 — 가입 → 로그인 → 일일점검 → TBM 세션 N개 → 위험 감지 → 알림 → 조치 → 이력 — 영상 또는 스크린샷 시퀀스 (UAT-03).
+  1. Phase 11·12·13·15 변경분 + v1.0 의 deferred 항목 (Phase 4·04 / 7·04 / 9·04) 종합 회귀 PASS — ai_agent (컨테이너 안) 31/31 + j2208a 43/43 + Android unit test 전체 GREEN + Phase 8 RTSP-02 baseline (person conf 0.92 / latency 3.16s) 유지 (UAT-01).
+  2. 검단·포천 현장 환경 사전 점검표 작성 + 모든 항목 확인 — 네트워크 (WiFi SSID / 셀룰러 신호 / Drift X3 RTSP 도달성) + 기기 (Android 폰 spec / J2208A 워치 / Drift X3 카메라 펌웨어) + 계정 (manager + worker 시드 / 그룹 매핑) + Docker (image 로드 + `docker ps` 확인 + `.env` 적용) (UAT-02).
+  3. 사용자 3 역할 (manager / worker / general_manager) 의 1일 사이클 walkthrough 캡처 — 가입 → 로그인 → 일일점검 → TBM 세션 N개 → 위험 감지 (컨테이너 안 scheduler) → 알림 → 조치 → 이력 — 영상 또는 스크린샷 시퀀스 (UAT-03).
   4. 모든 SC 충족 후 v1.1 milestone SHIPPED 선언 가능 (MILESTONES.md 의 v1.1 Shipped 엔트리 작성 + 6월 설치 일정 확정).
 **Plans**: TBD (`/gsd-discuss-phase 14` 후 결정)
 
@@ -98,19 +114,20 @@ predecessor: v1.0 (SHIPPED 2026-05-22, ROADMAP.v1.0.md)
 
 ## Coverage Validation
 
-**Total v1.1 requirements**: 13
-**Mapped**: 13/13 ✓
+**Total v1.1 requirements**: 16
+**Mapped**: 16/16 ✓
 
 **REQ → Phase**:
 - Phase 11: UX-01, UX-02, UX-03 (3)
 - Phase 12: TBM-04, TBM-05, TBM-06, TBM-07, TBM-08 (5)
 - Phase 13: DATA-04, INFO-01 (2)
+- Phase 15: DOCKER-01, DOCKER-02, DOCKER-03 (3)
 - Phase 14: UAT-01, UAT-02, UAT-03 (3)
 
-**Phase → REQ 일관성**: 모든 phase 의 Success Criteria 가 해당 REQ 와 1:1 또는 1:N 매핑됨. UAT phase 는 회귀 검증 phase 라 별도 신규 REQ 없이 다른 phase 의 결과물을 검증.
+**Phase → REQ 일관성**: 모든 phase 의 Success Criteria 가 해당 REQ 와 1:1 또는 1:N 매핑됨. Phase 14 (UAT) 와 Phase 15 (Docker) 는 운영·검증 phase — 별 phase 의 결과물을 회귀 검증.
 
 ---
 
 ## v1.0 Historical Reference
 
-v1.0 의 10 phases 와 phase-별 traceability 는 `ROADMAP.v1.0.md` 참조. v1.1 의 Phase 14 (UAT) 는 v1.0 의 누적 코드 + Phase 11·12·13 변경분 합산을 회귀 대상으로 한다.
+v1.0 의 10 phases 와 phase-별 traceability 는 `ROADMAP.v1.0.md` 참조. v1.1 의 Phase 14 (UAT) 는 v1.0 의 누적 코드 + Phase 11·12·13·15 변경분 합산을 회귀 대상으로 한다. Phase 10 의 `SmartSafetyAiAgent` NSSM 서비스 — superseded by Phase 15 Docker. 코드 (`scheduler.py` 의 RTSP autodetect job 등) 는 보존 — deployment 방식만 교체.

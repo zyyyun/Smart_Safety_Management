@@ -1,15 +1,15 @@
 ---
 milestone: v1.1
 name: "앱 전체 완성도"
-status: planning  # 2026-05-23 시작 — REQUIREMENTS + ROADMAP 작성 완료, phases 11~14 discuss/plan 대기
+status: planning  # 2026-05-23 시작 — REQUIREMENTS + ROADMAP 작성, Phase 12 PLAN 완료, Phase 15 신설 (2026-05-23 NSSM 폐기 결정)
 started: 2026-05-23
 progress:
-  phases_total: 4  # 11·12·13·14
+  phases_total: 5  # 11·12·13·14·15 (15 신규 — Phase 10 NSSM superseded by Docker)
   phases_start: 11
-  phases_end: 14
+  phases_end: 15
   phases_done: 0
-  phases_in_progress: 0
-  requirements_total: 13
+  phases_in_progress: 1  # Phase 12 (CONTEXT + RESEARCH + 4 PLAN 완료, execute 대기)
+  requirements_total: 16
   requirements_validated: 0
 phases_planned: 0
 backlog_items: 1  # FIRE-ADV (5 sub-tasks) — v2.0 YOLO26 흡수 대기
@@ -32,7 +32,8 @@ Status: 다음 = `/gsd-discuss-phase 11` 또는 `/gsd-discuss-phase 12` (병렬 
 Phase 11: not started — 일관 시각 언어 정립 (UX-01·02·03)
 Phase 12: ⚠ PLANNED → 4 plans 작성 완료 (2026-05-23) — TBM 재설계 KOSHA 가이드 흡수. RESEARCH.md (566 lines) + 4 PLAN.md (12-01·02·03·04, 합 ~3282 lines) + plan-checker 13/13 PASS-WITH-WARNINGS. Wave 1 (Plan 01 schema autonomous) → Wave 2 (Plan 02·03 ∥ autonomous) → Wave 3 (Plan 04 검증 non-autonomous). 다음 = `/gsd-execute-phase 12`.
 Phase 13: not started — 데이터 신뢰성 + 정보구조 (DATA-04, INFO-01)
-Phase 14: not started — 6월 설치 사전 UAT (UAT-01·02·03) — depends on 11·12·13
+Phase 15: not started — **ai_agent Docker 컨테이너화 (신규 2026-05-23)** (DOCKER-01·02·03) — Phase 10 NSSM superseded. debug session `fire-only-grey-light` 의 Suspect 5 architectural fix.
+Phase 14: not started — 6월 설치 사전 UAT (UAT-01·02·03) — depends on 11·12·13·15
 
 ### v1.0 Phases (historical — SHIPPED 2026-05-22)
 

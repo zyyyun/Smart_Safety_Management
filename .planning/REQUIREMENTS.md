@@ -1,9 +1,9 @@
 # Smart Safety Management — Milestone v1.1 Requirements
 
 > **Milestone**: v1.1 앱 전체 완성도
-> **Goal**: 검단·포천 6월 설치 전, 앱이 사용자에게 "완성된 제품" 으로 보이도록 UX 일관성·신뢰성·TBM 정합성 끌어올림.
-> **Total**: 4 카테고리 / 13 요구사항
-> **Sources**: 2026-05-22 ~ 2026-05-23 `/office-hours` brainstorm (7 backlog items), KOSHA `230209 작업 전 안전점검회의 가이드`
+> **Goal**: 검단·포천 6월 설치 전, 앱이 사용자에게 "완성된 제품" 으로 보이도록 UX 일관성·신뢰성·TBM 정합성·운영 검증 가능성 끌어올림.
+> **Total**: 5 카테고리 / 16 요구사항
+> **Sources**: 2026-05-22 ~ 2026-05-23 `/office-hours` brainstorm (7 backlog items) + KOSHA `230209 작업 전 안전점검회의 가이드` + 2026-05-23 debug session `fire-only-grey-light` 의 NSSM 서비스 architectural issue (Suspect 5 — Docker 화 결정)
 > **Predecessor**: v1.0 5월 PPT 데모 SHIPPED 2026-05-22 (REQUIREMENTS.v1.0.md / ROADMAP.v1.0.md / MILESTONES.md 참조)
 
 ---
@@ -31,14 +31,22 @@
 
 ### 4. 6월 설치 사전 UAT (UAT)
 
-- [ ] **UAT-01**: Phase 11·12·13 변경분 + v1.0 의 deferred 항목 (Phase 4·04 / 7·04 / 9·04) 종합 회귀 — ai_agent · j2208a · Android unit test 전체 PASS (Phase 14)
-- [ ] **UAT-02**: 검단·포천 현장 환경 사전 점검표 — 네트워크 (WiFi / 셀룰러 / Drift X3 도달성) · 기기 (Android 폰 spec · J2208A 워치 · Drift X3 카메라) · 계정 (관리자/작업자 시드) (Phase 14)
-- [ ] **UAT-03**: 사용자 시나리오 walkthrough — manager / worker / general_manager 3 역할 1일 사이클 캡처 (Phase 14)
+- [ ] **UAT-01**: Phase 11·12·13·15 변경분 + v1.0 의 deferred 항목 (Phase 4·04 / 7·04 / 9·04) 종합 회귀 — ai_agent (Docker 컨테이너 안) · j2208a · Android unit test 전체 PASS (Phase 14)
+- [ ] **UAT-02**: 검단·포천 현장 환경 사전 점검표 — 네트워크 (WiFi / 셀룰러 / Drift X3 도달성) · 기기 (Android 폰 spec · J2208A 워치 · Drift X3 카메라) · 계정 (관리자/작업자 시드) · Docker (image 로드 + `docker ps` 확인 + `.env` 적용) (Phase 14)
+- [ ] **UAT-03**: 사용자 시나리오 walkthrough — manager / worker / general_manager 3 역할 1일 사이클 캡처 (Docker 컨테이너 환경 기반) (Phase 14)
+
+### 5. ai_agent Docker 컨테이너화 (DOCKER)
+
+- [ ] **DOCKER-01**: `ai_agent/Dockerfile` + `docker-compose.yml` 작성 — `docker compose up -d ai_agent` 한 줄로 detection cycle 자동 시작 + `docker ps` 로 running 확인 + Drift X3 RTSP 도달 가능 (host network 또는 명시 port 매핑) + ai_agent 31/31 pytest 컨테이너 안 PASS + Phase 8 RTSP-02 baseline (person conf 0.92 / latency 3.16s) 재현 (Phase 15)
+- [ ] **DOCKER-02**: 6월 검단·포천 설치 deploy 절차 문서화 — image 빌드 (`docker build`) → tar 저장 (`docker save`) → 현장 PC 로드 (`docker load`) + `.env` 파일 배치 + `docker compose up -d` 명령 시퀀스 (Phase 15)
+- [ ] **DOCKER-03**: Phase 10 NSSM 서비스 (`SmartSafetyAiAgent`) deprecation 가이드 — `nssm.exe remove SmartSafetyAiAgent confirm` + container 전환 절차 + 로그 위치 변경 (`logs/ai_agent.log` → `docker logs ai_agent`) + 사용자 운영 명령 (start/stop/restart/logs) cheat sheet (Phase 15)
 
 ---
 
 ## Out of Scope (v1.1 명시 제외)
 
+- **j2208a + Supabase local dev container** — Docker scope 는 ai_agent only (D18 결정). j2208a BLE 어댑터는 PC 에서 그대로 실행. Supabase 는 운영 hosted 그대로.
+- **Docker image registry push** (GHCR / Docker Hub) — v1.2 에서 검토. v1.1 은 `docker save` / `docker load` 의 tar 기반 deploy.
 - **v1.0 의 deferred phases** (Phase 4·04 24h 워치 실측 / Phase 5 평가 지표 / Phase 6 PPT 자료 / Phase 7·04 시연 / Phase 9·04 1일 사이클 시연) → v1.2 또는 별 milestone. UAT-01 의 회귀 대상에는 포함되나 신규 작업 X.
 - **가이드 12종 OPS 中 도금/금속가공 비도메인** (크레인·컨베이어·후크·샤클·혼합기·굴착기·사출성형기·분쇄기·이동식 사다리·산업용 로봇·화물운반트럭·지붕대들보) → 6월 현장 조사 후 OPS 카탈로그 추가 결정 (TBM-08 의 관리자 UI 로 추가 가능)
 - **YOLO26 전면 마이그레이션** (FIRE-ADV BACKLOG, 5 sub-task) → v2.0
@@ -61,11 +69,14 @@
 | TBM-08 | OPS 관리자 UI | 12 |
 | DATA-04 | 일일점검 날짜 mismatch | 13 |
 | INFO-01 | 실시간 카메라 통합 | 13 |
-| UAT-01 | 회귀 검증 | 14 |
+| DOCKER-01 | ai_agent Dockerfile + compose | 15 |
+| DOCKER-02 | 검단·포천 deploy 절차 문서 | 15 |
+| DOCKER-03 | NSSM deprecation 가이드 | 15 |
+| UAT-01 | 회귀 검증 (Docker 환경) | 14 |
 | UAT-02 | 현장 환경 사전 점검표 | 14 |
 | UAT-03 | 3 역할 walkthrough | 14 |
 
-**Coverage**: 13/13 REQ 모두 phase mapping ✓
+**Coverage**: 16/16 REQ 모두 phase mapping ✓
 
 ---
 

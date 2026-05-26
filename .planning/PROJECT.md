@@ -117,6 +117,11 @@
 - **2026-05-22**: Phase 10 완료 — `SmartSafetyAiAgent` service path 에 RTSP auto-detect
   interval job 을 추가했다. 등록된 RTSP URL 이 `unknown/unreachable → reachable` 로 전이되면
   기존 YOLO detection/fall cycle 을 자동 구동하며, 중복 실행 방지 lock 과 unit tests 를 포함한다.
+- **2026-05-23**: Phase 15 신설 — Phase 10 의 NSSM 서비스 (`SmartSafetyAiAgent`) **deprecation**.
+  debug session `fire-only-grey-light` 진행 중 NSSM 의 운영·검증 어려움이 architectural 문제로
+  확인됨 (Suspect 5 — RTSP 동시 접속 경합 + admin PowerShell 요구 + service status 불투명).
+  Docker 컨테이너화로 architectural fix. ai_agent only scope (j2208a·Supabase 는 그대로).
+  코드 (`scheduler.py` 의 RTSP autodetect job 등) 보존, deployment 방식만 NSSM → Docker.
 
 ## Current Milestone: v1.1 앱 전체 완성도
 
@@ -128,7 +133,8 @@
 - **Phase 11** 일관 시각 언어 정립 — 입구 (Splash → SignUp → LogIn → Home) · Home 카드 4종 · Setting* Activity 시리즈의 시각 언어 통일
 - **Phase 12** TBM 재설계 (KOSHA 가이드 흡수) — 작업·공정별 다중 세션 (UNIQUE 제거 + work_scope 추가) + 회의록 양식 핵심 필드 schema mapping + SLAM 행동요령 + 도금/금속가공 도메인 OPS 3종 seed + 관리자 OPS 카탈로그 UI
 - **Phase 13** 데이터 신뢰성 + 정보구조 — 일일 안전점검 등록 날짜 mismatch fix + 실시간 카메라 전경/현장 분리 → 단일 통합
-- **Phase 14** 6월 설치 사전 UAT — Phase 11·12·13 변경분 + v1.0 deferred 항목 종합 회귀 + 현장 환경 사전 점검표 + 3 역할 (manager/worker/general_manager) 1일 사이클 walkthrough 캡처
+- **Phase 15** ai_agent Docker 컨테이너화 (신규 2026-05-23) — Phase 10 NSSM 서비스 폐기, Docker container 로 전환. `docker ps` 한 줄로 운영 검증 + admin PowerShell 의존 제거 + 6월 설치 image deploy. debug session `fire-only-grey-light` Suspect 5 architectural fix.
+- **Phase 14** 6월 설치 사전 UAT — Phase 11·12·13·15 변경분 + v1.0 deferred 항목 종합 회귀 (Docker 환경) + 현장 환경 사전 점검표 + 3 역할 (manager/worker/general_manager) 1일 사이클 walkthrough 캡처
 
 **Out of scope (v1.1 명시 제외):**
 - v1.0 의 deferred phases (Phase 4·04 24h 워치 실측 / Phase 5 평가 / Phase 6 PPT / Phase 7·04 / Phase 9·04) → v1.2
