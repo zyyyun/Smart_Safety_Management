@@ -73,7 +73,7 @@ Area D (회의록 출력/보고서) deferred to planning phase per dispatch — 
 
 **Choice:** A (Destructive)
 
-**Rationale:** 새 `014_tbm_v2_schema.sql` 에서 기존 4 테이블 DROP + RECREATE. 운영 DB 의 기존 row 적어 안전. generic 5 templates (fire/electric/general/heavy/height) 가 도금 도메인에 안 맞아 noise.
+**Rationale:** 새 `017_tbm_v2_schema.sql` 에서 기존 4 테이블 DROP + RECREATE. 운영 DB 의 기존 row 적어 안전. generic 5 templates (fire/electric/general/heavy/height) 가 도금 도메인에 안 맞아 noise.
 
 ---
 

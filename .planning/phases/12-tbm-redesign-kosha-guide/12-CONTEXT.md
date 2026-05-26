@@ -49,7 +49,7 @@ KOSHA `230209 작업 전 안전점검회의 가이드` 의 작업·공정별 다
 - detector hint (conf threshold 동적 조정 등) 은 v1.2 로 이연
 
 ### D-04 마이그레이션 path (Area B-1, D10)
-- 새 migration `014_tbm_v2_schema.sql` 에서 기존 `tbm_*` 4 테이블 **DROP + RECREATE** (destructive)
+- 새 migration `017_tbm_v2_schema.sql` 에서 기존 `tbm_*` 4 테이블 **DROP + RECREATE** (destructive)
 - 기존 Phase 9 시드 데이터 (5 templates fire/electric/general/heavy/height + 시드 세션 row + 참여자 row) 전부 제거
 - 도금 도메인 OPS 3종 신규 시드: **지게차 + 화학물질 + 고온**
 - 운영 DB 의 기존 row 가 적어 안전한 path. generic 5 templates 가 도메인 부적합 noise 였음
@@ -121,7 +121,7 @@ KOSHA `230209 작업 전 안전점검회의 가이드` 의 작업·공정별 다
 - `.planning/ROADMAP.md` — v1.1 Phase 12 Goal 및 5개 SC.
 
 ### Phase 9 결과물 (재사용)
-- `supabase/migrations/013_tbm_schema.sql` — 기존 4 테이블 정의. Phase 12 의 `014_tbm_v2_schema.sql` 가 이를 DROP + RECREATE.
+- `supabase/migrations/013_tbm_schema.sql` — 기존 4 테이블 정의. Phase 12 의 `017_tbm_v2_schema.sql` 가 이를 DROP + RECREATE.
 - `supabase/functions/notifications/index.ts` — Phase 9 의 4 case (tbm-start / tbm-checkin / tbm-end / tbm-missed). Phase 12 에서 N 세션·work_scope 인자 추가로 amend.
 - `app/src/main/java/com/example/smart_safety_management/tbm/` — Phase 9 의 12 main + 4 test 파일. SignatureCanvas·Reducer·Repository 재사용, Screen·Activity 는 list view 로 refactor.
 - `.planning/phases/09-tbm-worker-guide/09-CONTEXT.md` — Phase 9 의 9 gray area 결정 (특히 D-01 schema / D-03 signature / D-05 missed-attendance).
@@ -148,7 +148,7 @@ KOSHA `230209 작업 전 안전점검회의 가이드` 의 작업·공정별 다
 - pg_cron `tbm_missed_attendance_minute` (1분 주기 SECURITY DEFINER) — 미참여 추적 패턴 유지, work_scope 별로 group 만 변경
 
 ### 신규 작성
-- `014_tbm_v2_schema.sql` — 013 의 4 테이블 DROP + 새 schema RECREATE. UNIQUE 제거 + `work_scope` 컬럼 + 잠재위험·대책·핵심조치·자율점검 JSONB 또는 child table.
+- `017_tbm_v2_schema.sql` — 013 의 4 테이블 DROP + 새 schema RECREATE. UNIQUE 제거 + `work_scope` 컬럼 + 잠재위험·대책·핵심조치·자율점검 JSONB 또는 child table.
 - `SettingOpsCatalogActivity` + Compose Screen — 관리자 전용 OPS 관리 UI (활성/비활성 토글 + 신규 추가 form + 편집 form).
 - `TbmDashboardScreen` refactor — 단일 카드 view → LazyColumn (N 세션 list).
 - `TbmStartSection` refactor — work_scope 입력 + OPS 선택 + prefill 후 잠재위험·대책 폼 (편집 가능).

@@ -25,7 +25,7 @@ Phase 9 의 4 테이블 + Edge Function 4 case + Android `tbm/` 패키지 + mana
 - **D-01** OPS prefill 하이브리드 — 잠재위험·대책 자동 채움 후 사용자가 수정/삭제/신규 추가 자유, `is_custom = true` 태그로 구분.
 - **D-02** OPS schema depth — 잠재위험 list + 대책 list + 핵심 안전조치 3개 + 자율점검 항목 list. **4 카테고리 분류 안 함** (flat list).
 - **D-03** TBM ↔ AI detector — `work_scope` DB 적재만, detector 동작 변화 0 (v1.2 로 이연).
-- **D-04** 마이그레이션 = **DROP + RECREATE** (destructive). 014_tbm_v2_schema.sql 신규.
+- **D-04** 마이그레이션 = **DROP + RECREATE** (destructive). 017_tbm_v2_schema.sql 신규.
 - **D-05** Home UI = 요약만 ("오늘 N개·진행 M개·미참여 K명"). 자세한 list 는 TbmDashboardActivity 안.
 - **D-06** OPS 관리 UI = **SettingOpsCatalogActivity 신규** (Setting* 시리즈 안, manager-only).
 - **D-07** 신규 OPS 필수 = 이름 + 잠재위험(≥1) + 대책(≥1). 핵심조치·자율점검·detector hint 는 선택.
@@ -57,7 +57,7 @@ detector hint 동적 연계 · 회의록 PDF export · 외국인 통·번역 · 
 
 ## Schema (Postgres)
 
-### Key shape changes (DDL fragments — planner 가 014 마이그레이션 작성 시 참조)
+### Key shape changes (DDL fragments — planner 가 017 마이그레이션 작성 시 참조)
 
 ```sql
 -- (1) tbm_sessions — work_scope 추가 + UNIQUE 재정의
