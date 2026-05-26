@@ -61,27 +61,27 @@ fun TbmWorkerCardComposable(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Today TBM", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("오늘의 TBM", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(Modifier.width(12.dp))
                 TbmStatusBadge(state.label, state.color)
             }
             Spacer(Modifier.height(8.dp))
             firstSession?.let { session ->
                 Text("${session.workScope} / ${session.workType}", fontSize = 13.sp, color = Color.Gray)
-                Text("Expected end: ${formatTimeShort(session.expectedEndAt)}", fontSize = 13.sp, color = Color.Gray)
+                Text("예상 종료: ${formatTimeShort(session.expectedEndAt)}", fontSize = 13.sp, color = Color.Gray)
                 if (sessions.size > 1) {
-                    Text("${sessions.size} sessions today", fontSize = 12.sp, color = Color(0xFF2563EB))
+                    Text("오늘 ${sessions.size}개 세션", fontSize = 12.sp, color = Color(0xFF2563EB))
                 }
-            } ?: Text("No TBM session started today", fontSize = 13.sp, color = Color.Gray)
+            } ?: Text("오늘 시작된 TBM 세션 없음", fontSize = 13.sp, color = Color.Gray)
         }
     }
 }
 
 sealed class TbmWorkerCardState(val label: String, val color: Color) {
-    object NoSession : TbmWorkerCardState("No session", Color.Gray)
-    class NeedsCheckin(count: Int) : TbmWorkerCardState("Join needed ($count)", Color(0xFFF59E0B))
-    object AlreadyJoined : TbmWorkerCardState("Joined", Color(0xFF22C55E))
-    object Ended : TbmWorkerCardState("Ended", Color.Gray)
+    object NoSession : TbmWorkerCardState("세션 없음", Color.Gray)
+    class NeedsCheckin(count: Int) : TbmWorkerCardState("참여 필요 ($count)", Color(0xFFF59E0B))
+    object AlreadyJoined : TbmWorkerCardState("참여 완료", Color(0xFF22C55E))
+    object Ended : TbmWorkerCardState("종료됨", Color.Gray)
 }
 
 internal fun computeWorkerCardState(
@@ -108,9 +108,9 @@ internal fun TbmStatusBadge(label: String, color: Color) {
 }
 
 internal fun workTypeKorean(code: String): String = when (code) {
-    "forklift" -> "Forklift"
-    "chemical" -> "Chemical"
-    "hot_work" -> "Hot work"
+    "forklift" -> "지게차"
+    "chemical" -> "화학물질"
+    "hot_work" -> "고온·열처리"
     else -> code.replace('_', ' ')
 }
 

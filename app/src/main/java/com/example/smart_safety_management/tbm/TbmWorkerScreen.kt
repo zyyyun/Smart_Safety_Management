@@ -77,15 +77,15 @@ fun TbmWorkerScreen(
     val sessionEnded = selectedSession?.endedAt != null
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("TBM guide", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+        Text("TBM 작업자 가이드", fontWeight = FontWeight.Bold, fontSize = 22.sp)
         Spacer(Modifier.height(16.dp))
 
         if (sessions.isEmpty()) {
-            Text("No TBM session has started today.", fontSize = 14.sp, color = Color.Gray)
+            Text("오늘 시작된 TBM 세션이 없습니다.", fontSize = 14.sp, color = Color.Gray)
             return@Column
         }
 
-        Text("Today sessions", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Text("오늘의 세션", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         sessions.forEach { session ->
             Card(
                 modifier = Modifier
@@ -107,37 +107,37 @@ fun TbmWorkerScreen(
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(s.workScope, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text("OPS: ${s.workType}", fontSize = 13.sp, color = Color.Gray)
-                Text("Leader: ${s.leaderUserId}", fontSize = 13.sp, color = Color.Gray)
-                Text("Expected end: ${formatTimeShort(s.expectedEndAt)}", fontSize = 13.sp, color = Color.Gray)
-                if (sessionEnded) Text("Ended: ${formatTimeShort(s.endedAt ?: "")}", color = Color.Gray)
+                Text("리더: ${s.leaderUserId}", fontSize = 13.sp, color = Color.Gray)
+                Text("예상 종료: ${formatTimeShort(s.expectedEndAt)}", fontSize = 13.sp, color = Color.Gray)
+                if (sessionEnded) Text("종료됨: ${formatTimeShort(s.endedAt ?: "")}", color = Color.Gray)
             }
         }
 
-        Text("Hazards", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Text("위험요인", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         s.hazardsSnapshot.forEach { Text("- ${it.text}", fontSize = 12.sp) }
         Spacer(Modifier.height(8.dp))
 
-        Text("Checklist", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Text("점검 항목", fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         checklists.forEach { item -> ChecklistRow(item = item, repo = repo, scope = scope) }
         Spacer(Modifier.height(12.dp))
 
         if (alreadyJoined) {
-            Text("Participation complete (${formatTimeShort(myParticipation!!.signedAt)})", color = Color(0xFF22C55E))
+            Text("참여 완료 (${formatTimeShort(myParticipation!!.signedAt)})", color = Color(0xFF22C55E))
         } else if (sessionEnded) {
-            Text("This session is already ended.", color = Color.Gray)
+            Text("이미 종료된 세션입니다.", color = Color.Gray)
         } else {
-            Text("Sign below", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text("아래에 서명하세요", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             Spacer(Modifier.height(4.dp))
             SignatureCanvas(state = signatureState)
             Spacer(Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = { signatureState.clear() }, modifier = Modifier.weight(1f)) {
-                    Text("Clear")
+                    Text("지우기")
                 }
                 Button(
                     onClick = {
                         if (signatureState.isEmpty) {
-                            resultMsg = "Signature is empty"
+                            resultMsg = "서명이 비어있습니다"
                             return@Button
                         }
                         submitting = true
@@ -152,7 +152,7 @@ fun TbmWorkerScreen(
                                         .upload(path = path, data = bytes, upsert = false)
                                     true
                                 } catch (e: Exception) {
-                                    resultMsg = "Signature upload failed: ${e.message}"
+                                    resultMsg = "서명 업로드 실패: ${e.message}"
                                     false
                                 }
 
@@ -169,15 +169,15 @@ fun TbmWorkerScreen(
                                     )
                                     resultMsg = when {
                                         resp.isSuccessful && resp.body()?.ok == true ->
-                                            if (resp.body()?.idempotent == true) "Already joined" else "Joined"
-                                        resp.code() == 403 -> "Wrong group"
-                                        resp.code() == 404 -> "Session not found"
-                                        resp.code() == 410 -> "Session ended"
-                                        else -> "Error ${resp.code()}"
+                                            if (resp.body()?.idempotent == true) "이미 참여함" else "참여 완료"
+                                        resp.code() == 403 -> "다른 그룹의 세션"
+                                        resp.code() == 404 -> "세션을 찾을 수 없음"
+                                        resp.code() == 410 -> "이미 종료된 세션"
+                                        else -> "오류 ${resp.code()}"
                                     }
                                 }
                             } catch (e: Exception) {
-                                resultMsg = "Network: ${e.message}"
+                                resultMsg = "네트워크 오류: ${e.message}"
                             } finally {
                                 submitting = false
                             }
@@ -186,7 +186,7 @@ fun TbmWorkerScreen(
                     enabled = !submitting,
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(if (submitting) "Joining..." else "Join")
+                    Text(if (submitting) "참여 중..." else "참여하기")
                 }
             }
             resultMsg?.let {

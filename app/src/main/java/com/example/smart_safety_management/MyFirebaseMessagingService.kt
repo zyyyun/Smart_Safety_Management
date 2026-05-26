@@ -58,9 +58,9 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             showTbmAlertNotification(
                 title = remoteMessage.notification?.title ?: "TBM 알림",
                 body = remoteMessage.notification?.body
-                    ?: data["work_scope"]?.let { "$it TBM alert" }
+                    ?: data["work_scope"]?.let { "$it TBM 알림" }
                     ?: data["action_in_app"]
-                    ?: "TBM alert",
+                    ?: "TBM 알림",
                 sessionId = data["session_id"]?.toLongOrNull() ?: -1L,
                 workScope = data["work_scope"],
                 actionInApp = data["action_in_app"] ?: "",

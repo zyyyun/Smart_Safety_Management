@@ -100,7 +100,7 @@ fun TbmStartSection(
 
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Start TBM session", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("TBM 세션 시작", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Spacer(Modifier.weight(1f))
             IconButton(onClick = { showSlamDialog = true }) {
                 Icon(Icons.Default.Info, contentDescription = "SLAM 행동요령 보기")
@@ -111,7 +111,7 @@ fun TbmStartSection(
         OutlinedTextField(
             value = workScopeInput,
             onValueChange = { workScopeInput = it.take(80) },
-            label = { Text("Work scope") },
+            label = { Text("작업 범위") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -122,10 +122,10 @@ fun TbmStartSection(
             onExpandedChange = { dropdownExpanded = !dropdownExpanded },
         ) {
             OutlinedTextField(
-                value = selectedTemplate?.title ?: "No active OPS",
+                value = selectedTemplate?.title ?: "활성 OPS 없음",
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("OPS") },
+                label = { Text("작업 종류 (OPS)") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
                 modifier = Modifier.menuAnchor().fillMaxWidth(),
             )
@@ -150,10 +150,10 @@ fun TbmStartSection(
             value = "%02d:%02d".format(hour, minute),
             onValueChange = {},
             readOnly = true,
-            label = { Text("Expected end time") },
+            label = { Text("예상 종료 시각") },
             trailingIcon = {
                 TextButton(onClick = { showTimePicker = true }) {
-                    Icon(Icons.Default.Schedule, contentDescription = "Pick time")
+                    Icon(Icons.Default.Schedule, contentDescription = "시각 선택")
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -163,7 +163,7 @@ fun TbmStartSection(
         OutlinedTextField(
             value = locationInput,
             onValueChange = { locationInput = it },
-            label = { Text("Location") },
+            label = { Text("위치") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -172,7 +172,7 @@ fun TbmStartSection(
         OutlinedTextField(
             value = notesInput,
             onValueChange = { notesInput = it },
-            label = { Text("Notes") },
+            label = { Text("메모") },
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(12.dp))
@@ -232,7 +232,7 @@ fun TbmStartSection(
             OutlinedTextField(
                 value = customControlHazardId,
                 onValueChange = { customControlHazardId = it.trim() },
-                label = { Text("hz id") },
+                label = { Text("위험 id") },
                 singleLine = true,
                 modifier = Modifier.width(80.dp),
             )
@@ -261,7 +261,7 @@ fun TbmStartSection(
         Spacer(Modifier.height(12.dp))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Groups", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text("대상 그룹", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             Spacer(Modifier.width(12.dp))
             if (groups.isNotEmpty()) {
                 val allSelected = selectedGroupIds.size == groups.size
@@ -271,7 +271,7 @@ fun TbmStartSection(
                         selectedGroupIds = if (checked) groups.map { it.groupId }.toSet() else emptySet()
                     },
                 )
-                Text("All", fontSize = 13.sp)
+                Text("전체", fontSize = 13.sp)
             }
         }
         loadError?.let { Text(it, color = Color(0xFFEF4444), fontSize = 12.sp) }
@@ -299,12 +299,12 @@ fun TbmStartSection(
                 val template = selectedTemplate
                 val scopeText = workScopeInput.trim()
                 when {
-                    template == null -> perGroupResults = mapOf(-1 to "Select an active OPS")
-                    scopeText.isEmpty() -> perGroupResults = mapOf(-1 to "Enter work scope")
-                    selectedGroupIds.isEmpty() -> perGroupResults = mapOf(-1 to "Select at least one group")
-                    hazards.isEmpty() || controls.isEmpty() -> perGroupResults = mapOf(-1 to "Hazards and controls required")
+                    template == null -> perGroupResults = mapOf(-1 to "활성 OPS 를 선택하세요")
+                    scopeText.isEmpty() -> perGroupResults = mapOf(-1 to "작업 범위를 입력하세요")
+                    selectedGroupIds.isEmpty() -> perGroupResults = mapOf(-1 to "그룹을 1개 이상 선택하세요")
+                    hazards.isEmpty() || controls.isEmpty() -> perGroupResults = mapOf(-1 to "위험요인·대책이 필요합니다")
                     !WorkTypeValidator.isValid(template.workType, templates) ->
-                        perGroupResults = mapOf(-1 to "Selected OPS is inactive")
+                        perGroupResults = mapOf(-1 to "선택한 OPS 가 비활성화됨")
                     else -> {
                         val zdt = ExpectedEndAtValidator.nowKst()
                             .withHour(hour).withMinute(minute).withSecond(0).withNano(0)
@@ -336,11 +336,11 @@ fun TbmStartSection(
                                                 )
                                                 when {
                                                     resp.isSuccessful && resp.body()?.ok == true ->
-                                                        "Started (${resp.body()?.checklistCount ?: 0})"
-                                                    resp.code() == 409 -> "Already exists"
-                                                    else -> "Error ${resp.code()}"
+                                                        "시작됨 (${resp.body()?.checklistCount ?: 0})"
+                                                    resp.code() == 409 -> "이미 존재"
+                                                    else -> "오류 ${resp.code()}"
                                                 }
-                                            }.getOrElse { "Network: ${it.message}" }
+                                            }.getOrElse { "네트워크 오류: ${it.message}" }
                                             groupId to msg
                                         }
                                     }.awaitAll()
@@ -357,7 +357,7 @@ fun TbmStartSection(
             enabled = !submitting && groups.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (submitting) "Starting..." else "Start ${selectedGroupIds.size} session(s)")
+            Text(if (submitting) "시작 중..." else "${selectedGroupIds.size}개 세션 시작")
         }
 
         perGroupResults[-1]?.let {
@@ -378,17 +378,17 @@ fun TbmStartSection(
         )
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("Expected end time") },
+            title = { Text("예상 종료 시각") },
             text = { TimePicker(state = timeState) },
             confirmButton = {
                 TextButton(onClick = {
                     hour = timeState.hour
                     minute = timeState.minute
                     showTimePicker = false
-                }) { Text("OK") }
+                }) { Text("확인") }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
+                TextButton(onClick = { showTimePicker = false }) { Text("취소") }
             },
         )
     }

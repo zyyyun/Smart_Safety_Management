@@ -13,13 +13,13 @@ class SettingOpsCatalogActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         if (UserSession.userRole != UserRole.MANAGER) {
-            Toast.makeText(this, "Manager only", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "관리자만 접근 가능합니다", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
         val userId = UserSession.userId ?: run {
-            Toast.makeText(this, "Login required", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "로그인이 필요합니다", Toast.LENGTH_SHORT).show()
             finish()
             return
         }

@@ -37,7 +37,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-private const val FREETEXT_ITEM_TEXT = "Additional work item"
+private const val FREETEXT_ITEM_TEXT = "추가 작업 사항"
 
 @Composable
 fun TbmDashboardScreen(
@@ -67,7 +67,7 @@ fun TbmDashboardScreen(
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
-        Text("TBM dashboard", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+        Text("TBM 대시보드", fontWeight = FontWeight.Bold, fontSize = 22.sp)
         Spacer(Modifier.height(16.dp))
 
         TbmStartSection(
@@ -111,7 +111,7 @@ private fun GroupSessionListCard(
         Column(modifier = Modifier.padding(12.dp)) {
             Text("#${group.groupId} (${group.inviteCode})", fontWeight = FontWeight.Bold, fontSize = 15.sp)
             if (sessions.isEmpty()) {
-                Text("No TBM session today", fontSize = 12.sp, color = Color(0xFF6B7280))
+                Text("오늘 TBM 세션 없음", fontSize = 12.sp, color = Color(0xFF6B7280))
             } else {
                 sessions.forEach { session ->
                     Spacer(Modifier.height(8.dp))
@@ -175,11 +175,11 @@ private fun SessionDetailCard(
                 session.location?.let { Text("Location: $it", fontSize = 12.sp, color = Color.Gray) }
                 Spacer(Modifier.height(8.dp))
 
-                Text("Hazards", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text("위험요인", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 session.hazardsSnapshot.forEach { Text("- ${it.text}", fontSize = 12.sp) }
                 Spacer(Modifier.height(8.dp))
 
-                Text("Controls", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                Text("대책", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 session.controlsSnapshot.forEach { Text("- ${it.text}", fontSize = 12.sp) }
                 Spacer(Modifier.height(8.dp))
 
@@ -188,7 +188,7 @@ private fun SessionDetailCard(
                 Spacer(Modifier.height(8.dp))
 
                 if (participants.isNotEmpty()) {
-                    Text("Participants", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    Text("참여자", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     participants.forEach { p ->
                         Text("${p.userId} (${formatTimeShort(p.signedAt)})", fontSize = 12.sp)
                     }
@@ -199,7 +199,7 @@ private fun SessionDetailCard(
                     OutlinedTextField(
                         value = keyHazardId,
                         onValueChange = { keyHazardId = it },
-                        label = { Text("Key hazard id") },
+                        label = { Text("중점위험 id") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -207,7 +207,7 @@ private fun SessionDetailCard(
                     OutlinedTextField(
                         value = feedbackNotes,
                         onValueChange = { feedbackNotes = it },
-                        label = { Text("Feedback notes") },
+                        label = { Text("환류 조치 메모") },
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(8.dp))
@@ -230,7 +230,7 @@ private fun SessionDetailCard(
                                     endResultMsg = when {
                                         resp.isSuccessful && resp.body()?.ok == true ->
                                             "Ended (${resp.body()?.participantCount ?: 0})"
-                                        resp.code() == 404 -> "Not leader or already ended"
+                                        resp.code() == 404 -> "리더가 아니거나 이미 종료됨"
                                         else -> "Error ${resp.code()}"
                                     }
                                 } catch (e: Exception) {
@@ -243,7 +243,7 @@ private fun SessionDetailCard(
                         enabled = !ending,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(if (ending) "Ending..." else "End session")
+                        Text(if (ending) "종료 중..." else "세션 종료")
                     }
                     endResultMsg?.let {
                         Spacer(Modifier.height(4.dp))
@@ -283,12 +283,12 @@ fun ChecklistRow(
                         scope.launch { runCatching { repo.updateChecklistItem(item.checklistId, isChecked = newChecked) } }
                     },
                 )
-                Text("Additional work item", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text("추가 작업 사항", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
             }
             OutlinedTextField(
                 value = draft,
                 onValueChange = { draft = it },
-                label = { Text("Note") },
+                label = { Text("메모") },
                 modifier = Modifier.fillMaxWidth().padding(start = 32.dp),
             )
         }

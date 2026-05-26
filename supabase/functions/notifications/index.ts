@@ -453,8 +453,8 @@ Deno.serve(async (req) => {
         const camName = cam?.device_name ?? `camera-${camera_id}`;
         const camArea = cam?.install_area ?? "";
         const r = await sendPushToUsers(supabase, userIds, {
-          title: "Camera frame stopped",
-          body: `Camera ${camName} (${camArea}) has stopped delivering frames`,
+          title: "카메라 영상 중단",
+          body: `${camName} (${camArea}) 영상 프레임이 들어오지 않습니다`,
           data: {
             type: "camera_alert",
             camera_id: String(camera_id),
@@ -497,8 +497,8 @@ Deno.serve(async (req) => {
         const camName = cam?.device_name ?? `camera-${camera_id}`;
         const camArea = cam?.install_area ?? "";
         const r = await sendPushToUsers(supabase, userIds, {
-          title: "Camera recovered",
-          body: `Camera ${camName} (${camArea}) is delivering frames again`,
+          title: "카메라 영상 복구",
+          body: `${camName} (${camArea}) 영상이 다시 들어옵니다`,
           data: {
             type: "camera_alert",
             camera_id: String(camera_id),
@@ -599,7 +599,7 @@ Deno.serve(async (req) => {
 
         const workerIds = (workers ?? []).map((w: { user_id: string }) => w.user_id);
         const r = await sendPushToUsers(supabase, workerIds, {
-          title: "TBM session started",
+          title: "TBM 세션 시작",
           body: `${work_scope} - ${tmpl.title}`,
           data: {
             type: "tbm_alert",
@@ -726,8 +726,8 @@ Deno.serve(async (req) => {
 
         const recipientIds = [...missedIds, leader_user_id];
         const r = await sendPushToUsers(supabase, recipientIds, {
-          title: "TBM missed attendance",
-          body: `${scopeText || "TBM"}: ${missedIds.length} worker(s) missed`,
+          title: "TBM 미참여 알림",
+          body: `${scopeText || "TBM"} 미참여 ${missedIds.length}명`,
           data: {
             type: "tbm_alert",
             action_in_app: "tbm-missed",

@@ -58,31 +58,31 @@ fun TbmDashboardCardComposable(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Today TBM", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("오늘의 TBM", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(Modifier.width(12.dp))
                 TbmStatusBadge(state.label, state.color)
             }
             Spacer(Modifier.height(8.dp))
             firstSession?.let { session ->
                 Text("${session.workScope} / ${workTypeKorean(session.workType)}", fontSize = 13.sp, color = Color.Gray)
-                Text("Participants: ${participants.size}", fontSize = 13.sp, color = Color.Gray)
+                Text("참여자: ${participants.size}명", fontSize = 13.sp, color = Color.Gray)
                 if (sessions.size > 1) {
-                    Text("${sessions.size} sessions today", fontSize = 12.sp, color = Color(0xFF2563EB))
+                    Text("오늘 ${sessions.size}개 세션", fontSize = 12.sp, color = Color(0xFF2563EB))
                 }
                 if (session.missedAlertAt != null) {
-                    Text("Missed alert sent ${formatTimeShort(session.missedAlertAt)}", color = Color(0xFFEF4444))
+                    Text("미참여 알림 발송 ${formatTimeShort(session.missedAlertAt)}", color = Color(0xFFEF4444))
                 }
-            } ?: Text("Tap to start TBM", fontSize = 13.sp, color = Color.Gray)
+            } ?: Text("탭하여 TBM 시작", fontSize = 13.sp, color = Color.Gray)
         }
     }
 }
 
 sealed class TbmDashboardCardState(val label: String, val color: Color) {
-    object NoSession : TbmDashboardCardState("No session", Color.Gray)
+    object NoSession : TbmDashboardCardState("세션 없음", Color.Gray)
     class InProgress(checked: Int, total: Int) :
-        TbmDashboardCardState("Active ($checked/$total)", Color(0xFFF59E0B))
-    object Completed : TbmDashboardCardState("Done", Color(0xFF22C55E))
-    object MissedAlertSent : TbmDashboardCardState("Missed alert", Color(0xFFEF4444))
+        TbmDashboardCardState("진행중 ($checked/$total)", Color(0xFFF59E0B))
+    object Completed : TbmDashboardCardState("종료", Color(0xFF22C55E))
+    object MissedAlertSent : TbmDashboardCardState("미참여 알림", Color(0xFFEF4444))
 }
 
 internal fun computeDashboardCardState(

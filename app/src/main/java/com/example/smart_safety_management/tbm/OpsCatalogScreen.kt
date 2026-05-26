@@ -57,7 +57,7 @@ fun OpsCatalogScreen(
     }
 
     LaunchedEffect(Unit) {
-        runCatching { reload() }.onFailure { message = "Load failed: ${it.message}" }
+        runCatching { reload() }.onFailure { message = "불러오기 실패: ${it.message}" }
     }
 
     when (val mode = editing) {
@@ -82,7 +82,7 @@ fun OpsCatalogScreen(
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(template.title, fontWeight = FontWeight.Bold)
                                     Text(
-                                        "${template.workType} / ${template.targetDetector ?: "no detector"}" +
+                                        "${template.workType} / ${template.targetDetector ?: "검출기 없음"}" +
                                             (if (template.isCustom) " · custom" else ""),
                                         fontSize = 12.sp,
                                     )
@@ -106,7 +106,7 @@ fun OpsCatalogScreen(
                                                 ),
                                             )
                                             message = if (resp.isSuccessful && resp.body()?.ok == true) {
-                                                "${template.workType} 토글 완료"
+                                                        "${template.workType} 토글 완료"
                                             } else {
                                                 "토글 실패 (${resp.code()})"
                                             }
