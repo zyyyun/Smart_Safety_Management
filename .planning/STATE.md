@@ -183,6 +183,7 @@ Previous: 2026-05-18 — Phase 9 Plan 09-03 COMPLETE. (a) app/build.gradle.kts (
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 01 | RTSP 카메라 YOLO 동작 state 라벨 (실시간상황 화면) | 2026-05-26 | 137af42 | `.planning/quick/260526-rtsp-yolo-state-label/` |
 
 ### Roadmap Evolution
 
