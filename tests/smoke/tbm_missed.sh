@@ -27,7 +27,8 @@ URL="${SUPABASE_URL%/}/functions/v1/notifications"
 
 PASS=0
 
-echo "=== Test 1: 정상 (missed = w2/w3, recipients = w2+w3+leader) ==="
+echo "=== Test 1: 정상 (missed = w2/w3, recipients = w2+w3+leader, work_scope 포함 — Amendment 2026-05-26 P1) ==="
+# work_scope 는 cron 이 채워서 호출 — Android 가 호출하지 않으니 본 smoke 는 work_scope 미포함으로도 fallback (session SELECT) 동작 확인
 HTTP=$(curl -sS -o /tmp/tbm_missed_1.json -w "%{http_code}" -X POST "$URL" \
     -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
     -H "Content-Type: application/json" \
@@ -68,4 +69,16 @@ echo "  HTTP $HTTP"; head -c 500 /tmp/tbm_missed_3.json; echo
 grep -q '"missed_count":0' /tmp/tbm_missed_3.json || { echo "EXPECTED missed_count:0 (all checked-in)" >&2; exit 9; }
 PASS=$((PASS+1))
 
-echo "=== tbm-missed: ${PASS}/3 PASS ==="
+echo "=== Test 4: work_scope 명시 (Amendment 2026-05-26 P1 — cron 이 보내는 형식) ==="
+# cron 의 net.http_post 가 work_scope='산세' 같이 명시 → Edge Function 의 scopeText = body.work_scope ?? session.work_scope
+HTTP=$(curl -sS -o /tmp/tbm_missed_4.json -w "%{http_code}" -X POST "$URL" \
+    -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+    -H "Content-Type: application/json" \
+    -d "{\"action\":\"tbm-missed\",\"session_id\":$SESSION_ID,\"group_id\":1,\"leader_user_id\":\"testuser1\",\"work_scope\":\"산세\"}")
+echo "  HTTP $HTTP"; head -c 500 /tmp/tbm_missed_4.json; echo
+[[ "$HTTP" == "200" ]] || { echo "EXPECTED 200 — work_scope present should still succeed" >&2; exit 10; }
+grep -q '"ok":true' /tmp/tbm_missed_4.json || { echo "EXPECTED ok:true" >&2; exit 11; }
+# 응답 본문엔 missed_count/notified_count 만 있으므로 work_scope 전파 검증은 supabase functions logs 또는 단말 캡처로 확인 (실측 prerequisite)
+PASS=$((PASS+1))
+
+echo "=== tbm-missed: ${PASS}/4 PASS ==="

@@ -49,4 +49,28 @@ interface TbmFunctionsApi {
         @Header("Authorization") auth: String,
         @Body body: TbmEndRequest,
     ): Response<TbmEndResponse>
+
+    @POST
+    suspend fun callOpsCreate(
+        @Url url: String,
+        @Header("apikey") apiKey: String,
+        @Header("Authorization") auth: String,
+        @Body body: OpsCreateRequest,
+    ): Response<OpsResponse>
+
+    @POST
+    suspend fun callOpsUpdate(
+        @Url url: String,
+        @Header("apikey") apiKey: String,
+        @Header("Authorization") auth: String,
+        @Body body: OpsUpdateRequest,
+    ): Response<OpsResponse>
+
+    @POST
+    suspend fun callOpsToggle(
+        @Url url: String,
+        @Header("apikey") apiKey: String,
+        @Header("Authorization") auth: String,
+        @Body body: OpsToggleRequest,
+    ): Response<OpsResponse>
 }

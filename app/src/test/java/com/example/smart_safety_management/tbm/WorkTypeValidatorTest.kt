@@ -5,56 +5,44 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/**
- * Phase 9 / 09-03 TBM-02 — WorkTypeValidator 단위 테스트 (TDD).
- *
- * 검증 대상: tbm_templates.work_type 5종 (fire/electric/height/heavy/general) 의 enum
- * 정합성 + normalize (lowercase + trim).
- *
- * Phase 7 MacAddressValidatorTest 패턴 1:1 미러. JUnit4 (org.junit.Test) 사용.
- */
 class WorkTypeValidatorTest {
 
-    @Test
-    fun test_validFire_passes() {
-        assertTrue(WorkTypeValidator.isValid("fire"))
-    }
+    private val templates = listOf(
+        TbmTemplateRow(templateId = 1, workType = "forklift", title = "Forklift", isActive = true),
+        TbmTemplateRow(templateId = 2, workType = "chemical", title = "Chemical", isActive = true),
+        TbmTemplateRow(templateId = 3, workType = "custom_ops", title = "Custom", isActive = true),
+        TbmTemplateRow(templateId = 4, workType = "inactive_ops", title = "Inactive", isActive = false),
+    )
 
     @Test
-    fun test_allFiveTypes_pass() {
-        listOf("fire", "electric", "height", "heavy", "general").forEach {
-            assertTrue("$it should be valid", WorkTypeValidator.isValid(it))
+    fun seedTypes_areKnownSeeds() {
+        listOf("forklift", "chemical", "hot_work").forEach {
+            assertTrue("$it should be a seed type", WorkTypeValidator.isKnownSeed(it))
         }
     }
 
     @Test
-    fun test_invalidEmpty_fails() {
-        assertFalse(WorkTypeValidator.isValid(""))
+    fun customTemplate_isValidWhenActive() {
+        assertTrue(WorkTypeValidator.isValid("custom_ops", templates))
     }
 
     @Test
-    fun test_invalidUnknown_fails() {
-        assertFalse(WorkTypeValidator.isValid("welding"))
+    fun inactiveTemplate_isInvalid() {
+        assertFalse(WorkTypeValidator.isValid("inactive_ops", templates))
     }
 
     @Test
-    fun test_caseSensitiveBeforeNormalize_uppercaseFails() {
-        // isValid 자체는 case-sensitive — normalize 호출 의무는 caller 측.
-        assertFalse(WorkTypeValidator.isValid("FIRE"))
+    fun unknownTemplate_isInvalid() {
+        assertFalse(WorkTypeValidator.isValid("welding", templates))
     }
 
     @Test
-    fun test_normalize_uppercaseToLower() {
-        assertEquals("fire", WorkTypeValidator.normalize("FIRE "))
+    fun normalize_lowercasesAndTrims() {
+        assertEquals("forklift", WorkTypeValidator.normalize("  FORKLIFT  "))
     }
 
     @Test
-    fun test_normalize_trimsWhitespace() {
-        assertEquals("electric", WorkTypeValidator.normalize("  Electric  "))
-    }
-
-    @Test
-    fun test_normalize_then_isValid_combined() {
-        assertTrue(WorkTypeValidator.isValid(WorkTypeValidator.normalize("  HEAVY ")))
+    fun displayName_usesTemplateTitle() {
+        assertEquals("Custom", WorkTypeValidator.displayName("custom_ops", templates))
     }
 }

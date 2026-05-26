@@ -75,6 +75,11 @@ class SettingActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
+        findViewById<LinearLayout>(R.id.item_ops_catalog).setOnClickListener {
+            val intent = Intent(this, SettingOpsCatalogActivity::class.java)
+            startActivity(intent)
+        }
+
         // 장치 관리 아이템 클릭 시 화면 이동
         findViewById<LinearLayout>(R.id.item_machine_management).setOnClickListener {
             val intent = Intent(this, SettingDeviceManagementActivity::class.java)

@@ -1,7 +1,5 @@
 package com.example.smart_safety_management.tbm
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -19,6 +18,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,20 +47,6 @@ import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-/**
- * Phase 9 / 09-03 TBM-02 — manager TbmDashboardActivity 의 세션 시작 섹션.
- *
- * 2026-05-20 Change 1+3 — 다중 그룹 동시 생성 + TimePicker (plan tbm-linear-dragonfly):
- *   - work_type 1개 + 시각/위치/비고 공통 입력 → N 그룹 multi-select
- *   - "선택한 N개 그룹 세션 시작" 1회 클릭 → N parallel callTbmStart (coroutineScope.async)
- *   - 그룹별 결과 인라인 칩 (✓ 시작됨 / ⚠ 이미 존재 / ✗ 오류) — 부분 실패 회복
- *   - 시각은 Material3 TimePicker (Compose BOM 2024.05 = M3 1.2 — TimePickerDialog
- *     는 M3 1.3+, 여기서는 AlertDialog 로 wrap)
- *
- * 호환:
- *   - onSubmitted: 모든 그룹 호출 끝 후 trigger. Caller (TbmDashboardScreen) 가
- *     todaySessionsFlow 로 자동 갱신하므로 sessionId 전달 불필요.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TbmStartSection(
@@ -68,12 +55,18 @@ fun TbmStartSection(
     onSubmitted: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
+    val repo = remember { TbmRepository(supabase) }
     val api = remember { buildTbmFunctionsApi() }
+
     var templates by remember { mutableStateOf<List<TbmTemplateRow>>(emptyList()) }
     var groups by remember { mutableStateOf<List<GroupRow>>(emptyList()) }
     var selectedGroupIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
-    var selectedWorkType by remember { mutableStateOf("fire") }
-    var workTypeDropdownExpanded by remember { mutableStateOf(false) }
+    var selectedTemplate by remember { mutableStateOf<TbmTemplateRow?>(null) }
+    var dropdownExpanded by remember { mutableStateOf(false) }
+    var workScopeInput by remember { mutableStateOf("") }
+    var hazards by remember { mutableStateOf<List<TbmTemplateHazard>>(emptyList()) }
+    var controls by remember { mutableStateOf<List<TbmTemplateControl>>(emptyList()) }
+    var customHazardInput by remember { mutableStateOf("") }
 
     val initialZdt = remember { ExpectedEndAtValidator.nowKst().plusMinutes(15) }
     var hour by remember { mutableStateOf(initialZdt.hour) }
@@ -83,46 +76,69 @@ fun TbmStartSection(
     var locationInput by remember { mutableStateOf("") }
     var notesInput by remember { mutableStateOf("") }
     var submitting by remember { mutableStateOf(false) }
-    // (groupId → 결과 메시지). 새 submit 마다 reset.
     var perGroupResults by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
     var loadError by remember { mutableStateOf<String?>(null) }
+    var showSlamDialog by remember { mutableStateOf(false) }
+    var customControlInput by remember { mutableStateOf("") }
+    var customControlHazardId by remember { mutableStateOf("") }
+
+    fun selectTemplate(template: TbmTemplateRow?) {
+        selectedTemplate = template
+        hazards = template?.hazards ?: emptyList()
+        controls = template?.controls ?: emptyList()
+    }
 
     LaunchedEffect(Unit) {
-        val repo = TbmRepository(supabase)
-        templates = runCatching { repo.fetchTemplates() }.getOrElse { emptyList() }
+        templates = runCatching { repo.fetchActiveTemplates() }
+            .onFailure { loadError = "Failed to load OPS templates: ${it.message}" }
+            .getOrElse { emptyList() }
+        selectTemplate(templates.firstOrNull())
         groups = runCatching { repo.fetchGroupsForManager(leaderUserId) }
-            .onFailure { loadError = "그룹 목록 조회 실패: ${it.message}" }
+            .onFailure { loadError = "Failed to load groups: ${it.message}" }
             .getOrElse { emptyList() }
     }
 
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        Text("새 TBM 세션 시작 (다중 그룹)", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Start TBM session", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = { showSlamDialog = true }) {
+                Icon(Icons.Default.Info, contentDescription = "SLAM 행동요령 보기")
+            }
+        }
         Spacer(Modifier.height(12.dp))
 
-        // ── 작업유형 Dropdown ─────────────────────────────────────────────
+        OutlinedTextField(
+            value = workScopeInput,
+            onValueChange = { workScopeInput = it.take(80) },
+            label = { Text("Work scope") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(8.dp))
+
         ExposedDropdownMenuBox(
-            expanded = workTypeDropdownExpanded,
-            onExpandedChange = { workTypeDropdownExpanded = !workTypeDropdownExpanded },
+            expanded = dropdownExpanded,
+            onExpandedChange = { dropdownExpanded = !dropdownExpanded },
         ) {
             OutlinedTextField(
-                value = workTypeKorean(selectedWorkType),
+                value = selectedTemplate?.title ?: "No active OPS",
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("작업유형") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = workTypeDropdownExpanded) },
+                label = { Text("OPS") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
                 modifier = Modifier.menuAnchor().fillMaxWidth(),
             )
             ExposedDropdownMenu(
-                expanded = workTypeDropdownExpanded,
-                onDismissRequest = { workTypeDropdownExpanded = false },
+                expanded = dropdownExpanded,
+                onDismissRequest = { dropdownExpanded = false },
             ) {
-                WorkTypeValidator.ALLOWED.toList().sorted().forEach { code ->
-                    val title = templates.firstOrNull { it.workType == code }?.title ?: workTypeKorean(code)
+                templates.forEach { template ->
                     DropdownMenuItem(
-                        text = { Text(title) },
+                        text = { Text(template.title) },
                         onClick = {
-                            selectedWorkType = code
-                            workTypeDropdownExpanded = false
+                            selectTemplate(template)
+                            dropdownExpanded = false
                         },
                     )
                 }
@@ -130,23 +146,24 @@ fun TbmStartSection(
         }
         Spacer(Modifier.height(8.dp))
 
-        // ── 예정 종료 시각 TimePicker ─────────────────────────────────────
         OutlinedTextField(
             value = "%02d:%02d".format(hour, minute),
             onValueChange = {},
             readOnly = true,
-            label = { Text("예정 종료 시각 (오늘 KST)") },
-            trailingIcon = { Icon(Icons.Default.Schedule, contentDescription = "시간 선택") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { showTimePicker = true },
+            label = { Text("Expected end time") },
+            trailingIcon = {
+                TextButton(onClick = { showTimePicker = true }) {
+                    Icon(Icons.Default.Schedule, contentDescription = "Pick time")
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
             value = locationInput,
             onValueChange = { locationInput = it },
-            label = { Text("위치 (선택)") },
+            label = { Text("Location") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -155,14 +172,96 @@ fun TbmStartSection(
         OutlinedTextField(
             value = notesInput,
             onValueChange = { notesInput = it },
-            label = { Text("비고 (선택)") },
+            label = { Text("Notes") },
             modifier = Modifier.fillMaxWidth(),
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(12.dp))
 
-        // ── 그룹 선택 ─────────────────────────────────────────────────────
+        Text("위험요인 (Hazards)", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        hazards.forEach { hazard ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "- ${hazard.text}" + (if (hazard.isCustom) " (custom)" else ""),
+                    fontSize = 12.sp,
+                    color = Color(0xFF374151),
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedButton(onClick = {
+                    hazards = HazardsListReducer.removeHazardById(hazards, hazard.id)
+                }) {
+                    Text("X", fontSize = 11.sp)
+                }
+            }
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("그룹 선택", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            OutlinedTextField(
+                value = customHazardInput,
+                onValueChange = { customHazardInput = it },
+                label = { Text("위험 추가") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(8.dp))
+            Button(
+                enabled = customHazardInput.isNotBlank(),
+                onClick = {
+                    hazards = HazardsListReducer.addHazard(hazards, customHazardInput)
+                    customHazardInput = ""
+                },
+            ) { Text("추가") }
+        }
+        Spacer(Modifier.height(12.dp))
+
+        Text("대책 (Controls)", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+        controls.forEach { control ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "- (${control.level}) ${control.hazardId ?: "-"}: ${control.text}" + (if (control.isCustom) " (custom)" else ""),
+                    fontSize = 12.sp,
+                    color = Color(0xFF374151),
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedButton(onClick = {
+                    controls = HazardsListReducer.removeControlById(controls, control.id)
+                }) {
+                    Text("X", fontSize = 11.sp)
+                }
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = customControlHazardId,
+                onValueChange = { customControlHazardId = it.trim() },
+                label = { Text("hz id") },
+                singleLine = true,
+                modifier = Modifier.width(80.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            OutlinedTextField(
+                value = customControlInput,
+                onValueChange = { customControlInput = it },
+                label = { Text("대책 본문") },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(8.dp))
+            Button(
+                enabled = customControlInput.isNotBlank(),
+                onClick = {
+                    controls = HazardsListReducer.addControl(
+                        list = controls,
+                        text = customControlInput,
+                        hazardId = customControlHazardId.takeIf { it.isNotBlank() },
+                    )
+                    customControlInput = ""
+                    customControlHazardId = ""
+                },
+            ) { Text("추가") }
+        }
+        Spacer(Modifier.height(12.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Groups", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             Spacer(Modifier.width(12.dp))
             if (groups.isNotEmpty()) {
                 val allSelected = selectedGroupIds.size == groups.size
@@ -172,120 +271,105 @@ fun TbmStartSection(
                         selectedGroupIds = if (checked) groups.map { it.groupId }.toSet() else emptySet()
                     },
                 )
-                Text("전체 선택", fontSize = 13.sp)
+                Text("All", fontSize = 13.sp)
             }
         }
-        loadError?.let {
-            Text(it, color = Color(0xFFEF4444), fontSize = 12.sp)
-        }
-        if (groups.isEmpty() && loadError == null) {
-            Text("그룹 로드 중...", fontSize = 13.sp, color = Color(0xFF6B7280))
-        }
-        groups.forEach { g ->
-            val checked = g.groupId in selectedGroupIds
-            val resultMsg = perGroupResults[g.groupId]
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+        loadError?.let { Text(it, color = Color(0xFFEF4444), fontSize = 12.sp) }
+        groups.forEach { group ->
+            val checked = group.groupId in selectedGroupIds
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
                     checked = checked,
                     onCheckedChange = { isChecked ->
-                        selectedGroupIds = if (isChecked) selectedGroupIds + g.groupId
-                                           else selectedGroupIds - g.groupId
+                        selectedGroupIds =
+                            if (isChecked) selectedGroupIds + group.groupId else selectedGroupIds - group.groupId
                     },
                 )
-                Text("#${g.groupId} (${g.inviteCode})", fontSize = 13.sp)
-                resultMsg?.let {
+                Text("#${group.groupId} (${group.inviteCode})", fontSize = 13.sp)
+                perGroupResults[group.groupId]?.let {
                     Spacer(Modifier.width(8.dp))
-                    Text(
-                        it,
-                        fontSize = 12.sp,
-                        color = when {
-                            it.startsWith("✓") -> Color(0xFF22C55E)
-                            it.startsWith("⚠") -> Color(0xFFF59E0B)
-                            else -> Color(0xFFEF4444)
-                        },
-                    )
+                    Text(it, fontSize = 12.sp, color = Color(0xFF2563EB))
                 }
             }
         }
         Spacer(Modifier.height(12.dp))
 
-        // ── Submit ───────────────────────────────────────────────────────
         Button(
             onClick = {
-                val workType = WorkTypeValidator.normalize(selectedWorkType)
-                if (!WorkTypeValidator.isValid(workType)) {
-                    perGroupResults = mapOf(-1 to "작업유형이 유효하지 않습니다")
-                    return@Button
-                }
-                if (selectedGroupIds.isEmpty()) {
-                    perGroupResults = mapOf(-1 to "그룹을 1개 이상 선택하세요")
-                    return@Button
-                }
-                // TimePicker 결과 → 오늘 KST + 선택 시각 → ISO 8601 +09:00
-                val zdt = ExpectedEndAtValidator.nowKst()
-                    .withHour(hour).withMinute(minute).withSecond(0).withNano(0)
-                val expectedEndAtIso = ExpectedEndAtValidator.formatForServer(zdt)
+                val template = selectedTemplate
+                val scopeText = workScopeInput.trim()
+                when {
+                    template == null -> perGroupResults = mapOf(-1 to "Select an active OPS")
+                    scopeText.isEmpty() -> perGroupResults = mapOf(-1 to "Enter work scope")
+                    selectedGroupIds.isEmpty() -> perGroupResults = mapOf(-1 to "Select at least one group")
+                    hazards.isEmpty() || controls.isEmpty() -> perGroupResults = mapOf(-1 to "Hazards and controls required")
+                    !WorkTypeValidator.isValid(template.workType, templates) ->
+                        perGroupResults = mapOf(-1 to "Selected OPS is inactive")
+                    else -> {
+                        val zdt = ExpectedEndAtValidator.nowKst()
+                            .withHour(hour).withMinute(minute).withSecond(0).withNano(0)
+                        val expectedEndAtIso = ExpectedEndAtValidator.formatForServer(zdt)
 
-                submitting = true
-                perGroupResults = emptyMap()
-                scope.launch {
-                    try {
-                        val results: List<Pair<Int, String>> = coroutineScope {
-                            selectedGroupIds.map { gid ->
-                                async {
-                                    val msg = runCatching {
-                                        val resp = api.callTbmStart(
-                                            url = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/notifications",
-                                            apiKey = BuildConfig.SUPABASE_ANON_KEY,
-                                            auth = "Bearer ${BuildConfig.SUPABASE_ANON_KEY}",
-                                            body = TbmStartRequest(
-                                                leaderUserId = leaderUserId,
-                                                groupId = gid,
-                                                workType = workType,
-                                                expectedEndAt = expectedEndAtIso,
-                                                location = locationInput.ifBlank { null },
-                                                notes = notesInput.ifBlank { null },
-                                            ),
-                                        )
-                                        when {
-                                            resp.isSuccessful && resp.body()?.ok == true ->
-                                                "✓ 시작됨 (체크리스트 ${resp.body()?.checklistCount ?: 0}개)"
-                                            resp.code() == 409 -> "⚠ 이미 존재"
-                                            resp.code() == 400 -> "✗ 형식 오류"
-                                            else -> "✗ 오류 ${resp.code()}"
+                        submitting = true
+                        perGroupResults = emptyMap()
+                        scope.launch {
+                            try {
+                                val results = coroutineScope {
+                                    selectedGroupIds.map { groupId ->
+                                        async {
+                                            val msg = runCatching {
+                                                val resp = api.callTbmStart(
+                                                    url = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/notifications",
+                                                    apiKey = BuildConfig.SUPABASE_ANON_KEY,
+                                                    auth = "Bearer ${BuildConfig.SUPABASE_ANON_KEY}",
+                                                    body = TbmStartRequest(
+                                                        leaderUserId = leaderUserId,
+                                                        groupId = groupId,
+                                                        workType = template.workType,
+                                                        workScope = scopeText,
+                                                        expectedEndAt = expectedEndAtIso,
+                                                        location = locationInput.ifBlank { null },
+                                                        notes = notesInput.ifBlank { null },
+                                                        hazards = hazards,
+                                                        controls = controls,
+                                                    ),
+                                                )
+                                                when {
+                                                    resp.isSuccessful && resp.body()?.ok == true ->
+                                                        "Started (${resp.body()?.checklistCount ?: 0})"
+                                                    resp.code() == 409 -> "Already exists"
+                                                    else -> "Error ${resp.code()}"
+                                                }
+                                            }.getOrElse { "Network: ${it.message}" }
+                                            groupId to msg
                                         }
-                                    }.getOrElse { "✗ 네트워크: ${it.message}" }
-                                    gid to msg
+                                    }.awaitAll()
                                 }
-                            }.awaitAll()
+                                perGroupResults = results.toMap()
+                                onSubmitted()
+                            } finally {
+                                submitting = false
+                            }
                         }
-                        perGroupResults = results.toMap()
-                        onSubmitted()
-                    } finally {
-                        submitting = false
                     }
                 }
             },
             enabled = !submitting && groups.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(
-                if (submitting) "시작 중..."
-                else "선택한 ${selectedGroupIds.size}개 그룹 세션 시작"
-            )
+            Text(if (submitting) "Starting..." else "Start ${selectedGroupIds.size} session(s)")
         }
 
-        // 작업유형/그룹 미선택 경고 메시지 (key = -1)
         perGroupResults[-1]?.let {
             Spacer(Modifier.height(8.dp))
             Text(it, color = Color(0xFFEF4444), fontSize = 13.sp)
         }
     }
 
-    // ── TimePicker Dialog ────────────────────────────────────────────────
+    if (showSlamDialog) {
+        SlamGuideDialog(onDismiss = { showSlamDialog = false })
+    }
+
     if (showTimePicker) {
         val timeState = rememberTimePickerState(
             initialHour = hour,
@@ -294,17 +378,17 @@ fun TbmStartSection(
         )
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("예정 종료 시각") },
+            title = { Text("Expected end time") },
             text = { TimePicker(state = timeState) },
             confirmButton = {
                 TextButton(onClick = {
                     hour = timeState.hour
                     minute = timeState.minute
                     showTimePicker = false
-                }) { Text("확인") }
+                }) { Text("OK") }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("취소") }
+                TextButton(onClick = { showTimePicker = false }) { Text("Cancel") }
             },
         )
     }
