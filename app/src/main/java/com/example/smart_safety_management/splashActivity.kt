@@ -32,21 +32,18 @@ class SplashActivity : AppCompatActivity() {
         fadeLogo.duration = 2000
         fadeLogo.start()
 
-        // 테스트 모드: 로그인 우회 - 로고 애니메이션 후 바로 홈으로 이동
+        // 정상 로그인 흐름 (2026-05-26 복구 — 이전 testuser1 manager 자동 로그인 우회 해제):
+        //   - 저장된 세션 (is_logged_in=true) 이 있으면 그대로 홈으로 진입
+        //   - 없으면 (또는 로그아웃 후) Sign Up / Login 버튼 노출 → 사용자가 직접 진입
+        // 작업자 계정 테스트를 위해 manager 자동 로그인 차단. 이전 우회 코드는 git history 참조
+        // (커밋 ce58e08 이전 SplashActivity 의 fadeLogo onAnimationEnd 블록).
         fadeLogo.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
-                // 2026-05-20 — userId 도 seed 정합 (Plan 09-01 seed = testuser1·_w1·_w2·_w3).
-                // 직전까지 'test_user' 였는데 DB profiles 에 그 row 없어서 모든 Edge Function
-                // 호출 (홈/AI/history/location 등) 이 empty 반환 → 모든 화면 로딩 정지.
-                // testuser1 = manager owner of group_id=1 (010_watch_pipeline.sql:148).
-                UserSession.userId = "testuser1"
-                UserSession.userName = "테스트"
-                UserSession.userRole = UserRole.MANAGER
-                UserSession.isInviteChecked = true
-                UserSession.groupId = "1"  // 2026-05-19: Plan 09-01 seed (testuser1·_w1·_w2·_w3 모두 group_id=1) 정합. Phase 7·9 카드 표시용 — 'test_group' 은 toIntOrNull()=null 이라 TBM/Watch 카드 setup early-return.
-                UserSession.inviteCode = "TEST"
-                UserSession.saveSession(this@SplashActivity)
-                moveToHome()
+                if (UserSession.loadSession(this@SplashActivity)) {
+                    moveToHome()
+                } else {
+                    showAuthButtons(logo, btnSignUp, btnLogin)
+                }
             }
         })
         
