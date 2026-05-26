@@ -65,9 +65,11 @@ import com.example.smart_safety_management.RetrofitClient
 import com.example.smart_safety_management.UserSession
 import com.example.smart_safety_management.GetFireDetectorsResponse
 import com.example.smart_safety_management.GetArcBreakersResponse
+import kotlinx.coroutines.delay
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.time.Instant
 
 private class AnchorBelowPositionProvider(
     private val gap: Int,
@@ -827,6 +829,15 @@ fun LiveListCard(item: LiveCardItem, onClick: () -> Unit) {
                     modifier = Modifier.fillMaxSize()
                 )
 
+                if (item.isRtsp) {
+                    YoloStateBadge(
+                        lastFrameAt = item.lastFrameAt,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
+                    )
+                }
+
                 if (item.isLive) {
                     LiveBadge(
                         modifier = Modifier
@@ -893,6 +904,14 @@ fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
                     error = painterResource(id = item.thumbRes),
                     modifier = Modifier.fillMaxSize()
                 )
+                if (item.isRtsp) {
+                    YoloStateBadge(
+                        lastFrameAt = item.lastFrameAt,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
+                    )
+                }
                 if (item.isLive) {
                     LiveBadge(
                         modifier = Modifier
@@ -922,6 +941,77 @@ fun LiveGridCard(item: LiveCardItem, onClick: () -> Unit) {
         }
     }
 }
+/**
+ * RTSP 카메라의 YOLO 동작 state 라벨.
+ * - last_frame_at (서버 ai_agent/scheduler 가 capture 성공 시마다 cameras.last_frame_at 갱신)
+ *   이 최근 90초 이내면 'YOLO' (green), 그 외 'YOLO 정지' (gray).
+ * - 90초 = scheduler detection interval (보통 30~60초) × 1.5~2 마진.
+ * - server-side cameras_healthcheck (5분 임계) 보다 빠른 client-side 판정.
+ * - 5초 단위로 self-tick 해서 polling 주기와 무관하게 임계 전이가 부드럽게 반영됨.
+ */
+@Composable
+fun YoloStateBadge(
+    lastFrameAt: String?,
+    modifier: Modifier = Modifier
+) {
+    val nowMs by produceState(initialValue = System.currentTimeMillis()) {
+        while (true) {
+            delay(5_000L)
+            value = System.currentTimeMillis()
+        }
+    }
+    val lastMs = remember(lastFrameAt) {
+        if (lastFrameAt.isNullOrEmpty()) null
+        else runCatching { Instant.parse(lastFrameAt).toEpochMilli() }.getOrNull()
+    }
+    val isOn = lastMs != null && (nowMs - lastMs) in 0..90_000L
+
+    val bg = if (isOn) Color(0xFF16A34A) else Color(0xFF6B7280)
+    val label = if (isOn) "YOLO" else "YOLO 정지"
+    val dotAlpha = if (isOn) {
+        val transition = rememberInfiniteTransition(label = "yoloDot")
+        transition.animateFloat(
+            initialValue = 1f,
+            targetValue = 0.2f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 900),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "yoloDotAlpha"
+        ).value
+    } else 0.6f
+
+    Box(
+        modifier = modifier
+            .height(22.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(bg)
+            .padding(horizontal = 8.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier.fillMaxHeight(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.White.copy(alpha = dotAlpha))
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = label,
+                color = Color.White,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontFamily = Pretendard,
+                maxLines = 1
+            )
+        }
+    }
+}
+
 @Composable
 fun LiveBadge(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "liveDot")

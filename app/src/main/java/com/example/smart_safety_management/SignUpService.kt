@@ -161,7 +161,9 @@ data class CCTVItemResponse(
     @SerializedName("live_url") val liveUrl: String?,
     @SerializedName("live_url_detail") val liveUrlDetail: String?,
     @SerializedName("latitude") val latitude: Double?,
-    @SerializedName("longitude") val longitude: Double?
+    @SerializedName("longitude") val longitude: Double?,
+    @SerializedName("health_state") val healthState: String? = null,
+    @SerializedName("last_frame_at") val lastFrameAt: String? = null
 )
 
 data class GetCCTVListResponse(

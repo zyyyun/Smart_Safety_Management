@@ -52,6 +52,7 @@ import com.example.smart_safety_management.UserSession
 import com.example.smart_safety_management.RetrofitClient
 import com.example.smart_safety_management.GetCCTVListResponse
 import com.example.smart_safety_management.CCTVItemResponse
+import kotlinx.coroutines.delay
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -77,8 +78,11 @@ private fun RealTimeNavigation() {
     var cctvDataList by remember { mutableStateOf<List<CCTVItemResponse>>(emptyList()) }
 
     LaunchedEffect(Unit) {
-        val userId = UserSession.userId
-        if (userId != null) {
+        val userId = UserSession.userId ?: return@LaunchedEffect
+
+        // RTSP 카메라의 YOLO 동작 state 라벨을 동적으로 갱신하기 위해 30초 주기 polling.
+        // scheduler 한 cycle 길이와 비슷한 간격 — 라벨이 ON/OFF 전이를 빠르게 반영.
+        while (true) {
             RetrofitClient.instance.getCCTVList(null, null, userId).enqueue(object : Callback<GetCCTVListResponse> {
                 override fun onResponse(call: Call<GetCCTVListResponse>, response: Response<GetCCTVListResponse>) {
                     if (response.isSuccessful) {
@@ -88,6 +92,8 @@ private fun RealTimeNavigation() {
                             val resId = R.drawable.thumb_site
                             val baseUrl = RetrofitClient.BASE_URL.removeSuffix("/")
                             val fullUrl = if (!dto.imageUrl.isNullOrEmpty()) baseUrl + dto.imageUrl else null
+                            val isRtsp = dto.liveUrlDetail?.startsWith("rtsp://", ignoreCase = true) == true ||
+                                dto.liveUrlDetail?.startsWith("rtsps://", ignoreCase = true) == true
 
                             LiveCardItem(
                                 camId = dto.name,
@@ -99,13 +105,16 @@ private fun RealTimeNavigation() {
                                 overviewThumb = resId,
                                 siteThumb = resId,
                                 captureThumbs = listOf(resId, resId, resId),
-                                isLive = true
+                                isLive = true,
+                                isRtsp = isRtsp,
+                                lastFrameAt = dto.lastFrameAt
                             )
                         }
                     }
                 }
                 override fun onFailure(call: Call<GetCCTVListResponse>, t: Throwable) {}
             })
+            delay(30_000L)
         }
     }
 
