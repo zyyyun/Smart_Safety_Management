@@ -30,7 +30,7 @@ Status: 다음 = `/gsd-discuss-phase 11` 또는 `/gsd-discuss-phase 12` (병렬 
 ### v1.1 Phases (planning)
 
 Phase 11: not started — 일관 시각 언어 정립 (UX-01·02·03)
-Phase 12: not started — TBM 재설계 KOSHA 가이드 흡수 (TBM-04·05·06·07·08)
+Phase 12: ⚠ DISCUSSING → CONTEXT 작성 완료 (2026-05-23) — TBM 재설계 KOSHA 가이드 흡수 (TBM-04·05·06·07·08). 10 결정 D-01~D-09 잠금 (Area A·B·C·E 4개 모두). 다음 = `/gsd-plan-phase 12`.
 Phase 13: not started — 데이터 신뢰성 + 정보구조 (DATA-04, INFO-01)
 Phase 14: not started — 6월 설치 사전 UAT (UAT-01·02·03) — depends on 11·12·13
 
