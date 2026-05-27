@@ -24,6 +24,13 @@ class SettingChangePasswordActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_change_password)
 
+        // Phase 11 / 11-02 Sub-task 3.2 — common_toolbar wiring (UX-03).
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.let { tb ->
+            setSupportActionBar(tb)
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            tb.setNavigationOnClickListener { finish() }
+        }
+
         val tilNewPassword = findViewById<TextInputLayout>(R.id.til_write_new_password)
         val tilReNewPassword = findViewById<TextInputLayout>(R.id.til_write_re_new_password)
         val etNewPassword = findViewById<TextInputEditText>(R.id.et_new_password)
