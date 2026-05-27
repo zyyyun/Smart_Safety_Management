@@ -13,7 +13,9 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
@@ -37,6 +39,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import androidx.compose.foundation.clickable
+import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -348,6 +351,20 @@ fun EventItem(event: EventData, status: EventStatus, onEventClick: (EventData) -
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // 2026-05-27 Issue 2A: 감지 이미지 thumbnail (event.imageUrl 있을 때만).
+                // backend SELECT 절에 image_url 포함 시 자동 표시; null/blank 면 기존 icon-only fallback.
+                if (!event.imageUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = event.imageUrl,
+                        contentDescription = "감지 이미지",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
                 if (iconRes != 0) {
                     Icon(
                         painter = painterResource(id = iconRes),
