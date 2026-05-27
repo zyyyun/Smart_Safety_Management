@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.BuildConfig
+import com.example.smart_safety_management.ui.SsmColors
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
@@ -259,7 +260,7 @@ fun TbmStartSection(
         Spacer(Modifier.height(12.dp))
 
         // 2026-05-27 — 다중 그룹 기능 삭제. Group Checkbox UI 제거. 매니저의 첫 그룹 자동 사용.
-        loadError?.let { Text(it, color = Color(0xFFEF4444), fontSize = 12.sp) }
+        loadError?.let { Text(it, color = SsmColors.TextDanger, fontSize = 12.sp) }
 
         Button(
             onClick = {
@@ -326,7 +327,7 @@ fun TbmStartSection(
             val isErr = it.startsWith("오류") || it.contains("실패") || it.contains("필요")
                 || it.contains("입력하세요") || it.contains("선택하세요") || it.contains("이미")
                 || it.contains("비활성화") || it.contains("그룹 정보")
-            Text(it, color = if (isErr) Color(0xFFEF4444) else Color(0xFF2563EB), fontSize = 13.sp)
+            Text(it, color = if (isErr) SsmColors.TextDanger else SsmColors.TextInfo, fontSize = 13.sp)
         }
     }
 

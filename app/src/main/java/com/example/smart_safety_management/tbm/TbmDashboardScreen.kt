@@ -44,6 +44,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.BuildConfig
+import com.example.smart_safety_management.ui.SsmColors
+import com.example.smart_safety_management.ui.components.SectionHeader
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -52,15 +54,13 @@ import kotlinx.coroutines.launch
 
 private const val FREETEXT_ITEM_TEXT = "추가 작업 사항"
 
-// Phase 12 의 카드 상태 톤과 일관:
-//   진행중 (active)  → orange #F59E0B (Phase 12 InProgress)
-//   종료 (ended)     → 회색 #F3F4F6 배경 + #6B7280 본문
-//   미참여 알림 발송 → red #EF4444 (MissedAlertSent — 본 화면에서는 본문 안 별도 표시)
-private val COLOR_ACTIVE_ORANGE = Color(0xFFF59E0B)
-private val COLOR_ENDED_BG = Color(0xFFF3F4F6)
-private val COLOR_TEXT_MUTED = Color(0xFF6B7280)
-private val COLOR_TEXT_INFO = Color(0xFF2563EB)
-private val COLOR_TEXT_DANGER = Color(0xFFEF4444)
+// Phase 11 / 11-01 — 인라인 COLOR_* val 정의 5종 삭제. ui.SsmColors 로 single source-of-truth.
+// 매핑:
+//   SsmColors.ActiveOrange → SsmColors.ActiveOrange   (진행중 active)
+//   SsmColors.EndedBg      → SsmColors.EndedBg        (종료 카드 배경)
+//   SsmColors.TextMuted    → SsmColors.TextMuted      (보조 텍스트)
+//   SsmColors.TextInfo     → SsmColors.TextInfo       (정보 메시지)
+//   SsmColors.TextDanger   → SsmColors.TextDanger     (미참여 알림 발송 등)
 
 @Composable
 fun TbmDashboardScreen(
@@ -117,7 +117,7 @@ fun TbmDashboardScreen(
 
         // 2단 — 오늘 세션 (진행중 섹션 + 종료 섹션 분리)
         if (managerGroup == null) {
-            Text("그룹 정보 불러오는 중...", fontSize = 13.sp, color = COLOR_TEXT_MUTED)
+            Text("그룹 정보 불러오는 중...", fontSize = 13.sp, color = SsmColors.TextMuted)
         } else {
             val activeSessions = todaySessions.filter { it.endedAt == null }
             val endedSessions = todaySessions.filter { it.endedAt != null }
@@ -145,15 +145,16 @@ private fun SessionsSection(
         // Fix 2026-05-27 (earlier): `if (empty) { ...; return@Column }` 패턴은 Compose group
         // stack 을 깨뜨리므로 if/else 양분 구조 유지.
         if (activeSessions.isEmpty() && endedSessions.isEmpty()) {
-            Text("오늘 TBM 세션 없음", fontSize = 13.sp, color = COLOR_TEXT_MUTED)
+            Text("오늘 TBM 세션 없음", fontSize = 13.sp, color = SsmColors.TextMuted)
         } else {
             // 진행중 섹션
             if (activeSessions.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 SectionHeader(
                     icon = Icons.Default.Schedule,
-                    iconTint = COLOR_ACTIVE_ORANGE,
-                    label = "진행중 (${activeSessions.size}개)",
+                    label = "진행중",
+                    count = activeSessions.size,
+                    iconTint = SsmColors.ActiveOrange,
                 )
                 activeSessions.forEach { session ->
                     Spacer(Modifier.height(6.dp))
@@ -172,8 +173,9 @@ private fun SessionsSection(
                 Spacer(Modifier.height(12.dp))
                 SectionHeader(
                     icon = Icons.Default.CheckCircle,
-                    iconTint = COLOR_TEXT_MUTED,
-                    label = "종료 (${endedSessions.size}개)",
+                    label = "종료",
+                    count = endedSessions.size,
+                    iconTint = SsmColors.TextMuted,
                 )
                 endedSessions.forEach { session ->
                     Spacer(Modifier.height(6.dp))
@@ -187,24 +189,6 @@ private fun SessionsSection(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun SectionHeader(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    iconTint: Color,
-    label: String,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(Modifier.width(6.dp))
-        Text(label, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = iconTint)
     }
 }
 
@@ -236,11 +220,11 @@ private fun SessionDetailCard(
     // 활성/종료 톤 분리:
     //   진행중 → 2dp orange border + 기본 카드 배경
     //   종료   → 회색 배경 + border 0
-    val cardBorder = if (isActive) BorderStroke(2.dp, COLOR_ACTIVE_ORANGE) else null
+    val cardBorder = if (isActive) BorderStroke(2.dp, SsmColors.ActiveOrange) else null
     val cardColors = if (isActive) {
         CardDefaults.cardColors()
     } else {
-        CardDefaults.cardColors(containerColor = COLOR_ENDED_BG)
+        CardDefaults.cardColors(containerColor = SsmColors.EndedBg)
     }
 
     Card(
@@ -265,13 +249,13 @@ private fun SessionDetailCard(
                         session.workScope,
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = if (isActive) Color.Black else COLOR_TEXT_MUTED,
+                        color = if (isActive) Color.Black else SsmColors.TextMuted,
                     )
                     val statusKor = if (isActive) "진행중" else "종료"
                     Text(
                         "${workTypeKorean(session.workType)} · $statusKor · 참여자 ${participants.size}명",
                         fontSize = 12.sp,
-                        color = COLOR_TEXT_MUTED,
+                        color = SsmColors.TextMuted,
                     )
                 }
             }
@@ -284,14 +268,14 @@ private fun SessionDetailCard(
                     Icon(
                         Icons.Default.AccessTime,
                         contentDescription = null,
-                        tint = COLOR_TEXT_MUTED,
+                        tint = SsmColors.TextMuted,
                         modifier = Modifier.size(14.dp),
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
                         "예상 종료 ${formatTimeShort(session.expectedEndAt)}",
                         fontSize = 12.sp,
-                        color = COLOR_TEXT_MUTED,
+                        color = SsmColors.TextMuted,
                     )
                 }
                 session.location?.let { loc ->
@@ -300,11 +284,11 @@ private fun SessionDetailCard(
                         Icon(
                             Icons.Default.Place,
                             contentDescription = null,
-                            tint = COLOR_TEXT_MUTED,
+                            tint = SsmColors.TextMuted,
                             modifier = Modifier.size(14.dp),
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text("위치: $loc", fontSize = 12.sp, color = COLOR_TEXT_MUTED)
+                        Text("위치: $loc", fontSize = 12.sp, color = SsmColors.TextMuted)
                     }
                 }
                 Spacer(Modifier.height(10.dp))
@@ -329,7 +313,7 @@ private fun SessionDetailCard(
                         Icon(
                             Icons.Default.People,
                             contentDescription = null,
-                            tint = COLOR_TEXT_MUTED,
+                            tint = SsmColors.TextMuted,
                             modifier = Modifier.size(16.dp),
                         )
                         Spacer(Modifier.width(4.dp))
@@ -397,7 +381,7 @@ private fun SessionDetailCard(
                     }
                     endResultMsg?.let {
                         Spacer(Modifier.height(4.dp))
-                        Text(it, color = COLOR_TEXT_INFO, fontSize = 12.sp)
+                        Text(it, color = SsmColors.TextInfo, fontSize = 12.sp)
                     }
                 }
             }

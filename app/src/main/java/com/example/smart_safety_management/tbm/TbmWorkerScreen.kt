@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.BuildConfig
+import com.example.smart_safety_management.ui.SsmColors
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.flow.collectLatest
@@ -122,7 +123,7 @@ fun TbmWorkerScreen(
         Spacer(Modifier.height(12.dp))
 
         if (alreadyJoined) {
-            Text("참여 완료 (${formatTimeShort(myParticipation!!.signedAt)})", color = Color(0xFF22C55E))
+            Text("참여 완료 (${formatTimeShort(myParticipation!!.signedAt)})", color = SsmColors.SuccessGreen)
         } else if (sessionEnded) {
             Text("이미 종료된 세션입니다.", color = Color.Gray)
         } else {
@@ -191,7 +192,7 @@ fun TbmWorkerScreen(
             }
             resultMsg?.let {
                 Spacer(Modifier.height(8.dp))
-                Text(it, color = Color(0xFF2563EB), fontSize = 13.sp)
+                Text(it, color = SsmColors.TextInfo, fontSize = 13.sp)
             }
         }
     }
