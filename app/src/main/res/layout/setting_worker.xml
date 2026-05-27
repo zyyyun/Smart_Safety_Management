@@ -6,6 +6,14 @@
     android:layout_height="match_parent"
     android:background="@color/base">
 
+    <!--
+      Phase 11 / 11-02 Sub-task 3.1 — D4 A 옵션. 공통 toolbar include (gone for T-11-02 회귀 가드).
+    -->
+    <include
+        layout="@layout/common_toolbar"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"/>
+
     <!-- 뒤로가기 버튼 -->
     <ImageButton
         android:id="@+id/backButton"

@@ -6,6 +6,17 @@
     android:layout_height="match_parent"
     android:background="@color/base">
 
+    <!--
+      Phase 11 / 11-02 Sub-task 3.1 — D4 A 옵션 적용. 공통 toolbar include.
+      현재는 기존 ImageButton(backButton) + Setting 제목 패턴을 유지하기 위해 visibility=gone.
+      Task 3.2 의 setSupportActionBar(toolbar) wiring 시 사용자 단말 검증 후
+      gone → visible 전환 가능 (T-11-02 회귀 위험 보수적 처리).
+    -->
+    <include
+        layout="@layout/common_toolbar"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"/>
+
     <!-- 뒤로가기 버튼 -->
     <ImageButton
         android:id="@+id/backButton"
