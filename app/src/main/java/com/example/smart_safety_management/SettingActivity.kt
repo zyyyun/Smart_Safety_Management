@@ -14,6 +14,15 @@ class SettingActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting)
 
+        // Phase 11 / 11-02 Sub-task 3.2 — common_toolbar wiring (UX-03).
+        // XML 의 <include layout="@layout/common_toolbar"/> 가 GONE 상태 → 시각 충돌 0.
+        // 기존 backButton 핸들러 보존, setSupportActionBar 는 future visible 전환 시 효과.
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.let { tb ->
+            setSupportActionBar(tb)
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            tb.setNavigationOnClickListener { finish() }
+        }
+
         // ===============================
         // 뒤로가기
         // ===============================
