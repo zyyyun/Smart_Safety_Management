@@ -150,49 +150,51 @@ private fun GroupSessionsSection(
             fontSize = 15.sp,
         )
 
+        // Fix 2026-05-27: 이전 `if (empty) { ...; return@Column }` 패턴은 Compose group stack 을
+        // 깨뜨려 ArrayIndexOutOfBoundsException at IntStack.peek2 발생. @Composable 람다 안
+        // early-return 금지. if/else 양분 구조로 교체.
         if (activeSessions.isEmpty() && endedSessions.isEmpty()) {
             Spacer(Modifier.height(4.dp))
             Text("오늘 TBM 세션 없음", fontSize = 12.sp, color = COLOR_TEXT_MUTED)
-            return@Column
-        }
-
-        // 진행중 섹션
-        if (activeSessions.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            SectionHeader(
-                icon = Icons.Default.Schedule,
-                iconTint = COLOR_ACTIVE_ORANGE,
-                label = "진행중 (${activeSessions.size}개)",
-            )
-            activeSessions.forEach { session ->
-                Spacer(Modifier.height(6.dp))
-                SessionDetailCard(
-                    session = session,
-                    isActive = true,
-                    leaderUserId = leaderUserId,
-                    repo = repo,
-                    scope = scope,
+        } else {
+            // 진행중 섹션
+            if (activeSessions.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                SectionHeader(
+                    icon = Icons.Default.Schedule,
+                    iconTint = COLOR_ACTIVE_ORANGE,
+                    label = "진행중 (${activeSessions.size}개)",
                 )
+                activeSessions.forEach { session ->
+                    Spacer(Modifier.height(6.dp))
+                    SessionDetailCard(
+                        session = session,
+                        isActive = true,
+                        leaderUserId = leaderUserId,
+                        repo = repo,
+                        scope = scope,
+                    )
+                }
             }
-        }
 
-        // 종료 섹션
-        if (endedSessions.isNotEmpty()) {
-            Spacer(Modifier.height(12.dp))
-            SectionHeader(
-                icon = Icons.Default.CheckCircle,
-                iconTint = COLOR_TEXT_MUTED,
-                label = "종료 (${endedSessions.size}개)",
-            )
-            endedSessions.forEach { session ->
-                Spacer(Modifier.height(6.dp))
-                SessionDetailCard(
-                    session = session,
-                    isActive = false,
-                    leaderUserId = leaderUserId,
-                    repo = repo,
-                    scope = scope,
+            // 종료 섹션
+            if (endedSessions.isNotEmpty()) {
+                Spacer(Modifier.height(12.dp))
+                SectionHeader(
+                    icon = Icons.Default.CheckCircle,
+                    iconTint = COLOR_TEXT_MUTED,
+                    label = "종료 (${endedSessions.size}개)",
                 )
+                endedSessions.forEach { session ->
+                    Spacer(Modifier.height(6.dp))
+                    SessionDetailCard(
+                        session = session,
+                        isActive = false,
+                        leaderUserId = leaderUserId,
+                        repo = repo,
+                        scope = scope,
+                    )
+                }
             }
         }
     }
