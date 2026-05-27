@@ -80,6 +80,13 @@ class SettingInviteActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_invite)
 
+        // Phase 11 / 11-02 Sub-task 3.2 — common_toolbar wiring (UX-03).
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.let { tb ->
+            setSupportActionBar(tb)
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            tb.setNavigationOnClickListener { finish() }
+        }
+
         // 뷰 초기화
         val backButton = findViewById<ImageButton>(R.id.backButton)
         val btnInvite = findViewById<Button>(R.id.btn_invite)
