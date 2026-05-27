@@ -55,7 +55,9 @@ data class EventData(
     val content: String,
     val occurrenceTime: String = "",
     val deviceName: String = "",
-    val accuracy: String = ""
+    val accuracy: String = "",
+    // 2026-05-27 Issue 2A: 감지 캡쳐 이미지 URL. null/blank 면 EventItem 이 fallback icon-only.
+    val imageUrl: String? = null
 )
 
 data class ProcessedEventData(
@@ -468,7 +470,9 @@ fun DetectionEventDTO.toEventData(formatter: SimpleDateFormat? = null): EventDat
         content = "${this.eventName ?: "알 수 없는 이벤트"}이(가) 감지되었습니다.",
         occurrenceTime = calculateTimeAgo(this.detectedAt, formatter),
         deviceName = this.deviceName ?: "",
-        accuracy = "${this.accuracy ?: 0}%"
+        accuracy = "${this.accuracy ?: 0}%",
+        // 2026-05-27 Issue 2A: image_url propagate (backend SELECT 절 포함 시).
+        imageUrl = this.imageUrl
     )
 }
 
