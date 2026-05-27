@@ -1,7 +1,7 @@
 ---
 milestone: v1.1
 name: "앱 전체 완성도"
-status: executing  # 2026-05-27 — Phase 12 Wave 1·2 운영 적용 완료 (Plan 04 시연 deferred). 4 quick tasks (TBM UI 한국어·redesign·crash fix·single-group) 추가 완료.
+status: executing  # 2026-05-27 — Phase 12 Wave 1·2 운영 적용 완료 (Plan 04 시연 deferred). 5 quick tasks 완료 (TBM UI 한국어·redesign·crash fix·single-group + camera unify & AI감지 thumbnail client wiring, 후자는 backend follow-up 필요).
 started: 2026-05-23
 progress:
   phases_total: 5  # 11·12·13·14·15 (15 신규 — Phase 10 NSSM superseded by Docker)
@@ -188,6 +188,7 @@ Previous: 2026-05-18 — Phase 9 Plan 09-03 COMPLETE. (a) app/build.gradle.kts (
 | 02 | TBM 화면 영어 → 한국어 (8 Kotlin + Edge Function FCM body/title) | 2026-05-26 | 477ac38 | `.planning/quick/20260526-tbm-ui-korean/` |
 | 03 | TBM 대시보드 minimal redesign (위계·아이콘·톤 분리·한국어) | 2026-05-26 | e557fb4 | `.planning/quick/20260526-tbm-dashboard-redesign/` |
 | 04 | TBM 다중 그룹 기능 삭제 — 단일 그룹 가정 | 2026-05-27 | 43ec14e | `.planning/quick/20260527-tbm-single-group/` |
+| 05 | 전경/현장 같은 카메라 시 collapse + AI감지 list 썸네일 client wiring (사용자 보고 2건; Issue 1 완료, Issue 2 backend follow-up 필요) | 2026-05-27 | 9986799 | `.planning/quick/20260527-camera-unify-and-detection-thumbnails/` |
 
 ### Roadmap Evolution
 
