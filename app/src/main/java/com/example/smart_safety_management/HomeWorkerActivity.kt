@@ -52,6 +52,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.example.smart_safety_management.ui.SsmColors
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.watch.DeviceRow
 import com.example.smart_safety_management.watch.EmptyWatchPrompt

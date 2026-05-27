@@ -43,6 +43,7 @@ import retrofit2.Response
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import com.example.smart_safety_management.tbm.TbmDashboardCardComposable
+import com.example.smart_safety_management.ui.SsmColors
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.watch.SupabaseModule
 import io.github.jan.supabase.postgrest.from
