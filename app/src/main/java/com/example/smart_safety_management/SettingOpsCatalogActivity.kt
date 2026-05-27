@@ -5,6 +5,8 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.example.smart_safety_management.tbm.OpsCatalogScreen
+import com.example.smart_safety_management.ui.components.SettingScaffold
+import com.example.smart_safety_management.ui.components.settingScaffoldConfig
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
 import com.example.smart_safety_management.watch.SupabaseModule
 
