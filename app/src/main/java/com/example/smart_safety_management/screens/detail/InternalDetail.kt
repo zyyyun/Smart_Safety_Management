@@ -67,6 +67,22 @@ import com.example.smart_safety_management.LivePlaybackController
  *   val siteStreamId: String? = null
  */
 
+/**
+ * Issue 1 (전경/현장 강제 split) 회귀 가드용 pure helper.
+ *
+ * 같은 카메라(overview==site) 일 때 '현장' 섹션 중복 렌더 방지.
+ * - siteUrl null/blank/== overviewUrl → false (현장 섹션 숨김)
+ * - 그 외 → true
+ *
+ * 양쪽 URL 모두 trim 후 비교 — 공백·CRLF 차이로 인한 오탐 방지.
+ */
+internal fun shouldShowSiteSection(overviewUrl: String?, siteUrl: String?): Boolean {
+    val site = siteUrl?.trim().orEmpty()
+    if (site.isEmpty()) return false
+    val overview = overviewUrl?.trim().orEmpty()
+    return site != overview
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InternalDetailScreen(
