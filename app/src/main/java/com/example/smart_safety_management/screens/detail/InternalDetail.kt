@@ -249,8 +249,14 @@ fun InternalDetailScreen(
 
             Spacer(Modifier.height(24.dp))
 
+            // Issue 1 (2026-05-27): 같은 카메라(전경==현장 또는 현장 null/blank)
+            // 일 때는 '현장' 섹션을 숨겨 카드 중복 렌더 방지.
+            // 단일 카드만 보일 때는 라벨을 '실시간 화면' 으로 자연화.
+            val showSite = shouldShowSiteSection(finalOverviewUrl, finalSiteUrl)
+            val overviewLabel = if (showSite) "전경" else "실시간 화면"
+
             Text(
-                text = "전경",
+                text = overviewLabel,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
                 fontFamily = Pretendard,
@@ -268,32 +274,34 @@ fun InternalDetailScreen(
                 isLive = true,
                 imageUrl = finalOverviewUrl,
                 streamId = overviewStreamId,
-                label = "전경"
+                label = overviewLabel
             )
 
-            Spacer(Modifier.height(24.dp))
+            if (showSite) {
+                Spacer(Modifier.height(24.dp))
 
-            Text(
-                text = "현장",
-                fontSize = 18.sp,
-                color = sectionTitleColor,
-                fontWeight = FontWeight.Medium,
-                fontFamily = Pretendard,
-                modifier = Modifier.padding(horizontal = side)
-            )
-            Spacer(Modifier.height(16.dp))
+                Text(
+                    text = "현장",
+                    fontSize = 18.sp,
+                    color = sectionTitleColor,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = Pretendard,
+                    modifier = Modifier.padding(horizontal = side)
+                )
+                Spacer(Modifier.height(16.dp))
 
-            SmartPreviewCard(
-                imageRes = R.drawable.bbb,
-                border = border,
-                modifier = Modifier
-                    .padding(horizontal = side)
-                    .fillMaxWidth(),
-                isLive = true,
-                imageUrl = finalSiteUrl,
-                streamId = siteStreamId,
-                label = "현장"
-            )
+                SmartPreviewCard(
+                    imageRes = R.drawable.bbb,
+                    border = border,
+                    modifier = Modifier
+                        .padding(horizontal = side)
+                        .fillMaxWidth(),
+                    isLive = true,
+                    imageUrl = finalSiteUrl,
+                    streamId = siteStreamId,
+                    label = "현장"
+                )
+            }
 
             Spacer(Modifier.height(24.dp))
 
