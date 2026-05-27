@@ -70,18 +70,22 @@ fun TbmDashboardScreen(
     val scope = rememberCoroutineScope()
     val repo = remember { TbmRepository(supabase) }
 
-    var groups by remember { mutableStateOf<List<GroupRow>>(emptyList()) }
-    var sessionsByGroup by remember { mutableStateOf<Map<Int, List<TbmSessionRow>>>(emptyMap()) }
+    // 2026-05-27 — 다중 그룹 기능 삭제. 매니저의 첫(유일) 그룹만 사용.
+    // Repository 의 multi 메서드는 보존 — future hook 으로 multi-group 복원 가능.
+    var managerGroup by remember { mutableStateOf<GroupRow?>(null) }
+    var todaySessions by remember { mutableStateOf<List<TbmSessionRow>>(emptyList()) }
 
     LaunchedEffect(leaderUserId) {
-        groups = runCatching { repo.fetchGroupsForManager(leaderUserId) }.getOrElse { emptyList() }
+        managerGroup = runCatching { repo.fetchGroupsForManager(leaderUserId) }
+            .getOrNull()?.firstOrNull()
     }
-    LaunchedEffect(groups.map { it.groupId }) {
-        if (groups.isEmpty()) {
-            sessionsByGroup = emptyMap()
-            return@LaunchedEffect
+    LaunchedEffect(managerGroup?.groupId) {
+        val gid = managerGroup?.groupId
+        if (gid == null) {
+            todaySessions = emptyList()
+        } else {
+            repo.todaySessionFlow(gid).collectLatest { todaySessions = it }
         }
-        repo.todaySessionsFlow(groups.map { it.groupId }).collectLatest { sessionsByGroup = it }
     }
 
     Column(
@@ -111,32 +115,25 @@ fun TbmDashboardScreen(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
 
-        // 2단 — 그룹별 오늘 세션 (진행중 섹션 + 종료 섹션 분리)
-        if (groups.isEmpty()) {
-            Text("그룹 불러오는 중...", fontSize = 13.sp, color = COLOR_TEXT_MUTED)
+        // 2단 — 오늘 세션 (진행중 섹션 + 종료 섹션 분리)
+        if (managerGroup == null) {
+            Text("그룹 정보 불러오는 중...", fontSize = 13.sp, color = COLOR_TEXT_MUTED)
         } else {
-            groups.forEach { group ->
-                val groupSessions = sessionsByGroup[group.groupId].orEmpty()
-                val activeSessions = groupSessions.filter { it.endedAt == null }
-                val endedSessions = groupSessions.filter { it.endedAt != null }
-
-                GroupSessionsSection(
-                    group = group,
-                    activeSessions = activeSessions,
-                    endedSessions = endedSessions,
-                    leaderUserId = leaderUserId,
-                    repo = repo,
-                    scope = scope,
-                )
-                Spacer(Modifier.height(12.dp))
-            }
+            val activeSessions = todaySessions.filter { it.endedAt == null }
+            val endedSessions = todaySessions.filter { it.endedAt != null }
+            SessionsSection(
+                activeSessions = activeSessions,
+                endedSessions = endedSessions,
+                leaderUserId = leaderUserId,
+                repo = repo,
+                scope = scope,
+            )
         }
     }
 }
 
 @Composable
-private fun GroupSessionsSection(
-    group: GroupRow,
+private fun SessionsSection(
     activeSessions: List<TbmSessionRow>,
     endedSessions: List<TbmSessionRow>,
     leaderUserId: String,
@@ -144,18 +141,11 @@ private fun GroupSessionsSection(
     scope: CoroutineScope,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            "그룹 #${group.groupId} (${group.inviteCode})",
-            fontWeight = FontWeight.Bold,
-            fontSize = 15.sp,
-        )
-
-        // Fix 2026-05-27: 이전 `if (empty) { ...; return@Column }` 패턴은 Compose group stack 을
-        // 깨뜨려 ArrayIndexOutOfBoundsException at IntStack.peek2 발생. @Composable 람다 안
-        // early-return 금지. if/else 양분 구조로 교체.
+        // 2026-05-27 — 다중 그룹 기능 삭제로 "그룹 #ID (코드)" 헤더 제거. 단일 그룹 가정.
+        // Fix 2026-05-27 (earlier): `if (empty) { ...; return@Column }` 패턴은 Compose group
+        // stack 을 깨뜨리므로 if/else 양분 구조 유지.
         if (activeSessions.isEmpty() && endedSessions.isEmpty()) {
-            Spacer(Modifier.height(4.dp))
-            Text("오늘 TBM 세션 없음", fontSize = 12.sp, color = COLOR_TEXT_MUTED)
+            Text("오늘 TBM 세션 없음", fontSize = 13.sp, color = COLOR_TEXT_MUTED)
         } else {
             // 진행중 섹션
             if (activeSessions.isNotEmpty()) {

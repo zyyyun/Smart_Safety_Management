@@ -186,7 +186,8 @@ Previous: 2026-05-18 — Phase 9 Plan 09-03 COMPLETE. (a) app/build.gradle.kts (
 |---|-------------|------|--------|-----------|
 | 01 | RTSP 카메라 YOLO 동작 state 라벨 (실시간상황 화면) | 2026-05-26 | 137af42 | `.planning/quick/260526-rtsp-yolo-state-label/` |
 | 02 | TBM 화면 영어 → 한국어 (8 Kotlin + Edge Function FCM body/title) | 2026-05-26 | 477ac38 | `.planning/quick/20260526-tbm-ui-korean/` |
-| 03 | TBM 대시보드 minimal redesign (위계·아이콘·톤 분리·한국어) | 2026-05-26 | (이번 commit) | `.planning/quick/20260526-tbm-dashboard-redesign/` |
+| 03 | TBM 대시보드 minimal redesign (위계·아이콘·톤 분리·한국어) | 2026-05-26 | e557fb4 | `.planning/quick/20260526-tbm-dashboard-redesign/` |
+| 04 | TBM 다중 그룹 기능 삭제 — 단일 그룹 가정 | 2026-05-27 | (이번 commit) | `.planning/quick/20260527-tbm-single-group/` |
 
 ### Roadmap Evolution
 

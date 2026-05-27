@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -40,9 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.BuildConfig
 import io.github.jan.supabase.SupabaseClient
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -59,8 +55,9 @@ fun TbmStartSection(
     val api = remember { buildTbmFunctionsApi() }
 
     var templates by remember { mutableStateOf<List<TbmTemplateRow>>(emptyList()) }
-    var groups by remember { mutableStateOf<List<GroupRow>>(emptyList()) }
-    var selectedGroupIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    // 2026-05-27 — 다중 그룹 기능 삭제. 매니저의 첫(유일) 그룹만 사용.
+    // Schema 의 group_id FK 는 그대로 유지 — future hook 으로 multi-group 복원 가능.
+    var managerGroup by remember { mutableStateOf<GroupRow?>(null) }
     var selectedTemplate by remember { mutableStateOf<TbmTemplateRow?>(null) }
     var dropdownExpanded by remember { mutableStateOf(false) }
     var workScopeInput by remember { mutableStateOf("") }
@@ -76,7 +73,7 @@ fun TbmStartSection(
     var locationInput by remember { mutableStateOf("") }
     var notesInput by remember { mutableStateOf("") }
     var submitting by remember { mutableStateOf(false) }
-    var perGroupResults by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
+    var submitResult by remember { mutableStateOf<String?>(null) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var showSlamDialog by remember { mutableStateOf(false) }
     var customControlInput by remember { mutableStateOf("") }
@@ -93,9 +90,10 @@ fun TbmStartSection(
             .onFailure { loadError = "Failed to load OPS templates: ${it.message}" }
             .getOrElse { emptyList() }
         selectTemplate(templates.firstOrNull())
-        groups = runCatching { repo.fetchGroupsForManager(leaderUserId) }
-            .onFailure { loadError = "Failed to load groups: ${it.message}" }
-            .getOrElse { emptyList() }
+        // 매니저가 여러 그룹을 가진 경우라도 첫 그룹만 사용 (단일 그룹 운영 가정).
+        managerGroup = runCatching { repo.fetchGroupsForManager(leaderUserId) }
+            .onFailure { loadError = "그룹 정보 로드 실패: ${it.message}" }
+            .getOrNull()?.firstOrNull()
     }
 
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
@@ -260,92 +258,55 @@ fun TbmStartSection(
         }
         Spacer(Modifier.height(12.dp))
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("대상 그룹", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-            Spacer(Modifier.width(12.dp))
-            if (groups.isNotEmpty()) {
-                val allSelected = selectedGroupIds.size == groups.size
-                Checkbox(
-                    checked = allSelected,
-                    onCheckedChange = { checked ->
-                        selectedGroupIds = if (checked) groups.map { it.groupId }.toSet() else emptySet()
-                    },
-                )
-                Text("전체", fontSize = 13.sp)
-            }
-        }
+        // 2026-05-27 — 다중 그룹 기능 삭제. Group Checkbox UI 제거. 매니저의 첫 그룹 자동 사용.
         loadError?.let { Text(it, color = Color(0xFFEF4444), fontSize = 12.sp) }
-        groups.forEach { group ->
-            val checked = group.groupId in selectedGroupIds
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(
-                    checked = checked,
-                    onCheckedChange = { isChecked ->
-                        selectedGroupIds =
-                            if (isChecked) selectedGroupIds + group.groupId else selectedGroupIds - group.groupId
-                    },
-                )
-                Text("#${group.groupId} (${group.inviteCode})", fontSize = 13.sp)
-                perGroupResults[group.groupId]?.let {
-                    Spacer(Modifier.width(8.dp))
-                    Text(it, fontSize = 12.sp, color = Color(0xFF2563EB))
-                }
-            }
-        }
-        Spacer(Modifier.height(12.dp))
 
         Button(
             onClick = {
                 val template = selectedTemplate
                 val scopeText = workScopeInput.trim()
+                val group = managerGroup
                 when {
-                    template == null -> perGroupResults = mapOf(-1 to "활성 OPS 를 선택하세요")
-                    scopeText.isEmpty() -> perGroupResults = mapOf(-1 to "작업 범위를 입력하세요")
-                    selectedGroupIds.isEmpty() -> perGroupResults = mapOf(-1 to "그룹을 1개 이상 선택하세요")
-                    hazards.isEmpty() || controls.isEmpty() -> perGroupResults = mapOf(-1 to "위험요인·대책이 필요합니다")
+                    template == null -> submitResult = "활성 OPS 를 선택하세요"
+                    scopeText.isEmpty() -> submitResult = "작업 범위를 입력하세요"
+                    group == null -> submitResult = "그룹 정보 없음 — 관리자 권한 확인 필요"
+                    hazards.isEmpty() || controls.isEmpty() -> submitResult = "위험요인·대책이 필요합니다"
                     !WorkTypeValidator.isValid(template.workType, templates) ->
-                        perGroupResults = mapOf(-1 to "선택한 OPS 가 비활성화됨")
+                        submitResult = "선택한 OPS 가 비활성화됨"
                     else -> {
                         val zdt = ExpectedEndAtValidator.nowKst()
                             .withHour(hour).withMinute(minute).withSecond(0).withNano(0)
                         val expectedEndAtIso = ExpectedEndAtValidator.formatForServer(zdt)
 
                         submitting = true
-                        perGroupResults = emptyMap()
+                        submitResult = null
                         scope.launch {
                             try {
-                                val results = coroutineScope {
-                                    selectedGroupIds.map { groupId ->
-                                        async {
-                                            val msg = runCatching {
-                                                val resp = api.callTbmStart(
-                                                    url = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/notifications",
-                                                    apiKey = BuildConfig.SUPABASE_ANON_KEY,
-                                                    auth = "Bearer ${BuildConfig.SUPABASE_ANON_KEY}",
-                                                    body = TbmStartRequest(
-                                                        leaderUserId = leaderUserId,
-                                                        groupId = groupId,
-                                                        workType = template.workType,
-                                                        workScope = scopeText,
-                                                        expectedEndAt = expectedEndAtIso,
-                                                        location = locationInput.ifBlank { null },
-                                                        notes = notesInput.ifBlank { null },
-                                                        hazards = hazards,
-                                                        controls = controls,
-                                                    ),
-                                                )
-                                                when {
-                                                    resp.isSuccessful && resp.body()?.ok == true ->
-                                                        "시작됨 (${resp.body()?.checklistCount ?: 0})"
-                                                    resp.code() == 409 -> "이미 존재"
-                                                    else -> "오류 ${resp.code()}"
-                                                }
-                                            }.getOrElse { "네트워크 오류: ${it.message}" }
-                                            groupId to msg
-                                        }
-                                    }.awaitAll()
-                                }
-                                perGroupResults = results.toMap()
+                                val msg = runCatching {
+                                    val resp = api.callTbmStart(
+                                        url = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/notifications",
+                                        apiKey = BuildConfig.SUPABASE_ANON_KEY,
+                                        auth = "Bearer ${BuildConfig.SUPABASE_ANON_KEY}",
+                                        body = TbmStartRequest(
+                                            leaderUserId = leaderUserId,
+                                            groupId = group.groupId,
+                                            workType = template.workType,
+                                            workScope = scopeText,
+                                            expectedEndAt = expectedEndAtIso,
+                                            location = locationInput.ifBlank { null },
+                                            notes = notesInput.ifBlank { null },
+                                            hazards = hazards,
+                                            controls = controls,
+                                        ),
+                                    )
+                                    when {
+                                        resp.isSuccessful && resp.body()?.ok == true ->
+                                            "시작됨 (점검 항목 ${resp.body()?.checklistCount ?: 0}개)"
+                                        resp.code() == 409 -> "이미 같은 작업 범위의 세션이 존재합니다"
+                                        else -> "오류 ${resp.code()}"
+                                    }
+                                }.getOrElse { "네트워크 오류: ${it.message}" }
+                                submitResult = msg
                                 onSubmitted()
                             } finally {
                                 submitting = false
@@ -354,15 +315,18 @@ fun TbmStartSection(
                     }
                 }
             },
-            enabled = !submitting && groups.isNotEmpty(),
+            enabled = !submitting && managerGroup != null,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (submitting) "시작 중..." else "${selectedGroupIds.size}개 세션 시작")
+            Text(if (submitting) "시작 중..." else "세션 시작")
         }
 
-        perGroupResults[-1]?.let {
+        submitResult?.let {
             Spacer(Modifier.height(8.dp))
-            Text(it, color = Color(0xFFEF4444), fontSize = 13.sp)
+            val isErr = it.startsWith("오류") || it.contains("실패") || it.contains("필요")
+                || it.contains("입력하세요") || it.contains("선택하세요") || it.contains("이미")
+                || it.contains("비활성화") || it.contains("그룹 정보")
+            Text(it, color = if (isErr) Color(0xFFEF4444) else Color(0xFF2563EB), fontSize = 13.sp)
         }
     }
 
