@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Phase 11 / 11-01 — 공통 Toolbar.
+  Plan 11-02 Sub-task 3 에서 모든 Setting* Activity XML 의 `<include layout="@layout/common_toolbar"/>` 대상.
+  Activity 측에서는 `setSupportActionBar(findViewById(R.id.toolbar))` 패턴으로 wiring.
+  drawable/icon_back 은 setting_invite.xml 등 기존 Setting* 화면에서 이미 사용 중 (verified).
+-->
+<androidx.appcompat.widget.Toolbar
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/toolbar"
+    android:layout_width="match_parent"
+    android:layout_height="?attr/actionBarSize"
+    android:background="@color/base"
+    app:navigationIcon="@drawable/icon_back"
+    app:titleTextColor="@color/gray900_gray50"
+    app:contentInsetStartWithNavigation="0dp" />
