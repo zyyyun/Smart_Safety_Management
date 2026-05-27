@@ -54,9 +54,6 @@ class MyApp : Application() {
         // 키 해시 로그 찍기
         printKeyHash()
 
-        // 발급받은 카카오맵 네이티브 앱 키
-        KakaoMapSdk.init(this, "SAMPLE_NATIVE_APP_KEY")
-
         // 2026-05-19 fix: SupabaseClient by-lazy 사전 warm-up.
         // 첫 진입 (SettingDeviceManagement / TBM 카드) 시 lazy block 의 CIO+Realtime+
         // Postgrest+Storage install 비용이 main thread 에 부하 → cold-start 예외 또는
