@@ -12,9 +12,9 @@
 
 ### 1. UX 일관성 (UX)
 
-- [ ] **UX-01**: 입구 흐름 (Splash → SignUp 1·2·3·4 → LogIn → Home 첫 진입) 의 키보드 표시·error 문구·시각 일관성·로딩 인터랙션 단일 규약 적용 (Phase 11)
-- [ ] **UX-02**: Home 화면 카드 4종 (프로필바, 워치·카메라 미니카드, 일일점검 카드, 알림 카드, TBM 카드) 의 시각 언어 통일 — 아키텍처·레이아웃·상태·아이콘 일관 (Phase 11)
-- [ ] **UX-03**: Setting* Activity 시리즈 (인원·기기·CCTV·현장·초대 관리) 패턴 정립 — 헤더·여백·버튼 위치·뒤로가기·진입/이탈 일관 (Phase 11)
+- [x] **UX-01**: 입구 흐름 (Splash → SignUp 1·2·3·4 → LogIn → Home 첫 진입) 의 키보드 표시·error 문구·시각 일관성·로딩 인터랙션 단일 규약 적용 (Phase 11 ✓ COMPLETE 2026-05-27 — Plan 11-02 Sub-task 2: 4 Entry Activity 의 SignUpValidator + ErrorBanner Composable 적용)
+- [x] **UX-02**: Home 화면 카드 4종 (프로필바, 워치·카메라 미니카드, 일일점검 카드, 알림 카드, TBM 카드) 의 시각 언어 통일 — 아키텍처·레이아웃·상태·아이콘 일관 (Phase 11 ✓ COMPLETE 2026-05-27 — Plan 11-01 Tokens.kt + Plan 11-02 Sub-task 1: HomeActivity + HomeWorkerActivity Compose 영역 SsmColors 통일)
+- [x] **UX-03**: Setting* Activity 시리즈 (인원·기기·CCTV·현장·초대 관리) 패턴 정립 — 헤더·여백·버튼 위치·뒤로가기·진입/이탈 일관 (Phase 11 ✓ COMPLETE 2026-05-27 — Plan 11-02 Sub-task 3: 10 Setting XML 의 common_toolbar include + 10 Setting Activity 의 setSupportActionBar wiring + 6 Compose Setting 의 SettingScaffold 적용)
 
 ### 2. TBM 재설계 (TBM, Phase 9 결과물 위 작업)
 

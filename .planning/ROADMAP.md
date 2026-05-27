@@ -28,7 +28,7 @@ predecessor: v1.0 (SHIPPED 2026-05-22, ROADMAP.v1.0.md)
 
 ## Phases
 
-- [ ] **Phase 11: 일관 시각 언어 정립** — 입구·Home·Setting* 의 UI 패턴 통일
+- [x] **Phase 11: 일관 시각 언어 정립** ✓ COMPLETE (2026-05-27) — 입구·Home·Setting* 의 UI 패턴 통일 (Plan 11-01 ui/ 패키지 + common_toolbar.xml + Plan 11-02 28+ 화면 일괄 적용)
 - [ ] **Phase 12: TBM 재설계 (KOSHA 가이드 흡수)** — 작업·공정별 다중 세션 + 회의록 양식 매핑 + 도메인 OPS + 관리자 UI
 - [ ] **Phase 13: 데이터 신뢰성 + 정보구조 정리** — 일일점검 날짜 mismatch + 실시간 카메라 통합
 - [ ] **Phase 15: ai_agent Docker 컨테이너화** — Phase 10 NSSM 서비스 폐기, Docker container 로 전환. 운영 검증 가능성 + 6월 설치 deployment 단순화
@@ -63,7 +63,9 @@ predecessor: v1.0 (SHIPPED 2026-05-22, ROADMAP.v1.0.md)
   2. Home 화면 카드 4종 (프로필바, 워치·카메라 미니카드, 일일점검 카드, 알림 카드, TBM 카드) 의 시각 언어 통일 — corner radius·elevation·padding·아이콘 위치·상태 표시가 동일 token 으로 통제됨 (UX-02).
   3. Setting* Activity 시리즈가 헤더·여백·버튼 위치·뒤로가기 일관 패턴 (예: 공통 SettingScaffold) 으로 정립됨 (UX-03).
   4. 회귀: 기존 `detection_events` · `watch_alerts` · `tbm_sessions` 적재 동작 0 변경 (DB 검증 + ai_agent 31/31 + j2208a 43/43 + Android unit test PASS).
-**Plans**: TBD (`/gsd-discuss-phase 11` 후 결정)
+**Plans**:
+- [x] **Plan 11-01** ✓ COMPLETE (2026-05-27, 13 commits) — 공통 컴포넌트 추출 (Tokens / StateCard / SectionHeader / ScreenScaffold + common_toolbar.xml) + TBM refactor 회귀 가드
+- [x] **Plan 11-02** ✓ COMPLETE (2026-05-27, 34 commits) — Home Compose 2 + 입구 4 Activity (SignUpValidator + ErrorBanner) + Setting XML 10 (common_toolbar include) + Setting Compose 6 (SettingScaffold) 합산 22 화면 일괄 적용
 
 ### Phase 12: TBM 재설계 (KOSHA 가이드 흡수)
 **Goal**: KOSHA `230209 작업 전 안전점검회의 가이드` 의 작업·공정별 다중 세션 + 회의록 양식 핵심 필드를 흡수하고, 도금/금속가공 도메인 OPS 를 시드하여, 검단·포천 현장 관리자/작업자가 실제 사용 가능한 TBM 운영 시스템을 갖춘다.
