@@ -23,7 +23,7 @@ val kakaoNativeAppKey: String =
     (localProperties.getProperty("kakao.nativeAppKey") ?: "b5282649bc815793990d92669375ea72").trim()
 
 val kakaoRestApiKey: String =
-    (localProperties.getProperty("kakao.restApiKey") ?: "").trim()
+    (localProperties.getProperty("kakao.restApiKey") ?: "549ef0580861ccd75dc20bc5858e349f").trim()
 
 android {
     namespace = "com.example.smart_safety_management"
