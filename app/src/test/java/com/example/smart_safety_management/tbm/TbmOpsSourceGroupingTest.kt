@@ -33,4 +33,34 @@ class TbmOpsSourceGroupingTest {
         assertEquals(listOf(null), grouped.map { it.opsTitle })
         assertEquals(2, grouped.single().items.size)
     }
+
+    @Test
+    fun parsesChecklistOpsTitlePrefix() {
+        val item = checklistDisplayItem(
+            TbmChecklistRow(
+                checklistId = 1,
+                sessionId = 10,
+                itemIdx = 0,
+                itemText = "[Forklift] Check blind spots",
+            ),
+        )
+
+        assertEquals("Forklift", item.opsTitle)
+        assertEquals("Check blind spots", item.displayText)
+    }
+
+    @Test
+    fun leavesChecklistWithoutPrefixInFallbackGroup() {
+        val item = checklistDisplayItem(
+            TbmChecklistRow(
+                checklistId = 1,
+                sessionId = 10,
+                itemIdx = 0,
+                itemText = "Check PPE",
+            ),
+        )
+
+        assertEquals(null, item.opsTitle)
+        assertEquals("Check PPE", item.displayText)
+    }
 }

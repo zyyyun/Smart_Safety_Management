@@ -143,6 +143,12 @@ data class GroupRow(
 )
 
 @Serializable
+data class ProfileGroupRow(
+    @SerialName("user_role") val userRole: String,
+    @SerialName("group_id") val groupId: Int? = null,
+)
+
+@Serializable
 data class TbmStartRequest(
     val action: String = "tbm-start",
     @SerialName("leader_user_id") @SerializedName("leader_user_id") val leaderUserId: String,

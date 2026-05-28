@@ -95,6 +95,15 @@ function cleanChecklistTexts(input: unknown, maxItems = 30, maxChars = 180): str
     .filter((value) => value.length > 0);
 }
 
+function kstDateString(now = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
 /**
  * key_actions JSON whitelist: `[{id, text, is_custom?}]`.
  * Fix 2026-05-26: schema seed stores object array, Kotlin model expects same shape.
@@ -576,50 +585,92 @@ Deno.serve(async (req) => {
           expected_end_at,
           location,
           notes,
-          hazards,
-          controls,
           template_ids,
-          ops_titles,
-          checks,
         } = body;
         if (!leader_user_id || !group_id || !work_type || !expected_end_at) {
           return err("leader_user_id, group_id, work_type, expected_end_at are required", 400);
         }
+        const safeGroupId = Number(group_id);
+        if (!Number.isInteger(safeGroupId) || safeGroupId <= 0) return err("group_id is invalid", 400);
         if (!work_scope || typeof work_scope !== "string" || work_scope.trim().length === 0) {
           return err("work_scope is required", 400);
         }
         if (work_scope.length > 80) return err("work_scope must be <= 80 chars", 400);
 
-        const { data: tmpl, error: tErr } = await supabase
-          .from("tbm_templates")
-          .select("checks, title, hazards, controls, is_active")
-          .eq("work_type", work_type)
+        const { data: leader, error: leaderErr } = await supabase
+          .from("profiles")
+          .select("user_role, group_id")
+          .eq("user_id", leader_user_id)
           .maybeSingle();
-        if (tErr) return err(tErr.message, 500);
-        if (!tmpl) return err(`unknown work_type: ${work_type}`, 400);
-        if (tmpl.is_active === false) return err("OPS is inactive", 400);
+        if (leaderErr) return err(leaderErr.message, 500);
+        if (!leader || !["manager", "general_manager"].includes(leader.user_role)) {
+          return err("manager only", 403);
+        }
+        if (Number(leader.group_id) !== safeGroupId) return err("leader group mismatch", 403);
 
-        const safeHazards = hazards === undefined ? cleanHazards(tmpl.hazards) : cleanHazards(hazards);
-        const safeControls = controls === undefined ? cleanControls(tmpl.controls) : cleanControls(controls);
-        const hasClientChecks = Array.isArray(checks) && checks.length > 0;
-        const safeChecks = hasClientChecks
-          ? cleanChecklistTexts(checks, 30, 180)
-          : cleanStringArray(tmpl.checks, 30, 180);
-        const safeOpsTitles = cleanStringArray(ops_titles, 20, 80);
-        const safeTemplateIds = cleanIntegerIds(template_ids, 20);
+        const safeTemplateIds = Array.from(new Set(cleanIntegerIds(template_ids, 20)));
+        let templateQuery = supabase
+          .from("tbm_templates")
+          .select("template_id, work_type, checks, title, hazards, controls, is_active")
+          .eq("is_active", true);
+        templateQuery = safeTemplateIds.length > 0
+          ? templateQuery.in("template_id", safeTemplateIds)
+          : templateQuery.eq("work_type", work_type);
+        const { data: templateRows, error: tErr } = await templateQuery;
+        if (tErr) return err(tErr.message, 500);
+        const templates = (templateRows ?? []) as Array<Record<string, unknown>>;
+        if (templates.length === 0) return err(`unknown or inactive work_type: ${work_type}`, 400);
+        if (safeTemplateIds.length > 0 && templates.length !== safeTemplateIds.length) {
+          return err("one or more OPS templates are invalid", 400);
+        }
+        const orderedTemplates = safeTemplateIds.length > 0
+          ? safeTemplateIds
+            .map((id) => templates.find((template) => Number(template.template_id) === id))
+            .filter((template): template is Record<string, unknown> => Boolean(template))
+          : templates.slice(0, 1);
+        const primaryTemplate = orderedTemplates[0];
+
+        const hazardsFromTemplates = orderedTemplates.flatMap((template) =>
+          (Array.isArray(template.hazards) ? template.hazards : []).map((hazard) => ({
+            ...(hazard as Record<string, unknown>),
+            ops_template_id: Number(template.template_id),
+            ops_title: cleanText(template.title, 80),
+          }))
+        );
+        const controlsFromTemplates = orderedTemplates.flatMap((template) =>
+          (Array.isArray(template.controls) ? template.controls : []).map((control) => ({
+            ...(control as Record<string, unknown>),
+            ops_template_id: Number(template.template_id),
+            ops_title: cleanText(template.title, 80),
+          }))
+        );
+        const checklistFromTemplates = orderedTemplates.flatMap((template) =>
+          cleanStringArray(template.checks, 30, 180).map((text) => ({
+            text,
+            ops_template_id: Number(template.template_id),
+            ops_title: cleanText(template.title, 80),
+          }))
+        );
+
+        const safeHazards = cleanHazards(hazardsFromTemplates);
+        const safeControls = cleanControls(controlsFromTemplates);
+        const safeChecks = cleanChecklistTexts(checklistFromTemplates, 30, 180);
+        const safeOpsTitles = orderedTemplates
+          .map((template) => cleanText(template.title, 80))
+          .filter((title) => title.length > 0);
         if (safeHazards.length === 0) return err("hazards are required", 400);
         if (safeControls.length === 0) return err("controls are required", 400);
 
-        const today = new Date().toISOString().slice(0, 10);
+        const today = kstDateString();
         const { data: session, error: sErr } = await supabase
           .from("tbm_sessions")
           .insert({
-            group_id,
+            group_id: safeGroupId,
             session_date: today,
             work_scope: work_scope.trim(),
             expected_end_at,
             leader_user_id,
-            work_type,
+            work_type: cleanText(primaryTemplate.work_type, 40),
             location: location ?? null,
             notes: notes ?? null,
             hazards_snapshot: safeHazards,
@@ -645,7 +696,7 @@ Deno.serve(async (req) => {
         const { data: workers, error: wErr } = await supabase
           .from("profiles")
           .select("user_id")
-          .eq("group_id", group_id)
+          .eq("group_id", safeGroupId)
           .in("user_role", ["worker", "general_manager"])
           .neq("user_id", leader_user_id);
         if (wErr) return err(wErr.message, 500);
@@ -653,12 +704,14 @@ Deno.serve(async (req) => {
         const workerIds = (workers ?? []).map((w: { user_id: string }) => w.user_id);
         const r = await sendPushToUsers(supabase, workerIds, {
           title: "TBM 세션 시작",
-          body: `${work_scope} - ${safeOpsTitles.length > 0 ? safeOpsTitles.join(", ") : tmpl.title}`,
+          body: `${work_scope} - ${
+            safeOpsTitles.length > 0 ? safeOpsTitles.join(", ") : cleanText(primaryTemplate.title, 80)
+          }`,
           data: {
             type: "tbm_alert",
             action_in_app: "tbm-started",
             session_id: String(session.session_id),
-            work_type,
+            work_type: cleanText(primaryTemplate.work_type, 40),
             work_scope: work_scope.trim(),
             template_ids: safeTemplateIds.join(","),
           },

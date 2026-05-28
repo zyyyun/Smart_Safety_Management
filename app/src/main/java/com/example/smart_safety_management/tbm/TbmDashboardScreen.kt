@@ -58,6 +58,12 @@ data class OpsTitleGroup<T>(
     val items: List<T>,
 )
 
+data class ChecklistDisplayItem(
+    val row: TbmChecklistRow,
+    val displayText: String,
+    val opsTitle: String?,
+)
+
 internal fun <T> groupByOpsTitle(
     items: List<T>,
     labelOf: (T) -> String?,
@@ -68,6 +74,19 @@ internal fun <T> groupByOpsTitle(
         ordered.getOrPut(title) { mutableListOf() }.add(item)
     }
     return ordered.map { (title, groupedItems) -> OpsTitleGroup(title, groupedItems) }
+}
+
+internal fun checklistDisplayItem(row: TbmChecklistRow): ChecklistDisplayItem {
+    val match = Regex("""^\[([^\]]+)]\s*(.+)$""").find(row.itemText)
+    return if (match == null) {
+        ChecklistDisplayItem(row = row, displayText = row.itemText, opsTitle = null)
+    } else {
+        ChecklistDisplayItem(
+            row = row,
+            displayText = match.groupValues[2],
+            opsTitle = match.groupValues[1].takeIf { it.isNotBlank() },
+        )
+    }
 }
 
 @Composable
@@ -402,7 +421,11 @@ private fun SessionDetailCard(
                     "평가 항목 (${checklists.count { it.isChecked }}/${checklists.size})",
                     fontWeight = FontWeight.SemiBold,
                 )
-                checklists.forEach { item -> ChecklistRow(item = item, repo = repo, scope = scope) }
+                GroupedChecklistList(
+                    grouped = groupByOpsTitle(checklists.map(::checklistDisplayItem)) { it.opsTitle },
+                    repo = repo,
+                    scope = scope,
+                )
                 Spacer(Modifier.height(8.dp))
 
                 if (participants.isNotEmpty()) {
@@ -516,10 +539,46 @@ private fun <T> GroupedSnapshotList(
 }
 
 @Composable
+private fun GroupedChecklistList(
+    grouped: List<OpsTitleGroup<ChecklistDisplayItem>>,
+    repo: TbmRepository,
+    scope: CoroutineScope,
+) {
+    if (grouped.isEmpty()) {
+        Text("없음", fontSize = 12.sp, color = SsmColors.TextMuted)
+        return
+    }
+
+    val hasOpsMetadata = grouped.any { it.opsTitle != null }
+    grouped.forEach { group ->
+        if (hasOpsMetadata) {
+            Text(
+                group.opsTitle ?: "기타",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SsmColors.TextInfo,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        group.items.forEach { item ->
+            ChecklistRow(
+                item = item.row,
+                repo = repo,
+                scope = scope,
+                displayText = item.displayText,
+                indent = if (hasOpsMetadata) 8.dp else 0.dp,
+            )
+        }
+    }
+}
+
+@Composable
 fun ChecklistRow(
     item: TbmChecklistRow,
     repo: TbmRepository,
     scope: CoroutineScope,
+    displayText: String = item.itemText,
+    indent: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val isFreetext = item.itemText == FREETEXT_ITEM_TEXT
     val isChecked = item.isChecked
@@ -554,7 +613,7 @@ fun ChecklistRow(
         }
     } else {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = indent, top = 2.dp, bottom = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Checkbox(
@@ -563,7 +622,7 @@ fun ChecklistRow(
                     scope.launch { runCatching { repo.updateChecklistItem(item.checklistId, isChecked = newChecked) } }
                 },
             )
-            Text(item.itemText, fontSize = 13.sp)
+            Text(displayText, fontSize = 13.sp)
         }
     }
 }

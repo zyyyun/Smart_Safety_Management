@@ -15,11 +15,12 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.ZoneId
 
 class TbmRepository(private val supabase: SupabaseClient) {
 
     fun todaySessionFlow(groupId: Int): Flow<List<TbmSessionRow>> = flow {
-        val today = LocalDate.now().toString()
+        val today = LocalDate.now(ZoneId.of("Asia/Seoul")).toString()
         suspend fun fetch(): List<TbmSessionRow> =
             supabase.from("tbm_sessions").select {
                 filter {
@@ -120,12 +121,23 @@ class TbmRepository(private val supabase: SupabaseClient) {
             order("template_id", Order.ASCENDING)
         }.decodeList<TbmTemplateRow>()
 
-    suspend fun fetchGroupsForManager(
-        @Suppress("UNUSED_PARAMETER") managerUserId: String,
-    ): List<GroupRow> =
-        supabase.from("groups").select {
+    suspend fun fetchGroupsForManager(managerUserId: String): List<GroupRow> {
+        val ownedGroups = supabase.from("groups").select {
+            filter { eq("manager_id", managerUserId) }
             order("group_id", Order.ASCENDING)
         }.decodeList<GroupRow>()
+        if (ownedGroups.isNotEmpty()) return ownedGroups
+
+        val profile = supabase.from("profiles").select {
+            filter { eq("user_id", managerUserId) }
+        }.decodeSingleOrNull<ProfileGroupRow>() ?: return emptyList()
+        if (profile.userRole != "general_manager" || profile.groupId == null) return emptyList()
+
+        return supabase.from("groups").select {
+            filter { eq("group_id", profile.groupId) }
+            order("group_id", Order.ASCENDING)
+        }.decodeList<GroupRow>()
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun todaySessionsFlow(groupIds: List<Int>): Flow<Map<Int, List<TbmSessionRow>>> = callbackFlow {

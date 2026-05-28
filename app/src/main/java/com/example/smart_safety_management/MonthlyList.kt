@@ -72,7 +72,6 @@ data class InspectionItem(val checkId: String, val location: String, val descrip
 
 data class DailyInspectionReport(val date: LocalDate, val items: List<InspectionItem>)
 
-@RequiresApi(Build.VERSION_CODES.O)
 internal fun dailyChecklistDisplayDate(checkDate: String?, createdAt: String?): LocalDate {
     val explicit = checkDate?.takeIf { it.length >= 10 }?.substring(0, 10)
     val fallback = createdAt?.takeIf { it.length >= 10 }?.substring(0, 10)
