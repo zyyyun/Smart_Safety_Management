@@ -1,24 +1,24 @@
 package com.example.smart_safety_management.tbm
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -33,7 +33,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,7 +43,7 @@ import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TbmStartSection(
     leaderUserId: String,
@@ -56,15 +55,9 @@ fun TbmStartSection(
     val api = remember { buildTbmFunctionsApi() }
 
     var templates by remember { mutableStateOf<List<TbmTemplateRow>>(emptyList()) }
-    // 2026-05-27 — 다중 그룹 기능 삭제. 매니저의 첫(유일) 그룹만 사용.
-    // Schema 의 group_id FK 는 그대로 유지 — future hook 으로 multi-group 복원 가능.
     var managerGroup by remember { mutableStateOf<GroupRow?>(null) }
-    var selectedTemplate by remember { mutableStateOf<TbmTemplateRow?>(null) }
-    var dropdownExpanded by remember { mutableStateOf(false) }
+    var selectedTemplates by remember { mutableStateOf<List<TbmTemplateRow>>(emptyList()) }
     var workScopeInput by remember { mutableStateOf("") }
-    var hazards by remember { mutableStateOf<List<TbmTemplateHazard>>(emptyList()) }
-    var controls by remember { mutableStateOf<List<TbmTemplateControl>>(emptyList()) }
-    var customHazardInput by remember { mutableStateOf("") }
 
     val initialZdt = remember { ExpectedEndAtValidator.nowKst().plusMinutes(15) }
     var hour by remember { mutableStateOf(initialZdt.hour) }
@@ -77,21 +70,20 @@ fun TbmStartSection(
     var submitResult by remember { mutableStateOf<String?>(null) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var showSlamDialog by remember { mutableStateOf(false) }
-    var customControlInput by remember { mutableStateOf("") }
-    var customControlHazardId by remember { mutableStateOf("") }
 
-    fun selectTemplate(template: TbmTemplateRow?) {
-        selectedTemplate = template
-        hazards = template?.hazards ?: emptyList()
-        controls = template?.controls ?: emptyList()
+    fun toggleTemplate(template: TbmTemplateRow) {
+        selectedTemplates = if (selectedTemplates.any { it.templateId == template.templateId }) {
+            selectedTemplates.filterNot { it.templateId == template.templateId }
+        } else {
+            selectedTemplates + template
+        }
     }
 
     LaunchedEffect(Unit) {
         templates = runCatching { repo.fetchActiveTemplates() }
             .onFailure { loadError = "Failed to load OPS templates: ${it.message}" }
             .getOrElse { emptyList() }
-        selectTemplate(templates.firstOrNull())
-        // 매니저가 여러 그룹을 가진 경우라도 첫 그룹만 사용 (단일 그룹 운영 가정).
+        selectedTemplates = templates.firstOrNull()?.let { listOf(it) } ?: emptyList()
         managerGroup = runCatching { repo.fetchGroupsForManager(leaderUserId) }
             .onFailure { loadError = "그룹 정보 로드 실패: ${it.message}" }
             .getOrNull()?.firstOrNull()
@@ -116,29 +108,26 @@ fun TbmStartSection(
         )
         Spacer(Modifier.height(8.dp))
 
-        ExposedDropdownMenuBox(
-            expanded = dropdownExpanded,
-            onExpandedChange = { dropdownExpanded = !dropdownExpanded },
-        ) {
-            OutlinedTextField(
-                value = selectedTemplate?.title ?: "활성 OPS 없음",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("작업 종류 (OPS)") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpanded) },
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
-            )
-            ExposedDropdownMenu(
-                expanded = dropdownExpanded,
-                onDismissRequest = { dropdownExpanded = false },
+        Text("작업 종류 (OPS)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+        Spacer(Modifier.height(6.dp))
+        if (templates.isEmpty()) {
+            Text("활성 OPS 없음", fontSize = 12.sp, color = SsmColors.TextMuted)
+        } else {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 templates.forEach { template ->
-                    DropdownMenuItem(
-                        text = { Text(template.title) },
-                        onClick = {
-                            selectTemplate(template)
-                            dropdownExpanded = false
-                        },
+                    val selected = selectedTemplates.any { it.templateId == template.templateId }
+                    FilterChip(
+                        selected = selected,
+                        onClick = { toggleTemplate(template) },
+                        label = { Text(template.title, fontSize = 12.sp) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = SsmColors.TextInfo.copy(alpha = 0.14f),
+                            selectedLabelColor = SsmColors.TextInfo,
+                        ),
                     )
                 }
             }
@@ -176,105 +165,34 @@ fun TbmStartSection(
         )
         Spacer(Modifier.height(12.dp))
 
-        Text("위험요인 (Hazards)", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-        hazards.forEach { hazard ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        if (selectedTemplates.isNotEmpty()) {
+            Text("선택 OPS 요약", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Spacer(Modifier.height(4.dp))
+            selectedTemplates.forEach { template ->
                 Text(
-                    "- ${hazard.text}" + (if (hazard.isCustom) " (custom)" else ""),
+                    "${template.title}: 위험 ${template.hazards.size} · 조치 ${template.controls.size}",
                     fontSize = 12.sp,
-                    color = Color(0xFF374151),
-                    modifier = Modifier.weight(1f),
+                    color = SsmColors.TextMuted,
+                    modifier = Modifier.padding(vertical = 2.dp),
                 )
-                OutlinedButton(onClick = {
-                    hazards = HazardsListReducer.removeHazardById(hazards, hazard.id)
-                }) {
-                    Text("X", fontSize = 11.sp)
-                }
             }
+            Spacer(Modifier.height(8.dp))
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = customHazardInput,
-                onValueChange = { customHazardInput = it },
-                label = { Text("위험 추가") },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(8.dp))
-            Button(
-                enabled = customHazardInput.isNotBlank(),
-                onClick = {
-                    hazards = HazardsListReducer.addHazard(hazards, customHazardInput)
-                    customHazardInput = ""
-                },
-            ) { Text("추가") }
-        }
-        Spacer(Modifier.height(12.dp))
 
-        Text("대책 (Controls)", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-        controls.forEach { control ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "- (${control.level}) ${control.hazardId ?: "-"}: ${control.text}" + (if (control.isCustom) " (custom)" else ""),
-                    fontSize = 12.sp,
-                    color = Color(0xFF374151),
-                    modifier = Modifier.weight(1f),
-                )
-                OutlinedButton(onClick = {
-                    controls = HazardsListReducer.removeControlById(controls, control.id)
-                }) {
-                    Text("X", fontSize = 11.sp)
-                }
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(
-                value = customControlHazardId,
-                onValueChange = { customControlHazardId = it.trim() },
-                label = { Text("위험 id") },
-                singleLine = true,
-                modifier = Modifier.width(80.dp),
-            )
-            Spacer(Modifier.width(6.dp))
-            OutlinedTextField(
-                value = customControlInput,
-                onValueChange = { customControlInput = it },
-                label = { Text("대책 본문") },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
-            )
-            Spacer(Modifier.width(8.dp))
-            Button(
-                enabled = customControlInput.isNotBlank(),
-                onClick = {
-                    controls = HazardsListReducer.addControl(
-                        list = controls,
-                        text = customControlInput,
-                        hazardId = customControlHazardId.takeIf { it.isNotBlank() },
-                    )
-                    customControlInput = ""
-                    customControlHazardId = ""
-                },
-            ) { Text("추가") }
-        }
-        Spacer(Modifier.height(12.dp))
-
-        // 2026-05-27 — 다중 그룹 기능 삭제. Group Checkbox UI 제거. 매니저의 첫 그룹 자동 사용.
         loadError?.let { Text(it, color = SsmColors.TextDanger, fontSize = 12.sp) }
 
         Button(
             onClick = {
-                val template = selectedTemplate
                 val scopeText = workScopeInput.trim()
                 val group = managerGroup
                 when {
-                    template == null -> submitResult = "활성 OPS 를 선택하세요"
+                    selectedTemplates.isEmpty() -> submitResult = "활성 OPS 를 선택하세요"
                     scopeText.isEmpty() -> submitResult = "작업 범위를 입력하세요"
-                    group == null -> submitResult = "그룹 정보 없음 — 관리자 권한 확인 필요"
-                    hazards.isEmpty() || controls.isEmpty() -> submitResult = "위험요인·대책이 필요합니다"
-                    !WorkTypeValidator.isValid(template.workType, templates) ->
+                    group == null -> submitResult = "그룹 정보 없음 - 관리자 권한 확인 필요"
+                    selectedTemplates.any { !WorkTypeValidator.isValid(it.workType, templates) } ->
                         submitResult = "선택한 OPS 가 비활성화됨"
                     else -> {
+                        val aggregated = aggregateSelectedOps(selectedTemplates)
                         val zdt = ExpectedEndAtValidator.nowKst()
                             .withHour(hour).withMinute(minute).withSecond(0).withNano(0)
                         val expectedEndAtIso = ExpectedEndAtValidator.formatForServer(zdt)
@@ -291,18 +209,21 @@ fun TbmStartSection(
                                         body = TbmStartRequest(
                                             leaderUserId = leaderUserId,
                                             groupId = group.groupId,
-                                            workType = template.workType,
+                                            workType = selectedTemplates.first().workType,
                                             workScope = scopeText,
                                             expectedEndAt = expectedEndAtIso,
                                             location = locationInput.ifBlank { null },
                                             notes = notesInput.ifBlank { null },
-                                            hazards = hazards,
-                                            controls = controls,
+                                            hazards = aggregated.hazards,
+                                            controls = aggregated.controls,
+                                            templateIds = aggregated.templateIds,
+                                            opsTitles = aggregated.opsTitles,
+                                            checks = aggregated.checks,
                                         ),
                                     )
                                     when {
                                         resp.isSuccessful && resp.body()?.ok == true ->
-                                            "시작됨 (점검 항목 ${resp.body()?.checklistCount ?: 0}개)"
+                                            "시작됨(평가 항목 ${resp.body()?.checklistCount ?: 0}개)"
                                         resp.code() == 409 -> "이미 같은 작업 범위의 세션이 존재합니다"
                                         else -> "오류 ${resp.code()}"
                                     }
@@ -316,10 +237,10 @@ fun TbmStartSection(
                     }
                 }
             },
-            enabled = !submitting && managerGroup != null,
+            enabled = !submitting && managerGroup != null && selectedTemplates.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (submitting) "시작 중..." else "세션 시작")
+            Text(if (submitting) "시작 중.." else "세션 시작")
         }
 
         submitResult?.let {

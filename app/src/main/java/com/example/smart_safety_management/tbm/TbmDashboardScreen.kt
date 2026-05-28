@@ -26,7 +26,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -54,13 +53,22 @@ import kotlinx.coroutines.launch
 
 private const val FREETEXT_ITEM_TEXT = "추가 작업 사항"
 
-// Phase 11 / 11-01 — 인라인 COLOR_* val 정의 5종 삭제. ui.SsmColors 로 single source-of-truth.
-// 매핑:
-//   SsmColors.ActiveOrange → SsmColors.ActiveOrange   (진행중 active)
-//   SsmColors.EndedBg      → SsmColors.EndedBg        (종료 카드 배경)
-//   SsmColors.TextMuted    → SsmColors.TextMuted      (보조 텍스트)
-//   SsmColors.TextInfo     → SsmColors.TextInfo       (정보 메시지)
-//   SsmColors.TextDanger   → SsmColors.TextDanger     (미참여 알림 발송 등)
+data class OpsTitleGroup<T>(
+    val opsTitle: String?,
+    val items: List<T>,
+)
+
+internal fun <T> groupByOpsTitle(
+    items: List<T>,
+    labelOf: (T) -> String?,
+): List<OpsTitleGroup<T>> {
+    val ordered = linkedMapOf<String?, MutableList<T>>()
+    items.forEach { item ->
+        val title = labelOf(item)?.takeIf { it.isNotBlank() }
+        ordered.getOrPut(title) { mutableListOf() }.add(item)
+    }
+    return ordered.map { (title, groupedItems) -> OpsTitleGroup(title, groupedItems) }
+}
 
 @Composable
 fun TbmDashboardScreen(
@@ -70,8 +78,6 @@ fun TbmDashboardScreen(
     val scope = rememberCoroutineScope()
     val repo = remember { TbmRepository(supabase) }
 
-    // 2026-05-27 — 다중 그룹 기능 삭제. 매니저의 첫(유일) 그룹만 사용.
-    // Repository 의 multi 메서드는 보존 — future hook 으로 multi-group 복원 가능.
     var managerGroup by remember { mutableStateOf<GroupRow?>(null) }
     var todaySessions by remember { mutableStateOf<List<TbmSessionRow>>(emptyList()) }
 
@@ -88,13 +94,15 @@ fun TbmDashboardScreen(
         }
     }
 
+    val activeSessions = todaySessions.filter { it.endedAt == null }
+    val endedSessions = todaySessions.filter { it.endedAt != null }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
-        // 헤더 — Assignment icon + 제목
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 Icons.Default.Assignment,
@@ -102,25 +110,32 @@ fun TbmDashboardScreen(
                 modifier = Modifier.size(24.dp),
             )
             Spacer(Modifier.width(8.dp))
-            Text("TBM 대시보드", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+            Column {
+                Text("TBM 현장 운영", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                Text("오늘 세션과 빠른 시작", fontSize = 12.sp, color = SsmColors.TextMuted)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+
+        TbmDashboardSummary(
+            activeCount = activeSessions.size,
+            endedCount = endedSessions.size,
+            totalCount = todaySessions.size,
+        )
+        Spacer(Modifier.height(12.dp))
+
+        TbmQuickStartContainer {
+            TbmStartSection(
+                leaderUserId = leaderUserId,
+                supabase = supabase,
+                onSubmitted = {},
+            )
         }
         Spacer(Modifier.height(16.dp))
 
-        // 1단 — 세션 시작 폼 (아침 우선 위계, D1 선택 반영)
-        TbmStartSection(
-            leaderUserId = leaderUserId,
-            supabase = supabase,
-            onSubmitted = {},
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-
-        // 2단 — 오늘 세션 (진행중 섹션 + 종료 섹션 분리)
         if (managerGroup == null) {
-            Text("그룹 정보 불러오는 중...", fontSize = 13.sp, color = SsmColors.TextMuted)
+            Text("그룹 정보 불러오는 중..", fontSize = 13.sp, color = SsmColors.TextMuted)
         } else {
-            val activeSessions = todaySessions.filter { it.endedAt == null }
-            val endedSessions = todaySessions.filter { it.endedAt != null }
             SessionsSection(
                 activeSessions = activeSessions,
                 endedSessions = endedSessions,
@@ -128,6 +143,89 @@ fun TbmDashboardScreen(
                 repo = repo,
                 scope = scope,
             )
+        }
+    }
+}
+
+@Composable
+private fun TbmDashboardSummary(
+    activeCount: Int,
+    endedCount: Int,
+    totalCount: Int,
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        SummaryMetricCard(
+            label = "진행중",
+            value = activeCount.toString(),
+            color = SsmColors.ActiveOrange,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        SummaryMetricCard(
+            label = "완료",
+            value = endedCount.toString(),
+            color = SsmColors.TextMuted,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        SummaryMetricCard(
+            label = "전체",
+            value = totalCount.toString(),
+            color = SsmColors.TextInfo,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun SummaryMetricCard(
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = SsmColors.EndedBg),
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Text(label, fontSize = 11.sp, color = SsmColors.TextMuted)
+            Text(value, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = color)
+        }
+    }
+}
+
+@Composable
+private fun TbmQuickStartContainer(content: @Composable () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, SsmColors.TextMuted.copy(alpha = 0.18f)),
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
+                    contentDescription = if (expanded) "접기" else "펼치기",
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("빠른 TBM 시작", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("여러 OPS를 선택해 하나의 세션으로 시작", fontSize = 12.sp, color = SsmColors.TextMuted)
+                }
+            }
+            if (expanded) {
+                content()
+            }
         }
     }
 }
@@ -141,52 +239,51 @@ private fun SessionsSection(
     scope: CoroutineScope,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // 2026-05-27 — 다중 그룹 기능 삭제로 "그룹 #ID (코드)" 헤더 제거. 단일 그룹 가정.
-        // Fix 2026-05-27 (earlier): `if (empty) { ...; return@Column }` 패턴은 Compose group
-        // stack 을 깨뜨리므로 if/else 양분 구조 유지.
         if (activeSessions.isEmpty() && endedSessions.isEmpty()) {
             Text("오늘 TBM 세션 없음", fontSize = 13.sp, color = SsmColors.TextMuted)
-        } else {
-            // 진행중 섹션
-            if (activeSessions.isNotEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                SectionHeader(
-                    icon = Icons.Default.Schedule,
-                    label = "진행중",
-                    count = activeSessions.size,
-                    iconTint = SsmColors.ActiveOrange,
-                )
-                activeSessions.forEach { session ->
-                    Spacer(Modifier.height(6.dp))
-                    SessionDetailCard(
-                        session = session,
-                        isActive = true,
-                        leaderUserId = leaderUserId,
-                        repo = repo,
-                        scope = scope,
-                    )
-                }
-            }
+            return@Column
+        }
 
-            // 종료 섹션
-            if (endedSessions.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                SectionHeader(
-                    icon = Icons.Default.CheckCircle,
-                    label = "종료",
-                    count = endedSessions.size,
-                    iconTint = SsmColors.TextMuted,
+        SectionHeader(
+            icon = Icons.Default.Schedule,
+            label = "진행중",
+            count = activeSessions.size,
+            iconTint = SsmColors.ActiveOrange,
+        )
+        if (activeSessions.isEmpty()) {
+            Text("진행중 세션 없음", fontSize = 12.sp, color = SsmColors.TextMuted)
+        } else {
+            activeSessions.forEach { session ->
+                Spacer(Modifier.height(6.dp))
+                SessionDetailCard(
+                    session = session,
+                    isActive = true,
+                    leaderUserId = leaderUserId,
+                    repo = repo,
+                    scope = scope,
                 )
-                endedSessions.forEach { session ->
-                    Spacer(Modifier.height(6.dp))
-                    SessionDetailCard(
-                        session = session,
-                        isActive = false,
-                        leaderUserId = leaderUserId,
-                        repo = repo,
-                        scope = scope,
-                    )
-                }
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+        SectionHeader(
+            icon = Icons.Default.CheckCircle,
+            label = "완료",
+            count = endedSessions.size,
+            iconTint = SsmColors.TextMuted,
+        )
+        if (endedSessions.isEmpty()) {
+            Text("완료 세션 없음", fontSize = 12.sp, color = SsmColors.TextMuted)
+        } else {
+            endedSessions.forEach { session ->
+                Spacer(Modifier.height(6.dp))
+                SessionDetailCard(
+                    session = session,
+                    isActive = false,
+                    leaderUserId = leaderUserId,
+                    repo = repo,
+                    scope = scope,
+                )
             }
         }
     }
@@ -200,7 +297,6 @@ private fun SessionDetailCard(
     repo: TbmRepository,
     scope: CoroutineScope,
 ) {
-    // 진행중 세션은 default expanded, 종료 세션은 default collapsed (정보 폭주 차단).
     var expanded by remember(session.sessionId) { mutableStateOf(isActive) }
     var participants by remember(session.sessionId) { mutableStateOf<List<TbmParticipantRow>>(emptyList()) }
     var checklists by remember(session.sessionId) { mutableStateOf<List<TbmChecklistRow>>(emptyList()) }
@@ -217,9 +313,6 @@ private fun SessionDetailCard(
         if (expanded) repo.checklistsFlow(session.sessionId).collectLatest { checklists = it }
     }
 
-    // 활성/종료 톤 분리:
-    //   진행중 → 2dp orange border + 기본 카드 배경
-    //   종료   → 회색 배경 + border 0
     val cardBorder = if (isActive) BorderStroke(2.dp, SsmColors.ActiveOrange) else null
     val cardColors = if (isActive) {
         CardDefaults.cardColors()
@@ -233,7 +326,6 @@ private fun SessionDetailCard(
         colors = cardColors,
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // 헤더 행 — 토글 클릭 가능
             Row(
                 modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
                 verticalAlignment = Alignment.CenterVertically,
@@ -251,9 +343,9 @@ private fun SessionDetailCard(
                         fontSize = 15.sp,
                         color = if (isActive) Color.Black else SsmColors.TextMuted,
                     )
-                    val statusKor = if (isActive) "진행중" else "종료"
+                    val statusText = if (isActive) "진행중" else "완료"
                     Text(
-                        "${workTypeKorean(session.workType)} · $statusKor · 참여자 ${participants.size}명",
+                        "${workTypeKorean(session.workType)} · $statusText · 참여자 ${participants.size}명",
                         fontSize = 12.sp,
                         color = SsmColors.TextMuted,
                     )
@@ -263,7 +355,6 @@ private fun SessionDetailCard(
             if (expanded) {
                 Spacer(Modifier.height(8.dp))
 
-                // 메타 정보 행 (시간 + 위치)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.AccessTime,
@@ -293,16 +384,22 @@ private fun SessionDetailCard(
                 }
                 Spacer(Modifier.height(10.dp))
 
-                Text("위험요인", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                session.hazardsSnapshot.forEach { Text("- ${it.text}", fontSize = 12.sp) }
+                GroupedSnapshotList(
+                    title = "위험요인",
+                    grouped = groupByOpsTitle(session.hazardsSnapshot) { it.opsTitle },
+                    textOf = { it.text },
+                )
                 Spacer(Modifier.height(8.dp))
 
-                Text("대책", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                session.controlsSnapshot.forEach { Text("- ${it.text}", fontSize = 12.sp) }
+                GroupedSnapshotList(
+                    title = "조치",
+                    grouped = groupByOpsTitle(session.controlsSnapshot) { it.opsTitle },
+                    textOf = { it.text },
+                )
                 Spacer(Modifier.height(8.dp))
 
                 Text(
-                    "점검 항목 (${checklists.count { it.isChecked }}/${checklists.size})",
+                    "평가 항목 (${checklists.count { it.isChecked }}/${checklists.size})",
                     fontWeight = FontWeight.SemiBold,
                 )
                 checklists.forEach { item -> ChecklistRow(item = item, repo = repo, scope = scope) }
@@ -341,7 +438,7 @@ private fun SessionDetailCard(
                     OutlinedTextField(
                         value = feedbackNotes,
                         onValueChange = { feedbackNotes = it },
-                        label = { Text("환류 조치 메모") },
+                        label = { Text("후속 조치 메모") },
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(Modifier.height(8.dp))
@@ -377,7 +474,7 @@ private fun SessionDetailCard(
                         enabled = !ending,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(if (ending) "종료 중..." else "세션 종료")
+                        Text(if (ending) "종료 중.." else "세션 종료")
                     }
                     endResultMsg?.let {
                         Spacer(Modifier.height(4.dp))
@@ -385,6 +482,35 @@ private fun SessionDetailCard(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun <T> GroupedSnapshotList(
+    title: String,
+    grouped: List<OpsTitleGroup<T>>,
+    textOf: (T) -> String,
+) {
+    Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+    if (grouped.isEmpty()) {
+        Text("없음", fontSize = 12.sp, color = SsmColors.TextMuted)
+        return
+    }
+
+    val hasOpsMetadata = grouped.any { it.opsTitle != null }
+    grouped.forEach { group ->
+        if (hasOpsMetadata) {
+            Text(
+                group.opsTitle ?: "기타",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = SsmColors.TextInfo,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        group.items.forEach { item ->
+            Text("- ${textOf(item)}", fontSize = 12.sp, modifier = Modifier.padding(start = if (hasOpsMetadata) 8.dp else 0.dp))
         }
     }
 }
