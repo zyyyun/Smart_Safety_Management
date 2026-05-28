@@ -260,49 +260,48 @@ private fun SessionsSection(
     Column(modifier = Modifier.fillMaxWidth()) {
         if (activeSessions.isEmpty() && endedSessions.isEmpty()) {
             Text("오늘 TBM 세션 없음", fontSize = 13.sp, color = SsmColors.TextMuted)
-            return@Column
-        }
-
-        SectionHeader(
-            icon = Icons.Default.Schedule,
-            label = "진행중",
-            count = activeSessions.size,
-            iconTint = SsmColors.ActiveOrange,
-        )
-        if (activeSessions.isEmpty()) {
-            Text("진행중 세션 없음", fontSize = 12.sp, color = SsmColors.TextMuted)
         } else {
-            activeSessions.forEach { session ->
-                Spacer(Modifier.height(6.dp))
-                SessionDetailCard(
-                    session = session,
-                    isActive = true,
-                    leaderUserId = leaderUserId,
-                    repo = repo,
-                    scope = scope,
-                )
+            SectionHeader(
+                icon = Icons.Default.Schedule,
+                label = "진행중",
+                count = activeSessions.size,
+                iconTint = SsmColors.ActiveOrange,
+            )
+            if (activeSessions.isEmpty()) {
+                Text("진행중 세션 없음", fontSize = 12.sp, color = SsmColors.TextMuted)
+            } else {
+                activeSessions.forEach { session ->
+                    Spacer(Modifier.height(6.dp))
+                    SessionDetailCard(
+                        session = session,
+                        isActive = true,
+                        leaderUserId = leaderUserId,
+                        repo = repo,
+                        scope = scope,
+                    )
+                }
             }
-        }
 
-        Spacer(Modifier.height(14.dp))
-        SectionHeader(
-            icon = Icons.Default.CheckCircle,
-            label = "완료",
-            count = endedSessions.size,
-            iconTint = SsmColors.TextMuted,
-        )
-        if (endedSessions.isEmpty()) {
-            Text("완료 세션 없음", fontSize = 12.sp, color = SsmColors.TextMuted)
-        } else {
-            endedSessions.forEach { session ->
-                Spacer(Modifier.height(6.dp))
-                SessionDetailCard(
-                    session = session,
-                    isActive = false,
-                    leaderUserId = leaderUserId,
-                    repo = repo,
-                    scope = scope,
-                )
+            Spacer(Modifier.height(14.dp))
+            SectionHeader(
+                icon = Icons.Default.CheckCircle,
+                label = "완료",
+                count = endedSessions.size,
+                iconTint = SsmColors.TextMuted,
+            )
+            if (endedSessions.isEmpty()) {
+                Text("완료 세션 없음", fontSize = 12.sp, color = SsmColors.TextMuted)
+            } else {
+                endedSessions.forEach { session ->
+                    Spacer(Modifier.height(6.dp))
+                    SessionDetailCard(
+                        session = session,
+                        isActive = false,
+                        leaderUserId = leaderUserId,
+                        repo = repo,
+                        scope = scope,
+                    )
+                }
             }
         }
     }
@@ -518,22 +517,25 @@ private fun <T> GroupedSnapshotList(
     Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
     if (grouped.isEmpty()) {
         Text("없음", fontSize = 12.sp, color = SsmColors.TextMuted)
-        return
-    }
-
-    val hasOpsMetadata = grouped.any { it.opsTitle != null }
-    grouped.forEach { group ->
-        if (hasOpsMetadata) {
-            Text(
-                group.opsTitle ?: "기타",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = SsmColors.TextInfo,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-        group.items.forEach { item ->
-            Text("- ${textOf(item)}", fontSize = 12.sp, modifier = Modifier.padding(start = if (hasOpsMetadata) 8.dp else 0.dp))
+    } else {
+        val hasOpsMetadata = grouped.any { it.opsTitle != null }
+        grouped.forEach { group ->
+            if (hasOpsMetadata) {
+                Text(
+                    group.opsTitle ?: "기타",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SsmColors.TextInfo,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            group.items.forEach { item ->
+                Text(
+                    "- ${textOf(item)}",
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = if (hasOpsMetadata) 8.dp else 0.dp),
+                )
+            }
         }
     }
 }
@@ -546,28 +548,27 @@ private fun GroupedChecklistList(
 ) {
     if (grouped.isEmpty()) {
         Text("없음", fontSize = 12.sp, color = SsmColors.TextMuted)
-        return
-    }
-
-    val hasOpsMetadata = grouped.any { it.opsTitle != null }
-    grouped.forEach { group ->
-        if (hasOpsMetadata) {
-            Text(
-                group.opsTitle ?: "기타",
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = SsmColors.TextInfo,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
-        group.items.forEach { item ->
-            ChecklistRow(
-                item = item.row,
-                repo = repo,
-                scope = scope,
-                displayText = item.displayText,
-                indent = if (hasOpsMetadata) 8.dp else 0.dp,
-            )
+    } else {
+        val hasOpsMetadata = grouped.any { it.opsTitle != null }
+        grouped.forEach { group ->
+            if (hasOpsMetadata) {
+                Text(
+                    group.opsTitle ?: "기타",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SsmColors.TextInfo,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            group.items.forEach { item ->
+                ChecklistRow(
+                    item = item.row,
+                    repo = repo,
+                    scope = scope,
+                    displayText = item.displayText,
+                    indent = if (hasOpsMetadata) 8.dp else 0.dp,
+                )
+            }
         }
     }
 }
