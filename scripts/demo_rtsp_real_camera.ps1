@@ -61,7 +61,13 @@ param(
     # fall is a separate cycle; -EnableFall switch controls it.
     [string]$DetectorsEnabled = "",
     [switch]$EnableFall,
-    [switch]$FireOnly  # alias: -FireOnly == -DetectorsEnabled "fire" + fall disabled
+    [switch]$FireOnly,  # alias: -FireOnly == -DetectorsEnabled "fire" + fall disabled
+    [switch]$Watch,
+    [int]$WatchRetrySeconds = 15,
+    [int]$WatchRestartDelaySeconds = 15,
+    [string]$WatchLogPath = "",
+    [switch]$WatchNoPatch,
+    [switch]$WatchDryRun
 )
 
 # FireOnly alias resolution (must run BEFORE env override below)
@@ -86,6 +92,7 @@ Write-Host " Fall cycle     : $(if ($EnableFall) { 'enabled' } else { 'disabled'
 Write-Host " NumCycles      : $NumCycles (satisfies fire frames_required=5)"
 Write-Host " CycleInterval  : $CycleInterval seconds"
 Write-Host " SkipRestore    : $SkipRestore"
+Write-Host " Watch          : $Watch"
 Write-Host ""
 
 # ----------------------------------------------------------------------
@@ -131,6 +138,159 @@ if (-not $EnableFall -and $DetectorsEnabled) {
 Write-Host "[+] env loaded (SUPABASE_URL=$($URL.Substring(0, [Math]::Min(50,$URL.Length)))...)" -ForegroundColor Green
 $headers = @{"apikey"=$SR; "Authorization"="Bearer $SR"}
 $headersPatch = @{"apikey"=$SR; "Authorization"="Bearer $SR"; "Content-Type"="application/json"; "Prefer"="return=representation"}
+$python = "C:\Users\ANNA\miniconda3\python.exe"
+$mainPy = Join-Path $RepoRoot "ai_agent\main.py"
+
+if (-not $WatchLogPath) {
+    $WatchLogPath = Join-Path $RepoRoot "logs\rtsp_yolo_watch.log"
+}
+
+function Write-WatchLog {
+    param(
+        [Parameter(Mandatory=$true)][string]$Message,
+        [string]$Color = "White"
+    )
+
+    $logDir = Split-Path -Parent $WatchLogPath
+    if ($logDir -and -not (Test-Path $logDir)) {
+        New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+    }
+    $line = "{0} {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $Message
+    Write-Host $line -ForegroundColor $Color
+    Add-Content -Path $WatchLogPath -Value $line -Encoding UTF8
+}
+
+function Test-TcpReachable {
+    param(
+        [Parameter(Mandatory=$true)][string]$HostName,
+        [Parameter(Mandatory=$true)][int]$Port,
+        [int]$TimeoutMs = 3000
+    )
+
+    $client = New-Object System.Net.Sockets.TcpClient
+    try {
+        $iar = $client.BeginConnect($HostName, $Port, $null, $null)
+        $waited = $iar.AsyncWaitHandle.WaitOne($TimeoutMs, $false)
+        if ($waited -and $client.Connected) {
+            $client.EndConnect($iar)
+            return $true
+        }
+        return $false
+    } catch {
+        return $false
+    } finally {
+        $client.Close()
+    }
+}
+
+function Set-WatchCamerasToRtsp {
+    foreach ($id in $CameraIds) {
+        $body = ConvertTo-Json @{ live_url_detail = $RtspUrl } -Compress
+        $null = Invoke-RestMethod -Method Patch -Uri "$URL/rest/v1/cameras?camera_id=eq.$id" -Headers $headersPatch -Body $body
+        Write-WatchLog "camera_id=$id patched to RTSP ($RtspUrl)" "Green"
+    }
+}
+
+function Start-WatchMode {
+    $rtspParsedWatch = [Uri]$RtspUrl
+    $watchCameraHost = $rtspParsedWatch.Host
+    $watchCameraPort = if ($rtspParsedWatch.Port -gt 0) { $rtspParsedWatch.Port } else { 554 }
+    $lockPath = Join-Path $RepoRoot "logs\rtsp_yolo_watch.lock"
+
+    if (-not (Test-Path $python)) {
+        Write-WatchLog "Python interpreter not found: $python" "Red"
+        return 1
+    }
+    if (-not (Test-Path $mainPy)) {
+        Write-WatchLog "ai_agent main.py not found: $mainPy" "Red"
+        return 1
+    }
+
+    $lockDir = Split-Path -Parent $lockPath
+    if (-not (Test-Path $lockDir)) {
+        New-Item -Path $lockDir -ItemType Directory -Force | Out-Null
+    }
+    if (Test-Path $lockPath) {
+        $existingPidText = (Get-Content $lockPath -ErrorAction SilentlyContinue | Select-Object -First 1)
+        $existingPid = 0
+        if ([int]::TryParse($existingPidText, [ref]$existingPid)) {
+            $existingProcess = Get-Process -Id $existingPid -ErrorAction SilentlyContinue
+            if ($existingProcess -and $existingPid -ne $PID) {
+                Write-WatchLog "watch mode already running as PID $existingPid; exiting this duplicate." "Yellow"
+                return 0
+            }
+        }
+    }
+    Set-Content -Path $lockPath -Value $PID -Encoding ASCII
+
+    try {
+        Write-WatchLog "RTSP YOLO watch started. host=${watchCameraHost}:${watchCameraPort} cameras=$($CameraIds -join ',') retry=${WatchRetrySeconds}s restart=${WatchRestartDelaySeconds}s" "Cyan"
+        Write-WatchLog "Console stays open because task uses powershell -NoExit -WindowStyle Normal." "Cyan"
+
+        if ($WatchDryRun) {
+            Write-WatchLog "WatchDryRun enabled; exiting before camera wait loop." "Yellow"
+            return 0
+        }
+
+        while ($true) {
+            if (-not (Test-TcpReachable -HostName $watchCameraHost -Port $watchCameraPort -TimeoutMs 3000)) {
+                Write-WatchLog "camera not reachable at ${watchCameraHost}:${watchCameraPort}; waiting ${WatchRetrySeconds}s" "Yellow"
+                Start-Sleep -Seconds $WatchRetrySeconds
+                continue
+            }
+
+            Write-WatchLog "camera reachable at ${watchCameraHost}:${watchCameraPort}" "Green"
+            if (-not $WatchNoPatch) {
+                try {
+                    Set-WatchCamerasToRtsp
+                } catch {
+                    Write-WatchLog "failed to patch cameras to RTSP: $($_.Exception.Message)" "Red"
+                    Start-Sleep -Seconds $WatchRetrySeconds
+                    continue
+                }
+            } else {
+                Write-WatchLog "WatchNoPatch enabled; leaving cameras table unchanged." "Yellow"
+            }
+
+            Write-WatchLog "starting ai_agent/main.py continuous scheduler" "Cyan"
+            $prevEAP = $ErrorActionPreference
+            $ErrorActionPreference = "Continue"
+            Push-Location (Join-Path $RepoRoot "ai_agent")
+            try {
+                & $python -u $mainPy 2>&1 | ForEach-Object {
+                    $line = $_.ToString()
+                    if ($line -match "\[DETECT\]|\[FUSION\] camera_id|\[FALL\]") {
+                        Write-WatchLog "ai_agent: $line" "Green"
+                    } elseif ($line -match "\[ERR|\[WARN|ERROR|Exception|Traceback|SnapshotError") {
+                        Write-WatchLog "ai_agent: $line" "Yellow"
+                    } else {
+                        Write-WatchLog "ai_agent: $line" "Gray"
+                    }
+                }
+                $agentExitCode = $LASTEXITCODE
+            } catch {
+                $agentExitCode = 1
+                Write-WatchLog "ai_agent process failed: $($_.Exception.Message)" "Red"
+            } finally {
+                Pop-Location
+                $ErrorActionPreference = $prevEAP
+            }
+
+            Write-WatchLog "ai_agent exited with code $agentExitCode; restarting in ${WatchRestartDelaySeconds}s" "Yellow"
+            Start-Sleep -Seconds $WatchRestartDelaySeconds
+        }
+    } finally {
+        $lockOwner = Get-Content $lockPath -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($lockOwner -eq "$PID") {
+            Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+if ($Watch) {
+    $watchExit = Start-WatchMode
+    exit $watchExit
+}
 
 # Hardcoded mp4 fallback URLs - used when current cameras backup is already rtsp://
 # (i.e. previous run failed mid-way and didn't restore). Source: 002_tables.sql seed + Phase 1 update.
@@ -235,8 +395,6 @@ Write-Host ""
 Write-Host "[Step 4] scheduler --once-detect x $NumCycles cycles" -ForegroundColor Yellow
 Write-Host "  (User: keep stage stable in front of camera)" -ForegroundColor Magenta
 $cycleStartUtc = (Get-Date).ToUniversalTime()
-$python = "C:\Users\ANNA\miniconda3\python.exe"
-$mainPy = Join-Path $RepoRoot "ai_agent\main.py"
 # 2026-05-20 fix: Python ai_agent logging defaults to stderr. PowerShell 5.1 with
 # $ErrorActionPreference='Stop' treats EACH stderr line from native exe as
 # NativeCommandError → halts script on first log line. Workaround: switch to
