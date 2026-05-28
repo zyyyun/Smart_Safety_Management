@@ -14,14 +14,32 @@ function cleanText(value: unknown, max = 200): string {
   return String(value ?? "").trim().slice(0, max);
 }
 
+function cleanOpsSource(item: Record<string, unknown>): Record<string, unknown> {
+  const rawTemplateId = item.ops_template_id;
+  const opsTemplateId = typeof rawTemplateId === "number" && Number.isInteger(rawTemplateId)
+    ? rawTemplateId
+    : undefined;
+  const opsTitle = typeof item.ops_title === "string"
+    ? cleanText(item.ops_title, 80)
+    : undefined;
+  return {
+    ...(opsTemplateId !== undefined ? { ops_template_id: opsTemplateId } : {}),
+    ...(opsTitle ? { ops_title: opsTitle } : {}),
+  };
+}
+
 function cleanHazards(input: unknown): Array<Record<string, unknown>> {
   if (!Array.isArray(input)) return [];
   return input
     .slice(0, 20)
-    .map((h, idx) => ({
-      id: cleanId((h as Record<string, unknown>)?.id, `h${idx + 1}`),
-      text: cleanText((h as Record<string, unknown>)?.text),
-    }))
+    .map((h, idx) => {
+      const item = h as Record<string, unknown>;
+      return {
+        id: cleanId(item?.id, `h${idx + 1}`),
+        text: cleanText(item?.text),
+        ...cleanOpsSource(item),
+      };
+    })
     .filter((h) => h.text.length > 0);
 }
 
@@ -30,13 +48,15 @@ function cleanControls(input: unknown): Array<Record<string, unknown>> {
   return input
     .slice(0, 30)
     .map((c, idx) => {
-      const rawLevel = cleanText((c as Record<string, unknown>)?.level, 40);
+      const item = c as Record<string, unknown>;
+      const rawLevel = cleanText(item?.level, 40);
       const level = CONTROL_LEVELS.has(rawLevel) ? rawLevel : "control";
       return {
-        id: cleanId((c as Record<string, unknown>)?.id, `c${idx + 1}`),
-        hazard_id: cleanId((c as Record<string, unknown>)?.hazard_id, ""),
+        id: cleanId(item?.id, `c${idx + 1}`),
+        hazard_id: cleanId(item?.hazard_id, ""),
         level,
-        text: cleanText((c as Record<string, unknown>)?.text),
+        text: cleanText(item?.text),
+        ...cleanOpsSource(item),
       };
     })
     .filter((c) => c.text.length > 0);
@@ -533,6 +553,9 @@ Deno.serve(async (req) => {
           notes,
           hazards,
           controls,
+          template_ids,
+          ops_titles,
+          checks,
         } = body;
         if (!leader_user_id || !group_id || !work_type || !expected_end_at) {
           return err("leader_user_id, group_id, work_type, expected_end_at are required", 400);
@@ -553,6 +576,17 @@ Deno.serve(async (req) => {
 
         const safeHazards = hazards === undefined ? cleanHazards(tmpl.hazards) : cleanHazards(hazards);
         const safeControls = controls === undefined ? cleanControls(tmpl.controls) : cleanControls(controls);
+        const hasClientChecks = Array.isArray(checks) && checks.length > 0;
+        const safeChecks = hasClientChecks
+          ? cleanStringArray(
+              checks
+                .map((c) => typeof c === "string" ? c : (c as Record<string, unknown>)?.text)
+                .filter(Boolean),
+              30,
+              180,
+            )
+          : cleanStringArray(tmpl.checks, 30, 180);
+        const safeOpsTitles = cleanStringArray(ops_titles, 20, 80);
         if (safeHazards.length === 0) return err("hazards are required", 400);
         if (safeControls.length === 0) return err("controls are required", 400);
 
@@ -579,8 +613,7 @@ Deno.serve(async (req) => {
         }
         if (!session) return err("session insert returned null", 500);
 
-        const checks = cleanStringArray(tmpl.checks, 30, 180);
-        const items = checks.map((text, idx) => ({
+        const items = safeChecks.map((text, idx) => ({
           session_id: session.session_id,
           item_idx: idx,
           item_text: text,
@@ -600,13 +633,14 @@ Deno.serve(async (req) => {
         const workerIds = (workers ?? []).map((w: { user_id: string }) => w.user_id);
         const r = await sendPushToUsers(supabase, workerIds, {
           title: "TBM 세션 시작",
-          body: `${work_scope} - ${tmpl.title}`,
+          body: `${work_scope} - ${safeOpsTitles.length > 0 ? safeOpsTitles.join(", ") : tmpl.title}`,
           data: {
             type: "tbm_alert",
             action_in_app: "tbm-started",
             session_id: String(session.session_id),
             work_type,
             work_scope: work_scope.trim(),
+            template_ids: Array.isArray(template_ids) ? template_ids.join(",") : "",
           },
         });
         return ok({
