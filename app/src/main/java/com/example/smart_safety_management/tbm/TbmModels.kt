@@ -9,6 +9,8 @@ data class TbmTemplateHazard(
     val id: String,
     val text: String,
     @SerialName("is_custom") @SerializedName("is_custom") val isCustom: Boolean = false,
+    @SerialName("ops_template_id") @SerializedName("ops_template_id") val opsTemplateId: Int? = null,
+    @SerialName("ops_title") @SerializedName("ops_title") val opsTitle: String? = null,
 )
 
 @Serializable
@@ -18,6 +20,8 @@ data class TbmTemplateControl(
     val level: String = "control",
     val text: String,
     @SerialName("is_custom") @SerializedName("is_custom") val isCustom: Boolean = false,
+    @SerialName("ops_template_id") @SerializedName("ops_template_id") val opsTemplateId: Int? = null,
+    @SerialName("ops_title") @SerializedName("ops_title") val opsTitle: String? = null,
 )
 
 /**
@@ -69,6 +73,46 @@ data class TbmTemplateRow(
 )
 
 @Serializable
+data class TbmChecklistSourceItem(
+    val text: String,
+    @SerialName("ops_template_id") @SerializedName("ops_template_id") val opsTemplateId: Int,
+    @SerialName("ops_title") @SerializedName("ops_title") val opsTitle: String,
+)
+
+data class AggregatedOpsSelection(
+    val templateIds: List<Int>,
+    val opsTitles: List<String>,
+    val hazards: List<TbmTemplateHazard>,
+    val controls: List<TbmTemplateControl>,
+    val checks: List<TbmChecklistSourceItem>,
+)
+
+fun aggregateSelectedOps(templates: List<TbmTemplateRow>): AggregatedOpsSelection =
+    AggregatedOpsSelection(
+        templateIds = templates.map { it.templateId },
+        opsTitles = templates.map { it.title },
+        hazards = templates.flatMap { template ->
+            template.hazards.map {
+                it.copy(opsTemplateId = template.templateId, opsTitle = template.title)
+            }
+        },
+        controls = templates.flatMap { template ->
+            template.controls.map {
+                it.copy(opsTemplateId = template.templateId, opsTitle = template.title)
+            }
+        },
+        checks = templates.flatMap { template ->
+            template.checks.map {
+                TbmChecklistSourceItem(
+                    text = it,
+                    opsTemplateId = template.templateId,
+                    opsTitle = template.title,
+                )
+            }
+        },
+    )
+
+@Serializable
 data class TbmChecklistRow(
     @SerialName("checklist_id") val checklistId: Long,
     @SerialName("session_id") val sessionId: Long,
@@ -110,6 +154,9 @@ data class TbmStartRequest(
     val notes: String? = null,
     val hazards: List<TbmTemplateHazard> = emptyList(),
     val controls: List<TbmTemplateControl> = emptyList(),
+    @SerialName("template_ids") @SerializedName("template_ids") val templateIds: List<Int> = emptyList(),
+    @SerialName("ops_titles") @SerializedName("ops_titles") val opsTitles: List<String> = emptyList(),
+    val checks: List<TbmChecklistSourceItem> = emptyList(),
 )
 
 @Serializable
