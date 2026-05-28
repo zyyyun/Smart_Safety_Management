@@ -795,13 +795,11 @@ class HomeActivity : AppCompatActivity() {
                     val checks = response.body()?.checks ?: emptyList()
                     
                     checks.forEach { dto ->
-                        // created_at 기준으로 날짜 파싱 (YYYY-MM-DD HH:mm:ss)
-                        // createdAt이 없으면 checkDate를 사용하도록 예외 처리
-                        val targetDate = dto.createdAt ?: dto.checkDate
+                        // Prefer the selected checklist date over the creation timestamp.
                         val day = try {
-                            targetDate.substring(8, 10).toInt()
+                            dailyChecklistDisplayDate(dto.checkDate, dto.createdAt).dayOfMonth
                         } catch (e: Exception) {
-                            targetDate.split("-").getOrNull(2)?.take(2)?.toIntOrNull()
+                            null
                         }
 
                         if (day != null) {

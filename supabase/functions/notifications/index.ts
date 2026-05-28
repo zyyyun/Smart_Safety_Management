@@ -70,6 +70,31 @@ function cleanStringArray(input: unknown, maxItems = 20, maxChars = 180): string
     .filter((value) => value.length > 0);
 }
 
+function cleanIntegerIds(input: unknown, maxItems = 20): number[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .slice(0, maxItems)
+    .map((value) => Number(value))
+    .filter((value) => Number.isInteger(value) && value > 0 && value <= 2147483647);
+}
+
+function cleanChecklistTexts(input: unknown, maxItems = 30, maxChars = 180): string[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .slice(0, maxItems)
+    .map((value) => {
+      if (typeof value === "string") return cleanText(value, maxChars);
+      const item = value as Record<string, unknown>;
+      const text = cleanText(item?.text, maxChars);
+      if (!text) return "";
+      const opsTitle = cleanText(item?.ops_title, 80);
+      if (!opsTitle) return text;
+      const prefix = `[${opsTitle}] `;
+      return cleanText(`${prefix}${text}`, maxChars);
+    })
+    .filter((value) => value.length > 0);
+}
+
 /**
  * key_actions JSON whitelist: `[{id, text, is_custom?}]`.
  * Fix 2026-05-26: schema seed stores object array, Kotlin model expects same shape.
@@ -578,15 +603,10 @@ Deno.serve(async (req) => {
         const safeControls = controls === undefined ? cleanControls(tmpl.controls) : cleanControls(controls);
         const hasClientChecks = Array.isArray(checks) && checks.length > 0;
         const safeChecks = hasClientChecks
-          ? cleanStringArray(
-              checks
-                .map((c) => typeof c === "string" ? c : (c as Record<string, unknown>)?.text)
-                .filter(Boolean),
-              30,
-              180,
-            )
+          ? cleanChecklistTexts(checks, 30, 180)
           : cleanStringArray(tmpl.checks, 30, 180);
         const safeOpsTitles = cleanStringArray(ops_titles, 20, 80);
+        const safeTemplateIds = cleanIntegerIds(template_ids, 20);
         if (safeHazards.length === 0) return err("hazards are required", 400);
         if (safeControls.length === 0) return err("controls are required", 400);
 
@@ -640,7 +660,7 @@ Deno.serve(async (req) => {
             session_id: String(session.session_id),
             work_type,
             work_scope: work_scope.trim(),
-            template_ids: Array.isArray(template_ids) ? template_ids.join(",") : "",
+            template_ids: safeTemplateIds.join(","),
           },
         });
         return ok({

@@ -291,11 +291,10 @@ class HomeWorkerActivity : AppCompatActivity() {
                     dailyCheckMap.clear()
                     val checks = response.body()?.checks ?: emptyList()
                     checks.forEach { dto ->
-                        val targetDate = dto.createdAt ?: dto.checkDate
                         val day = try {
-                            targetDate.substring(8, 10).toInt()
+                            dailyChecklistDisplayDate(dto.checkDate, dto.createdAt).dayOfMonth
                         } catch (e: Exception) {
-                            targetDate.split("-").getOrNull(2)?.take(2)?.toIntOrNull()
+                            null
                         }
 
                         if (day != null) {

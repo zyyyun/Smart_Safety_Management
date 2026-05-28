@@ -356,7 +356,7 @@ fun DailyListScreen(
                                 val locationBody = RequestBody.create("text/plain".toMediaTypeOrNull(), location)
                                 val hazardBody = RequestBody.create("text/plain".toMediaTypeOrNull(), riskFactor)
                                 val countermeasureBody = RequestBody.create("text/plain".toMediaTypeOrNull(), safetyMeasure)
-                                // val checkDateBody = RequestBody.create("text/plain".toMediaTypeOrNull(), date) // check_date는 null로 저장하기 위해 전송하지 않음
+                                val checkDateBody = RequestBody.create("text/plain".toMediaTypeOrNull(), date)
                                 
                                 if (checkId == null) {
                                     // 생성 모드
@@ -369,7 +369,7 @@ fun DailyListScreen(
                                     }
 
                                     RetrofitClient.instance.createDailyCheck(
-                                        writerIdBody, locationBody, hazardBody, countermeasureBody, null, imageParts
+                                        writerIdBody, locationBody, hazardBody, countermeasureBody, checkDateBody, imageParts
                                     ).enqueue(object : Callback<CreateDailyCheckResponse> {
                                         override fun onResponse(call: Call<CreateDailyCheckResponse>, response: Response<CreateDailyCheckResponse>) {
                                             isLoading = false
@@ -409,7 +409,7 @@ fun DailyListScreen(
                                     }
 
                                     RetrofitClient.instance.updateDailyCheck(
-                                        checkIdBody, locationBody, hazardBody, countermeasureBody, null, keptImageParts, newImageParts
+                                        checkIdBody, locationBody, hazardBody, countermeasureBody, checkDateBody, keptImageParts, newImageParts
                                     ).enqueue(object : Callback<CreateDailyCheckResponse> {
                                         override fun onResponse(call: Call<CreateDailyCheckResponse>, response: Response<CreateDailyCheckResponse>) {
                                             isLoading = false
