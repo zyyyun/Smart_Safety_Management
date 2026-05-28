@@ -72,6 +72,13 @@ data class InspectionItem(val checkId: String, val location: String, val descrip
 
 data class DailyInspectionReport(val date: LocalDate, val items: List<InspectionItem>)
 
+@RequiresApi(Build.VERSION_CODES.O)
+internal fun dailyChecklistDisplayDate(checkDate: String?, createdAt: String?): LocalDate {
+    val explicit = checkDate?.takeIf { it.length >= 10 }?.substring(0, 10)
+    val fallback = createdAt?.takeIf { it.length >= 10 }?.substring(0, 10)
+    return LocalDate.parse(explicit ?: fallback ?: LocalDate.now().toString(), DateTimeFormatter.ISO_DATE)
+}
+
 val TooltipShape = object : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val triangleWidth = with(density) { 12.dp.toPx() }
@@ -124,13 +131,8 @@ fun MonthlyListScreen() {
                             val checks = response.body()?.checks ?: emptyList()
                             val grouped = checks.groupBy {
                                 try {
-                                    // created_at 사용 (YYYY-MM-DD 추출)
-                                    val dateStr = it.createdAt
-                                    if (!dateStr.isNullOrEmpty() && dateStr.length >= 10) {
-                                        LocalDate.parse(dateStr.substring(0, 10), DateTimeFormatter.ISO_DATE)
-                                    } else {
-                                        LocalDate.now()
-                                    }
+                                    // Prefer the selected checklist date over the creation timestamp.
+                                    dailyChecklistDisplayDate(it.checkDate, it.createdAt)
                                 } catch (e: Exception) {
                                     LocalDate.now()
                                 }
