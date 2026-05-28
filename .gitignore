@@ -73,3 +73,6 @@ logs/*.log.*
 scripts/_nssm/*.exe
 scripts/_nssm/*.zip
 scripts/_nssm/*.dll
+
+# -- Superpowers visual brainstorming companion artifacts
+.superpowers/
