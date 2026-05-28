@@ -40,4 +40,20 @@ class TbmDashboardComposeStabilityTest {
         assertTrue(worker.contains("sessionRefreshNonce++"))
         assertTrue(worker.contains("detailRefreshNonce++"))
     }
+
+    @Test
+    fun workerCheckinSuccessNavigatesBackToWorkerHome() {
+        val workerScreen = File(
+            "src/main/java/com/example/smart_safety_management/tbm/TbmWorkerScreen.kt",
+        ).readText()
+        val workerActivity = File(
+            "src/main/java/com/example/smart_safety_management/TbmWorkerActivity.kt",
+        ).readText()
+
+        assertTrue(workerScreen.contains("onCheckinSubmitted: () -> Unit"))
+        assertTrue(workerScreen.contains("onCheckinSubmitted()"))
+        assertTrue(workerActivity.contains("HomeWorkerActivity::class.java"))
+        assertTrue(workerActivity.contains("Intent.FLAG_ACTIVITY_CLEAR_TOP"))
+        assertTrue(workerActivity.contains("Intent.FLAG_ACTIVITY_SINGLE_TOP"))
+    }
 }

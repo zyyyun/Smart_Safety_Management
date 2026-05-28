@@ -47,6 +47,7 @@ fun TbmWorkerScreen(
     userId: String,
     supabase: SupabaseClient,
     sessionHintFromFcm: Long? = null,
+    onCheckinSubmitted: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val repo = remember { TbmRepository(supabase) }
@@ -209,6 +210,7 @@ fun TbmWorkerScreen(
                                 if (resp.isSuccessful && resp.body()?.ok == true) {
                                     sessionRefreshNonce++
                                     detailRefreshNonce++
+                                    onCheckinSubmitted()
                                 }
                             }
                         } catch (e: Exception) {
