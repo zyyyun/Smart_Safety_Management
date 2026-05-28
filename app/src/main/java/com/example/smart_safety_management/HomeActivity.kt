@@ -88,8 +88,6 @@ class HomeActivity : AppCompatActivity() {
         // 2026-05-21 — Sprint A.2: profile_bar 좌측 카메라 페어링 미니카드 (manager 전용)
         setupCameraMiniCard()
 
-        // 2026-05-21 — feature_rtps_test / plan v3.1 / S3: RTSP PoC 토글 (manager 전용)
-        setupRtspPocToggle()
     }
 
     private fun launchCameraPairing() {
