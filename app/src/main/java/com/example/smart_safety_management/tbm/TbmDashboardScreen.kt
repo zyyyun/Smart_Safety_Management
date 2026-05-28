@@ -27,6 +27,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -321,6 +322,7 @@ private fun SessionDetailCard(
     var keyHazardId by remember(session.sessionId) { mutableStateOf(session.keyHazardId ?: "") }
     var feedbackNotes by remember(session.sessionId) { mutableStateOf(session.feedbackNotes ?: "") }
     var endResultMsg by remember(session.sessionId) { mutableStateOf<String?>(null) }
+    var pdfResultMsg by remember(session.sessionId) { mutableStateOf<String?>(null) }
     var ending by remember(session.sessionId) { mutableStateOf(false) }
     val api = remember { buildTbmFunctionsApi() }
 
@@ -501,6 +503,19 @@ private fun SessionDetailCard(
                     endResultMsg?.let {
                         Spacer(Modifier.height(4.dp))
                         Text(it, color = SsmColors.TextInfo, fontSize = 12.sp)
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = {
+                            pdfResultMsg = "PDF 출력 기능은 다음 단계에서 실제 파일 생성으로 연결됩니다."
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("PDF 출력")
+                    }
+                    pdfResultMsg?.let {
+                        Spacer(Modifier.height(4.dp))
+                        Text(it, color = SsmColors.TextMuted, fontSize = 12.sp)
                     }
                 }
             }

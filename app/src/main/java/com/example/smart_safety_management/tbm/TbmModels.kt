@@ -112,6 +112,25 @@ fun aggregateSelectedOps(templates: List<TbmTemplateRow>): AggregatedOpsSelectio
         },
     )
 
+fun selectedOpsSessionTitle(templates: List<TbmTemplateRow>): String =
+    templates
+        .map { it.title.trim() }
+        .filter { it.isNotEmpty() }
+        .distinct()
+        .joinToString(" + ")
+        .ifBlank { "TBM 세션" }
+
+fun tbmSessionDisplayTitle(session: TbmSessionRow): String {
+    val titles = (session.hazardsSnapshot.mapNotNull { it.opsTitle } +
+        session.controlsSnapshot.mapNotNull { it.opsTitle })
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .distinct()
+    return titles.joinToString(" + ").ifBlank {
+        session.workScope.ifBlank { workTypeKorean(session.workType) }
+    }
+}
+
 @Serializable
 data class TbmChecklistRow(
     @SerialName("checklist_id") val checklistId: Long,

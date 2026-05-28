@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -57,7 +59,6 @@ fun TbmStartSection(
     var templates by remember { mutableStateOf<List<TbmTemplateRow>>(emptyList()) }
     var managerGroup by remember { mutableStateOf<GroupRow?>(null) }
     var selectedTemplates by remember { mutableStateOf<List<TbmTemplateRow>>(emptyList()) }
-    var workScopeInput by remember { mutableStateOf("") }
 
     val initialZdt = remember { ExpectedEndAtValidator.nowKst().plusMinutes(15) }
     var hour by remember { mutableStateOf(initialZdt.hour) }
@@ -81,17 +82,19 @@ fun TbmStartSection(
 
     LaunchedEffect(Unit) {
         templates = runCatching { repo.fetchActiveTemplates() }
-            .onFailure { loadError = "Failed to load OPS templates: ${it.message}" }
+            .onFailure { loadError = "OPS 목록을 불러오지 못했습니다: ${it.message}" }
             .getOrElse { emptyList() }
         selectedTemplates = templates.firstOrNull()?.let { listOf(it) } ?: emptyList()
         managerGroup = runCatching { repo.fetchGroupsForManager(leaderUserId) }
-            .onFailure { loadError = "그룹 정보 로드 실패: ${it.message}" }
+            .onFailure { loadError = "그룹 정보를 불러오지 못했습니다: ${it.message}" }
             .getOrNull()?.firstOrNull()
     }
 
+    val sessionTitle = selectedOpsSessionTitle(selectedTemplates).take(80)
+
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("TBM 세션 시작", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("TBM 세션 시작", fontWeight = FontWeight.Bold, fontSize = 17.sp)
             Spacer(Modifier.weight(1f))
             IconButton(onClick = { showSlamDialog = true }) {
                 Icon(Icons.Default.Info, contentDescription = "SLAM 행동요령 보기")
@@ -99,19 +102,10 @@ fun TbmStartSection(
         }
         Spacer(Modifier.height(12.dp))
 
-        OutlinedTextField(
-            value = workScopeInput,
-            onValueChange = { workScopeInput = it.take(80) },
-            label = { Text("작업 범위") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Spacer(Modifier.height(8.dp))
-
-        Text("작업 종류 (OPS)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+        Text("작업 종류 (OPS)", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
         Spacer(Modifier.height(6.dp))
         if (templates.isEmpty()) {
-            Text("활성 OPS 없음", fontSize = 12.sp, color = SsmColors.TextMuted)
+            Text("활성 OPS 없음", fontSize = 13.sp, color = SsmColors.TextMuted)
         } else {
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -123,13 +117,24 @@ fun TbmStartSection(
                     FilterChip(
                         selected = selected,
                         onClick = { toggleTemplate(template) },
-                        label = { Text(template.title, fontSize = 12.sp) },
+                        label = { Text(template.title, fontSize = 13.sp) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = SsmColors.TextInfo.copy(alpha = 0.14f),
                             selectedLabelColor = SsmColors.TextInfo,
                         ),
                     )
                 }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = SsmColors.EndedBg),
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("세션 이름", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Text(sessionTitle, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = SsmColors.TextInfo)
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -170,8 +175,8 @@ fun TbmStartSection(
             Spacer(Modifier.height(4.dp))
             selectedTemplates.forEach { template ->
                 Text(
-                    "${template.title}: 위험 ${template.hazards.size} · 조치 ${template.controls.size}",
-                    fontSize = 12.sp,
+                    "${template.title}: 위험 ${template.hazards.size} · 조치 ${template.controls.size} · 체크 ${template.checks.size}",
+                    fontSize = 13.sp,
                     color = SsmColors.TextMuted,
                     modifier = Modifier.padding(vertical = 2.dp),
                 )
@@ -179,18 +184,16 @@ fun TbmStartSection(
             Spacer(Modifier.height(8.dp))
         }
 
-        loadError?.let { Text(it, color = SsmColors.TextDanger, fontSize = 12.sp) }
+        loadError?.let { Text(it, color = SsmColors.TextDanger, fontSize = 13.sp) }
 
         Button(
             onClick = {
-                val scopeText = workScopeInput.trim()
                 val group = managerGroup
                 when {
-                    selectedTemplates.isEmpty() -> submitResult = "활성 OPS 를 선택하세요"
-                    scopeText.isEmpty() -> submitResult = "작업 범위를 입력하세요"
+                    selectedTemplates.isEmpty() -> submitResult = "활성 OPS를 선택하세요"
                     group == null -> submitResult = "그룹 정보 없음 - 관리자 권한 확인 필요"
                     selectedTemplates.any { !WorkTypeValidator.isValid(it.workType, templates) } ->
-                        submitResult = "선택한 OPS 가 비활성화됨"
+                        submitResult = "선택한 OPS가 비활성화되었습니다"
                     else -> {
                         val aggregated = aggregateSelectedOps(selectedTemplates)
                         val zdt = ExpectedEndAtValidator.nowKst()
@@ -210,7 +213,7 @@ fun TbmStartSection(
                                             leaderUserId = leaderUserId,
                                             groupId = group.groupId,
                                             workType = selectedTemplates.first().workType,
-                                            workScope = scopeText,
+                                            workScope = sessionTitle,
                                             expectedEndAt = expectedEndAtIso,
                                             location = locationInput.ifBlank { null },
                                             notes = notesInput.ifBlank { null },
@@ -223,8 +226,8 @@ fun TbmStartSection(
                                     )
                                     when {
                                         resp.isSuccessful && resp.body()?.ok == true ->
-                                            "시작됨(평가 항목 ${resp.body()?.checklistCount ?: 0}개)"
-                                        resp.code() == 409 -> "이미 같은 작업 범위의 세션이 존재합니다"
+                                            "시작됨 · 평가 항목 ${resp.body()?.checklistCount ?: 0}개"
+                                        resp.code() == 409 -> "이미 같은 TBM 세션이 존재합니다"
                                         else -> "오류 ${resp.code()}"
                                     }
                                 }.getOrElse { "네트워크 오류: ${it.message}" }
@@ -240,14 +243,13 @@ fun TbmStartSection(
             enabled = !submitting && managerGroup != null && selectedTemplates.isNotEmpty(),
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (submitting) "시작 중.." else "세션 시작")
+            Text(if (submitting) "시작 중..." else "TBM 시작")
         }
 
         submitResult?.let {
             Spacer(Modifier.height(8.dp))
-            val isErr = it.startsWith("오류") || it.contains("실패") || it.contains("필요")
-                || it.contains("입력하세요") || it.contains("선택하세요") || it.contains("이미")
-                || it.contains("비활성화") || it.contains("그룹 정보")
+            val isErr = it.startsWith("오류") || it.contains("실패") || it.contains("필요") ||
+                it.contains("선택하세요") || it.contains("이미")
             Text(it, color = if (isErr) SsmColors.TextDanger else SsmColors.TextInfo, fontSize = 13.sp)
         }
     }
