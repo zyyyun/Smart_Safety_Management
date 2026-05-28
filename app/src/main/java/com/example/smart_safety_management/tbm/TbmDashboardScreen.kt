@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -100,12 +101,13 @@ fun TbmDashboardScreen(
 
     var managerGroup by remember { mutableStateOf<GroupRow?>(null) }
     var todaySessions by remember { mutableStateOf<List<TbmSessionRow>>(emptyList()) }
+    var sessionRefreshNonce by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(leaderUserId) {
         managerGroup = runCatching { repo.fetchGroupsForManager(leaderUserId) }
             .getOrNull()?.firstOrNull()
     }
-    LaunchedEffect(managerGroup?.groupId) {
+    LaunchedEffect(managerGroup?.groupId, sessionRefreshNonce) {
         val gid = managerGroup?.groupId
         if (gid == null) {
             todaySessions = emptyList()
@@ -148,7 +150,7 @@ fun TbmDashboardScreen(
             TbmStartSection(
                 leaderUserId = leaderUserId,
                 supabase = supabase,
-                onSubmitted = {},
+                onSubmitted = { sessionRefreshNonce++ },
             )
         }
         Spacer(Modifier.height(16.dp))
@@ -162,6 +164,7 @@ fun TbmDashboardScreen(
                 leaderUserId = leaderUserId,
                 repo = repo,
                 scope = scope,
+                onSessionChanged = { sessionRefreshNonce++ },
             )
         }
     }
@@ -257,6 +260,7 @@ private fun SessionsSection(
     leaderUserId: String,
     repo: TbmRepository,
     scope: CoroutineScope,
+    onSessionChanged: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         if (activeSessions.isEmpty() && endedSessions.isEmpty()) {
@@ -279,6 +283,7 @@ private fun SessionsSection(
                         leaderUserId = leaderUserId,
                         repo = repo,
                         scope = scope,
+                        onSessionChanged = onSessionChanged,
                     )
                 }
             }
@@ -301,6 +306,7 @@ private fun SessionsSection(
                         leaderUserId = leaderUserId,
                         repo = repo,
                         scope = scope,
+                        onSessionChanged = onSessionChanged,
                     )
                 }
             }
@@ -315,6 +321,7 @@ private fun SessionDetailCard(
     leaderUserId: String,
     repo: TbmRepository,
     scope: CoroutineScope,
+    onSessionChanged: () -> Unit,
 ) {
     var expanded by remember(session.sessionId) { mutableStateOf(isActive) }
     var participants by remember(session.sessionId) { mutableStateOf<List<TbmParticipantRow>>(emptyList()) }
@@ -324,12 +331,13 @@ private fun SessionDetailCard(
     var endResultMsg by remember(session.sessionId) { mutableStateOf<String?>(null) }
     var pdfResultMsg by remember(session.sessionId) { mutableStateOf<String?>(null) }
     var ending by remember(session.sessionId) { mutableStateOf(false) }
+    var detailRefreshNonce by remember(session.sessionId) { mutableIntStateOf(0) }
     val api = remember { buildTbmFunctionsApi() }
 
-    LaunchedEffect(session.sessionId, expanded) {
+    LaunchedEffect(session.sessionId, expanded, detailRefreshNonce) {
         if (expanded) repo.participantsFlow(session.sessionId).collectLatest { participants = it }
     }
-    LaunchedEffect(session.sessionId, expanded) {
+    LaunchedEffect(session.sessionId, expanded, detailRefreshNonce) {
         if (expanded) repo.checklistsFlow(session.sessionId).collectLatest { checklists = it }
     }
 
@@ -426,6 +434,7 @@ private fun SessionDetailCard(
                     grouped = groupByOpsTitle(checklists.map(::checklistDisplayItem)) { it.opsTitle },
                     repo = repo,
                     scope = scope,
+                    onChecklistChanged = { detailRefreshNonce++ },
                 )
                 Spacer(Modifier.height(8.dp))
 
@@ -488,6 +497,7 @@ private fun SessionDetailCard(
                                         resp.code() == 404 -> "리더가 아니거나 이미 종료됨"
                                         else -> "오류 ${resp.code()}"
                                     }
+                                    if (resp.isSuccessful && resp.body()?.ok == true) onSessionChanged()
                                 } catch (e: Exception) {
                                     endResultMsg = "네트워크 오류: ${e.message}"
                                 } finally {
@@ -560,6 +570,7 @@ private fun GroupedChecklistList(
     grouped: List<OpsTitleGroup<ChecklistDisplayItem>>,
     repo: TbmRepository,
     scope: CoroutineScope,
+    onChecklistChanged: () -> Unit,
 ) {
     if (grouped.isEmpty()) {
         Text("없음", fontSize = 12.sp, color = SsmColors.TextMuted)
@@ -580,6 +591,7 @@ private fun GroupedChecklistList(
                     item = item.row,
                     repo = repo,
                     scope = scope,
+                    onChecklistChanged = onChecklistChanged,
                     displayText = item.displayText,
                     indent = if (hasOpsMetadata) 8.dp else 0.dp,
                 )
@@ -593,6 +605,7 @@ fun ChecklistRow(
     item: TbmChecklistRow,
     repo: TbmRepository,
     scope: CoroutineScope,
+    onChecklistChanged: () -> Unit,
     displayText: String = item.itemText,
     indent: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
@@ -608,6 +621,7 @@ fun ChecklistRow(
             if (draft != (item.note ?: "")) {
                 delay(500)
                 runCatching { repo.updateChecklistItem(item.checklistId, note = draft) }
+                    .onSuccess { onChecklistChanged() }
             }
         }
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -615,7 +629,10 @@ fun ChecklistRow(
                 Checkbox(
                     checked = isChecked,
                     onCheckedChange = { newChecked ->
-                        scope.launch { runCatching { repo.updateChecklistItem(item.checklistId, isChecked = newChecked) } }
+                        scope.launch {
+                            runCatching { repo.updateChecklistItem(item.checklistId, isChecked = newChecked) }
+                                .onSuccess { onChecklistChanged() }
+                        }
                     },
                 )
                 Text("추가 작업 사항", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
@@ -635,7 +652,10 @@ fun ChecklistRow(
             Checkbox(
                 checked = isChecked,
                 onCheckedChange = { newChecked ->
-                    scope.launch { runCatching { repo.updateChecklistItem(item.checklistId, isChecked = newChecked) } }
+                    scope.launch {
+                        runCatching { repo.updateChecklistItem(item.checklistId, isChecked = newChecked) }
+                            .onSuccess { onChecklistChanged() }
+                    }
                 },
             )
             Text(displayText, fontSize = 13.sp)

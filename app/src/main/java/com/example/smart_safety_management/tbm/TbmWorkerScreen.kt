@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -58,8 +59,10 @@ fun TbmWorkerScreen(
     var checklists by remember { mutableStateOf<List<TbmChecklistRow>>(emptyList()) }
     var submitting by remember { mutableStateOf(false) }
     var resultMsg by remember { mutableStateOf<String?>(null) }
+    var sessionRefreshNonce by remember { mutableIntStateOf(0) }
+    var detailRefreshNonce by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(groupId) {
+    LaunchedEffect(groupId, sessionRefreshNonce) {
         repo.todaySessionFlow(groupId).collectLatest { todaySessions ->
             sessions = todaySessions
             if (selectedSessionId == null || todaySessions.none { it.sessionId == selectedSessionId }) {
@@ -70,12 +73,12 @@ fun TbmWorkerScreen(
 
     val selectedSession = sessions.firstOrNull { it.sessionId == selectedSessionId }
 
-    LaunchedEffect(selectedSession?.sessionId) {
+    LaunchedEffect(selectedSession?.sessionId, detailRefreshNonce) {
         val sid = selectedSession?.sessionId
         if (sid != null) repo.participantsFlow(sid).collectLatest { participants = it }
         else participants = emptyList()
     }
-    LaunchedEffect(selectedSession?.sessionId) {
+    LaunchedEffect(selectedSession?.sessionId, detailRefreshNonce) {
         val sid = selectedSession?.sessionId
         if (sid != null) repo.checklistsFlow(sid).collectLatest { checklists = it }
         else checklists = emptyList()
@@ -136,6 +139,7 @@ fun TbmWorkerScreen(
                         grouped = groupByOpsTitle(checklists.map(::checklistDisplayItem)) { it.opsTitle },
                         repo = repo,
                         scope = scope,
+                        onChecklistChanged = { detailRefreshNonce++ },
                     )
 
                     if (alreadyJoined) {
@@ -201,6 +205,10 @@ fun TbmWorkerScreen(
                                     resp.code() == 404 -> "세션을 찾을 수 없음"
                                     resp.code() == 410 -> "이미 종료된 세션"
                                     else -> "오류 ${resp.code()}"
+                                }
+                                if (resp.isSuccessful && resp.body()?.ok == true) {
+                                    sessionRefreshNonce++
+                                    detailRefreshNonce++
                                 }
                             }
                         } catch (e: Exception) {
@@ -301,6 +309,7 @@ private fun WorkerGroupedChecklistList(
     grouped: List<OpsTitleGroup<ChecklistDisplayItem>>,
     repo: TbmRepository,
     scope: CoroutineScope,
+    onChecklistChanged: () -> Unit,
 ) {
     if (grouped.isEmpty()) {
         Text("없음", fontSize = 14.sp, color = SsmColors.TextMuted)
@@ -322,6 +331,7 @@ private fun WorkerGroupedChecklistList(
                     displayText = item.displayText,
                     repo = repo,
                     scope = scope,
+                    onChecklistChanged = onChecklistChanged,
                     indent = if (hasOpsMetadata) 8.dp else 0.dp,
                 )
             }
@@ -335,6 +345,7 @@ private fun WorkerChecklistRow(
     displayText: String,
     repo: TbmRepository,
     scope: CoroutineScope,
+    onChecklistChanged: () -> Unit,
     indent: androidx.compose.ui.unit.Dp,
 ) {
     Row(
@@ -344,7 +355,10 @@ private fun WorkerChecklistRow(
         Checkbox(
             checked = item.isChecked,
             onCheckedChange = { checked ->
-                scope.launch { runCatching { repo.updateChecklistItem(item.checklistId, isChecked = checked) } }
+                scope.launch {
+                    runCatching { repo.updateChecklistItem(item.checklistId, isChecked = checked) }
+                        .onSuccess { onChecklistChanged() }
+                }
             },
         )
         Text(displayText, fontSize = 15.sp)
