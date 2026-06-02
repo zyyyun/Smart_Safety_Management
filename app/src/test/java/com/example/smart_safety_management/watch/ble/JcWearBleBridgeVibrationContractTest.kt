@@ -76,4 +76,18 @@ class JcWearBleBridgeVibrationContractTest {
 
         assertTrue(src.contains("if (gatt !== this@JcWearBleBridge.gatt) return"))
     }
+
+    @Test
+    fun bridgeSerializesIdentifyWithBModeGattOperations() {
+        val src = bridge.readText()
+
+        assertTrue(src.contains("private var gattOperationInFlight = false"))
+        assertTrue(src.contains("private var pendingIdentifyCommand = false"))
+        assertTrue(src.contains("private fun processPendingIdentify"))
+        assertTrue(src.contains("if (gattOperationInFlight) return false"))
+        assertTrue(src.contains("gattOperationInFlight = true"))
+        assertTrue(src.contains("gattOperationInFlight = false"))
+        assertTrue(src.contains("if (processPendingIdentify(gatt)) return"))
+        assertTrue(src.contains("if (characteristic.uuid != JcWearBModeProtocol.dataUuid)"))
+    }
 }
