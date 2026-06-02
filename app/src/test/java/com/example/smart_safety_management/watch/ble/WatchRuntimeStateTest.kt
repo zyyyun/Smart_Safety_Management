@@ -29,6 +29,7 @@ class WatchRuntimeStateTest {
 
         assertEquals("5초 전", snapshot.lastCommunicationLabel)
         assertTrue(snapshot.isFresh)
+        assertEquals(WatchRuntimeStatus.READING, snapshot.runtimeStatus)
         assertEquals("수신 중", snapshot.statusLabel)
     }
 
@@ -45,6 +46,7 @@ class WatchRuntimeStateTest {
         )
 
         assertFalse(snapshot.isFresh)
+        assertEquals(WatchRuntimeStatus.IDLE, snapshot.runtimeStatus)
         assertEquals("데이터 대기", snapshot.statusLabel)
     }
 
@@ -326,6 +328,7 @@ class WatchRuntimeStateTest {
 
         assertNotEquals("수신 중", snapshot.statusLabel)
         assertFalse(snapshot.isFresh)
+        assertEquals(WatchRuntimeStatus.IDLE, snapshot.runtimeStatus)
         assertEquals("-", snapshot.lastCommunicationLabel)
         assertEquals("--", snapshot.ppgDisplay)
         assertEquals("78 bpm", snapshot.hrDisplay)

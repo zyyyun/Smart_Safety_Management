@@ -51,6 +51,7 @@ import com.example.smart_safety_management.watch.ble.JcWearDeviceRegistrar
 import com.example.smart_safety_management.watch.ble.JcWearDiscoveredDevice
 import com.example.smart_safety_management.watch.ble.WatchBleServiceController
 import com.example.smart_safety_management.watch.ble.WatchRuntimeSnapshot
+import com.example.smart_safety_management.watch.ble.WatchRuntimeStatus
 import com.example.smart_safety_management.watch.ble.WatchRuntimeStore
 import com.example.smart_safety_management.watch.ble.seedForRegisteredWatch
 import io.github.jan.supabase.SupabaseClient
@@ -72,6 +73,7 @@ import java.time.ZoneOffset
 
 enum class WatchStatus(val label: String, val color: Color) {
     UNPAIRED("미등록", Color.Gray),
+    CONNECTING("연결 중", Color(0xFF2563EB)),
     CONNECTED("연결됨", Color(0xFF16A34A)),
     DISCONNECTED("끊김", Color(0xFFF59E0B)),
 }
@@ -197,8 +199,18 @@ fun PairWatchSection(supabase: SupabaseClient) {
 
     val status = computeStatus(device)
     val runtimeSnapshot = WatchRuntimeSnapshot.from(device, null, runtime)
-    val displayedStatus =
-        if (status != WatchStatus.UNPAIRED && runtimeSnapshot.isFresh) WatchStatus.CONNECTED else status
+    val displayedStatus = when {
+        status == WatchStatus.UNPAIRED -> WatchStatus.UNPAIRED
+        runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.CONNECTED ||
+            runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.READING ||
+            runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.UPLOADING -> WatchStatus.CONNECTED
+        runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.CONNECTING ||
+            runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.SCANNING ||
+            runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.RETRYING -> WatchStatus.CONNECTING
+        runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.FAILED ||
+            runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.DISCONNECTED -> WatchStatus.DISCONNECTED
+        else -> status
+    }
     val selectedDevice = scanState.discoveredDevices.firstOrNull {
         it.address == scanState.selectedAddress
     }

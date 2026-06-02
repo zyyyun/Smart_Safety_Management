@@ -306,7 +306,7 @@ class JcWearBleBridge(context: Context) {
             status: Int,
         ) {
             if (gatt !== this@JcWearBleBridge.gatt) return
-            clearGattOperationInFlight()
+            if (!completeGattOperationIfCurrent()) return
             handleBModeWrite(gatt, characteristic, status)
         }
 
@@ -317,7 +317,7 @@ class JcWearBleBridge(context: Context) {
             status: Int,
         ) {
             if (gatt !== this@JcWearBleBridge.gatt) return
-            clearGattOperationInFlight()
+            if (!completeGattOperationIfCurrent()) return
             handleBModeRead(gatt, characteristic.value, status)
         }
 
@@ -328,7 +328,7 @@ class JcWearBleBridge(context: Context) {
             status: Int,
         ) {
             if (gatt !== this@JcWearBleBridge.gatt) return
-            clearGattOperationInFlight()
+            if (!completeGattOperationIfCurrent()) return
             handleBModeRead(gatt, value, status)
         }
     }
@@ -458,6 +458,12 @@ class JcWearBleBridge(context: Context) {
         gattOperationToken++
     }
 
+    private fun completeGattOperationIfCurrent(): Boolean {
+        if (!gattOperationInFlight) return false
+        clearGattOperationInFlight()
+        return true
+    }
+
     @SuppressLint("MissingPermission")
     private fun ScanResult.toJcWearDevice(): JcWearDiscoveredDevice? {
         val name = scanRecord?.deviceName ?: runCatching { device.name }.getOrNull()
@@ -498,6 +504,7 @@ class JcWearBleBridge(context: Context) {
         telemetryLoopActive = false
         bModeInitStage = BModeInitStage.IDLE
         gattOperationInFlight = false
+        gattOperationToken++
         _uiState.value = _uiState.value.copy(
             connectionState = JcWearConnectionState.FAILED,
             errorMessage = message,

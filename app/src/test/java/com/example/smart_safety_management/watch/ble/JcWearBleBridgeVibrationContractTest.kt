@@ -117,9 +117,12 @@ class JcWearBleBridgeVibrationContractTest {
         assertTrue(src.contains("private var gattOperationToken = 0"))
         assertTrue(src.contains("private fun markGattOperationInFlight"))
         assertTrue(src.contains("private fun clearGattOperationInFlight"))
+        assertTrue(src.contains("private fun completeGattOperationIfCurrent(): Boolean"))
+        assertTrue(src.contains("if (!completeGattOperationIfCurrent()) return"))
         assertTrue(src.contains("GATT_OPERATION_TIMEOUT_MS"))
         assertTrue(src.contains("failBModeRead(\"B-mode GATT operation timed out.\")"))
         assertTrue(src.contains("markGattOperationInFlight(gatt)"))
         assertTrue(src.contains("clearGattOperationInFlight()"))
+        assertTrue(src.contains("if (!gattOperationInFlight) return false"))
     }
 }

@@ -59,7 +59,9 @@ class PairWatchSectionIdentifyUiContractTest {
         val src = section.readText()
 
         assertTrue(src.contains("val displayedStatus ="))
-        assertTrue(src.contains("runtimeSnapshot.isFresh"))
+        assertTrue(src.contains("runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.READING"))
+        assertTrue(src.contains("runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.RETRYING -> WatchStatus.CONNECTING"))
+        assertTrue(src.contains("runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.FAILED"))
         assertTrue(src.contains("StatusBadge(displayedStatus)"))
         assertFalse(src.contains("StatusBadge(status)"))
     }

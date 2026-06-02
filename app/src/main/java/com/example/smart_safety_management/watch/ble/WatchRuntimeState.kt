@@ -40,6 +40,7 @@ data class WatchRuntimeState(
 data class WatchRuntimeSnapshot(
     val statusLabel: String,
     val isFresh: Boolean,
+    val runtimeStatus: WatchRuntimeStatus,
     val lastCommunicationLabel: String,
     val ppgDisplay: String,
     val hrDisplay: String,
@@ -77,6 +78,7 @@ data class WatchRuntimeSnapshot(
             return WatchRuntimeSnapshot(
                 statusLabel = statusLabel(effectiveRuntime.status, isFresh, hasMac),
                 isFresh = isFresh,
+                runtimeStatus = effectiveRuntime.status,
                 lastCommunicationLabel = relativeLabel(lastCommunicationAt, now),
                 ppgDisplay = freshReading?.ppgValue?.toString() ?: "--",
                 hrDisplay = readingLabel(hrValue, suffix = " bpm"),
