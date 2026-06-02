@@ -50,6 +50,10 @@ import com.example.smart_safety_management.watch.ble.JcWearConnectionState
 import com.example.smart_safety_management.watch.ble.JcWearDeviceRegistrar
 import com.example.smart_safety_management.watch.ble.JcWearDiscoveredDevice
 import com.example.smart_safety_management.watch.ble.WatchBleServiceController
+import com.example.smart_safety_management.watch.ble.WatchRuntimeSnapshot
+import com.example.smart_safety_management.watch.ble.WatchRuntimeState
+import com.example.smart_safety_management.watch.ble.WatchRuntimeStatus
+import com.example.smart_safety_management.watch.ble.WatchRuntimeStore
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
@@ -103,6 +107,7 @@ fun PairWatchSection(supabase: SupabaseClient) {
     val scope = rememberCoroutineScope()
     val bleBridge = remember { JcWearBleBridge(context.applicationContext) }
     val scanState by bleBridge.uiState.collectAsState()
+    val runtime by WatchRuntimeStore.state.collectAsState()
     val registrar = remember { JcWearDeviceRegistrar() }
     val unpairApi = remember { buildPairApi() }
 
@@ -186,6 +191,7 @@ fun PairWatchSection(supabase: SupabaseClient) {
     }
 
     val status = computeStatus(device)
+    val runtimeSnapshot = WatchRuntimeSnapshot.from(device, null, runtime)
     val selectedDevice = scanState.discoveredDevices.firstOrNull {
         it.address == scanState.selectedAddress
     }
@@ -235,6 +241,14 @@ fun PairWatchSection(supabase: SupabaseClient) {
                         try {
                             val registered = registrar.registerWatch(userId, selectedDevice)
                             device = registered
+                            WatchRuntimeStore.update(
+                                WatchRuntimeState(
+                                    deviceId = registered.deviceId,
+                                    userId = userId,
+                                    macAddress = registered.macAddress,
+                                    status = WatchRuntimeStatus.CONNECTING,
+                                ),
+                            )
                             WatchBleServiceController.configureAndStart(context, userId, registered)
                             resultDialog = PairResultDialog(
                                 title = "등록 완료",
@@ -259,6 +273,7 @@ fun PairWatchSection(supabase: SupabaseClient) {
         } else {
             RegisteredWatchPanel(
                 device = device,
+                runtimeSnapshot = runtimeSnapshot,
                 unpairing = unpairing,
                 onUnpair = {
                     val userId = UserSession.userId
@@ -424,7 +439,6 @@ private fun DiscoveredWatchRow(
         ) {
             val label = when {
                 selected && isConnectedWatchState(connectionState) -> "연결됨"
-                selected && connectionState == JcWearConnectionState.CONNECTED -> "연결됨"
                 selected && connectionState == JcWearConnectionState.CONNECTING -> "연결 중"
                 else -> "연결"
             }
@@ -440,6 +454,7 @@ private fun isConnectedWatchState(connectionState: JcWearConnectionState): Boole
 @Composable
 private fun RegisteredWatchPanel(
     device: DeviceRow?,
+    runtimeSnapshot: WatchRuntimeSnapshot,
     unpairing: Boolean,
     onUnpair: () -> Unit,
 ) {
@@ -454,7 +469,8 @@ private fun RegisteredWatchPanel(
         ) {
             Text("등록된 워치", fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Text("식별값: ${device?.serialNumber ?: device?.macAddress ?: "-"}", color = Color(0xFF4B5563), fontSize = 13.sp)
-            Text("마지막 통신: ${device?.lastCommAt ?: "-"}", color = Color.Gray, fontSize = 12.sp)
+            Text("상태: ${runtimeSnapshot.statusLabel}", color = Color(0xFF4B5563), fontSize = 13.sp)
+            Text("마지막 통신: ${runtimeSnapshot.lastCommunicationLabel}", color = Color.Gray, fontSize = 12.sp)
             OutlinedButton(onClick = onUnpair, enabled = !unpairing) {
                 Text(if (unpairing) "해제 중..." else "등록 해제")
             }
