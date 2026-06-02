@@ -7,6 +7,7 @@ import com.example.smart_safety_management.watch.WatchPairRequest
 import com.example.smart_safety_management.watch.WatchReadingRequest
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.time.Duration
 import java.time.Instant
 
 class JcWearDeviceRegistrar(
@@ -64,6 +65,18 @@ class JcWearDeviceRegistrar(
         if (!resp.isSuccessful || resp.body()?.ok != true) {
             throw IllegalStateException(resp.body()?.error ?: "워치 측정값 저장 실패: HTTP ${resp.code()}")
         }
+    }
+}
+
+class WatchReadingUploadPolicy {
+    private var lastUploadAt: Instant? = null
+
+    fun shouldUpload(reading: JcWearHealthReading, now: Instant = Instant.now()): Boolean {
+        if (!reading.hasServerSupportedValue) return false
+        val previous = lastUploadAt
+        if (previous != null && Duration.between(previous, now) < Duration.ofSeconds(1)) return false
+        lastUploadAt = now
+        return true
     }
 }
 

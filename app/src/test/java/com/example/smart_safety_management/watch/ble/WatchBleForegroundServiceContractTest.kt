@@ -45,6 +45,15 @@ class WatchBleForegroundServiceContractTest {
         assertTrue(src.contains("START_STICKY"))
         assertTrue(src.contains("bridge.startScan()"))
         assertTrue(src.contains("bridge.connect"))
+        assertTrue(src.contains("WatchRuntimeStore.mutate"))
+        assertTrue(src.contains("WatchRuntimeStatus.SCANNING"))
+        assertTrue(src.contains("WatchRuntimeStatus.CONNECTING"))
+        assertTrue(src.contains("WatchRuntimeStatus.READING"))
+        assertTrue(src.contains("WatchRuntimeStatus.RETRYING"))
+        assertTrue(src.contains("lastReadAt = Instant.now()") || src.contains("val readAt = Instant.now()"))
+        assertTrue(src.contains("lastUploadAt = Instant.now()") || src.contains("val uploadAt = Instant.now()"))
+        assertTrue(src.contains("if (config == activeConfig && monitorJob?.isActive == true)"))
+        assertTrue(src.contains("WatchReadingUploadPolicy"))
     }
 
     @Test

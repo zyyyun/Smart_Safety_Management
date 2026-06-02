@@ -29,6 +29,14 @@ object WatchBleServiceController {
             macAddress = mac,
         )
         saveConfig(context, config)
+        WatchRuntimeStore.update(
+            WatchRuntimeState(
+                deviceId = config.deviceId,
+                userId = config.userId,
+                macAddress = config.macAddress,
+                status = WatchRuntimeStatus.CONNECTING,
+            ),
+        )
         start(context)
         return true
     }
@@ -46,6 +54,7 @@ object WatchBleServiceController {
 
     fun stopAndClear(context: Context) {
         clearConfig(context)
+        WatchRuntimeStore.clear()
         val intent = Intent(context, WatchBleForegroundService::class.java).setAction(ACTION_STOP)
         context.applicationContext.startService(intent)
     }

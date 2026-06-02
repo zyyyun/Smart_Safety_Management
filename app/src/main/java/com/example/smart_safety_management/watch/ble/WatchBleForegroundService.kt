@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.Instant
 
 class WatchBleForegroundService : Service() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -47,6 +48,16 @@ class WatchBleForegroundService : Service() {
 
         val config = WatchBleServiceController.loadConfig(this) ?: return START_NOT_STICKY
         startAsForeground(config)
+        if (config == activeConfig && monitorJob?.isActive == true) {
+            WatchRuntimeStore.mutate { current ->
+                current.copy(
+                    deviceId = config.deviceId,
+                    userId = config.userId,
+                    macAddress = config.macAddress,
+                )
+            }
+            return START_STICKY
+        }
         if (config != activeConfig) {
             restartMonitoring(config)
         }
@@ -59,14 +70,55 @@ class WatchBleForegroundService : Service() {
         uploadJob?.cancel()
         bridge.close()
         bridge.refreshEnvironment()
+        val uploadPolicy = WatchReadingUploadPolicy()
+
+        WatchRuntimeStore.update(
+            WatchRuntimeState(
+                deviceId = config.deviceId,
+                userId = config.userId,
+                macAddress = config.macAddress,
+                status = WatchRuntimeStatus.SCANNING,
+            ),
+        )
 
         uploadJob = serviceScope.launch {
             bridge.healthReadings.collect { reading ->
+                val readAt = Instant.now()
+                WatchRuntimeStore.mutate { current ->
+                    current.copy(
+                        deviceId = config.deviceId,
+                        userId = config.userId,
+                        macAddress = config.macAddress,
+                        status = WatchRuntimeStatus.READING,
+                        lastReadAt = readAt,
+                        latestReading = reading,
+                        lastError = null,
+                    )
+                }
+                if (!uploadPolicy.shouldUpload(reading, readAt)) return@collect
                 runCatching {
                     withContext(Dispatchers.IO) {
                         registrar.updateWatchReading(config.userId, config.deviceId, reading)
                     }
+                    val uploadAt = Instant.now()
+                    WatchRuntimeStore.mutate { current ->
+                        current.copy(
+                            deviceId = config.deviceId,
+                            userId = config.userId,
+                            macAddress = config.macAddress,
+                            status = WatchRuntimeStatus.READING,
+                            lastUploadAt = uploadAt,
+                        )
+                    }
                 }.onFailure { error ->
+                    WatchRuntimeStore.mutate { current ->
+                        current.copy(
+                            deviceId = config.deviceId,
+                            userId = config.userId,
+                            macAddress = config.macAddress,
+                            lastError = error.message ?: error::class.java.simpleName,
+                        )
+                    }
                     Log.w(TAG, "watch reading upload failed", error)
                 }
             }
@@ -79,17 +131,56 @@ class WatchBleForegroundService : Service() {
                 val target = state.discoveredDevices.firstOrNull {
                     it.address.equals(config.macAddress, ignoreCase = true)
                 }
+                if (state.connectionState == JcWearConnectionState.FAILED ||
+                    state.connectionState == JcWearConnectionState.RETRYING
+                ) {
+                    WatchRuntimeStore.mutate { current ->
+                        current.copy(
+                            deviceId = config.deviceId,
+                            userId = config.userId,
+                            macAddress = config.macAddress,
+                            status = WatchRuntimeStatus.RETRYING,
+                            lastError = state.errorMessage,
+                        )
+                    }
+                }
                 when {
                     target != null &&
                         !isActiveConnectionState(state.connectionState) &&
                         state.connectionState != JcWearConnectionState.CONNECTING -> {
+                        WatchRuntimeStore.mutate { current ->
+                            current.copy(
+                                deviceId = config.deviceId,
+                                userId = config.userId,
+                                macAddress = config.macAddress,
+                                status = WatchRuntimeStatus.CONNECTING,
+                            )
+                        }
                         bridge.connect(target)
                     }
                     state.connectionState == JcWearConnectionState.DISCONNECTED ||
                         state.connectionState == JcWearConnectionState.FAILED -> {
-                        if (!state.scanning) bridge.startScan()
+                        if (!state.scanning) {
+                            WatchRuntimeStore.mutate { current ->
+                                current.copy(
+                                    deviceId = config.deviceId,
+                                    userId = config.userId,
+                                    macAddress = config.macAddress,
+                                    status = WatchRuntimeStatus.SCANNING,
+                                )
+                            }
+                            bridge.startScan()
+                        }
                     }
                     state.connectionState == JcWearConnectionState.SCANNING && target != null -> {
+                        WatchRuntimeStore.mutate { current ->
+                            current.copy(
+                                deviceId = config.deviceId,
+                                userId = config.userId,
+                                macAddress = config.macAddress,
+                                status = WatchRuntimeStatus.CONNECTING,
+                            )
+                        }
                         bridge.connect(target)
                     }
                 }
@@ -105,6 +196,7 @@ class WatchBleForegroundService : Service() {
     private fun stopWatchMonitoring() {
         monitorJob?.cancel()
         uploadJob?.cancel()
+        WatchRuntimeStore.clear(activeConfig?.deviceId)
         monitorJob = null
         uploadJob = null
         activeConfig = null
