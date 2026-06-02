@@ -51,7 +51,7 @@ data class WatchRuntimeSnapshot(
             runtime: WatchRuntimeState,
             now: Instant = Instant.now(),
         ): WatchRuntimeSnapshot {
-            val runtimeApplies = runtime.appliesTo(device, dbSnapshot)
+            val runtimeApplies = runtimeAppliesToTarget(runtime, device, dbSnapshot)
             val effectiveRuntime = runtime.takeIf { runtimeApplies } ?: WatchRuntimeState()
             val isFresh = effectiveRuntime.lastReadAt?.let { Duration.between(it, now).seconds in 0..10 } ?: false
             val freshReading = effectiveRuntime.latestReading.takeIf { isFresh }
@@ -79,13 +79,24 @@ data class WatchRuntimeSnapshot(
             )
         }
 
-        private fun WatchRuntimeState.appliesTo(device: DeviceRow?, dbSnapshot: DeviceWatchSnapshot?): Boolean {
+        private fun runtimeAppliesToTarget(
+            runtime: WatchRuntimeState,
+            device: DeviceRow?,
+            dbSnapshot: DeviceWatchSnapshot?,
+        ): Boolean {
             val targetDeviceId = device?.deviceId ?: dbSnapshot?.deviceId
-            val deviceIdMatches = targetDeviceId == null || deviceId == null || deviceId == targetDeviceId
+            val runtimeDeviceId = runtime.deviceId
+            if (targetDeviceId != null && runtimeDeviceId != null) {
+                return targetDeviceId == runtimeDeviceId
+            }
+
             val deviceMac = device?.macAddress?.trim()?.takeIf { it.isNotEmpty() }
-            val runtimeMac = macAddress?.trim()?.takeIf { it.isNotEmpty() }
-            val macMatches = deviceMac != null && runtimeMac != null && deviceMac.equals(runtimeMac, ignoreCase = true)
-            return deviceIdMatches || macMatches
+            val runtimeMac = runtime.macAddress?.trim()?.takeIf { it.isNotEmpty() }
+            if (deviceMac != null && runtimeMac != null) {
+                return deviceMac.equals(runtimeMac, ignoreCase = true)
+            }
+
+            return targetDeviceId == null && deviceMac == null && runtimeDeviceId == null && runtimeMac == null
         }
 
         private fun statusLabel(status: WatchRuntimeStatus, isFresh: Boolean, hasMac: Boolean): String {
