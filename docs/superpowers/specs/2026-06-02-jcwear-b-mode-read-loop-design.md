@@ -68,6 +68,18 @@ connections as noticeable events, causing repeated vibration. It also means the
 data stream can be attached to the wrong lifetime: data may arrive only briefly
 or stop after the screen/service handoff.
 
+There is a second visible problem: the watch UI is too static.
+
+- The home watch card initially queries the paired watch once. If pairing happens
+  on another screen, the home card can keep showing the unpaired/disconnected
+  state until the activity is recreated.
+- The detail screen depends on Supabase realtime or a 5-second polling fallback,
+  so local BLE connection/read progress can be delayed or invisible.
+- `last_comm_at` and "last measurement" can remain stuck at the first pairing or
+  upload timestamp if the running service does not push fresh state into the UI.
+- A green "normal" overall card is misleading when the service is connected but
+  live values such as HR/PPG are not actively changing.
+
 ## Proposed Architecture
 
 Use one long-lived BLE owner: `WatchBleForegroundService`.
@@ -85,11 +97,73 @@ The foreground service should:
 - own the active `BluetoothGatt`,
 - own the read loop,
 - own reconnect policy,
+- own the live runtime state,
 - expose status for UI,
 - upload throttled readings to Supabase.
 
 This gives the app one connection lifetime per registered watch instead of one
 connection per screen action.
+
+## Reactive UI Requirements
+
+The watch UI must update from a live runtime state, not only from the database.
+The app should feel live: watch state, connection state, last communication, and
+sensor status must change on the current screen without closing and reopening
+the app.
+
+Introduce a process-wide `WatchRuntimeState` source, exposed as a `StateFlow` or
+equivalent lifecycle-aware stream, with fields such as:
+
+- paired device id and MAC address,
+- BLE connection state: scanning, connecting, connected, reading, disconnected,
+  retrying, failed,
+- last successful BLE read time,
+- last successful Supabase upload time,
+- latest B-mode PPG value,
+- latest displayed health snapshot,
+- last error message.
+
+The service is the source of truth for this runtime state while it is running.
+Supabase remains the source of truth for persisted registration and historical
+snapshots. UI components should merge both:
+
+- service runtime state wins for connection state, active receiving state, and
+  "last communication" while the service is running,
+- Supabase snapshot fills persisted values after app restart or service cold
+  start,
+- stale Supabase values must not override fresher local runtime values.
+
+Screen responsibilities:
+
+- `PairWatchSection` updates the runtime state as soon as registration succeeds
+  and as scan/connect/identify events happen.
+- Home watch cards observe the runtime state continuously instead of relying on a
+  one-time paired-device query during `LaunchedEffect(Unit)`.
+- `WatchDetailScreen` observes the same runtime state and uses a lightweight
+  ticker while visible so relative labels such as "31 seconds ago" continue to
+  advance.
+- Supabase realtime and polling should refresh persisted snapshots, but they
+  must not be the only path that makes the UI look connected.
+
+Required UI behavior:
+
+- After "selected watch register" succeeds, the current screen and home card must
+  immediately switch to paired/connecting or paired/connected without requiring
+  app restart.
+- The main home card must update dynamically when the service connects, starts
+  reading, uploads, disconnects, or retries.
+- The detail screen must show a changing "last read" or "last communication"
+  relative time while B-mode reads are being received.
+- The status label should distinguish "connecting", "connected", "receiving",
+  "uploading", "retrying", "stale", and "disconnected" instead of showing one
+  static normal state.
+- A green "normal operation" state is allowed only when recent live runtime data
+  exists, for example a successful read within the last 10 seconds. If the last
+  live read is older than the freshness threshold, the UI should show "stale" or
+  "waiting for data" even if the last persisted Supabase snapshot is normal.
+- If HR/temperature are unavailable in B mode, the UI must not pretend those
+  metrics are live. It should show PPG live status clearly and mark HR/temp as
+  unavailable or pending.
 
 ## Components
 
@@ -101,6 +175,8 @@ Responsibilities:
 - Connect to the configured MAC address.
 - Initialize B mode using the Python command sequence.
 - Start the `fff2` read loop.
+- Update shared runtime state on scan, connect, init, every successful read,
+  upload, disconnect, retry, and failure.
 - Publish readings to Supabase through `JcWearDeviceRegistrar`.
 - Reconnect only after a real disconnect or repeated read failures.
 - Keep the Android foreground notification active while monitoring.
@@ -133,6 +209,8 @@ Responsibilities:
 - On registration, save the watch and start the service.
 - After registration, show service/database status instead of opening its own
   monitoring connection.
+- Optimistically update its local paired-device state from the successful
+  registration response; do not wait for activity restart or realtime echo.
 - The bell/identify button should request a one-shot identify command through
   the service. It must not trigger a fresh monitor connection if the service is
   already connected.
@@ -209,6 +287,14 @@ Add unit tests for:
   restart the GATT session or read loop.
 - Stop contract: unpair/stop clears config, stops the read loop, closes GATT, and
   removes the foreground notification.
+- Reactive UI contract: registration success updates the paired watch state
+  immediately without activity restart.
+- Runtime state contract: home card and detail screen can render service runtime
+  state before Supabase realtime or polling returns.
+- Staleness contract: "last communication" uses the freshest runtime read/upload
+  timestamp and advances dynamically instead of freezing at the pairing time.
+- Metric truthfulness contract: HR/temp unavailable in B mode are shown as
+  unavailable/pending, not as live normal values.
 
 Manual verification:
 
@@ -217,6 +303,10 @@ Manual verification:
 - Move to another app screen for at least 2 minutes.
 - Background the app for at least 2 minutes.
 - Confirm readings continue updating approximately once per second in Supabase.
+- Confirm the home card changes immediately after pairing without closing and
+  reopening the app.
+- Confirm the detail screen's last-read/last-communication text keeps advancing
+  while data is being received.
 - Confirm the watch does not vibrate except when identify is tapped.
 
 ## Non-Goals
