@@ -32,11 +32,13 @@ class PairWatchSectionIdentifyUiContractTest {
         val src = section.readText()
         val deviceAssignedIndex = src.indexOf("device = registered")
         val seedIndex = src.indexOf("current.seedForRegisteredWatch(userId, registered)")
+        val disconnectIndex = src.indexOf("bleBridge.disconnect()", startIndex = seedIndex)
         val serviceStartIndex = src.indexOf("WatchBleServiceController.configureAndStart(context, userId, registered)")
 
         assertTrue(src.contains("WatchRuntimeStore.mutate { current ->"))
         assertTrue(seedIndex > deviceAssignedIndex)
         assertTrue(seedIndex < serviceStartIndex)
+        assertTrue(disconnectIndex in seedIndex until serviceStartIndex)
         assertFalse(src.contains("WatchRuntimeStore.update("))
     }
 
@@ -50,6 +52,16 @@ class PairWatchSectionIdentifyUiContractTest {
         assertTrue(src.contains("if (!deviceLoadComplete)"))
         assertTrue(src.contains("WatchPairLoadingPanel()"))
         assertTrue(src.contains("} else if (showUnpairedScan)"))
+    }
+
+    @Test
+    fun topStatusBadgeUsesFreshRuntimeStateWhenAvailable() {
+        val src = section.readText()
+
+        assertTrue(src.contains("val displayedStatus ="))
+        assertTrue(src.contains("runtimeSnapshot.isFresh"))
+        assertTrue(src.contains("StatusBadge(displayedStatus)"))
+        assertFalse(src.contains("StatusBadge(status)"))
     }
 
     @Test

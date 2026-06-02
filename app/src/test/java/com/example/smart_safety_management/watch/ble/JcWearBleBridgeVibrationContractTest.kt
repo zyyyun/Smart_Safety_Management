@@ -109,4 +109,17 @@ class JcWearBleBridgeVibrationContractTest {
         assertTrue(conversionIndex > 0)
         assertTrue(suppressIndex in 0 until conversionIndex)
     }
+
+    @Test
+    fun bridgeTimesOutStuckGattOperations() {
+        val src = bridge.readText()
+
+        assertTrue(src.contains("private var gattOperationToken = 0"))
+        assertTrue(src.contains("private fun markGattOperationInFlight"))
+        assertTrue(src.contains("private fun clearGattOperationInFlight"))
+        assertTrue(src.contains("GATT_OPERATION_TIMEOUT_MS"))
+        assertTrue(src.contains("failBModeRead(\"B-mode GATT operation timed out.\")"))
+        assertTrue(src.contains("markGattOperationInFlight(gatt)"))
+        assertTrue(src.contains("clearGattOperationInFlight()"))
+    }
 }

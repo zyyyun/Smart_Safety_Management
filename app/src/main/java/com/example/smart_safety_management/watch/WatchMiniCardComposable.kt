@@ -106,6 +106,12 @@ fun WatchMiniCardComposable(
 
     val lastActiveAlert = WatchActiveAlertSelector.select(allAlerts, lastWearState)
     val runtimeSnapshot = WatchRuntimeSnapshot.from(device, snapshot, runtime)
+    val miniPrimaryMetric =
+        if (runtimeSnapshot.heartRate == null && runtimeSnapshot.ppgDisplay != "--") {
+            "PPG ${runtimeSnapshot.ppgDisplay}"
+        } else {
+            runtimeSnapshot.hrDisplay
+        }
     val runtimeStatusSnapshot = DeviceWatchSnapshot(
         deviceId = snapshot?.deviceId ?: deviceId,
         heartRate = runtimeSnapshot.heartRate,
@@ -141,7 +147,7 @@ fun WatchMiniCardComposable(
             Column(verticalArrangement = Arrangement.SpaceBetween) {
                 // HR 큰 숫자
                 Text(
-                    runtimeSnapshot.hrDisplay,
+                    miniPrimaryMetric,
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,

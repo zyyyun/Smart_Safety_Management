@@ -30,6 +30,10 @@ class WatchRuntimeUiContractTest {
         assertTrue(src.contains("heartRate = runtimeSnapshot.heartRate"))
         assertTrue(src.contains("bodyTemp = runtimeSnapshot.bodyTemp"))
         assertTrue(src.contains("WatchHealthFormatter.overallStatus("))
+        assertTrue(src.contains("val miniPrimaryMetric ="))
+        assertTrue(src.contains("runtimeSnapshot.ppgDisplay != \"--\""))
+        assertTrue(src.contains("\"PPG \${runtimeSnapshot.ppgDisplay}\""))
+        assertTrue(src.contains("miniPrimaryMetric"))
         assertFalse(src.contains("WatchHealthFormatter.overallStatus(\n        snapshot, lastWearState"))
     }
 

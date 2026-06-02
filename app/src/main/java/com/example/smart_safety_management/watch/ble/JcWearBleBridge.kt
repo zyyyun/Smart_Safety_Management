@@ -38,6 +38,7 @@ class JcWearBleBridge(context: Context) {
     private var telemetryLoopActive = false
     private var bModeInitStage = BModeInitStage.IDLE
     private var gattOperationInFlight = false
+    private var gattOperationToken = 0
     private var pendingIdentifyCommand = false
     private var pendingIdentifyAddress: String? = null
 
@@ -165,6 +166,7 @@ class JcWearBleBridge(context: Context) {
         telemetryLoopActive = false
         bModeInitStage = BModeInitStage.IDLE
         gattOperationInFlight = false
+        gattOperationToken++
         pendingIdentifyCommand = false
         if (hasBluetoothPermission()) {
             val activeGatt = gatt
@@ -224,7 +226,7 @@ class JcWearBleBridge(context: Context) {
         }
         val accepted = gatt.readCharacteristic(characteristic)
         if (accepted) {
-            gattOperationInFlight = true
+            markGattOperationInFlight(gatt)
         } else {
             failBModeRead("B-mode data read could not be started.")
         }
@@ -304,7 +306,7 @@ class JcWearBleBridge(context: Context) {
             status: Int,
         ) {
             if (gatt !== this@JcWearBleBridge.gatt) return
-            gattOperationInFlight = false
+            clearGattOperationInFlight()
             handleBModeWrite(gatt, characteristic, status)
         }
 
@@ -315,7 +317,7 @@ class JcWearBleBridge(context: Context) {
             status: Int,
         ) {
             if (gatt !== this@JcWearBleBridge.gatt) return
-            gattOperationInFlight = false
+            clearGattOperationInFlight()
             handleBModeRead(gatt, characteristic.value, status)
         }
 
@@ -326,7 +328,7 @@ class JcWearBleBridge(context: Context) {
             status: Int,
         ) {
             if (gatt !== this@JcWearBleBridge.gatt) return
-            gattOperationInFlight = false
+            clearGattOperationInFlight()
             handleBModeRead(gatt, value, status)
         }
     }
@@ -427,7 +429,7 @@ class JcWearBleBridge(context: Context) {
                 command,
                 BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
             ) == BluetoothStatusCodes.SUCCESS
-            if (accepted) gattOperationInFlight = true
+            if (accepted) markGattOperationInFlight(gatt)
             return accepted
         } else {
             @Suppress("DEPRECATION")
@@ -435,9 +437,25 @@ class JcWearBleBridge(context: Context) {
             characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
             @Suppress("DEPRECATION")
             val accepted = gatt.writeCharacteristic(characteristic)
-            if (accepted) gattOperationInFlight = true
+            if (accepted) markGattOperationInFlight(gatt)
             return accepted
         }
+    }
+
+    private fun markGattOperationInFlight(gatt: BluetoothGatt) {
+        gattOperationInFlight = true
+        val token = ++gattOperationToken
+        handler.postDelayed({
+            if (token == gattOperationToken && gatt === this.gatt && gattOperationInFlight) {
+                gattOperationInFlight = false
+                failBModeRead("B-mode GATT operation timed out.")
+            }
+        }, GATT_OPERATION_TIMEOUT_MS)
+    }
+
+    private fun clearGattOperationInFlight() {
+        gattOperationInFlight = false
+        gattOperationToken++
     }
 
     @SuppressLint("MissingPermission")
@@ -491,6 +509,7 @@ class JcWearBleBridge(context: Context) {
         private const val B_MODE_PPG_INIT_DELAY_MS = 3_000L
         private const val B_MODE_REALTIME_START_DELAY_MS = 2_000L
         private const val B_MODE_READ_INTERVAL_MS = 100L
+        private const val GATT_OPERATION_TIMEOUT_MS = 3_000L
         private const val IDENTIFY_VIBRATION_TIMES = 2
         private const val IDENTIFY_VIBRATION_DELAY_MS = 800L
         private val SDK_COMMAND_CHARACTERISTIC_UUID: UUID =

@@ -197,6 +197,8 @@ fun PairWatchSection(supabase: SupabaseClient) {
 
     val status = computeStatus(device)
     val runtimeSnapshot = WatchRuntimeSnapshot.from(device, null, runtime)
+    val displayedStatus =
+        if (status != WatchStatus.UNPAIRED && runtimeSnapshot.isFresh) WatchStatus.CONNECTED else status
     val selectedDevice = scanState.discoveredDevices.firstOrNull {
         it.address == scanState.selectedAddress
     }
@@ -206,7 +208,7 @@ fun PairWatchSection(supabase: SupabaseClient) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("J2208A 스마트워치", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Spacer(Modifier.width(12.dp))
-            StatusBadge(status)
+            StatusBadge(displayedStatus)
         }
         Spacer(Modifier.height(8.dp))
 
@@ -252,6 +254,7 @@ fun PairWatchSection(supabase: SupabaseClient) {
                             WatchRuntimeStore.mutate { current ->
                                 current.seedForRegisteredWatch(userId, registered)
                             }
+                            bleBridge.disconnect()
                             WatchBleServiceController.configureAndStart(context, userId, registered)
                             resultDialog = PairResultDialog(
                                 title = "등록 완료",
