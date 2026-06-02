@@ -48,6 +48,17 @@ class WatchBleForegroundServiceContractTest {
     }
 
     @Test
+    fun serviceTreatsReadingAsStableActiveConnection() {
+        val src = service.readText()
+
+        assertTrue(src.contains("JcWearConnectionState.READING"))
+        assertTrue(src.contains("isActiveConnectionState"))
+        assertTrue(src.contains("connectionState == JcWearConnectionState.CONNECTED ||"))
+        assertTrue(src.contains("connectionState == JcWearConnectionState.READING"))
+        assertTrue(src.contains("if (isActiveConnectionState(bridge.uiState.value.connectionState)) 30_000 else 5_000"))
+    }
+
+    @Test
     fun controllerPersistsServiceConfigAndStartsForegroundService() {
         assertTrue("WatchBleServiceController.kt missing", controller.exists())
         val src = controller.readText()

@@ -81,7 +81,7 @@ class WatchBleForegroundService : Service() {
                 }
                 when {
                     target != null &&
-                        state.connectionState != JcWearConnectionState.CONNECTED &&
+                        !isActiveConnectionState(state.connectionState) &&
                         state.connectionState != JcWearConnectionState.CONNECTING -> {
                         bridge.connect(target)
                     }
@@ -93,10 +93,14 @@ class WatchBleForegroundService : Service() {
                         bridge.connect(target)
                     }
                 }
-                delay(if (bridge.uiState.value.connectionState == JcWearConnectionState.CONNECTED) 30_000 else 5_000)
+                delay(if (isActiveConnectionState(bridge.uiState.value.connectionState)) 30_000 else 5_000)
             }
         }
     }
+
+    private fun isActiveConnectionState(connectionState: JcWearConnectionState): Boolean =
+        connectionState == JcWearConnectionState.CONNECTED ||
+            connectionState == JcWearConnectionState.READING
 
     private fun stopWatchMonitoring() {
         monitorJob?.cancel()

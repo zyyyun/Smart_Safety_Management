@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
 
 class JcWearBleBridge(context: Context) {
     private val appContext = context.applicationContext
@@ -34,6 +35,7 @@ class JcWearBleBridge(context: Context) {
     private var gatt: BluetoothGatt? = null
     private val handler = Handler(Looper.getMainLooper())
     private var telemetryLoopActive = false
+    private var bModeInitStage = BModeInitStage.IDLE
     private var pendingIdentifyAddress: String? = null
 
     private val _uiState = MutableStateFlow(
@@ -158,6 +160,7 @@ class JcWearBleBridge(context: Context) {
     @SuppressLint("MissingPermission")
     fun disconnect() {
         telemetryLoopActive = false
+        bModeInitStage = BModeInitStage.IDLE
         if (hasBluetoothPermission()) {
             val activeGatt = gatt
             runCatching { activeGatt?.disconnect() }
@@ -179,28 +182,22 @@ class JcWearBleBridge(context: Context) {
 
     private fun vibrateForIdentification() {
         val activeGatt = gatt ?: return
-        writeCommand(activeGatt, BleSDK.MotorVibrationWithTimes(IDENTIFY_VIBRATION_TIMES))
+        writeSdkCommand(activeGatt, BleSDK.MotorVibrationWithTimes(IDENTIFY_VIBRATION_TIMES))
     }
 
     private fun startBModeReadLoop(gatt: BluetoothGatt) {
         if (telemetryLoopActive) return
         telemetryLoopActive = true
+        bModeInitStage = BModeInitStage.RESET_SENT
         _uiState.value = _uiState.value.copy(connectionState = JcWearConnectionState.READING)
-        writeCommand(gatt, JcWearBModeProtocol.resetCommand)
-        handler.postDelayed({
-            if (!telemetryLoopActive) return@postDelayed
-            writeCommand(gatt, JcWearBModeProtocol.ppgInitCommand)
-        }, B_MODE_PPG_INIT_DELAY_MS)
-        handler.postDelayed({
-            if (!telemetryLoopActive) return@postDelayed
-            writeCommand(gatt, JcWearBModeProtocol.realtimeStartCommand)
-            scheduleBModeRead(gatt)
-        }, B_MODE_REALTIME_START_DELAY_MS)
+        if (!writeBModeCommand(gatt, JcWearBModeProtocol.resetCommand)) {
+            failBModeRead("B-mode reset command could not be started.")
+        }
     }
 
     @SuppressLint("MissingPermission")
     private fun scheduleBModeRead(gatt: BluetoothGatt) {
-        if (!telemetryLoopActive) return
+        if (!telemetryLoopActive || gatt !== this.gatt) return
         val characteristic = dataCharacteristic(gatt) ?: run {
             failBModeRead("B-mode data characteristic not found.")
             return
@@ -229,8 +226,10 @@ class JcWearBleBridge(context: Context) {
     private val gattCallback = object : BluetoothGattCallback() {
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            if (gatt !== this@JcWearBleBridge.gatt) return
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 telemetryLoopActive = false
+                bModeInitStage = BModeInitStage.IDLE
                 handler.removeCallbacksAndMessages(null)
                 runCatching { gatt.close() }
                 _uiState.value = _uiState.value.copy(
@@ -243,6 +242,7 @@ class JcWearBleBridge(context: Context) {
                 BluetoothProfile.STATE_CONNECTED -> runCatching { gatt.discoverServices() }
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     telemetryLoopActive = false
+                    bModeInitStage = BModeInitStage.IDLE
                     handler.removeCallbacksAndMessages(null)
                     runCatching { gatt.close() }
                     _uiState.value = _uiState.value.copy(
@@ -254,6 +254,7 @@ class JcWearBleBridge(context: Context) {
 
         @SuppressLint("MissingPermission")
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            if (gatt !== this@JcWearBleBridge.gatt) return
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 _uiState.value = _uiState.value.copy(
                     connectionState = JcWearConnectionState.CONNECTED,
@@ -272,13 +273,24 @@ class JcWearBleBridge(context: Context) {
             }
         }
 
+        @SuppressLint("MissingPermission")
+        override fun onCharacteristicWrite(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            status: Int,
+        ) {
+            if (gatt !== this@JcWearBleBridge.gatt) return
+            handleBModeWrite(gatt, characteristic, status)
+        }
+
         @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
         override fun onCharacteristicRead(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
             status: Int,
         ) {
-            handleBModeRead(characteristic.value, status)
+            if (gatt !== this@JcWearBleBridge.gatt) return
+            handleBModeRead(gatt, characteristic.value, status)
         }
 
         override fun onCharacteristicRead(
@@ -287,39 +299,94 @@ class JcWearBleBridge(context: Context) {
             value: ByteArray,
             status: Int,
         ) {
-            handleBModeRead(value, status)
+            if (gatt !== this@JcWearBleBridge.gatt) return
+            handleBModeRead(gatt, value, status)
         }
     }
 
-    private fun handleBModeRead(value: ByteArray, status: Int) {
+    private fun handleBModeWrite(
+        gatt: BluetoothGatt,
+        characteristic: BluetoothGattCharacteristic,
+        status: Int,
+    ) {
+        if (characteristic.uuid != JcWearBModeProtocol.dataUuid) return
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            failBModeRead("B-mode command write failed: $status")
+            return
+        }
+        when (bModeInitStage) {
+            BModeInitStage.RESET_SENT -> {
+                handler.postDelayed({
+                    if (!telemetryLoopActive || gatt !== this.gatt) return@postDelayed
+                    bModeInitStage = BModeInitStage.PPG_INIT_SENT
+                    if (!writeBModeCommand(gatt, JcWearBModeProtocol.ppgInitCommand)) {
+                        failBModeRead("B-mode PPG init command could not be started.")
+                    }
+                }, B_MODE_PPG_INIT_DELAY_MS)
+            }
+            BModeInitStage.PPG_INIT_SENT -> {
+                handler.postDelayed({
+                    if (!telemetryLoopActive || gatt !== this.gatt) return@postDelayed
+                    bModeInitStage = BModeInitStage.REALTIME_START_SENT
+                    if (!writeBModeCommand(gatt, JcWearBModeProtocol.realtimeStartCommand)) {
+                        failBModeRead("B-mode realtime command could not be started.")
+                    }
+                }, B_MODE_REALTIME_START_DELAY_MS)
+            }
+            BModeInitStage.REALTIME_START_SENT -> {
+                bModeInitStage = BModeInitStage.READING
+                scheduleBModeRead(gatt)
+            }
+            BModeInitStage.IDLE,
+            BModeInitStage.READING -> Unit
+        }
+    }
+
+    private fun handleBModeRead(gatt: BluetoothGatt, value: ByteArray, status: Int) {
         if (status != BluetoothGatt.GATT_SUCCESS) {
             failBModeRead("B-mode data read failed: $status")
             return
         }
-        val ppg = JcWearBModeProtocol.parsePpg(value)
-        _healthReadings.tryEmit(JcWearHealthReading(ppgValue = ppg))
+        JcWearBModeProtocol.parsePpg(value)?.let { ppg ->
+            _healthReadings.tryEmit(JcWearHealthReading(ppgValue = ppg))
+        }
         _uiState.value = _uiState.value.copy(
             connectionState = JcWearConnectionState.READING,
             errorMessage = null,
         )
-        handler.postDelayed({ gatt?.let { scheduleBModeRead(it) } }, B_MODE_READ_INTERVAL_MS)
+        handler.postDelayed({ scheduleBModeRead(gatt) }, B_MODE_READ_INTERVAL_MS)
     }
 
     @SuppressLint("MissingPermission")
-    private fun writeCommand(gatt: BluetoothGatt, command: ByteArray) {
-        val characteristic = dataCharacteristic(gatt) ?: return
+    private fun writeBModeCommand(gatt: BluetoothGatt, command: ByteArray): Boolean {
+        val characteristic = dataCharacteristic(gatt) ?: return false
+        return writeCommand(gatt, characteristic, command)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun writeSdkCommand(gatt: BluetoothGatt, command: ByteArray): Boolean {
+        val characteristic = sdkCommandCharacteristic(gatt) ?: return false
+        return writeCommand(gatt, characteristic, command)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun writeCommand(
+        gatt: BluetoothGatt,
+        characteristic: BluetoothGattCharacteristic,
+        command: ByteArray,
+    ): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            gatt.writeCharacteristic(
+            return gatt.writeCharacteristic(
                 characteristic,
                 command,
                 BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
-            )
+            ) == BluetoothGatt.GATT_SUCCESS
         } else {
             @Suppress("DEPRECATION")
             characteristic.value = command
             characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
             @Suppress("DEPRECATION")
-            gatt.writeCharacteristic(characteristic)
+            return gatt.writeCharacteristic(characteristic)
         }
     }
 
@@ -335,6 +402,9 @@ class JcWearBleBridge(context: Context) {
 
     private fun dataCharacteristic(gatt: BluetoothGatt): BluetoothGattCharacteristic? =
         gatt.getService(JcWearBModeProtocol.serviceUuid)?.getCharacteristic(JcWearBModeProtocol.dataUuid)
+
+    private fun sdkCommandCharacteristic(gatt: BluetoothGatt): BluetoothGattCharacteristic? =
+        gatt.getService(JcWearBModeProtocol.serviceUuid)?.getCharacteristic(SDK_COMMAND_CHARACTERISTIC_UUID)
 
     private fun hasBluetoothPermission(): Boolean =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -357,6 +427,7 @@ class JcWearBleBridge(context: Context) {
 
     private fun failBModeRead(message: String) {
         telemetryLoopActive = false
+        bModeInitStage = BModeInitStage.IDLE
         _uiState.value = _uiState.value.copy(
             connectionState = JcWearConnectionState.FAILED,
             errorMessage = message,
@@ -366,10 +437,12 @@ class JcWearBleBridge(context: Context) {
     companion object {
         private const val TAG = "JcWearBleBridge"
         private const val B_MODE_PPG_INIT_DELAY_MS = 3_000L
-        private const val B_MODE_REALTIME_START_DELAY_MS = 5_000L
+        private const val B_MODE_REALTIME_START_DELAY_MS = 2_000L
         private const val B_MODE_READ_INTERVAL_MS = 100L
         private const val IDENTIFY_VIBRATION_TIMES = 2
         private const val IDENTIFY_VIBRATION_DELAY_MS = 800L
+        private val SDK_COMMAND_CHARACTERISTIC_UUID: UUID =
+            UUID.fromString("0000fff6-0000-1000-8000-00805f9b34fb")
 
         fun isLikelyJcWear(name: String?): Boolean {
             val normalized = name?.trim()?.lowercase().orEmpty()
@@ -379,5 +452,13 @@ class JcWearBleBridge(context: Context) {
                 normalized.contains("jcwear") ||
                 normalized.contains("bracelet")
         }
+    }
+
+    private enum class BModeInitStage {
+        IDLE,
+        RESET_SENT,
+        PPG_INIT_SENT,
+        REALTIME_START_SENT,
+        READING,
     }
 }

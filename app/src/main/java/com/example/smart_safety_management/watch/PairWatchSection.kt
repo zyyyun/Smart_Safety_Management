@@ -423,6 +423,7 @@ private fun DiscoveredWatchRow(
             enabled = connectionState != JcWearConnectionState.CONNECTING,
         ) {
             val label = when {
+                selected && isConnectedWatchState(connectionState) -> "연결됨"
                 selected && connectionState == JcWearConnectionState.CONNECTED -> "연결됨"
                 selected && connectionState == JcWearConnectionState.CONNECTING -> "연결 중"
                 else -> "연결"
@@ -431,6 +432,10 @@ private fun DiscoveredWatchRow(
         }
     }
 }
+
+private fun isConnectedWatchState(connectionState: JcWearConnectionState): Boolean =
+    connectionState == JcWearConnectionState.CONNECTED ||
+        connectionState == JcWearConnectionState.READING
 
 @Composable
 private fun RegisteredWatchPanel(

@@ -17,4 +17,12 @@ class PairWatchSectionIdentifyUiContractTest {
         assertTrue(src.contains("IconButton(onClick = onIdentify"))
         assertTrue(src.indexOf("IconButton(onClick = onIdentify") < src.indexOf("OutlinedButton("))
     }
+
+    @Test
+    fun selectedReadingWatchRowUsesConnectedLabel() {
+        val src = section.readText()
+
+        assertTrue(src.contains("selected && isConnectedWatchState(connectionState)"))
+        assertTrue(src.contains("connectionState == JcWearConnectionState.READING"))
+    }
 }
