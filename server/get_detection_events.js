@@ -30,12 +30,14 @@ router.get('/get_detection_events', async (req, res) => {
                 to_char(de.detected_at, 'YYYY-MM-DD HH24:MI:SS') as detected_at,
                 et.event_name,
                 u.name as worker_name,
-                to_char(ar.completed_at, 'YYYY-MM-DD HH24:MI:SS') as completed_at
+                to_char(ar.completed_at, 'YYYY-MM-DD HH24:MI:SS') as completed_at,
+                cc.image_url as image_url
             FROM detection_events de
             JOIN cameras c ON de.camera_id = c.camera_id
             LEFT JOIN event_types et ON de.type_id = et.id
             LEFT JOIN action_requests ar ON de.event_id = ar.event_id
             LEFT JOIN users u ON ar.worker_id = u.user_id
+            LEFT JOIN camera_captures cc ON de.capture_id = cc.capture_id
             WHERE c.group_id = $1
             ORDER BY 
                 CASE WHEN de.status IN ('REQUESTED', 'PENDING') THEN 0 ELSE 1 END ASC,

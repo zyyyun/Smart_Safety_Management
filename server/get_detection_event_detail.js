@@ -21,20 +21,29 @@ router.get('/get_detection_event_detail', async (req, res) => {
                 to_char(de.detected_at, 'YYYY-MM-DD HH24:MI:SS') as detected_at,
                 et.event_name,
                 c.installation_address, 
-                c.live_url,
+                COALESCE(NULLIF(c.live_url_detail, ''), NULLIF(de.live_url, ''), NULLIF(c.live_url, '')) as live_url,
                 c.latitude,
                 c.longitude,
                 ar.request_type, 
                 ar.request_title, 
                 ar.request_details,
                 (SELECT COALESCE(json_agg(image_url), '[]') FROM action_images WHERE request_id = ar.request_id) as action_images,
-                cc.image_url as capture_image_url,
-                cc.capture_id
+                COALESCE(cc.image_url, fallback_capture.image_url) as capture_image_url,
+                COALESCE(cc.capture_id, fallback_capture.capture_id) as capture_id
             FROM detection_events de
             JOIN cameras c ON de.camera_id = c.camera_id
             LEFT JOIN event_types et ON de.type_id = et.id
             LEFT JOIN action_requests ar ON de.event_id = ar.event_id
             LEFT JOIN camera_captures cc ON de.capture_id = cc.capture_id
+            LEFT JOIN LATERAL (
+                SELECT cc2.capture_id, cc2.image_url
+                FROM camera_captures cc2
+                WHERE cc2.camera_id = de.camera_id
+                  AND COALESCE(cc2.event_type, '') <> 'PERIODIC'
+                  AND COALESCE(cc2.image_url, '') <> ''
+                ORDER BY ABS(EXTRACT(EPOCH FROM (cc2.captured_at - de.detected_at))) ASC
+                LIMIT 1
+            ) fallback_capture ON cc.capture_id IS NULL
             WHERE de.event_id = $1
         `;
 
