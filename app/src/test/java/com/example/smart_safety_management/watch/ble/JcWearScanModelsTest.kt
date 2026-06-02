@@ -127,4 +127,12 @@ class JcWearScanModelsTest {
 
         assertEquals(78, reading.heartRate)
     }
+
+    @Test
+    fun ppgOnlyReadingCountsAsAValue() {
+        val reading = JcWearHealthReading(ppgValue = 932)
+
+        assertTrue(reading.hasAnyValue)
+        assertEquals(932, reading.ppgValue)
+    }
 }

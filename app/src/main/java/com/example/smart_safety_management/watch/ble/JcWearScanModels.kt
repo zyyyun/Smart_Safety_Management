@@ -48,9 +48,10 @@ data class JcWearHealthReading(
     val heartRate: Int? = null,
     val bodyTemp: Float? = null,
     val batteryLevel: Int? = null,
+    val ppgValue: Int? = null,
 ) {
     val hasAnyValue: Boolean
-        get() = heartRate != null || bodyTemp != null || batteryLevel != null
+        get() = heartRate != null || bodyTemp != null || batteryLevel != null || ppgValue != null
 
     companion object {
         fun fromSdkMap(map: Map<String, Any?>): JcWearHealthReading {
