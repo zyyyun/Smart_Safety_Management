@@ -52,8 +52,39 @@ class WatchBleForegroundServiceContractTest {
         assertTrue(src.contains("WatchRuntimeStatus.RETRYING"))
         assertTrue(src.contains("lastReadAt = Instant.now()") || src.contains("val readAt = Instant.now()"))
         assertTrue(src.contains("lastUploadAt = Instant.now()") || src.contains("val uploadAt = Instant.now()"))
-        assertTrue(src.contains("if (config == activeConfig && monitorJob?.isActive == true)"))
+        assertTrue(src.contains("if (config == activeConfig && sameConfigJobsActive())"))
         assertTrue(src.contains("WatchReadingUploadPolicy"))
+    }
+
+    @Test
+    fun serviceRestartsWhenEitherMonitoringOrUploadJobIsInactive() {
+        val src = service.readText()
+
+        assertTrue(src.contains("private fun sameConfigJobsActive()"))
+        assertTrue(src.contains("monitorJob?.isActive == true"))
+        assertTrue(src.contains("uploadJob?.isActive == true"))
+        assertTrue(src.contains("restartMonitoring(config)"))
+        assertFalse(src.contains("if (config != activeConfig) {\r\n            restartMonitoring(config)\r\n        }"))
+        assertFalse(src.contains("if (config != activeConfig) {\n            restartMonitoring(config)\n        }"))
+    }
+
+    @Test
+    fun serviceDoesNotSwallowCancellationOrWriteStaleRuntime() {
+        val src = service.readText()
+
+        assertTrue(src.contains("import kotlinx.coroutines.CancellationException"))
+        assertTrue(src.contains("if (error is CancellationException) throw error"))
+        assertTrue(src.contains("mutateRuntimeFor(config)"))
+        assertTrue(src.contains("if (activeConfig != config) return false"))
+    }
+
+    @Test
+    fun serviceStopClearsRuntimeForCapturedConfigOnly() {
+        val src = service.readText()
+
+        assertTrue(src.contains("val configToStop = activeConfig"))
+        assertTrue(src.contains("WatchRuntimeStore.clear(configToStop.deviceId)"))
+        assertFalse(src.contains("WatchRuntimeStore.clear(activeConfig?.deviceId)"))
     }
 
     @Test
@@ -77,6 +108,7 @@ class WatchBleForegroundServiceContractTest {
         assertTrue(src.contains("ContextCompat.startForegroundService"))
         assertTrue(src.contains("ACTION_START"))
         assertTrue(src.contains("ACTION_STOP"))
+        assertTrue(src.contains("seedForServiceStart"))
     }
 
     @Test

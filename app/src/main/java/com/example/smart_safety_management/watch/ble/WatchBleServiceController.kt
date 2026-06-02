@@ -29,14 +29,7 @@ object WatchBleServiceController {
             macAddress = mac,
         )
         saveConfig(context, config)
-        WatchRuntimeStore.update(
-            WatchRuntimeState(
-                deviceId = config.deviceId,
-                userId = config.userId,
-                macAddress = config.macAddress,
-                status = WatchRuntimeStatus.CONNECTING,
-            ),
-        )
+        WatchRuntimeStore.mutate { current -> current.seedForServiceStart(config) }
         start(context)
         return true
     }
@@ -86,3 +79,24 @@ object WatchBleServiceController {
             .apply()
     }
 }
+
+internal fun WatchRuntimeState.seedForServiceStart(config: WatchBleServiceConfig): WatchRuntimeState =
+    if (belongsToSameServiceTarget(config)) {
+        copy(
+            deviceId = config.deviceId,
+            userId = config.userId,
+            macAddress = config.macAddress,
+        )
+    } else {
+        WatchRuntimeState(
+            deviceId = config.deviceId,
+            userId = config.userId,
+            macAddress = config.macAddress,
+            status = WatchRuntimeStatus.CONNECTING,
+        )
+    }
+
+private fun WatchRuntimeState.belongsToSameServiceTarget(config: WatchBleServiceConfig): Boolean =
+    deviceId == config.deviceId &&
+        userId == config.userId &&
+        macAddress?.equals(config.macAddress, ignoreCase = true) == true

@@ -13,6 +13,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.smart_safety_management.R
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -48,8 +49,8 @@ class WatchBleForegroundService : Service() {
 
         val config = WatchBleServiceController.loadConfig(this) ?: return START_NOT_STICKY
         startAsForeground(config)
-        if (config == activeConfig && monitorJob?.isActive == true) {
-            WatchRuntimeStore.mutate { current ->
+        if (config == activeConfig && sameConfigJobsActive()) {
+            mutateRuntimeFor(config) { current ->
                 current.copy(
                     deviceId = config.deviceId,
                     userId = config.userId,
@@ -58,11 +59,12 @@ class WatchBleForegroundService : Service() {
             }
             return START_STICKY
         }
-        if (config != activeConfig) {
-            restartMonitoring(config)
-        }
+        restartMonitoring(config)
         return START_STICKY
     }
+
+    private fun sameConfigJobsActive(): Boolean =
+        monitorJob?.isActive == true && uploadJob?.isActive == true
 
     private fun restartMonitoring(config: WatchBleServiceConfig) {
         activeConfig = config
@@ -84,7 +86,7 @@ class WatchBleForegroundService : Service() {
         uploadJob = serviceScope.launch {
             bridge.healthReadings.collect { reading ->
                 val readAt = Instant.now()
-                WatchRuntimeStore.mutate { current ->
+                if (!mutateRuntimeFor(config) { current ->
                     current.copy(
                         deviceId = config.deviceId,
                         userId = config.userId,
@@ -94,14 +96,14 @@ class WatchBleForegroundService : Service() {
                         latestReading = reading,
                         lastError = null,
                     )
-                }
+                }) return@collect
                 if (!uploadPolicy.shouldUpload(reading, readAt)) return@collect
-                runCatching {
+                try {
                     withContext(Dispatchers.IO) {
                         registrar.updateWatchReading(config.userId, config.deviceId, reading)
                     }
                     val uploadAt = Instant.now()
-                    WatchRuntimeStore.mutate { current ->
+                    mutateRuntimeFor(config) { current ->
                         current.copy(
                             deviceId = config.deviceId,
                             userId = config.userId,
@@ -110,8 +112,9 @@ class WatchBleForegroundService : Service() {
                             lastUploadAt = uploadAt,
                         )
                     }
-                }.onFailure { error ->
-                    WatchRuntimeStore.mutate { current ->
+                } catch (error: Throwable) {
+                    if (error is CancellationException) throw error
+                    mutateRuntimeFor(config) { current ->
                         current.copy(
                             deviceId = config.deviceId,
                             userId = config.userId,
@@ -125,7 +128,7 @@ class WatchBleForegroundService : Service() {
         }
 
         monitorJob = serviceScope.launch {
-            while (isActive) {
+            while (isActive && activeConfig == config) {
                 bridge.refreshEnvironment()
                 val state = bridge.uiState.value
                 val target = state.discoveredDevices.firstOrNull {
@@ -134,7 +137,7 @@ class WatchBleForegroundService : Service() {
                 if (state.connectionState == JcWearConnectionState.FAILED ||
                     state.connectionState == JcWearConnectionState.RETRYING
                 ) {
-                    WatchRuntimeStore.mutate { current ->
+                    mutateRuntimeFor(config) { current ->
                         current.copy(
                             deviceId = config.deviceId,
                             userId = config.userId,
@@ -148,7 +151,7 @@ class WatchBleForegroundService : Service() {
                     target != null &&
                         !isActiveConnectionState(state.connectionState) &&
                         state.connectionState != JcWearConnectionState.CONNECTING -> {
-                        WatchRuntimeStore.mutate { current ->
+                        mutateRuntimeFor(config) { current ->
                             current.copy(
                                 deviceId = config.deviceId,
                                 userId = config.userId,
@@ -161,7 +164,7 @@ class WatchBleForegroundService : Service() {
                     state.connectionState == JcWearConnectionState.DISCONNECTED ||
                         state.connectionState == JcWearConnectionState.FAILED -> {
                         if (!state.scanning) {
-                            WatchRuntimeStore.mutate { current ->
+                            mutateRuntimeFor(config) { current ->
                                 current.copy(
                                     deviceId = config.deviceId,
                                     userId = config.userId,
@@ -173,7 +176,7 @@ class WatchBleForegroundService : Service() {
                         }
                     }
                     state.connectionState == JcWearConnectionState.SCANNING && target != null -> {
-                        WatchRuntimeStore.mutate { current ->
+                        mutateRuntimeFor(config) { current ->
                             current.copy(
                                 deviceId = config.deviceId,
                                 userId = config.userId,
@@ -193,13 +196,35 @@ class WatchBleForegroundService : Service() {
         connectionState == JcWearConnectionState.CONNECTED ||
             connectionState == JcWearConnectionState.READING
 
+    private inline fun mutateRuntimeFor(
+        config: WatchBleServiceConfig,
+        crossinline block: (WatchRuntimeState) -> WatchRuntimeState,
+    ): Boolean {
+        if (activeConfig != config) return false
+        WatchRuntimeStore.mutate { current ->
+            if (activeConfig != config) {
+                current
+            } else {
+                block(current).copy(
+                    deviceId = config.deviceId,
+                    userId = config.userId,
+                    macAddress = config.macAddress,
+                )
+            }
+        }
+        return true
+    }
+
     private fun stopWatchMonitoring() {
+        val configToStop = activeConfig
         monitorJob?.cancel()
         uploadJob?.cancel()
-        WatchRuntimeStore.clear(activeConfig?.deviceId)
         monitorJob = null
         uploadJob = null
         activeConfig = null
+        if (configToStop != null) {
+            WatchRuntimeStore.clear(configToStop.deviceId)
+        }
         bridge.close()
         stopForeground(STOP_FOREGROUND_REMOVE)
     }

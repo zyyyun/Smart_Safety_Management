@@ -93,6 +93,67 @@ class WatchRuntimeStateTest {
     }
 
     @Test
+    fun serviceStartSeedPreservesSameDeviceRuntimeReading() {
+        val reading = JcWearHealthReading(
+            heartRate = 74,
+            bodyTemp = 36.4f,
+            batteryLevel = 81,
+            ppgValue = 942,
+        )
+        val current = WatchRuntimeState(
+            deviceId = 7,
+            userId = "worker-1",
+            macAddress = "21:02:02:06:01:69",
+            status = WatchRuntimeStatus.READING,
+            lastReadAt = now,
+            lastUploadAt = now.minusSeconds(1),
+            latestReading = reading,
+            lastError = "old transient error",
+        )
+
+        val seeded = current.seedForServiceStart(
+            WatchBleServiceConfig(
+                userId = "worker-1",
+                deviceId = 7,
+                macAddress = "21:02:02:06:01:69",
+            ),
+        )
+
+        assertEquals(WatchRuntimeStatus.READING, seeded.status)
+        assertEquals(now, seeded.lastReadAt)
+        assertEquals(now.minusSeconds(1), seeded.lastUploadAt)
+        assertEquals(reading, seeded.latestReading)
+        assertEquals("old transient error", seeded.lastError)
+    }
+
+    @Test
+    fun serviceStartSeedReplacesDifferentDeviceRuntime() {
+        val current = WatchRuntimeState(
+            deviceId = 8,
+            userId = "worker-2",
+            macAddress = "AA:BB:CC:DD:EE:FF",
+            status = WatchRuntimeStatus.READING,
+            lastReadAt = now,
+            latestReading = JcWearHealthReading(heartRate = 99),
+        )
+
+        val seeded = current.seedForServiceStart(
+            WatchBleServiceConfig(
+                userId = "worker-1",
+                deviceId = 7,
+                macAddress = "21:02:02:06:01:69",
+            ),
+        )
+
+        assertEquals(7, seeded.deviceId)
+        assertEquals("worker-1", seeded.userId)
+        assertEquals("21:02:02:06:01:69", seeded.macAddress)
+        assertEquals(WatchRuntimeStatus.CONNECTING, seeded.status)
+        assertEquals(null, seeded.lastReadAt)
+        assertEquals(null, seeded.latestReading)
+    }
+
+    @Test
     fun staleRuntimeReadingDoesNotOverrideDbSnapshotValues() {
         val snapshot = WatchRuntimeSnapshot.from(
             device = device(batteryLevel = 41),
