@@ -90,4 +90,23 @@ class JcWearBleBridgeVibrationContractTest {
         assertTrue(src.contains("if (processPendingIdentify(gatt)) return"))
         assertTrue(src.contains("if (characteristic.uuid != JcWearBModeProtocol.dataUuid)"))
     }
+
+    @Test
+    fun bridgeUsesApi33BluetoothStatusCodeForWriteAcceptance() {
+        val src = bridge.readText()
+
+        assertTrue(src.contains("import android.bluetooth.BluetoothStatusCodes"))
+        assertTrue(src.contains(") == BluetoothStatusCodes.SUCCESS"))
+        assertFalse(src.contains(") == BluetoothGatt.GATT_SUCCESS"))
+    }
+
+    @Test
+    fun scanResultNameAccessSuppressesPermissionLintAfterPermissionGate() {
+        val src = bridge.readText()
+        val conversionIndex = src.indexOf("private fun ScanResult.toJcWearDevice")
+        val suppressIndex = src.indexOf("@SuppressLint(\"MissingPermission\")", startIndex = conversionIndex - 80)
+
+        assertTrue(conversionIndex > 0)
+        assertTrue(suppressIndex in 0 until conversionIndex)
+    }
 }

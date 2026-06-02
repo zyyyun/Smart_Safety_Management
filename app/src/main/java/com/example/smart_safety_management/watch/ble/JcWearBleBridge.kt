@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothStatusCodes
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
@@ -425,7 +426,7 @@ class JcWearBleBridge(context: Context) {
                 characteristic,
                 command,
                 BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
-            ) == BluetoothGatt.GATT_SUCCESS
+            ) == BluetoothStatusCodes.SUCCESS
             if (accepted) gattOperationInFlight = true
             return accepted
         } else {
@@ -439,6 +440,7 @@ class JcWearBleBridge(context: Context) {
         }
     }
 
+    @SuppressLint("MissingPermission")
     private fun ScanResult.toJcWearDevice(): JcWearDiscoveredDevice? {
         val name = scanRecord?.deviceName ?: runCatching { device.name }.getOrNull()
         if (!isLikelyJcWear(name)) return null
