@@ -51,19 +51,21 @@ data class WatchRuntimeSnapshot(
             runtime: WatchRuntimeState,
             now: Instant = Instant.now(),
         ): WatchRuntimeSnapshot {
-            val isFresh = runtime.lastReadAt?.let { Duration.between(it, now).seconds in 0..10 } ?: false
-            val freshReading = runtime.latestReading.takeIf { isFresh }
-            val hasMac = !runtime.macAddress.isNullOrBlank() || !device?.macAddress.isNullOrBlank()
+            val runtimeApplies = runtime.appliesTo(device, dbSnapshot)
+            val effectiveRuntime = runtime.takeIf { runtimeApplies } ?: WatchRuntimeState()
+            val isFresh = effectiveRuntime.lastReadAt?.let { Duration.between(it, now).seconds in 0..10 } ?: false
+            val freshReading = effectiveRuntime.latestReading.takeIf { isFresh }
+            val hasMac = !effectiveRuntime.macAddress.isNullOrBlank() || !device?.macAddress.isNullOrBlank()
             val lastCommunicationAt = listOfNotNull(
-                runtime.lastReadAt,
-                runtime.lastUploadAt,
+                effectiveRuntime.lastReadAt,
+                effectiveRuntime.lastUploadAt,
                 dbSnapshot?.updatedAt?.toInstantOrNull(),
                 device?.lastCommAt?.toInstantOrNull(),
                 device?.updatedAt?.toInstantOrNull(),
             ).maxOrNull()
 
             return WatchRuntimeSnapshot(
-                statusLabel = statusLabel(runtime.status, isFresh, hasMac),
+                statusLabel = statusLabel(effectiveRuntime.status, isFresh, hasMac),
                 isFresh = isFresh,
                 lastCommunicationLabel = relativeLabel(lastCommunicationAt, now),
                 ppgDisplay = freshReading?.ppgValue?.toString() ?: "--",
@@ -75,6 +77,15 @@ data class WatchRuntimeSnapshot(
                         ?: device?.batteryLevel,
                 ),
             )
+        }
+
+        private fun WatchRuntimeState.appliesTo(device: DeviceRow?, dbSnapshot: DeviceWatchSnapshot?): Boolean {
+            val targetDeviceId = device?.deviceId ?: dbSnapshot?.deviceId
+            val deviceIdMatches = targetDeviceId == null || deviceId == null || deviceId == targetDeviceId
+            val deviceMac = device?.macAddress?.trim()?.takeIf { it.isNotEmpty() }
+            val runtimeMac = macAddress?.trim()?.takeIf { it.isNotEmpty() }
+            val macMatches = deviceMac != null && runtimeMac != null && deviceMac.equals(runtimeMac, ignoreCase = true)
+            return deviceIdMatches || macMatches
         }
 
         private fun statusLabel(status: WatchRuntimeStatus, isFresh: Boolean, hasMac: Boolean): String {
