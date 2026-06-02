@@ -106,8 +106,15 @@ fun WatchMiniCardComposable(
 
     val lastActiveAlert = WatchActiveAlertSelector.select(allAlerts, lastWearState)
     val runtimeSnapshot = WatchRuntimeSnapshot.from(device, snapshot, runtime)
+    val runtimeStatusSnapshot = DeviceWatchSnapshot(
+        deviceId = snapshot?.deviceId ?: deviceId,
+        heartRate = runtimeSnapshot.heartRate,
+        bodyTemp = runtimeSnapshot.bodyTemp,
+        batteryLevel = runtimeSnapshot.batteryLevel,
+        updatedAt = snapshot?.updatedAt,
+    )
     val (_, statusColor) = WatchHealthFormatter.overallStatus(
-        snapshot, lastWearState, lastActiveAlert,
+        runtimeStatusSnapshot, lastWearState, lastActiveAlert,
     )
 
     Card(

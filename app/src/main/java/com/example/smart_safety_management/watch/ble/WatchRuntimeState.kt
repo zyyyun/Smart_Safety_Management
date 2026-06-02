@@ -44,6 +44,8 @@ data class WatchRuntimeSnapshot(
     val ppgDisplay: String,
     val hrDisplay: String,
     val tempDisplay: String,
+    val heartRate: Int?,
+    val bodyTemp: Float?,
     val batteryDisplay: String,
     val batteryLevel: Int?,
 ) {
@@ -79,6 +81,8 @@ data class WatchRuntimeSnapshot(
                 ppgDisplay = freshReading?.ppgValue?.toString() ?: "--",
                 hrDisplay = readingLabel(hrValue, suffix = " bpm"),
                 tempDisplay = tempLabel(tempValue),
+                heartRate = hrValue,
+                bodyTemp = tempValue,
                 batteryDisplay = batteryLabel(batteryLevel),
                 batteryLevel = batteryLevel,
             )

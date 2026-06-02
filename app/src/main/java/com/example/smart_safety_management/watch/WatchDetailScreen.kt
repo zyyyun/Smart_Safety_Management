@@ -126,8 +126,15 @@ fun WatchDetailScreen(
     val wearState = lastWearStateRow?.toState
     val activeAlert = WatchActiveAlertSelector.select(allAlerts, wearState)
     val runtimeSnapshot = WatchRuntimeSnapshot.from(device, snapshot, runtime, now)
+    val runtimeStatusSnapshot = DeviceWatchSnapshot(
+        deviceId = snapshot?.deviceId ?: deviceId,
+        heartRate = runtimeSnapshot.heartRate,
+        bodyTemp = runtimeSnapshot.bodyTemp,
+        batteryLevel = runtimeSnapshot.batteryLevel,
+        updatedAt = snapshot?.updatedAt,
+    )
     val (_, overallColor) = WatchHealthFormatter.overallStatus(
-        snapshot, wearState, activeAlert,
+        runtimeStatusSnapshot, wearState, activeAlert,
     )
 
     Column(
@@ -172,10 +179,10 @@ fun WatchDetailScreen(
             // 2) 심박 카드
             PpgCard(runtimeSnapshot.ppgDisplay, runtimeSnapshot.statusLabel, runtimeSnapshot.isFresh)
 
-            HrCard(runtimeSnapshot.hrDisplay, snapshot?.heartRate, wearState)
+            HrCard(runtimeSnapshot.hrDisplay, runtimeSnapshot.heartRate, wearState)
 
             // 3) 체온 카드
-            TempCard(runtimeSnapshot.tempDisplay, snapshot?.bodyTemp, wearState)
+            TempCard(runtimeSnapshot.tempDisplay, runtimeSnapshot.bodyTemp, wearState)
 
             // 4) 착용 상태 카드
             WearStateCard(lastWearStateRow)

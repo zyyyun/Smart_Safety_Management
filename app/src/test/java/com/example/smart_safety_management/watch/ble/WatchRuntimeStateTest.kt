@@ -6,6 +6,7 @@ import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -85,6 +86,8 @@ class WatchRuntimeStateTest {
 
         assertTrue(snapshot.isFresh)
         assertEquals("932", snapshot.ppgDisplay)
+        assertNull(snapshot.heartRate)
+        assertNull(snapshot.bodyTemp)
         assertEquals("측정 대기", snapshot.hrDisplay)
         assertEquals("측정 대기", snapshot.tempDisplay)
     }
@@ -256,7 +259,9 @@ class WatchRuntimeStateTest {
 
         assertEquals("--", snapshot.ppgDisplay)
         assertEquals("78 bpm", snapshot.hrDisplay)
+        assertEquals(78, snapshot.heartRate)
         assertEquals("36.5°C", snapshot.tempDisplay)
+        assertEquals(36.5f, snapshot.bodyTemp)
         assertEquals("52%", snapshot.batteryDisplay)
     }
 
@@ -356,7 +361,9 @@ class WatchRuntimeStateTest {
         assertEquals("0초 전", snapshot.lastCommunicationLabel)
         assertEquals("999", snapshot.ppgDisplay)
         assertEquals("120 bpm", snapshot.hrDisplay)
+        assertEquals(120, snapshot.heartRate)
         assertEquals("39.0°C", snapshot.tempDisplay)
+        assertEquals(39.0f, snapshot.bodyTemp)
         assertEquals("10%", snapshot.batteryDisplay)
     }
 
