@@ -127,9 +127,9 @@ if ($DetectorsEnabled) {
     Write-Host "[+] DETECTORS_ENABLED (from .env) = $($env:DETECTORS_ENABLED)" -ForegroundColor DarkCyan
 }
 # Fall cycle is separate — explicit toggle via -EnableFall (default: disabled in subset mode)
-if (-not $EnableFall -and $DetectorsEnabled) {
+if (-not $EnableFall) {
     $env:FALL_ENABLED_CAMERA_IDS = ""
-    Write-Host "[+] FALL cycle DISABLED (subset mode, no -EnableFall)" -ForegroundColor Cyan
+    Write-Host "[+] FALL cycle DISABLED (no -EnableFall)" -ForegroundColor Cyan
 } elseif ($EnableFall) {
     # restore .env default if user explicitly asked
     Write-Host "[+] FALL cycle ENABLED (FALL_ENABLED_CAMERA_IDS = $($env:FALL_ENABLED_CAMERA_IDS))" -ForegroundColor Cyan
@@ -145,19 +145,41 @@ if (-not $WatchLogPath) {
     $WatchLogPath = Join-Path $RepoRoot "logs\rtsp_yolo_watch.log"
 }
 
+function Ensure-DirectoryForPath {
+    param(
+        [Parameter(Mandatory=$true)][string]$Path
+    )
+
+    $dir = Split-Path -Parent $Path
+    if ($dir -and -not (Test-Path -LiteralPath $dir)) {
+        New-Item -Path $dir -ItemType Directory -Force | Out-Null
+    }
+}
+
+function Ensure-WatchLogDirectory {
+    Ensure-DirectoryForPath -Path $WatchLogPath
+}
+
 function Write-WatchLog {
     param(
         [Parameter(Mandatory=$true)][string]$Message,
         [string]$Color = "White"
     )
 
-    $logDir = Split-Path -Parent $WatchLogPath
-    if ($logDir -and -not (Test-Path $logDir)) {
-        New-Item -Path $logDir -ItemType Directory -Force | Out-Null
-    }
     $line = "{0} {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $Message
     Write-Host $line -ForegroundColor $Color
-    Add-Content -Path $WatchLogPath -Value $line -Encoding UTF8
+    try {
+        Ensure-WatchLogDirectory
+        Add-Content -LiteralPath $WatchLogPath -Value $line -Encoding UTF8 -ErrorAction Stop
+    } catch {
+        $firstError = $_.Exception.Message
+        try {
+            Ensure-WatchLogDirectory
+            Add-Content -LiteralPath $WatchLogPath -Value $line -Encoding UTF8 -ErrorAction Stop
+        } catch {
+            Write-Warning "watch log write skipped: $firstError; retry failed: $($_.Exception.Message)"
+        }
+    }
 }
 
 function Test-TcpReachable {
@@ -196,6 +218,12 @@ function Start-WatchMode {
     $watchCameraHost = $rtspParsedWatch.Host
     $watchCameraPort = if ($rtspParsedWatch.Port -gt 0) { $rtspParsedWatch.Port } else { 554 }
     $lockPath = Join-Path $RepoRoot "logs\rtsp_yolo_watch.lock"
+    $lockEnabled = $true
+    try {
+        Ensure-WatchLogDirectory
+    } catch {
+        Write-Warning "watch log directory unavailable before startup: $($_.Exception.Message)"
+    }
 
     if (-not (Test-Path $python)) {
         Write-WatchLog "Python interpreter not found: $python" "Red"
@@ -206,22 +234,24 @@ function Start-WatchMode {
         return 1
     }
 
-    $lockDir = Split-Path -Parent $lockPath
-    if (-not (Test-Path $lockDir)) {
-        New-Item -Path $lockDir -ItemType Directory -Force | Out-Null
-    }
-    if (Test-Path $lockPath) {
-        $existingPidText = (Get-Content $lockPath -ErrorAction SilentlyContinue | Select-Object -First 1)
-        $existingPid = 0
-        if ([int]::TryParse($existingPidText, [ref]$existingPid)) {
-            $existingProcess = Get-Process -Id $existingPid -ErrorAction SilentlyContinue
-            if ($existingProcess -and $existingPid -ne $PID) {
-                Write-WatchLog "watch mode already running as PID $existingPid; exiting this duplicate." "Yellow"
-                return 0
+    try {
+        Ensure-DirectoryForPath -Path $lockPath
+        if (Test-Path -LiteralPath $lockPath) {
+            $existingPidText = (Get-Content -LiteralPath $lockPath -ErrorAction SilentlyContinue | Select-Object -First 1)
+            $existingPid = 0
+            if ([int]::TryParse($existingPidText, [ref]$existingPid)) {
+                $existingProcess = Get-Process -Id $existingPid -ErrorAction SilentlyContinue
+                if ($existingProcess -and $existingPid -ne $PID) {
+                    Write-WatchLog "watch mode already running as PID $existingPid; exiting this duplicate." "Yellow"
+                    return 0
+                }
             }
         }
+        Set-Content -LiteralPath $lockPath -Value $PID -Encoding ASCII
+    } catch {
+        $lockEnabled = $false
+        Write-WatchLog "watch lock unavailable; continuing without duplicate guard: $($_.Exception.Message)" "Yellow"
     }
-    Set-Content -Path $lockPath -Value $PID -Encoding ASCII
 
     try {
         Write-WatchLog "RTSP YOLO watch started. host=${watchCameraHost}:${watchCameraPort} cameras=$($CameraIds -join ',') retry=${WatchRetrySeconds}s restart=${WatchRestartDelaySeconds}s" "Cyan"
@@ -280,9 +310,11 @@ function Start-WatchMode {
             Start-Sleep -Seconds $WatchRestartDelaySeconds
         }
     } finally {
-        $lockOwner = Get-Content $lockPath -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($lockOwner -eq "$PID") {
-            Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue
+        if ($lockEnabled) {
+            $lockOwner = Get-Content -LiteralPath $lockPath -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($lockOwner -eq "$PID") {
+                Remove-Item -LiteralPath $lockPath -Force -ErrorAction SilentlyContinue
+            }
         }
     }
 }

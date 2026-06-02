@@ -31,6 +31,30 @@ def test_watch_mode_keeps_console_process_alive_and_restarts_yolo():
     assert "Start-Sleep -Seconds $WatchRestartDelaySeconds" in src
 
 
+def test_watch_log_write_is_resilient_to_missing_log_directory():
+    src = DEMO_SCRIPT.read_text(encoding="utf-8")
+
+    assert "function Ensure-WatchLogDirectory" in src
+
+    write_start = src.index("function Write-WatchLog")
+    write_end = src.index("function Test-TcpReachable")
+    write_src = src[write_start:write_end]
+
+    assert "Ensure-WatchLogDirectory" in write_src
+    assert "Add-Content -LiteralPath $WatchLogPath" in write_src
+    assert "catch" in write_src
+    assert "Write-Warning" in write_src
+
+    watch_start = src.index("function Start-WatchMode")
+    watch_end = src.index("if ($Watch) {")
+    watch_src = src[watch_start:watch_end]
+
+    assert "Ensure-WatchLogDirectory" in watch_src
+    assert "Set-Content -LiteralPath $lockPath" in watch_src
+    assert "$lockEnabled" in watch_src
+    assert "continuing without duplicate guard" in watch_src
+
+
 def test_task_installer_registers_visible_logon_task():
     src = TASK_SCRIPT.read_text(encoding="utf-8")
 
