@@ -66,6 +66,30 @@ class WatchRuntimeStateTest {
     }
 
     @Test
+    fun freshPpgOnlyRuntimeDoesNotRenderOlderDbHrAndTempAsLiveValues() {
+        val snapshot = WatchRuntimeSnapshot.from(
+            device = device(),
+            dbSnapshot = dbSnapshot(
+                updatedAt = now.minusSeconds(45).toString(),
+                heartRate = 81,
+                bodyTemp = 36.7f,
+            ),
+            runtime = WatchRuntimeState(
+                deviceId = 7,
+                status = WatchRuntimeStatus.READING,
+                latestReading = JcWearHealthReading(ppgValue = 932),
+                lastReadAt = now,
+            ),
+            now = now,
+        )
+
+        assertTrue(snapshot.isFresh)
+        assertEquals("932", snapshot.ppgDisplay)
+        assertEquals("측정 대기", snapshot.hrDisplay)
+        assertEquals("측정 대기", snapshot.tempDisplay)
+    }
+
+    @Test
     fun clearingRuntimeRemovesActiveDevice() {
         try {
             WatchRuntimeStore.update(WatchRuntimeState(deviceId = 7, status = WatchRuntimeStatus.CONNECTED))
@@ -397,8 +421,11 @@ class WatchRuntimeStateTest {
         )
 
         assertEquals("63%", runtimeBattery.batteryDisplay)
+        assertEquals(63, runtimeBattery.batteryLevel)
         assertEquals("52%", dbBattery.batteryDisplay)
+        assertEquals(52, dbBattery.batteryLevel)
         assertEquals("41%", deviceBattery.batteryDisplay)
+        assertEquals(41, deviceBattery.batteryLevel)
     }
 
     @Test

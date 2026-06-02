@@ -166,7 +166,6 @@ fun WatchDetailScreen(
                 runtimeSnapshot.statusLabel,
                 overallColor,
                 device,
-                snapshot,
                 runtimeSnapshot.lastCommunicationLabel,
             )
 
@@ -183,7 +182,7 @@ fun WatchDetailScreen(
 
             // 5) 배터리 + 마지막 통신
             DeviceMetaCard(
-                snapshot?.batteryLevel ?: device?.batteryLevel,
+                runtimeSnapshot.batteryLevel,
                 runtimeSnapshot.batteryDisplay,
                 runtimeSnapshot.lastCommunicationLabel,
             )
@@ -205,7 +204,6 @@ private fun OverallStatusCard(
     text: String,
     color: Color,
     device: DeviceRow?,
-    snapshot: DeviceWatchSnapshot?,
     lastCommunicationLabel: String,
 ) {
     Card(
@@ -219,15 +217,8 @@ private fun OverallStatusCard(
             Text(text, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             val mac = device?.macAddress ?: "—"
-            val updated = snapshot?.updatedAt ?: device?.updatedAt
             Text(
-                "Last communication $lastCommunicationLabel",
-                color = Color.White.copy(alpha = 0.9f),
-                fontSize = 12.sp,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                "J2208A · MAC $mac · 마지막 측정 ${WatchHealthFormatter.relativeTime(updated)}",
+                "J2208A · MAC $mac · 마지막 통신 $lastCommunicationLabel",
                 color = Color.White.copy(alpha = 0.9f),
                 fontSize = 12.sp,
             )

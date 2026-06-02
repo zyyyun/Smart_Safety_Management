@@ -45,6 +45,7 @@ data class WatchRuntimeSnapshot(
     val hrDisplay: String,
     val tempDisplay: String,
     val batteryDisplay: String,
+    val batteryLevel: Int?,
 ) {
     companion object {
         fun from(
@@ -65,19 +66,21 @@ data class WatchRuntimeSnapshot(
                 device?.lastCommAt?.toInstantOrNull(),
                 device?.updatedAt?.toInstantOrNull(),
             ).maxOrNull()
+            val hrValue = if (freshReading != null) freshReading.heartRate else dbSnapshot?.heartRate
+            val tempValue = if (freshReading != null) freshReading.bodyTemp else dbSnapshot?.bodyTemp
+            val batteryLevel = freshReading?.batteryLevel
+                ?: dbSnapshot?.batteryLevel
+                ?: device?.batteryLevel
 
             return WatchRuntimeSnapshot(
                 statusLabel = statusLabel(effectiveRuntime.status, isFresh, hasMac),
                 isFresh = isFresh,
                 lastCommunicationLabel = relativeLabel(lastCommunicationAt, now),
                 ppgDisplay = freshReading?.ppgValue?.toString() ?: "--",
-                hrDisplay = readingLabel(freshReading?.heartRate ?: dbSnapshot?.heartRate, suffix = " bpm"),
-                tempDisplay = tempLabel(freshReading?.bodyTemp ?: dbSnapshot?.bodyTemp),
-                batteryDisplay = batteryLabel(
-                    freshReading?.batteryLevel
-                        ?: dbSnapshot?.batteryLevel
-                        ?: device?.batteryLevel,
-                ),
+                hrDisplay = readingLabel(hrValue, suffix = " bpm"),
+                tempDisplay = tempLabel(tempValue),
+                batteryDisplay = batteryLabel(batteryLevel),
+                batteryLevel = batteryLevel,
             )
         }
 

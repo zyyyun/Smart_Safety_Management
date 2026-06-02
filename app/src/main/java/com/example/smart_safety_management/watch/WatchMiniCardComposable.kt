@@ -60,6 +60,7 @@ fun WatchMiniCardComposable(
     onCardTap: () -> Unit,
 ) {
     var snapshot by remember(deviceId) { mutableStateOf<DeviceWatchSnapshot?>(null) }
+    var device by remember(deviceId) { mutableStateOf<DeviceRow?>(null) }
     var lastWearState by remember(deviceId) { mutableStateOf<String?>(null) }
     var allAlerts by remember(deviceId) { mutableStateOf<List<SafetyAlertRow>>(emptyList()) }
     val realtimeStatus by supabase.realtime.status.collectAsState()
@@ -68,6 +69,7 @@ fun WatchMiniCardComposable(
 
     LaunchedEffect(deviceId, realtimeStatus) {
         if (realtimeStatus == Realtime.Status.CONNECTED) {
+            launch { repo.deviceFlow(deviceId).collectLatest { device = it } }
             launch { repo.deviceWatchFlow(deviceId).collectLatest { snapshot = it } }
             launch { repo.lastWearStateFlow(deviceId).collectLatest { lastWearState = it.toState } }
             launch {
@@ -81,6 +83,10 @@ fun WatchMiniCardComposable(
             // try-catch 추가 — network/schema 변경 시 main thread crash 방지.
             while (true) {
                 try {
+                    device = supabase.from("devices").select {
+                        filter { eq("device_id", deviceId) }
+                        limit(1)
+                    }.decodeSingleOrNull()
                     snapshot = supabase.from("device_watches").select {
                         filter { eq("device_id", deviceId) }
                         limit(1)
@@ -99,7 +105,7 @@ fun WatchMiniCardComposable(
     }
 
     val lastActiveAlert = WatchActiveAlertSelector.select(allAlerts, lastWearState)
-    val runtimeSnapshot = WatchRuntimeSnapshot.from(null, snapshot, runtime)
+    val runtimeSnapshot = WatchRuntimeSnapshot.from(device, snapshot, runtime)
     val (_, statusColor) = WatchHealthFormatter.overallStatus(
         snapshot, lastWearState, lastActiveAlert,
     )
