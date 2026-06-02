@@ -175,6 +175,40 @@ class WatchRuntimeStateTest {
     }
 
     @Test
+    fun registeredWatchSeedPreservesSameUserRuntimeDetailsWhileConnecting() {
+        val reading = JcWearHealthReading(
+            heartRate = 74,
+            bodyTemp = 36.4f,
+            batteryLevel = 81,
+            ppgValue = 942,
+        )
+        val current = WatchRuntimeState(
+            deviceId = 7,
+            userId = "worker-1",
+            macAddress = "21:02:02:06:01:69",
+            monitoringSessionId = 3L,
+            status = WatchRuntimeStatus.READING,
+            lastReadAt = now,
+            latestReading = reading,
+            lastError = "transient",
+        )
+
+        val seeded = current.seedForRegisteredWatch(
+            userId = "worker-1",
+            device = device(userId = "worker-1"),
+        )
+
+        assertEquals(7, seeded.deviceId)
+        assertEquals("worker-1", seeded.userId)
+        assertEquals("21:02:02:06:01:69", seeded.macAddress)
+        assertEquals(WatchRuntimeStatus.CONNECTING, seeded.status)
+        assertEquals(3L, seeded.monitoringSessionId)
+        assertEquals(now, seeded.lastReadAt)
+        assertEquals(reading, seeded.latestReading)
+        assertEquals("transient", seeded.lastError)
+    }
+
+    @Test
     fun staleRuntimeReadingDoesNotOverrideDbSnapshotValues() {
         val snapshot = WatchRuntimeSnapshot.from(
             device = device(batteryLevel = 41),
@@ -196,6 +230,42 @@ class WatchRuntimeStateTest {
             now = now,
         )
 
+        assertEquals("--", snapshot.ppgDisplay)
+        assertEquals("78 bpm", snapshot.hrDisplay)
+        assertEquals("36.5°C", snapshot.tempDisplay)
+        assertEquals("52%", snapshot.batteryDisplay)
+    }
+
+    @Test
+    fun runtimeWithSameDeviceAndMacButDifferentUserDoesNotOverrideDeviceSnapshot() {
+        val snapshot = WatchRuntimeSnapshot.from(
+            device = device(
+                macAddress = "21:02:02:06:01:69",
+                userId = "worker-1",
+                batteryLevel = 41,
+            ),
+            dbSnapshot = dbSnapshot(
+                heartRate = 78,
+                bodyTemp = 36.5f,
+                batteryLevel = 52,
+            ),
+            runtime = WatchRuntimeState(
+                deviceId = 7,
+                userId = "worker-2",
+                macAddress = "21:02:02:06:01:69",
+                status = WatchRuntimeStatus.READING,
+                lastReadAt = now,
+                latestReading = JcWearHealthReading(
+                    heartRate = 120,
+                    bodyTemp = 39.0f,
+                    batteryLevel = 10,
+                    ppgValue = 999,
+                ),
+            ),
+            now = now,
+        )
+
+        assertFalse(snapshot.isFresh)
         assertEquals("--", snapshot.ppgDisplay)
         assertEquals("78 bpm", snapshot.hrDisplay)
         assertEquals("36.5°C", snapshot.tempDisplay)
@@ -345,12 +415,14 @@ class WatchRuntimeStateTest {
 
     private fun device(
         macAddress: String? = "21:02:02:06:01:69",
+        userId: String? = null,
         lastCommAt: String? = null,
         batteryLevel: Int? = null,
     ) = DeviceRow(
         deviceId = 7,
         deviceType = "watch",
         macAddress = macAddress,
+        userId = userId,
         lastCommAt = lastCommAt,
         batteryLevel = batteryLevel,
     )

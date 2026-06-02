@@ -30,17 +30,26 @@ class PairWatchSectionIdentifyUiContractTest {
     @Test
     fun registrationSeedsConnectingRuntimeBeforeStartingService() {
         val src = section.readText()
+        val deviceAssignedIndex = src.indexOf("device = registered")
+        val seedIndex = src.indexOf("current.seedForRegisteredWatch(userId, registered)")
+        val serviceStartIndex = src.indexOf("WatchBleServiceController.configureAndStart(context, userId, registered)")
 
-        assertTrue(src.contains("WatchRuntimeStore.update("))
-        assertTrue(src.contains("WatchRuntimeState("))
-        assertTrue(src.contains("deviceId = registered.deviceId"))
-        assertTrue(src.contains("userId = userId"))
-        assertTrue(src.contains("macAddress = registered.macAddress"))
-        assertTrue(src.contains("status = WatchRuntimeStatus.CONNECTING"))
-        assertTrue(
-            src.indexOf("WatchRuntimeStore.update(") <
-                src.indexOf("WatchBleServiceController.configureAndStart(context, userId, registered)"),
-        )
+        assertTrue(src.contains("WatchRuntimeStore.mutate { current ->"))
+        assertTrue(seedIndex > deviceAssignedIndex)
+        assertTrue(seedIndex < serviceStartIndex)
+        assertFalse(src.contains("WatchRuntimeStore.update("))
+    }
+
+    @Test
+    fun initialDeviceLoadCompletesBeforeUnpairedScanPanelIsShown() {
+        val src = section.readText()
+
+        assertTrue(src.contains("var deviceLoadComplete by remember { mutableStateOf(false) }"))
+        assertTrue(src.contains("deviceLoadComplete = true"))
+        assertTrue(src.contains("val showUnpairedScan = deviceLoadComplete && status == WatchStatus.UNPAIRED"))
+        assertTrue(src.contains("if (!deviceLoadComplete)"))
+        assertTrue(src.contains("WatchPairLoadingPanel()"))
+        assertTrue(src.contains("} else if (showUnpairedScan)"))
     }
 
     @Test

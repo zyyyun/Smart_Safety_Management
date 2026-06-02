@@ -86,14 +86,20 @@ data class WatchRuntimeSnapshot(
             device: DeviceRow?,
             dbSnapshot: DeviceWatchSnapshot?,
         ): Boolean {
+            val targetUserId = device?.userId.normalizedNonBlank()
+            val runtimeUserId = runtime.userId.normalizedNonBlank()
+            if (targetUserId != null && runtimeUserId != null && targetUserId != runtimeUserId) {
+                return false
+            }
+
             val targetDeviceId = device?.deviceId ?: dbSnapshot?.deviceId
             val runtimeDeviceId = runtime.deviceId
             if (targetDeviceId != null && runtimeDeviceId != null) {
                 return targetDeviceId == runtimeDeviceId
             }
 
-            val deviceMac = device?.macAddress?.trim()?.takeIf { it.isNotEmpty() }
-            val runtimeMac = runtime.macAddress?.trim()?.takeIf { it.isNotEmpty() }
+            val deviceMac = device?.macAddress.normalizedNonBlank()
+            val runtimeMac = runtime.macAddress.normalizedNonBlank()
             if (deviceMac != null && runtimeMac != null) {
                 return deviceMac.equals(runtimeMac, ignoreCase = true)
             }
@@ -144,6 +150,40 @@ data class WatchRuntimeSnapshot(
         }
     }
 }
+
+internal fun WatchRuntimeState.seedForRegisteredWatch(
+    userId: String,
+    device: DeviceRow,
+): WatchRuntimeState {
+    val base = takeIf { it.belongsToRegisteredWatchTarget(userId, device) } ?: WatchRuntimeState()
+    return base.copy(
+        deviceId = device.deviceId,
+        userId = userId,
+        macAddress = device.macAddress,
+        status = WatchRuntimeStatus.CONNECTING,
+    )
+}
+
+private fun WatchRuntimeState.belongsToRegisteredWatchTarget(
+    userId: String,
+    device: DeviceRow,
+): Boolean {
+    val runtimeUserId = this.userId.normalizedNonBlank()
+    val targetUserId = userId.normalizedNonBlank()
+    if (runtimeUserId != null && targetUserId != null && runtimeUserId != targetUserId) {
+        return false
+    }
+
+    val sameDeviceId = deviceId == device.deviceId
+    val targetMac = device.macAddress.normalizedNonBlank()
+    val runtimeMac = macAddress.normalizedNonBlank()
+    val sameMac = targetMac != null && runtimeMac?.equals(targetMac, ignoreCase = true) == true
+
+    return sameDeviceId || sameMac
+}
+
+private fun String?.normalizedNonBlank(): String? =
+    this?.trim()?.takeIf { it.isNotEmpty() }
 
 object WatchRuntimeStore {
     private val monitoringSessionCounter = AtomicLong()

@@ -51,9 +51,8 @@ import com.example.smart_safety_management.watch.ble.JcWearDeviceRegistrar
 import com.example.smart_safety_management.watch.ble.JcWearDiscoveredDevice
 import com.example.smart_safety_management.watch.ble.WatchBleServiceController
 import com.example.smart_safety_management.watch.ble.WatchRuntimeSnapshot
-import com.example.smart_safety_management.watch.ble.WatchRuntimeState
-import com.example.smart_safety_management.watch.ble.WatchRuntimeStatus
 import com.example.smart_safety_management.watch.ble.WatchRuntimeStore
+import com.example.smart_safety_management.watch.ble.seedForRegisteredWatch
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
@@ -115,6 +114,7 @@ fun PairWatchSection(supabase: SupabaseClient) {
     var unpairing by remember { mutableStateOf(false) }
     var resultDialog by remember { mutableStateOf<PairResultDialog?>(null) }
     var device by remember { mutableStateOf<DeviceRow?>(null) }
+    var deviceLoadComplete by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -133,7 +133,11 @@ fun PairWatchSection(supabase: SupabaseClient) {
 
     LaunchedEffect(Unit) {
         bleBridge.refreshEnvironment()
-        val userId = UserSession.userId ?: return@LaunchedEffect
+        val userId = UserSession.userId
+        if (userId.isNullOrBlank()) {
+            deviceLoadComplete = true
+            return@LaunchedEffect
+        }
         device = runCatching {
             supabase.from("devices").select {
                 filter {
@@ -164,6 +168,7 @@ fun PairWatchSection(supabase: SupabaseClient) {
             }
         }
         device?.let { WatchBleServiceController.configureAndStart(context, userId, it) }
+        deviceLoadComplete = true
 
         val ch = supabase.channel("devices_user:$userId")
         val flow = ch.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
@@ -195,6 +200,7 @@ fun PairWatchSection(supabase: SupabaseClient) {
     val selectedDevice = scanState.discoveredDevices.firstOrNull {
         it.address == scanState.selectedAddress
     }
+    val showUnpairedScan = deviceLoadComplete && status == WatchStatus.UNPAIRED
 
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -204,7 +210,9 @@ fun PairWatchSection(supabase: SupabaseClient) {
         }
         Spacer(Modifier.height(8.dp))
 
-        if (status == WatchStatus.UNPAIRED) {
+        if (!deviceLoadComplete) {
+            WatchPairLoadingPanel()
+        } else if (showUnpairedScan) {
             WatchScanPanel(
                 devices = scanState.discoveredDevices,
                 selectedAddress = scanState.selectedAddress,
@@ -241,14 +249,9 @@ fun PairWatchSection(supabase: SupabaseClient) {
                         try {
                             val registered = registrar.registerWatch(userId, selectedDevice)
                             device = registered
-                            WatchRuntimeStore.update(
-                                WatchRuntimeState(
-                                    deviceId = registered.deviceId,
-                                    userId = userId,
-                                    macAddress = registered.macAddress,
-                                    status = WatchRuntimeStatus.CONNECTING,
-                                ),
-                            )
+                            WatchRuntimeStore.mutate { current ->
+                                current.seedForRegisteredWatch(userId, registered)
+                            }
                             WatchBleServiceController.configureAndStart(context, userId, registered)
                             resultDialog = PairResultDialog(
                                 title = "등록 완료",
@@ -450,6 +453,23 @@ private fun DiscoveredWatchRow(
 private fun isConnectedWatchState(connectionState: JcWearConnectionState): Boolean =
     connectionState == JcWearConnectionState.CONNECTED ||
         connectionState == JcWearConnectionState.READING
+
+@Composable
+private fun WatchPairLoadingPanel() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("등록 정보 확인 중", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("워치 연결 상태를 불러오고 있습니다.", color = Color.Gray, fontSize = 12.sp)
+        }
+    }
+}
 
 @Composable
 private fun RegisteredWatchPanel(
