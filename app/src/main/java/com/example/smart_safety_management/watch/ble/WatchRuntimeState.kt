@@ -7,6 +7,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,6 +29,7 @@ data class WatchRuntimeState(
     val deviceId: Int? = null,
     val userId: String? = null,
     val macAddress: String? = null,
+    val monitoringSessionId: Long? = null,
     val status: WatchRuntimeStatus = WatchRuntimeStatus.IDLE,
     val lastReadAt: Instant? = null,
     val lastUploadAt: Instant? = null,
@@ -144,8 +146,11 @@ data class WatchRuntimeSnapshot(
 }
 
 object WatchRuntimeStore {
+    private val monitoringSessionCounter = AtomicLong()
     private val mutableState = MutableStateFlow(WatchRuntimeState())
     val state: StateFlow<WatchRuntimeState> = mutableState.asStateFlow()
+
+    fun nextMonitoringSessionId(): Long = monitoringSessionCounter.incrementAndGet()
 
     fun update(next: WatchRuntimeState) {
         mutableState.value = next
@@ -158,6 +163,16 @@ object WatchRuntimeStore {
     fun clear(deviceId: Int? = null) {
         mutableState.update { current ->
             if (deviceId == null || current.deviceId == deviceId) {
+                WatchRuntimeState()
+            } else {
+                current
+            }
+        }
+    }
+
+    fun clearMonitoringSession(deviceId: Int, monitoringSessionId: Long) {
+        mutableState.update { current ->
+            if (current.deviceId == deviceId && current.monitoringSessionId == monitoringSessionId) {
                 WatchRuntimeState()
             } else {
                 current

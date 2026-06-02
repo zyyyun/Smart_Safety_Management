@@ -93,6 +93,24 @@ class WatchRuntimeStateTest {
     }
 
     @Test
+    fun staleMonitoringSessionClearPreservesNewSameDeviceRuntime() {
+        try {
+            val active = WatchRuntimeState(
+                deviceId = 7,
+                status = WatchRuntimeStatus.CONNECTING,
+                monitoringSessionId = 2L,
+            )
+            WatchRuntimeStore.update(active)
+
+            WatchRuntimeStore.clearMonitoringSession(deviceId = 7, monitoringSessionId = 1L)
+
+            assertEquals(active, WatchRuntimeStore.state.value)
+        } finally {
+            WatchRuntimeStore.clear()
+        }
+    }
+
+    @Test
     fun serviceStartSeedPreservesSameDeviceRuntimeReading() {
         val reading = JcWearHealthReading(
             heartRate = 74,
@@ -104,6 +122,7 @@ class WatchRuntimeStateTest {
             deviceId = 7,
             userId = "worker-1",
             macAddress = "21:02:02:06:01:69",
+            monitoringSessionId = 1L,
             status = WatchRuntimeStatus.READING,
             lastReadAt = now,
             lastUploadAt = now.minusSeconds(1),
@@ -117,9 +136,11 @@ class WatchRuntimeStateTest {
                 deviceId = 7,
                 macAddress = "21:02:02:06:01:69",
             ),
+            monitoringSessionId = 2L,
         )
 
         assertEquals(WatchRuntimeStatus.READING, seeded.status)
+        assertEquals(2L, seeded.monitoringSessionId)
         assertEquals(now, seeded.lastReadAt)
         assertEquals(now.minusSeconds(1), seeded.lastUploadAt)
         assertEquals(reading, seeded.latestReading)
@@ -143,11 +164,13 @@ class WatchRuntimeStateTest {
                 deviceId = 7,
                 macAddress = "21:02:02:06:01:69",
             ),
+            monitoringSessionId = 2L,
         )
 
         assertEquals(7, seeded.deviceId)
         assertEquals("worker-1", seeded.userId)
         assertEquals("21:02:02:06:01:69", seeded.macAddress)
+        assertEquals(2L, seeded.monitoringSessionId)
         assertEquals(WatchRuntimeStatus.CONNECTING, seeded.status)
         assertEquals(null, seeded.lastReadAt)
         assertEquals(null, seeded.latestReading)

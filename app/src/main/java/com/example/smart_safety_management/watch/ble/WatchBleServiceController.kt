@@ -29,7 +29,8 @@ object WatchBleServiceController {
             macAddress = mac,
         )
         saveConfig(context, config)
-        WatchRuntimeStore.mutate { current -> current.seedForServiceStart(config) }
+        val monitoringSessionId = WatchRuntimeStore.nextMonitoringSessionId()
+        WatchRuntimeStore.mutate { current -> current.seedForServiceStart(config, monitoringSessionId) }
         start(context)
         return true
     }
@@ -80,18 +81,23 @@ object WatchBleServiceController {
     }
 }
 
-internal fun WatchRuntimeState.seedForServiceStart(config: WatchBleServiceConfig): WatchRuntimeState =
+internal fun WatchRuntimeState.seedForServiceStart(
+    config: WatchBleServiceConfig,
+    monitoringSessionId: Long,
+): WatchRuntimeState =
     if (belongsToSameServiceTarget(config)) {
         copy(
             deviceId = config.deviceId,
             userId = config.userId,
             macAddress = config.macAddress,
+            monitoringSessionId = monitoringSessionId,
         )
     } else {
         WatchRuntimeState(
             deviceId = config.deviceId,
             userId = config.userId,
             macAddress = config.macAddress,
+            monitoringSessionId = monitoringSessionId,
             status = WatchRuntimeStatus.CONNECTING,
         )
     }

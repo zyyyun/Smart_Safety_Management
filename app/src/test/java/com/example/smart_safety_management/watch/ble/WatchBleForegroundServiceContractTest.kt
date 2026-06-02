@@ -52,7 +52,7 @@ class WatchBleForegroundServiceContractTest {
         assertTrue(src.contains("WatchRuntimeStatus.RETRYING"))
         assertTrue(src.contains("lastReadAt = Instant.now()") || src.contains("val readAt = Instant.now()"))
         assertTrue(src.contains("lastUploadAt = Instant.now()") || src.contains("val uploadAt = Instant.now()"))
-        assertTrue(src.contains("if (config == activeConfig && sameConfigJobsActive())"))
+        assertTrue(src.contains("if (config == activeConfig && sameConfigJobsActive() && activeSessionId != null)"))
         assertTrue(src.contains("WatchReadingUploadPolicy"))
     }
 
@@ -74,8 +74,9 @@ class WatchBleForegroundServiceContractTest {
 
         assertTrue(src.contains("import kotlinx.coroutines.CancellationException"))
         assertTrue(src.contains("if (error is CancellationException) throw error"))
-        assertTrue(src.contains("mutateRuntimeFor(config)"))
-        assertTrue(src.contains("if (activeConfig != config) return false"))
+        assertTrue(src.contains("mutateRuntimeFor(config, monitoringSessionId)"))
+        assertTrue(src.contains("mutateRuntimeFor(config, activeSessionId)"))
+        assertTrue(src.contains("activeMonitoringSessionId != monitoringSessionId"))
     }
 
     @Test
@@ -83,8 +84,12 @@ class WatchBleForegroundServiceContractTest {
         val src = service.readText()
 
         assertTrue(src.contains("val configToStop = activeConfig"))
-        assertTrue(src.contains("WatchRuntimeStore.clear(configToStop.deviceId)"))
+        assertTrue(src.contains("val monitoringSessionIdToStop = activeMonitoringSessionId"))
+        assertTrue(src.contains("WatchRuntimeStore.clearMonitoringSession"))
+        assertTrue(src.contains("deviceId = configToStop.deviceId"))
+        assertTrue(src.contains("monitoringSessionId = monitoringSessionIdToStop"))
         assertFalse(src.contains("WatchRuntimeStore.clear(activeConfig?.deviceId)"))
+        assertFalse(src.contains("WatchRuntimeStore.clear(configToStop.deviceId)"))
     }
 
     @Test
