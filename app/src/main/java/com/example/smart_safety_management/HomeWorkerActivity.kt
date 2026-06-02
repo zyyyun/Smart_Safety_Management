@@ -58,6 +58,8 @@ import com.example.smart_safety_management.watch.DeviceRow
 import com.example.smart_safety_management.watch.EmptyWatchPrompt
 import com.example.smart_safety_management.watch.SupabaseModule
 import com.example.smart_safety_management.watch.WatchCardComposable
+import com.example.smart_safety_management.watch.WatchDetailActivity
+import com.example.smart_safety_management.watch.ble.WatchBleServiceController
 // Phase 9 / 09-03 TBM-02 — TBM 카드 (worker)
 import com.example.smart_safety_management.tbm.TbmWorkerCardComposable
 import io.github.jan.supabase.postgrest.from
@@ -138,13 +140,15 @@ class HomeWorkerActivity : AppCompatActivity() {
                 var loaded by remember { mutableStateOf(false) }
                 LaunchedEffect(Unit) {
                     val userId = UserSession.userId ?: run { loaded = true; return@LaunchedEffect }
-                    pairedDeviceId = supabase.from("devices").select {
+                    val row = supabase.from("devices").select {
                         filter {
                             eq("user_id", userId)
                             eq("device_type", "WATCH")
                         }
                         limit(1)
-                    }.decodeSingleOrNull<DeviceRow>()?.deviceId
+                    }.decodeSingleOrNull<DeviceRow>()
+                    pairedDeviceId = row?.deviceId
+                    row?.let { WatchBleServiceController.configureAndStart(this@HomeWorkerActivity, userId, it) }
                     loaded = true
                 }
                 if (loaded) {
@@ -154,7 +158,10 @@ class HomeWorkerActivity : AppCompatActivity() {
                             deviceId = devId,
                             supabase = supabase,
                             onCardTap = {
-                                startActivity(Intent(this@HomeWorkerActivity, SafetyAlertsActivity::class.java))
+                                startActivity(
+                                    Intent(this@HomeWorkerActivity, WatchDetailActivity::class.java)
+                                        .putExtra(WatchDetailActivity.EXTRA_DEVICE_ID, devId)
+                                )
                             },
                         )
                     } else {
@@ -380,6 +387,7 @@ class HomeWorkerActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateProfile()
+        setupWatchCard()
         fetchWorkerEvents()
         updateAlarmDotVisibility() // ✅ 알림 뱃지 업데이트 추가
         fetchUserInfo()

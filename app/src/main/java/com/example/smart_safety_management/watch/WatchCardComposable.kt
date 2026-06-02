@@ -49,19 +49,21 @@ fun WatchCardComposable(
     onCardTap: () -> Unit,
 ) {
     var snapshot by remember { mutableStateOf<DeviceWatchSnapshot?>(null) }
+    var device by remember { mutableStateOf<DeviceRow?>(null) }
     var lastWearState by remember { mutableStateOf<String?>(null) }
-    var lastActiveAlert by remember { mutableStateOf<SafetyAlertRow?>(null) }
+    var allAlerts by remember { mutableStateOf<List<SafetyAlertRow>>(emptyList()) }
     val realtimeStatus by supabase.realtime.status.collectAsState()
     val repo = remember { WatchRealtimeRepository(supabase) }
 
     LaunchedEffect(deviceId, realtimeStatus) {
         if (realtimeStatus == Realtime.Status.CONNECTED) {
             // Realtime path
+            launch { repo.deviceFlow(deviceId).collectLatest { device = it } }
             launch { repo.deviceWatchFlow(deviceId).collectLatest { snapshot = it } }
             launch { repo.lastWearStateFlow(deviceId).collectLatest { lastWearState = it.toState } }
             launch {
                 repo.safetyAlertsFlow(deviceId).collectLatest { list ->
-                    lastActiveAlert = list.firstOrNull { it.resolvedAt == null }
+                    allAlerts = list
                 }
             }
         } else {
@@ -70,15 +72,19 @@ fun WatchCardComposable(
             // crash 방지 try-catch + order("updated_at") 제거.
             while (true) {
                 try {
+                    device = supabase.from("devices").select {
+                        filter { eq("device_id", deviceId) }
+                        limit(1)
+                    }.decodeSingleOrNull()
                     snapshot = supabase.from("device_watches").select {
                         filter { eq("device_id", deviceId) }
                         limit(1)
                     }.decodeSingleOrNull()
-                    lastActiveAlert = supabase.from("safety_alerts").select {
+                    allAlerts = supabase.from("safety_alerts").select {
                         filter { eq("device_id", deviceId) }
                         order("raised_at", Order.DESCENDING)
                         limit(20)
-                    }.decodeList<SafetyAlertRow>().firstOrNull { it.resolvedAt == null }
+                    }.decodeList()
                 } catch (_: Exception) {
                     // silent — polling best-effort
                 }
@@ -86,6 +92,8 @@ fun WatchCardComposable(
             }
         }
     }
+
+    val lastActiveAlert = WatchActiveAlertSelector.select(allAlerts, lastWearState)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -109,6 +117,12 @@ fun WatchCardComposable(
             }
             Spacer(Modifier.height(8.dp))
             WearStateLabel(lastWearState)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                device?.batteryLevel?.let { "배터리 $it%" } ?: "배터리 --",
+                color = Color.Gray,
+                fontSize = 13.sp,
+            )
             Spacer(Modifier.height(8.dp))
             Text(
                 lastActiveAlert?.let { "⚠ ${alertTitle(it)} ${it.raisedAt.takeLast(8).take(5)}" }

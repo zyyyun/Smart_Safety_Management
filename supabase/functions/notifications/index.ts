@@ -387,6 +387,43 @@ Deno.serve(async (req) => {
           if (!MAC_REGEX.test(macUpper)) {
             return err(`invalid MAC format: ${mac_address}`, 400);
           }
+          const nowIso = new Date().toISOString();
+          const ensureWatchSnapshot = async (deviceId: number): Promise<string | null> => {
+            const { data: snapshot, error: snapshotSelErr } = await supabase
+              .from("device_watches")
+              .select("device_id")
+              .eq("device_id", deviceId)
+              .maybeSingle();
+            if (snapshotSelErr) return snapshotSelErr.message;
+            if (snapshot) return null;
+
+            const { error: snapshotInsErr } = await supabase
+              .from("device_watches")
+              .insert({ device_id: deviceId, heart_rate: null, body_temp: null });
+            return snapshotInsErr?.message ?? null;
+          };
+          const ensureInitialWearState = async (deviceId: number): Promise<string | null> => {
+            const { data: latest, error: wearSelErr } = await supabase
+              .from("wear_state_events")
+              .select("event_id")
+              .eq("device_id", deviceId)
+              .order("ts", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (wearSelErr) return wearSelErr.message;
+            if (latest) return null;
+
+            const { error: wearInsErr } = await supabase
+              .from("wear_state_events")
+              .insert({
+                device_id: deviceId,
+                ts: nowIso,
+                from_state: "OFF",
+                to_state: "WARMUP",
+                reason: { source: "android_direct_ble", event: "pair" },
+              });
+            return wearInsErr?.message ?? null;
+          };
 
           // (comment redacted: non-ASCII)
           const { data: existing, error: selErr } = await supabase
@@ -397,18 +434,24 @@ Deno.serve(async (req) => {
             .maybeSingle();
           if (selErr) return err(selErr.message, 500);
 
-          if (existing && existing.user_id && existing.user_id !== user_id) {
-            return err("watch already paired to another user", 409);
-          }
-
           if (existing) {
-            // (comment redacted: non-ASCII)
             const { error: updErr } = await supabase
               .from("devices")
-              .update({ user_id })
+              .update({ user_id, last_comm_at: nowIso, updated_at: nowIso })
               .eq("device_id", existing.device_id);
             if (updErr) return err(updErr.message, 500);
-            return ok({ ok: true, device_id: existing.device_id, mac_address: macUpper, op: "pair" });
+            const snapshotErr = await ensureWatchSnapshot(existing.device_id);
+            if (snapshotErr) return err(snapshotErr, 500);
+            const wearErr = await ensureInitialWearState(existing.device_id);
+            if (wearErr) return err(wearErr, 500);
+            return ok({
+              ok: true,
+              device_id: existing.device_id,
+              mac_address: macUpper,
+              last_comm_at: nowIso,
+              previous_user_id: existing.user_id ?? null,
+              op: "pair",
+            });
           }
 
           // (comment redacted: non-ASCII)
@@ -423,16 +466,23 @@ Deno.serve(async (req) => {
           if (serialErr) return err(serialErr.message, 500);
 
           if (bySerial) {
-            if (bySerial.user_id && bySerial.user_id !== user_id) {
-              return err("watch already paired to another user", 409);
-            }
-            // (comment redacted: non-ASCII)
             const { error: updErr } = await supabase
               .from("devices")
-              .update({ mac_address: macUpper, user_id })
+              .update({ mac_address: macUpper, user_id, last_comm_at: nowIso, updated_at: nowIso })
               .eq("device_id", bySerial.device_id);
             if (updErr) return err(updErr.message, 500);
-            return ok({ ok: true, device_id: bySerial.device_id, mac_address: macUpper, op: "pair" });
+            const snapshotErr = await ensureWatchSnapshot(bySerial.device_id);
+            if (snapshotErr) return err(snapshotErr, 500);
+            const wearErr = await ensureInitialWearState(bySerial.device_id);
+            if (wearErr) return err(wearErr, 500);
+            return ok({
+              ok: true,
+              device_id: bySerial.device_id,
+              mac_address: macUpper,
+              last_comm_at: nowIso,
+              previous_user_id: bySerial.user_id ?? null,
+              op: "pair",
+            });
           }
 
           // (comment redacted: non-ASCII)
@@ -443,11 +493,23 @@ Deno.serve(async (req) => {
               serial_number: expectedSerial,
               mac_address: macUpper,
               user_id,
+              last_comm_at: nowIso,
+              updated_at: nowIso,
             })
             .select()
             .single();
           if (insErr) return err(insErr.message, 500);
-          return ok({ ok: true, device_id: data.device_id, mac_address: macUpper, op: "pair" });
+          const snapshotErr = await ensureWatchSnapshot(data.device_id);
+          if (snapshotErr) return err(snapshotErr, 500);
+          const wearErr = await ensureInitialWearState(data.device_id);
+          if (wearErr) return err(wearErr, 500);
+          return ok({
+            ok: true,
+            device_id: data.device_id,
+            mac_address: macUpper,
+            last_comm_at: nowIso,
+            op: "pair",
+          });
         } else {
           // (comment redacted: non-ASCII)
           const { data, error } = await supabase
@@ -462,6 +524,86 @@ Deno.serve(async (req) => {
           }
           return ok({ ok: true, count: data.length, op: "unpair" });
         }
+      }
+
+      case "watch-reading": {
+        const { user_id, device_id, heart_rate, body_temp, battery_level } = body;
+        if (!user_id || !Number.isInteger(device_id)) {
+          return err("user_id, device_id are required", 400);
+        }
+
+        const { data: device, error: devErr } = await supabase
+          .from("devices")
+          .select("device_id, user_id, device_type")
+          .eq("device_id", device_id)
+          .eq("device_type", "WATCH")
+          .maybeSingle();
+        if (devErr) return err(devErr.message, 500);
+        if (!device || device.user_id !== user_id) {
+          return err("watch device not found for user", 404);
+        }
+
+        const nowIso = new Date().toISOString();
+        const deviceUpdate: Record<string, unknown> = {
+          last_comm_at: nowIso,
+          updated_at: nowIso,
+        };
+        if (Number.isInteger(battery_level)) {
+          deviceUpdate.battery_level = Math.max(0, Math.min(100, Number(battery_level)));
+        }
+
+        const { error: updDeviceErr } = await supabase
+          .from("devices")
+          .update(deviceUpdate)
+          .eq("device_id", device_id);
+        if (updDeviceErr) return err(updDeviceErr.message, 500);
+
+        const watchUpdate: Record<string, unknown> = { device_id };
+        if (Number.isInteger(heart_rate)) {
+          watchUpdate.heart_rate = Math.max(0, Math.min(240, Number(heart_rate)));
+        }
+        if (typeof body_temp === "number" && Number.isFinite(body_temp)) {
+          watchUpdate.body_temp = Math.max(25, Math.min(45, Number(body_temp)));
+        }
+
+        if ("heart_rate" in watchUpdate || "body_temp" in watchUpdate) {
+          const { error: upsertErr } = await supabase
+            .from("device_watches")
+            .upsert(watchUpdate, { onConflict: "device_id" });
+          if (upsertErr) return err(upsertErr.message, 500);
+
+          const { data: latestWear, error: wearSelErr } = await supabase
+            .from("wear_state_events")
+            .select("to_state")
+            .eq("device_id", device_id)
+            .order("ts", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (wearSelErr) return err(wearSelErr.message, 500);
+
+          if (latestWear?.to_state !== "WORN") {
+            const { error: wearInsErr } = await supabase
+              .from("wear_state_events")
+              .insert({
+                device_id,
+                ts: nowIso,
+                from_state: latestWear?.to_state ?? "WARMUP",
+                to_state: "WORN",
+                reason: { source: "android_direct_ble", event: "reading" },
+              });
+            if (wearInsErr) return err(wearInsErr.message, 500);
+          }
+
+          const { error: resolveStaleWearAlertsErr } = await supabase
+            .from("safety_alerts")
+            .update({ resolved_at: nowIso })
+            .eq("device_id", device_id)
+            .in("alert_type", ["REMOVED", "COMMS_LOST"])
+            .is("resolved_at", null);
+          if (resolveStaleWearAlertsErr) return err(resolveStaleWearAlertsErr.message, 500);
+        }
+
+        return ok({ ok: true, device_id, last_comm_at: nowIso });
       }
 
       // ????????????????????????????????????????????????????????????????????????????????????

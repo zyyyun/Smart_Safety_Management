@@ -59,7 +59,7 @@ fun WatchMiniCardComposable(
 ) {
     var snapshot by remember(deviceId) { mutableStateOf<DeviceWatchSnapshot?>(null) }
     var lastWearState by remember(deviceId) { mutableStateOf<String?>(null) }
-    var lastActiveAlert by remember(deviceId) { mutableStateOf<SafetyAlertRow?>(null) }
+    var allAlerts by remember(deviceId) { mutableStateOf<List<SafetyAlertRow>>(emptyList()) }
     val realtimeStatus by supabase.realtime.status.collectAsState()
     val repo = remember { WatchRealtimeRepository(supabase) }
 
@@ -69,7 +69,7 @@ fun WatchMiniCardComposable(
             launch { repo.lastWearStateFlow(deviceId).collectLatest { lastWearState = it.toState } }
             launch {
                 repo.safetyAlertsFlow(deviceId).collectLatest { list ->
-                    lastActiveAlert = list.firstOrNull { it.resolvedAt == null }
+                    allAlerts = list
                 }
             }
         } else {
@@ -82,11 +82,11 @@ fun WatchMiniCardComposable(
                         filter { eq("device_id", deviceId) }
                         limit(1)
                     }.decodeSingleOrNull()
-                    lastActiveAlert = supabase.from("safety_alerts").select {
+                    allAlerts = supabase.from("safety_alerts").select {
                         filter { eq("device_id", deviceId) }
                         order("raised_at", Order.DESCENDING)
                         limit(20)
-                    }.decodeList<SafetyAlertRow>().firstOrNull { it.resolvedAt == null }
+                    }.decodeList()
                 } catch (_: Exception) {
                     // silent — polling 은 best-effort. Realtime 가 곧 CONNECTED 되면 자동 복구.
                 }
@@ -95,6 +95,7 @@ fun WatchMiniCardComposable(
         }
     }
 
+    val lastActiveAlert = WatchActiveAlertSelector.select(allAlerts, lastWearState)
     val hrLevel = WatchHealthFormatter.classifyHr(snapshot?.heartRate, lastWearState)
     val (statusText, statusColor) = WatchHealthFormatter.overallStatus(
         snapshot, lastWearState, lastActiveAlert,

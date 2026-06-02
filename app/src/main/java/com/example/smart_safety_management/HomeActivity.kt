@@ -45,7 +45,9 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import com.example.smart_safety_management.tbm.TbmDashboardCardComposable
 import com.example.smart_safety_management.ui.SsmColors
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.watch.DeviceRow
 import com.example.smart_safety_management.watch.SupabaseModule
+import com.example.smart_safety_management.watch.ble.WatchBleServiceController
 import io.github.jan.supabase.postgrest.from
 // 2026-05-21 — watch mini card delegate (by mutableStateOf) 와 LaunchedEffect 용
 import androidx.compose.runtime.getValue
@@ -313,18 +315,19 @@ class HomeActivity : AppCompatActivity() {
                 LaunchedEffect(Unit) {
                     val uid = UserSession.userId
                     if (uid != null) {
-                        pairedDeviceId = try {
+                        val row = try {
                             supabase.from("devices").select {
                                 filter {
                                     eq("user_id", uid)
                                     eq("device_type", "WATCH")
                                 }
                                 limit(1)
-                            }.decodeSingleOrNull<com.example.smart_safety_management.watch.DeviceRow>()
-                                ?.deviceId
+                            }.decodeSingleOrNull<DeviceRow>()
                         } catch (_: Exception) {
                             null
                         }
+                        pairedDeviceId = row?.deviceId
+                        row?.let { WatchBleServiceController.configureAndStart(this@HomeActivity, uid, it) }
                     }
                     loaded = true
                 }
@@ -672,6 +675,7 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateProfile()
+        setupWatchMiniCard()
         fetchDailyChecks()
         updateAlarmDotVisibility()
         fetchUserInfo()

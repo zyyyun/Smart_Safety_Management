@@ -269,6 +269,12 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
+        <service
+            android:name=".watch.ble.WatchBleForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
+
         <!-- 2026-05-22 — feature_rtps_test / plan v3.1 / R3a:
              RtspPocService 폐지. R3 (LibVLC + takeSnapshot) 가 LibVLC Android Java
              wrapper 의 takeSnapshot 미노출로 compile fail → R3a (LibVLC + TextureView

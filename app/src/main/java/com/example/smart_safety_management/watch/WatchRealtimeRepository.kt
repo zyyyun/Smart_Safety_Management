@@ -30,6 +30,29 @@ import kotlinx.coroutines.flow.flow
  */
 class WatchRealtimeRepository(private val supabase: SupabaseClient) {
 
+    fun deviceFlow(deviceId: Int): Flow<DeviceRow> = flow {
+        try {
+            supabase.from("devices").select {
+                filter { eq("device_id", deviceId) }
+                limit(1)
+            }.decodeSingleOrNull<DeviceRow>()?.let { emit(it) }
+        } catch (_: Exception) {
+            // Best-effort initial fetch; realtime updates can still arrive.
+        }
+
+        val channel = supabase.channel("devices:$deviceId")
+        val changes = channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
+            table = "devices"
+            filter("device_id", FilterOperator.EQ, deviceId)
+        }
+        channel.subscribe()
+        try {
+            changes.collect { action -> emit(action.decodeRecord<DeviceRow>()) }
+        } finally {
+            channel.unsubscribe()
+        }
+    }
+
     fun deviceWatchFlow(deviceId: Int): Flow<DeviceWatchSnapshot> = flow {
         // 초기 fetch — Realtime 은 미래 변경만 push, 현재 snapshot 은 select 로.
         // 2026-05-21: device_watches PK = device_id (1 row) → order 불필요.

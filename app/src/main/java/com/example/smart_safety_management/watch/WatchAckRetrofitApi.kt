@@ -39,4 +39,12 @@ interface NotificationsFunctionsApi {
         @Header("Authorization") auth: String,
         @Body body: WatchPairRequest,
     ): Response<WatchPairResponse>
+
+    @POST
+    suspend fun callWatchReading(
+        @Url url: String,
+        @Header("apikey") apiKey: String,
+        @Header("Authorization") auth: String,
+        @Body body: WatchReadingRequest,
+    ): Response<WatchReadingResponse>
 }

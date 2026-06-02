@@ -205,6 +205,7 @@ dependencies {
     //   A.1 sprint 가 끝날 때까지 2.7.x 라인 유지. 향후 전체 Kotlin 2.x 마이그레이션
     //   시점에 한꺼번에 bump.
     implementation("no.nordicsemi.android:ble-ktx:2.7.5")
+    implementation(files("libs/2208asdk2.0.jar"))
 
     // 2026-05-21 — 트랜지티브 stdlib defensive lock (모든 dep 의 transitive Kotlin stdlib
     // 을 1.9.22 로 강제). 새 dep 추가 시 위 metadata 충돌 재발 방지.

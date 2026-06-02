@@ -79,6 +79,7 @@ fun WatchDetailScreen(
 
     LaunchedEffect(deviceId, realtimeStatus) {
         if (realtimeStatus == Realtime.Status.CONNECTED) {
+            launch { repo.deviceFlow(deviceId).collectLatest { device = it } }
             launch { repo.deviceWatchFlow(deviceId).collectLatest { snapshot = it } }
             launch { repo.lastWearStateFlow(deviceId).collectLatest { lastWearStateRow = it } }
             launch {
@@ -89,6 +90,10 @@ fun WatchDetailScreen(
             // 2026-05-21: crash 방지 try-catch + order("updated_at") 제거 (DB 컬럼 없음).
             while (true) {
                 try {
+                    device = supabase.from("devices").select {
+                        filter { eq("device_id", deviceId) }
+                        limit(1)
+                    }.decodeSingleOrNull()
                     snapshot = supabase.from("device_watches").select {
                         filter { eq("device_id", deviceId) }
                         limit(1)
@@ -107,7 +112,7 @@ fun WatchDetailScreen(
     }
 
     val wearState = lastWearStateRow?.toState
-    val activeAlert = allAlerts.firstOrNull { it.resolvedAt == null }
+    val activeAlert = WatchActiveAlertSelector.select(allAlerts, wearState)
     val (overallText, overallColor) = WatchHealthFormatter.overallStatus(
         snapshot, wearState, activeAlert,
     )
