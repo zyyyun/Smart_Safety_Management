@@ -23,6 +23,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.smart_safety_management.watch.ble.WatchRuntimeSnapshot
+import com.example.smart_safety_management.watch.ble.WatchRuntimeStore
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
@@ -53,6 +55,7 @@ fun WatchCardComposable(
     var lastWearState by remember { mutableStateOf<String?>(null) }
     var allAlerts by remember { mutableStateOf<List<SafetyAlertRow>>(emptyList()) }
     val realtimeStatus by supabase.realtime.status.collectAsState()
+    val runtime by WatchRuntimeStore.state.collectAsState()
     val repo = remember { WatchRealtimeRepository(supabase) }
 
     LaunchedEffect(deviceId, realtimeStatus) {
@@ -94,6 +97,7 @@ fun WatchCardComposable(
     }
 
     val lastActiveAlert = WatchActiveAlertSelector.select(allAlerts, lastWearState)
+    val runtimeSnapshot = WatchRuntimeSnapshot.from(device, snapshot, runtime)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -109,17 +113,21 @@ fun WatchCardComposable(
             ) {
                 // 신호=상태신호 원칙: HR=0 또는 wear-state WARMUP/OFF 일 때 회색 처리.
                 val isWarming = lastWearState in listOf("WARMUP", "OFF")
-                val hrText = snapshot?.heartRate?.takeIf { it > 0 && !isWarming }?.let { "$it bpm" } ?: "—"
-                val tempText = snapshot?.bodyTemp?.takeIf { !isWarming }?.let { String.format("%.1f°C", it) } ?: "—"
                 val color = if (isWarming) Color.Gray else Color.Black
-                Text(hrText, color = color, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-                Text(tempText, color = color, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                Text(runtimeSnapshot.hrDisplay, color = color, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+                Text(runtimeSnapshot.tempDisplay, color = color, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(8.dp))
             WearStateLabel(lastWearState)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "PPG ${runtimeSnapshot.ppgDisplay} / ${runtimeSnapshot.statusLabel}",
+                color = Color.Gray,
+                fontSize = 12.sp,
+            )
             Spacer(Modifier.height(6.dp))
             Text(
-                device?.batteryLevel?.let { "배터리 $it%" } ?: "배터리 --",
+                "배터리 ${runtimeSnapshot.batteryDisplay}",
                 color = Color.Gray,
                 fontSize = 13.sp,
             )

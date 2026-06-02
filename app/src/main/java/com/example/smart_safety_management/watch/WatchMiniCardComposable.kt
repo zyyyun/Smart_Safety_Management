@@ -31,6 +31,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.smart_safety_management.watch.ble.WatchRuntimeSnapshot
+import com.example.smart_safety_management.watch.ble.WatchRuntimeStore
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
@@ -61,6 +63,7 @@ fun WatchMiniCardComposable(
     var lastWearState by remember(deviceId) { mutableStateOf<String?>(null) }
     var allAlerts by remember(deviceId) { mutableStateOf<List<SafetyAlertRow>>(emptyList()) }
     val realtimeStatus by supabase.realtime.status.collectAsState()
+    val runtime by WatchRuntimeStore.state.collectAsState()
     val repo = remember { WatchRealtimeRepository(supabase) }
 
     LaunchedEffect(deviceId, realtimeStatus) {
@@ -96,8 +99,8 @@ fun WatchMiniCardComposable(
     }
 
     val lastActiveAlert = WatchActiveAlertSelector.select(allAlerts, lastWearState)
-    val hrLevel = WatchHealthFormatter.classifyHr(snapshot?.heartRate, lastWearState)
-    val (statusText, statusColor) = WatchHealthFormatter.overallStatus(
+    val runtimeSnapshot = WatchRuntimeSnapshot.from(null, snapshot, runtime)
+    val (_, statusColor) = WatchHealthFormatter.overallStatus(
         snapshot, lastWearState, lastActiveAlert,
     )
 
@@ -125,7 +128,7 @@ fun WatchMiniCardComposable(
             Column(verticalArrangement = Arrangement.SpaceBetween) {
                 // HR 큰 숫자
                 Text(
-                    WatchHealthFormatter.hrDisplay(snapshot?.heartRate, lastWearState),
+                    runtimeSnapshot.hrDisplay,
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
@@ -133,7 +136,7 @@ fun WatchMiniCardComposable(
                 Spacer(Modifier.height(2.dp))
                 // 상태 텍스트 (정상 운용 중 / 주의 — / 위험 —)
                 Text(
-                    statusText,
+                    runtimeSnapshot.statusLabel,
                     color = Color.White,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
