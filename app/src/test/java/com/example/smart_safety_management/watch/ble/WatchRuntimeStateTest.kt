@@ -136,11 +136,10 @@ class WatchRuntimeStateTest {
                 deviceId = 7,
                 macAddress = "21:02:02:06:01:69",
             ),
-            monitoringSessionId = 2L,
         )
 
         assertEquals(WatchRuntimeStatus.READING, seeded.status)
-        assertEquals(2L, seeded.monitoringSessionId)
+        assertEquals(1L, seeded.monitoringSessionId)
         assertEquals(now, seeded.lastReadAt)
         assertEquals(now.minusSeconds(1), seeded.lastUploadAt)
         assertEquals(reading, seeded.latestReading)
@@ -164,13 +163,12 @@ class WatchRuntimeStateTest {
                 deviceId = 7,
                 macAddress = "21:02:02:06:01:69",
             ),
-            monitoringSessionId = 2L,
         )
 
         assertEquals(7, seeded.deviceId)
         assertEquals("worker-1", seeded.userId)
         assertEquals("21:02:02:06:01:69", seeded.macAddress)
-        assertEquals(2L, seeded.monitoringSessionId)
+        assertEquals(null, seeded.monitoringSessionId)
         assertEquals(WatchRuntimeStatus.CONNECTING, seeded.status)
         assertEquals(null, seeded.lastReadAt)
         assertEquals(null, seeded.latestReading)

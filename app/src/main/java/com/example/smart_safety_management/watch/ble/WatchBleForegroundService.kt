@@ -208,7 +208,11 @@ class WatchBleForegroundService : Service() {
     ): Boolean {
         if (activeConfig != config || activeMonitoringSessionId != monitoringSessionId) return false
         WatchRuntimeStore.mutate { current ->
-            if (activeConfig != config || activeMonitoringSessionId != monitoringSessionId) {
+            if (
+                activeConfig != config ||
+                activeMonitoringSessionId != monitoringSessionId ||
+                current.monitoringSessionId?.let { it != monitoringSessionId } == true
+            ) {
                 current
             } else {
                 block(current).copy(

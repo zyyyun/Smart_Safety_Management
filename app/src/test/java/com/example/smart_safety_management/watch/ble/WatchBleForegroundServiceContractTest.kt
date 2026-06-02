@@ -77,6 +77,7 @@ class WatchBleForegroundServiceContractTest {
         assertTrue(src.contains("mutateRuntimeFor(config, monitoringSessionId)"))
         assertTrue(src.contains("mutateRuntimeFor(config, activeSessionId)"))
         assertTrue(src.contains("activeMonitoringSessionId != monitoringSessionId"))
+        assertTrue(src.contains("current.monitoringSessionId?.let { it != monitoringSessionId } == true"))
     }
 
     @Test
