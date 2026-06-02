@@ -48,7 +48,7 @@ class JcWearDeviceRegistrar(
         deviceId: Int,
         reading: JcWearHealthReading,
     ) {
-        if (!reading.hasAnyValue || deviceId <= 0) return
+        if (!reading.hasServerSupportedValue || deviceId <= 0) return
         val resp = api.callWatchReading(
             url = notificationsUrl(),
             apiKey = BuildConfig.SUPABASE_ANON_KEY,

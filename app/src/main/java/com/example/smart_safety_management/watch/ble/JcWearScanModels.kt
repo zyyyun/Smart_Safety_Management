@@ -53,6 +53,9 @@ data class JcWearHealthReading(
     val hasAnyValue: Boolean
         get() = heartRate != null || bodyTemp != null || batteryLevel != null || ppgValue != null
 
+    val hasServerSupportedValue: Boolean
+        get() = heartRate != null || bodyTemp != null || batteryLevel != null
+
     companion object {
         fun fromSdkMap(map: Map<String, Any?>): JcWearHealthReading {
             val data = map["dicData"] as? Map<*, *> ?: emptyMap<Any, Any>()

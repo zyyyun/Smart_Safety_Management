@@ -14,6 +14,22 @@ class JcWearBModeProtocolTest {
     }
 
     @Test
+    fun commandAccessorsReturnDefensiveCopies() {
+        val mutatedReset = JcWearBModeProtocol.resetCommand
+        mutatedReset[0] = 0x00
+
+        val mutatedPpgInit = JcWearBModeProtocol.ppgInitCommand
+        mutatedPpgInit[0] = 0x00
+
+        val mutatedRealtimeStart = JcWearBModeProtocol.realtimeStartCommand
+        mutatedRealtimeStart[0] = 0x00
+
+        assertArrayEquals(byteArrayOf(0x2E, 0x00, 0x00) + ByteArray(13), JcWearBModeProtocol.resetCommand)
+        assertArrayEquals(byteArrayOf(0x3B, 0x01, 0x01) + ByteArray(13), JcWearBModeProtocol.ppgInitCommand)
+        assertArrayEquals(byteArrayOf(0x0B, 0x01, 0x01) + ByteArray(13), JcWearBModeProtocol.realtimeStartCommand)
+    }
+
+    @Test
     fun parsePpgReadsSecondAndThirdBytesAsBigEndianValue() {
         val parsed = JcWearBModeProtocol.parsePpg(byteArrayOf(0x00, 0x03, 0xA4.toByte()))
 

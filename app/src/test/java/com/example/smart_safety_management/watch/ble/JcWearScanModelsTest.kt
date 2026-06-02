@@ -133,6 +133,14 @@ class JcWearScanModelsTest {
         val reading = JcWearHealthReading(ppgValue = 932)
 
         assertTrue(reading.hasAnyValue)
+        assertFalse(reading.hasServerSupportedValue)
         assertEquals(932, reading.ppgValue)
+    }
+
+    @Test
+    fun heartTempAndBatteryReadingsCountAsServerSupportedValues() {
+        assertTrue(JcWearHealthReading(heartRate = 82).hasServerSupportedValue)
+        assertTrue(JcWearHealthReading(bodyTemp = 36.8f).hasServerSupportedValue)
+        assertTrue(JcWearHealthReading(batteryLevel = 87).hasServerSupportedValue)
     }
 }
