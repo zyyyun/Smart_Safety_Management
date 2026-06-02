@@ -72,6 +72,43 @@ class WatchRuntimeStateTest {
     }
 
     @Test
+    fun clearingDifferentDevicePreservesActiveDevice() {
+        val active = WatchRuntimeState(deviceId = 7, status = WatchRuntimeStatus.CONNECTED)
+        WatchRuntimeStore.update(active)
+
+        WatchRuntimeStore.clear(deviceId = 8)
+
+        assertEquals(active, WatchRuntimeStore.state.value)
+    }
+
+    @Test
+    fun staleRuntimeReadingDoesNotOverrideDbSnapshotValues() {
+        val snapshot = WatchRuntimeSnapshot.from(
+            device = device(batteryLevel = 41),
+            dbSnapshot = dbSnapshot(
+                heartRate = 78,
+                bodyTemp = 36.5f,
+                batteryLevel = 52,
+            ),
+            runtime = WatchRuntimeState(
+                lastReadAt = now.minusSeconds(11),
+                latestReading = JcWearHealthReading(
+                    heartRate = 120,
+                    bodyTemp = 39.0f,
+                    batteryLevel = 10,
+                    ppgValue = 999,
+                ),
+            ),
+            now = now,
+        )
+
+        assertEquals("--", snapshot.ppgDisplay)
+        assertEquals("78 bpm", snapshot.hrDisplay)
+        assertEquals("36.5°C", snapshot.tempDisplay)
+        assertEquals("52%", snapshot.batteryDisplay)
+    }
+
+    @Test
     fun batteryPrecedenceUsesRuntimeThenDbThenDevice() {
         val device = device(batteryLevel = 41)
         val dbSnapshot = dbSnapshot(batteryLevel = 52)
@@ -79,7 +116,10 @@ class WatchRuntimeStateTest {
         val runtimeBattery = WatchRuntimeSnapshot.from(
             device = device,
             dbSnapshot = dbSnapshot,
-            runtime = WatchRuntimeState(latestReading = JcWearHealthReading(batteryLevel = 63)),
+            runtime = WatchRuntimeState(
+                lastReadAt = now,
+                latestReading = JcWearHealthReading(batteryLevel = 63),
+            ),
             now = now,
         )
         val dbBattery = WatchRuntimeSnapshot.from(
@@ -126,9 +166,13 @@ class WatchRuntimeStateTest {
 
     private fun dbSnapshot(
         updatedAt: String? = null,
+        heartRate: Int? = null,
+        bodyTemp: Float? = null,
         batteryLevel: Int? = null,
     ) = DeviceWatchSnapshot(
         deviceId = 7,
+        heartRate = heartRate,
+        bodyTemp = bodyTemp,
         updatedAt = updatedAt,
         batteryLevel = batteryLevel,
     )

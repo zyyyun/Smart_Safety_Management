@@ -10,6 +10,7 @@ import java.time.ZoneOffset
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 enum class WatchRuntimeStatus {
     IDLE,
@@ -50,8 +51,8 @@ data class WatchRuntimeSnapshot(
             runtime: WatchRuntimeState,
             now: Instant = Instant.now(),
         ): WatchRuntimeSnapshot {
-            val latestReading = runtime.latestReading
             val isFresh = runtime.lastReadAt?.let { Duration.between(it, now).seconds in 0..10 } ?: false
+            val freshReading = runtime.latestReading.takeIf { isFresh }
             val hasMac = !runtime.macAddress.isNullOrBlank() || !device?.macAddress.isNullOrBlank()
             val lastCommunicationAt = listOfNotNull(
                 runtime.lastReadAt,
@@ -65,11 +66,11 @@ data class WatchRuntimeSnapshot(
                 statusLabel = statusLabel(runtime.status, isFresh, hasMac),
                 isFresh = isFresh,
                 lastCommunicationLabel = relativeLabel(lastCommunicationAt, now),
-                ppgDisplay = latestReading?.ppgValue?.toString() ?: "--",
-                hrDisplay = readingLabel(latestReading?.heartRate ?: dbSnapshot?.heartRate, suffix = " bpm"),
-                tempDisplay = tempLabel(latestReading?.bodyTemp ?: dbSnapshot?.bodyTemp),
+                ppgDisplay = freshReading?.ppgValue?.toString() ?: "--",
+                hrDisplay = readingLabel(freshReading?.heartRate ?: dbSnapshot?.heartRate, suffix = " bpm"),
+                tempDisplay = tempLabel(freshReading?.bodyTemp ?: dbSnapshot?.bodyTemp),
                 batteryDisplay = batteryLabel(
-                    latestReading?.batteryLevel
+                    freshReading?.batteryLevel
                         ?: dbSnapshot?.batteryLevel
                         ?: device?.batteryLevel,
                 ),
@@ -129,12 +130,16 @@ object WatchRuntimeStore {
     }
 
     fun mutate(block: (WatchRuntimeState) -> WatchRuntimeState) {
-        mutableState.value = block(mutableState.value)
+        mutableState.update(block)
     }
 
     fun clear(deviceId: Int? = null) {
-        if (deviceId == null || mutableState.value.deviceId == deviceId) {
-            mutableState.value = WatchRuntimeState()
+        mutableState.update { current ->
+            if (deviceId == null || current.deviceId == deviceId) {
+                WatchRuntimeState()
+            } else {
+                current
+            }
         }
     }
 }
