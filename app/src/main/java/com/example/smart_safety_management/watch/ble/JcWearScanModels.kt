@@ -20,6 +20,8 @@ enum class JcWearConnectionState {
     SCANNING,
     CONNECTING,
     CONNECTED,
+    READING,
+    RETRYING,
     FAILED,
 }
 
@@ -41,7 +43,8 @@ data class JcWearScanUiState(
 
     val canRegister: Boolean
         get() = !selectedAddress.isNullOrBlank() &&
-            connectionState == JcWearConnectionState.CONNECTED
+            (connectionState == JcWearConnectionState.CONNECTED ||
+                connectionState == JcWearConnectionState.READING)
 }
 
 data class JcWearHealthReading(

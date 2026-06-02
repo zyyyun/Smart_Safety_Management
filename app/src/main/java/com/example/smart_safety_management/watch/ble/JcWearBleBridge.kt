@@ -7,8 +7,6 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattDescriptor
-import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.ScanCallback
@@ -22,13 +20,11 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.jstyle.blesdk2208a.Util.BleSDK
-import com.jstyle.blesdk2208a.callback.DataListener2025
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.util.UUID
 
 class JcWearBleBridge(context: Context) {
     private val appContext = context.applicationContext
@@ -50,17 +46,6 @@ class JcWearBleBridge(context: Context) {
 
     private val _healthReadings = MutableSharedFlow<JcWearHealthReading>(extraBufferCapacity = 16)
     val healthReadings: SharedFlow<JcWearHealthReading> = _healthReadings
-
-    private val dataListener = object : DataListener2025 {
-        override fun dataCallback(maps: MutableMap<String, Any>?) {
-            val reading = JcWearHealthReading.fromSdkMap(maps.orEmpty())
-            if (reading.hasAnyValue) {
-                _healthReadings.tryEmit(reading)
-            }
-        }
-
-        override fun dataCallback(value: ByteArray?) = Unit
-    }
 
     fun refreshEnvironment() {
         _uiState.value = _uiState.value.copy(
@@ -157,7 +142,10 @@ class JcWearBleBridge(context: Context) {
 
     fun identify(device: JcWearDiscoveredDevice) {
         val current = _uiState.value
-        val isConnectedTarget = current.connectionState == JcWearConnectionState.CONNECTED &&
+        val isConnectedTarget = (
+            current.connectionState == JcWearConnectionState.CONNECTED ||
+                current.connectionState == JcWearConnectionState.READING
+            ) &&
             current.selectedAddress.equals(device.address, ignoreCase = true)
         if (isConnectedTarget && gatt != null) {
             vibrateForIdentification()
@@ -172,7 +160,6 @@ class JcWearBleBridge(context: Context) {
         telemetryLoopActive = false
         if (hasBluetoothPermission()) {
             val activeGatt = gatt
-            runCatching { activeGatt?.let { writeCommand(it, BleSDK.RealTimeStep(false, false)) } }
             runCatching { activeGatt?.disconnect() }
             runCatching { activeGatt?.close() }
         }
@@ -190,28 +177,38 @@ class JcWearBleBridge(context: Context) {
         disconnect()
     }
 
-    fun requestCurrentMeasurements() {
-        val activeGatt = gatt ?: return
-        writeCommand(activeGatt, BleSDK.RealTimeStep(true, true))
-        writeCommand(activeGatt, BleSDK.GetDeviceBatteryLevel())
-    }
-
     private fun vibrateForIdentification() {
         val activeGatt = gatt ?: return
         writeCommand(activeGatt, BleSDK.MotorVibrationWithTimes(IDENTIFY_VIBRATION_TIMES))
     }
 
-    private fun startTelemetryLoop() {
+    private fun startBModeReadLoop(gatt: BluetoothGatt) {
         if (telemetryLoopActive) return
         telemetryLoopActive = true
-        requestCurrentMeasurements()
-        fun tick() {
-            val activeGatt = gatt
-            if (!telemetryLoopActive || activeGatt == null) return
-            writeCommand(activeGatt, BleSDK.GetDeviceBatteryLevel())
-            handler.postDelayed({ tick() }, BATTERY_REFRESH_INTERVAL_MS)
+        _uiState.value = _uiState.value.copy(connectionState = JcWearConnectionState.READING)
+        writeCommand(gatt, JcWearBModeProtocol.resetCommand)
+        handler.postDelayed({
+            if (!telemetryLoopActive) return@postDelayed
+            writeCommand(gatt, JcWearBModeProtocol.ppgInitCommand)
+        }, B_MODE_PPG_INIT_DELAY_MS)
+        handler.postDelayed({
+            if (!telemetryLoopActive) return@postDelayed
+            writeCommand(gatt, JcWearBModeProtocol.realtimeStartCommand)
+            scheduleBModeRead(gatt)
+        }, B_MODE_REALTIME_START_DELAY_MS)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun scheduleBModeRead(gatt: BluetoothGatt) {
+        if (!telemetryLoopActive) return
+        val characteristic = dataCharacteristic(gatt) ?: run {
+            failBModeRead("B-mode data characteristic not found.")
+            return
         }
-        handler.postDelayed({ tick() }, BATTERY_REFRESH_INTERVAL_MS)
+        val accepted = gatt.readCharacteristic(characteristic)
+        if (!accepted) {
+            failBModeRead("B-mode data read could not be started.")
+        }
     }
 
     private val scanCallback = object : ScanCallback() {
@@ -258,12 +255,11 @@ class JcWearBleBridge(context: Context) {
         @SuppressLint("MissingPermission")
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                enableNotifications(gatt)
                 _uiState.value = _uiState.value.copy(
                     connectionState = JcWearConnectionState.CONNECTED,
                     errorMessage = null,
                 )
-                startTelemetryLoop()
+                startBModeReadLoop(gatt)
                 if (pendingIdentifyAddress.equals(_uiState.value.selectedAddress, ignoreCase = true)) {
                     pendingIdentifyAddress = null
                     handler.postDelayed({ vibrateForIdentification() }, IDENTIFY_VIBRATION_DELAY_MS)
@@ -276,43 +272,55 @@ class JcWearBleBridge(context: Context) {
             }
         }
 
-        @Suppress("DEPRECATION")
-        override fun onCharacteristicChanged(
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+        override fun onCharacteristicRead(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
+            status: Int,
         ) {
-            handleNotification(characteristic.value)
+            handleBModeRead(characteristic.value, status)
         }
 
-        override fun onCharacteristicChanged(
+        override fun onCharacteristicRead(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray,
+            status: Int,
         ) {
-            handleNotification(value)
+            handleBModeRead(value, status)
         }
     }
 
-    private fun handleNotification(value: ByteArray?) {
-        if (value == null || value.isEmpty()) return
-        runCatching { BleSDK.DataParsingWithData(value, dataListener) }
-            .onFailure { Log.w(TAG, "Failed to parse JCWear payload", it) }
+    private fun handleBModeRead(value: ByteArray, status: Int) {
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            failBModeRead("B-mode data read failed: $status")
+            return
+        }
+        val ppg = JcWearBModeProtocol.parsePpg(value)
+        _healthReadings.tryEmit(JcWearHealthReading(ppgValue = ppg))
+        _uiState.value = _uiState.value.copy(
+            connectionState = JcWearConnectionState.READING,
+            errorMessage = null,
+        )
+        handler.postDelayed({ gatt?.let { scheduleBModeRead(it) } }, B_MODE_READ_INTERVAL_MS)
     }
 
     @SuppressLint("MissingPermission")
-    private fun enableNotifications(gatt: BluetoothGatt) {
-        val characteristic = notifyCharacteristic(gatt) ?: return
-        gatt.setCharacteristicNotification(characteristic, true)
-        val descriptor = characteristic.getDescriptor(CCCD_UUID) ?: return
-        descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-        gatt.writeDescriptor(descriptor)
-    }
-
-    @SuppressLint("MissingPermission")
-    private fun writeCommand(gatt: BluetoothGatt, command: ByteArray?) {
+    private fun writeCommand(gatt: BluetoothGatt, command: ByteArray) {
         val characteristic = dataCharacteristic(gatt) ?: return
-        characteristic.value = command ?: return
-        gatt.writeCharacteristic(characteristic)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            gatt.writeCharacteristic(
+                characteristic,
+                command,
+                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            characteristic.value = command
+            characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            @Suppress("DEPRECATION")
+            gatt.writeCharacteristic(characteristic)
+        }
     }
 
     private fun ScanResult.toJcWearDevice(): JcWearDiscoveredDevice? {
@@ -326,13 +334,7 @@ class JcWearBleBridge(context: Context) {
     }
 
     private fun dataCharacteristic(gatt: BluetoothGatt): BluetoothGattCharacteristic? =
-        jstyleService(gatt)?.getCharacteristic(DATA_CHARACTERISTIC_UUID)
-
-    private fun notifyCharacteristic(gatt: BluetoothGatt): BluetoothGattCharacteristic? =
-        jstyleService(gatt)?.getCharacteristic(NOTIFY_CHARACTERISTIC_UUID)
-
-    private fun jstyleService(gatt: BluetoothGatt): BluetoothGattService? =
-        gatt.getService(JSTYLE_SERVICE_UUID)
+        gatt.getService(JcWearBModeProtocol.serviceUuid)?.getCharacteristic(JcWearBModeProtocol.dataUuid)
 
     private fun hasBluetoothPermission(): Boolean =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -353,15 +355,21 @@ class JcWearBleBridge(context: Context) {
         )
     }
 
+    private fun failBModeRead(message: String) {
+        telemetryLoopActive = false
+        _uiState.value = _uiState.value.copy(
+            connectionState = JcWearConnectionState.FAILED,
+            errorMessage = message,
+        )
+    }
+
     companion object {
         private const val TAG = "JcWearBleBridge"
-        private const val BATTERY_REFRESH_INTERVAL_MS = 5 * 60 * 1_000L
+        private const val B_MODE_PPG_INIT_DELAY_MS = 3_000L
+        private const val B_MODE_REALTIME_START_DELAY_MS = 5_000L
+        private const val B_MODE_READ_INTERVAL_MS = 100L
         private const val IDENTIFY_VIBRATION_TIMES = 2
         private const val IDENTIFY_VIBRATION_DELAY_MS = 800L
-        private val JSTYLE_SERVICE_UUID: UUID = UUID.fromString("0000fff0-0000-1000-8000-00805f9b34fb")
-        private val DATA_CHARACTERISTIC_UUID: UUID = UUID.fromString("0000fff6-0000-1000-8000-00805f9b34fb")
-        private val NOTIFY_CHARACTERISTIC_UUID: UUID = UUID.fromString("0000fff7-0000-1000-8000-00805f9b34fb")
-        private val CCCD_UUID: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 
         fun isLikelyJcWear(name: String?): Boolean {
             val normalized = name?.trim()?.lowercase().orEmpty()

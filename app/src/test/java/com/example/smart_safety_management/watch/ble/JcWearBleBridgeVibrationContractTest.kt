@@ -11,12 +11,16 @@ class JcWearBleBridgeVibrationContractTest {
     )
 
     @Test
-    fun bridgeUsesRealtimeStreamInsteadOfRepeatedManualMeasurementStarts() {
+    fun bridgeUsesBModeReadLoopForMonitoring() {
         val src = bridge.readText()
 
-        assertTrue(src.contains("BleSDK.RealTimeStep(true, true)"))
-        assertFalse(src.contains("StartDeviceMeasurementWithType"))
-        assertFalse(src.contains("20_000"))
+        assertTrue(src.contains("JcWearBModeProtocol.dataUuid"))
+        assertTrue(src.contains("JcWearBModeProtocol.resetCommand"))
+        assertTrue(src.contains("JcWearBModeProtocol.ppgInitCommand"))
+        assertTrue(src.contains("JcWearBModeProtocol.realtimeStartCommand"))
+        assertTrue(src.contains("JcWearBModeProtocol.parsePpg"))
+        assertFalse(src.contains("BleSDK.RealTimeStep(true, true)"))
+        assertFalse(src.contains("BleSDK.GetDeviceBatteryLevel()"))
     }
 
     @Test
