@@ -1,14 +1,17 @@
-import { createAdminClient, createUserClient } from "../_shared/supabase.ts";
+import { createAdminClient } from "../_shared/supabase.ts";
 import { err, optionsResponse } from "../_shared/response.ts";
 import { createAiEvent } from "../_shared/ai_events.ts";
 import { buildCapturePath, normalizeAccuracy } from "./helpers.ts";
 
 type Body = Record<string, unknown>;
 type Admin = ReturnType<typeof createAdminClient>;
-type UserClient = ReturnType<typeof createUserClient>;
+type Row = Record<string, unknown>;
 
 const CAPTURE_BUCKET = "camera-captures";
 const MIN_JPEG_BYTES = 1024;
+const MAX_JPEG_BYTES = 2 * 1024 * 1024;
+const MAX_JPEG_BASE64_LENGTH = Math.ceil(MAX_JPEG_BYTES / 3) * 4 + 64;
+const MAX_REQUEST_BYTES = MAX_JPEG_BASE64_LENGTH + 4096;
 const FIRE_EVENT_NAME = "화재";
 
 Deno.serve(async (req: Request) => {
@@ -27,22 +30,30 @@ Deno.serve(async (req: Request) => {
     const cameraId = positiveInteger(body.camera_id);
     if (cameraId === null) return err("camera_id must be a positive integer");
 
+    const userId = nonEmptyString(body.user_id);
+    if (!userId) return err("user_id is required");
+
     const jpegBase64 = nonEmptyString(body.jpeg_base64);
     if (!jpegBase64) return err("jpeg_base64 is required");
 
+    const sizeError = rejectOversizedRequest(req, jpegBase64);
+    if (sizeError) return sizeError;
+
+    const admin = createAdminClient();
+    const visibilityError = await requireVisibleCamera(admin, userId, cameraId);
+    if (visibilityError) return visibilityError;
+
     const jpegBytes = decodeJpegBase64(jpegBase64);
+    if (jpegBytes.length > MAX_JPEG_BYTES) {
+      return err("jpeg_base64 payload is too large", 413);
+    }
     if (!isValidJpegPayload(jpegBytes)) {
       return err("jpeg_base64 must contain a valid JPEG image", 400);
     }
 
-    const user = createUserClient(req);
-    const visibilityError = await requireVisibleCamera(user, cameraId);
-    if (visibilityError) return visibilityError;
-
     const accuracy = normalizeAccuracy(body.accuracy);
-    const admin = createAdminClient();
     const timestampMs = Date.now();
-    const path = buildCapturePath(cameraId, timestampMs);
+    const path = buildCapturePath(cameraId, timestampMs, randomPathSuffix());
 
     const { error: uploadError } = await admin.storage
       .from(CAPTURE_BUCKET)
@@ -94,6 +105,20 @@ function nonEmptyString(value: unknown) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function rejectOversizedRequest(req: Request, jpegBase64: string) {
+  const contentLength = req.headers.get("content-length");
+  if (contentLength) {
+    const parsed = Number(contentLength);
+    if (Number.isFinite(parsed) && parsed > MAX_REQUEST_BYTES) {
+      return err("jpeg_base64 payload is too large", 413);
+    }
+  }
+  if (jpegBase64.length > MAX_JPEG_BASE64_LENGTH) {
+    return err("jpeg_base64 payload is too large", 413);
+  }
+  return null;
+}
+
 function decodeJpegBase64(value: string) {
   try {
     const normalized = value.replace(/^data:image\/jpe?g;base64,/i, "");
@@ -120,14 +145,30 @@ function exactArrayBuffer(bytes: Uint8Array) {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 }
 
-async function requireVisibleCamera(user: UserClient, cameraId: number) {
-  const { data, error } = await user
+function randomPathSuffix() {
+  return crypto.randomUUID().replaceAll("-", "").slice(0, 12);
+}
+
+async function requireVisibleCamera(admin: Admin, userId: string, cameraId: number) {
+  const { data: profile, error: profileError } = await admin
+    .from("profiles")
+    .select("group_id,user_role")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const { data: camera, error: cameraError } = await admin
     .from("cameras")
-    .select("camera_id")
+    .select("camera_id,group_id")
     .eq("camera_id", cameraId)
     .maybeSingle();
 
-  if (error || !data) {
+  if (
+    profileError ||
+    cameraError ||
+    !profile ||
+    !camera ||
+    String((profile as Row).group_id) !== String((camera as Row).group_id)
+  ) {
     return err("Camera not visible for current user", 403);
   }
   return null;

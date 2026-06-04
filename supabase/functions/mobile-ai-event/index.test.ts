@@ -7,6 +7,13 @@ Deno.test("buildCapturePath uses detection bucket prefix convention", () => {
   );
 });
 
+Deno.test("buildCapturePath preserves prefix and adds optional entropy", () => {
+  assertEquals(
+    buildCapturePath(5, 1780298670271, "abc123"),
+    "detection/5/fire_5_1780298670271_abc123.jpg",
+  );
+});
+
 Deno.test("normalizeAccuracy clamps to zero through one", () => {
   assertEquals(normalizeAccuracy(-1), 0);
   assertEquals(normalizeAccuracy(0.75), 0.75);
@@ -27,9 +34,27 @@ Deno.test("index checks authenticated camera visibility before service-role uplo
     new URL("./index.ts", import.meta.url),
   );
 
-  assertIncludes(text, 'createUserClient(req)');
-  assertIncludes(text, 'select("camera_id")');
+  assertIncludes(text, 'const userId = nonEmptyString(body.user_id);');
+  assertIncludes(text, 'if (!userId) return err("user_id is required");');
+  assertIncludes(text, 'await requireVisibleCamera(admin, userId, cameraId)');
+  assertIncludes(text, 'from("profiles")');
+  assertIncludes(text, 'select("group_id,user_role")');
+  assertIncludes(text, 'select("camera_id,group_id")');
   assertIncludes(text, 'return err("Camera not visible for current user", 403)');
+  assertBefore(text, "await requireVisibleCamera", "decodeJpegBase64");
+  assertBefore(text, "await requireVisibleCamera", ".upload(path");
+});
+
+Deno.test("index rejects oversized payloads before decoding", async () => {
+  const text = await Deno.readTextFile(
+    new URL("./index.ts", import.meta.url),
+  );
+
+  assertIncludes(text, "MAX_JPEG_BYTES");
+  assertIncludes(text, "MAX_JPEG_BASE64_LENGTH");
+  assertIncludes(text, "content-length");
+  assertIncludes(text, "jpeg_base64 payload is too large");
+  assertBefore(text, "rejectOversizedRequest", "decodeJpegBase64");
 });
 
 function assertEquals(actual: unknown, expected: unknown) {
@@ -41,5 +66,13 @@ function assertEquals(actual: unknown, expected: unknown) {
 function assertIncludes(actual: string, expected: string) {
   if (!actual.includes(expected)) {
     throw new Error(`Expected source to contain ${expected}`);
+  }
+}
+
+function assertBefore(actual: string, first: string, second: string) {
+  const firstIndex = actual.indexOf(first);
+  const secondIndex = actual.indexOf(second);
+  if (firstIndex < 0 || secondIndex < 0 || firstIndex >= secondIndex) {
+    throw new Error(`Expected ${first} to appear before ${second}`);
   }
 }

@@ -1,5 +1,10 @@
-export function buildCapturePath(cameraId: number, timestampMs: number) {
-  return `detection/${cameraId}/fire_${cameraId}_${timestampMs}.jpg`;
+export function buildCapturePath(
+  cameraId: number,
+  timestampMs: number,
+  suffix?: string,
+) {
+  const suffixPart = suffix ? `_${suffix}` : "";
+  return `detection/${cameraId}/fire_${cameraId}_${timestampMs}${suffixPart}.jpg`;
 }
 
 export function normalizeAccuracy(value: unknown) {
