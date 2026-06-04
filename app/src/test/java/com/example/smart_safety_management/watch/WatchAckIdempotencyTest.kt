@@ -45,6 +45,9 @@ class WatchAckIdempotencyTest {
             override suspend fun callWatchPair(
                 url: String, apiKey: String, auth: String, body: WatchPairRequest
             ) = throw NotImplementedError()
+            override suspend fun callWatchReading(
+                url: String, apiKey: String, auth: String, body: WatchReadingRequest
+            ) = throw NotImplementedError()
         }
 
         val resp = fakeApi.callWatchAck(
@@ -76,6 +79,9 @@ class WatchAckIdempotencyTest {
             override suspend fun callWatchPair(
                 url: String, apiKey: String, auth: String, body: WatchPairRequest
             ) = throw NotImplementedError()
+            override suspend fun callWatchReading(
+                url: String, apiKey: String, auth: String, body: WatchReadingRequest
+            ) = throw NotImplementedError()
         }
 
         val req = WatchAckRequest(alert_id = 1, user_id = "testuser1")
@@ -100,6 +106,9 @@ class WatchAckIdempotencyTest {
             }
             override suspend fun callWatchPair(
                 url: String, apiKey: String, auth: String, body: WatchPairRequest
+            ) = throw NotImplementedError()
+            override suspend fun callWatchReading(
+                url: String, apiKey: String, auth: String, body: WatchReadingRequest
             ) = throw NotImplementedError()
         }
 
