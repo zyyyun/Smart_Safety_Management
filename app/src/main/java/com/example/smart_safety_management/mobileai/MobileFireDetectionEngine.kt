@@ -3,6 +3,7 @@ package com.example.smart_safety_management.mobileai
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Rect
 import org.tensorflow.lite.Interpreter
 import java.io.FileInputStream
@@ -68,6 +69,7 @@ class MobileFireDetectionEngine(context: Context) : AutoCloseable {
         )
     }
 
+    @Synchronized
     override fun close() {
         interpreter?.close()
         interpreter = null
@@ -80,6 +82,7 @@ class MobileFireDetectionEngine(context: Context) : AutoCloseable {
         val inputBitmap = if (bitmap.width == INPUT_SIZE && bitmap.height == INPUT_SIZE) {
             bitmap
         } else {
+            resizeBitmap.eraseColor(Color.TRANSPARENT)
             resizeCanvas.drawBitmap(bitmap, null, resizeTarget, null)
             resizeBitmap
         }

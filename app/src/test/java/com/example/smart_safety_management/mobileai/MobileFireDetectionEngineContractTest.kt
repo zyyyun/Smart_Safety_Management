@@ -50,6 +50,8 @@ class MobileFireDetectionEngineContractTest {
         assertTrue(source.contains("private val resizeTarget"))
         assertTrue(!source.contains("createScaledBitmap"))
         assertTrue(source.contains("resizeBitmap.recycle()"))
+        assertTrue(source.contains("@Synchronized\n    override fun close()"))
+        assertTrue(source.contains("resizeBitmap.eraseColor(Color.TRANSPARENT)"))
         assertTrue(source.contains("context.assets.openFd(MODEL_ASSET).use"))
     }
 
