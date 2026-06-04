@@ -11,22 +11,49 @@ import java.nio.channels.FileChannel
 
 class MobileFireDetectionEngine(context: Context) : AutoCloseable {
     private val appContext = context.applicationContext
-    private val interpreter = Interpreter(loadMappedModel(appContext))
-    private val labels = loadLabels(appContext)
+    private var interpreter: Interpreter? = null
+    private var loadError: Throwable? = null
+    private var unavailableMessage: String = "mobile fire model asset unavailable: $MODEL_ASSET"
+    private var labels: List<String> = emptyList()
+    private var maxDetections: Int = MAX_DETECTIONS
+    private val inputBuffer = ByteBuffer
+        .allocateDirect(INPUT_SIZE * INPUT_SIZE * CHANNELS * FLOAT_BYTES)
+        .order(ByteOrder.nativeOrder())
+    private val pixels = IntArray(INPUT_SIZE * INPUT_SIZE)
+    private var outputBuffer: Array<Array<FloatArray>> = Array(1) {
+        Array(MAX_DETECTIONS) { FloatArray(ROW_SIZE) }
+    }
 
+    init {
+        try {
+            val loadedInterpreter = Interpreter(loadMappedModel(appContext))
+            try {
+                validateOutputTensor(loadedInterpreter)
+                labels = loadLabels(appContext)
+                interpreter = loadedInterpreter
+            } catch (e: Throwable) {
+                loadedInterpreter.close()
+                throw e
+            }
+        } catch (e: Throwable) {
+            loadError = e
+        }
+    }
+
+    @Synchronized
     fun detect(
         bitmap: Bitmap,
         sampledAtMs: Long = System.currentTimeMillis()
     ): MobileFireResult {
+        val loadedInterpreter = interpreter ?: throw IllegalStateException(unavailableMessage, loadError)
         val startedAtNs = System.nanoTime()
-        val input = bitmap.toInputBuffer()
-        val output = Array(1) { Array(MAX_DETECTIONS) { FloatArray(6) } }
+        fillInputBuffer(bitmap)
 
-        interpreter.run(input, output)
+        loadedInterpreter.run(inputBuffer, outputBuffer)
 
         val inferenceMs = (System.nanoTime() - startedAtNs) / 1_000_000L
         val parsed = MobileYoloOutputParser.parseNmsRows(
-            rows = output[0],
+            rows = outputBuffer[0],
             labels = labels,
             threshold = SCORE_THRESHOLD
         )
@@ -37,30 +64,44 @@ class MobileFireDetectionEngine(context: Context) : AutoCloseable {
     }
 
     override fun close() {
-        interpreter.close()
+        interpreter?.close()
+        interpreter = null
     }
 
-    private fun Bitmap.toInputBuffer(): ByteBuffer {
-        val resized = if (width == INPUT_SIZE && height == INPUT_SIZE) {
-            this
+    private fun fillInputBuffer(bitmap: Bitmap) {
+        val resized = if (bitmap.width == INPUT_SIZE && bitmap.height == INPUT_SIZE) {
+            bitmap
         } else {
-            Bitmap.createScaledBitmap(this, INPUT_SIZE, INPUT_SIZE, true)
+            Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
         }
-        val buffer = ByteBuffer
-            .allocateDirect(INPUT_SIZE * INPUT_SIZE * CHANNELS * FLOAT_BYTES)
-            .order(ByteOrder.nativeOrder())
-        val pixels = IntArray(INPUT_SIZE * INPUT_SIZE)
+        inputBuffer.clear()
         resized.getPixels(pixels, 0, INPUT_SIZE, 0, 0, INPUT_SIZE, INPUT_SIZE)
         for (pixel in pixels) {
-            buffer.putFloat(((pixel shr 16) and 0xFF) / 255f)
-            buffer.putFloat(((pixel shr 8) and 0xFF) / 255f)
-            buffer.putFloat((pixel and 0xFF) / 255f)
+            inputBuffer.putFloat(((pixel shr 16) and 0xFF) / 255f)
+            inputBuffer.putFloat(((pixel shr 8) and 0xFF) / 255f)
+            inputBuffer.putFloat((pixel and 0xFF) / 255f)
         }
-        buffer.rewind()
-        if (resized !== this) {
+        inputBuffer.rewind()
+        if (resized !== bitmap) {
             resized.recycle()
         }
-        return buffer
+    }
+
+    private fun validateOutputTensor(loadedInterpreter: Interpreter) {
+        if (loadedInterpreter.outputTensorCount != 1) {
+            markInvalidContract("expected 1 output tensor, got ${loadedInterpreter.outputTensorCount}")
+        }
+        val shape = loadedInterpreter.getOutputTensor(0).shape()
+        if (shape.size != 3 || shape[0] != 1 || shape[1] <= 0 || shape[2] != ROW_SIZE) {
+            markInvalidContract("expected output shape [1, max_detections, 6], got ${shape.contentToString()}")
+        }
+        maxDetections = shape[1]
+        outputBuffer = Array(1) { Array(maxDetections) { FloatArray(ROW_SIZE) } }
+    }
+
+    private fun markInvalidContract(detail: String): Nothing {
+        unavailableMessage = "mobile fire model contract invalid: $detail"
+        throw IllegalStateException(unavailableMessage)
     }
 
     companion object {
@@ -72,15 +113,17 @@ class MobileFireDetectionEngine(context: Context) : AutoCloseable {
 
         private const val CHANNELS = 3
         private const val FLOAT_BYTES = 4
+        private const val ROW_SIZE = 6
 
         private fun loadMappedModel(context: Context): MappedByteBuffer {
-            val descriptor = context.assets.openFd(MODEL_ASSET)
-            FileInputStream(descriptor.fileDescriptor).use { input ->
-                return input.channel.map(
-                    FileChannel.MapMode.READ_ONLY,
-                    descriptor.startOffset,
-                    descriptor.declaredLength
-                )
+            context.assets.openFd(MODEL_ASSET).use { descriptor ->
+                FileInputStream(descriptor.fileDescriptor).use { input ->
+                    return input.channel.map(
+                        FileChannel.MapMode.READ_ONLY,
+                        descriptor.startOffset,
+                        descriptor.declaredLength
+                    )
+                }
             }
         }
 
