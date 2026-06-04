@@ -2,6 +2,8 @@ package com.example.smart_safety_management.mobileai
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Rect
 import org.tensorflow.lite.Interpreter
 import java.io.FileInputStream
 import java.nio.ByteBuffer
@@ -20,6 +22,9 @@ class MobileFireDetectionEngine(context: Context) : AutoCloseable {
         .allocateDirect(INPUT_SIZE * INPUT_SIZE * CHANNELS * FLOAT_BYTES)
         .order(ByteOrder.nativeOrder())
     private val pixels = IntArray(INPUT_SIZE * INPUT_SIZE)
+    private val resizeBitmap = Bitmap.createBitmap(INPUT_SIZE, INPUT_SIZE, Bitmap.Config.ARGB_8888)
+    private val resizeCanvas = Canvas(resizeBitmap)
+    private val resizeTarget = Rect(0, 0, INPUT_SIZE, INPUT_SIZE)
     private var outputBuffer: Array<Array<FloatArray>> = Array(1) {
         Array(MAX_DETECTIONS) { FloatArray(ROW_SIZE) }
     }
@@ -66,25 +71,26 @@ class MobileFireDetectionEngine(context: Context) : AutoCloseable {
     override fun close() {
         interpreter?.close()
         interpreter = null
+        if (!resizeBitmap.isRecycled) {
+            resizeBitmap.recycle()
+        }
     }
 
     private fun fillInputBuffer(bitmap: Bitmap) {
-        val resized = if (bitmap.width == INPUT_SIZE && bitmap.height == INPUT_SIZE) {
+        val inputBitmap = if (bitmap.width == INPUT_SIZE && bitmap.height == INPUT_SIZE) {
             bitmap
         } else {
-            Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
+            resizeCanvas.drawBitmap(bitmap, null, resizeTarget, null)
+            resizeBitmap
         }
         inputBuffer.clear()
-        resized.getPixels(pixels, 0, INPUT_SIZE, 0, 0, INPUT_SIZE, INPUT_SIZE)
+        inputBitmap.getPixels(pixels, 0, INPUT_SIZE, 0, 0, INPUT_SIZE, INPUT_SIZE)
         for (pixel in pixels) {
             inputBuffer.putFloat(((pixel shr 16) and 0xFF) / 255f)
             inputBuffer.putFloat(((pixel shr 8) and 0xFF) / 255f)
             inputBuffer.putFloat((pixel and 0xFF) / 255f)
         }
         inputBuffer.rewind()
-        if (resized !== bitmap) {
-            resized.recycle()
-        }
     }
 
     private fun validateOutputTensor(loadedInterpreter: Interpreter) {

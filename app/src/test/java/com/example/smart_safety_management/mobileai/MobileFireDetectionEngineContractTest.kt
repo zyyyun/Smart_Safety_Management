@@ -45,6 +45,11 @@ class MobileFireDetectionEngineContractTest {
         assertTrue(source.contains("private val inputBuffer"))
         assertTrue(source.contains("private val pixels"))
         assertTrue(source.contains("private var outputBuffer"))
+        assertTrue(source.contains("private val resizeBitmap"))
+        assertTrue(source.contains("private val resizeCanvas"))
+        assertTrue(source.contains("private val resizeTarget"))
+        assertTrue(!source.contains("createScaledBitmap"))
+        assertTrue(source.contains("resizeBitmap.recycle()"))
         assertTrue(source.contains("context.assets.openFd(MODEL_ASSET).use"))
     }
 
