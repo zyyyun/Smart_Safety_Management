@@ -270,14 +270,16 @@ function Action-Uninstall {
         Write-Host "Service '$ServiceName' is not installed. Nothing to do." -ForegroundColor Yellow
         return
     }
-    $nssm = Resolve-NssmPath
     if ($existing.Status -eq "Running") {
         Write-Host "Stopping..." -ForegroundColor Yellow
-        & $nssm stop $ServiceName confirm | Out-Null
+        Stop-Service -Name $ServiceName -Force -ErrorAction Stop
         Start-Sleep -Seconds 2
     }
     Write-Host "Removing..." -ForegroundColor Yellow
-    & $nssm remove $ServiceName confirm | Out-Null
+    $deleteOutput = & sc.exe delete $ServiceName 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "sc.exe delete failed (exit $LASTEXITCODE): $deleteOutput"
+    }
     Write-Host "Removed: $ServiceName" -ForegroundColor Green
     Write-Host "Logs preserved at: $LogsDir" -ForegroundColor Cyan
 }

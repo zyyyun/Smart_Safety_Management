@@ -1,6 +1,11 @@
 package com.example.smart_safety_management.watch
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,13 +16,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,11 +39,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.BuildConfig
 import com.example.smart_safety_management.UserSession
+import com.example.smart_safety_management.watch.ble.JcWearBleBridge
+import com.example.smart_safety_management.watch.ble.JcWearConnectionState
+import com.example.smart_safety_management.watch.ble.JcWearDeviceRegistrar
+import com.example.smart_safety_management.watch.ble.JcWearDiscoveredDevice
+import com.example.smart_safety_management.watch.ble.WatchBleServiceController
+import com.example.smart_safety_management.watch.ble.WatchRuntimeSnapshot
+import com.example.smart_safety_management.watch.ble.WatchRuntimeStatus
+import com.example.smart_safety_management.watch.ble.WatchRuntimeStore
+import com.example.smart_safety_management.watch.ble.seedForRegisteredWatch
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
@@ -44,33 +67,35 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
-/**
- * Phase 7 / 07-03 BRIDGE-03 — SettingDeviceManagement 의 'J2208A 워치' 섹션.
- *
- * - status 3 상태 (D-04):
- *     unpaired (mac_address NULL)               → 회색 "미등록"
- *     paired AND last_comm_at < 5분             → 초록 "연결됨"
- *     paired AND last_comm_at >= 5분 또는 NULL  → 노랑 "끊김"
- * - MAC TextField + 정규식 검증 (MacAddressValidator) + Edge Function 'watch-pair' 호출
- * - 등록 성공 → Realtime devices 채널이 status badge 갱신
- * - unpair 버튼: paired 상태에서만 노출
- */
 enum class WatchStatus(val label: String, val color: Color) {
     UNPAIRED("미등록", Color.Gray),
-    CONNECTED("연결됨", Color(0xFF22C55E)),
-    DISCONNECTED("끊김", Color(0xFFFBBF24)),
+    CONNECTING("연결 중", Color(0xFF2563EB)),
+    CONNECTED("연결됨", Color(0xFF16A34A)),
+    DISCONNECTED("끊김", Color(0xFFF59E0B)),
 }
 
-internal fun computeStatus(device: DeviceRow?): WatchStatus {
+internal fun computeStatus(device: DeviceRow?, now: Instant = Instant.now()): WatchStatus {
     if (device == null || device.macAddress.isNullOrBlank()) return WatchStatus.UNPAIRED
-    val lastComm = device.lastCommAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
+    val lastComm = listOfNotNull(
+        parseWatchInstant(device.lastCommAt),
+        parseWatchInstant(device.updatedAt),
+    ).maxOrNull()
         ?: return WatchStatus.DISCONNECTED
-    val staleMin = Duration.between(lastComm, Instant.now()).toMinutes()
-    return if (staleMin < 5) WatchStatus.CONNECTED else WatchStatus.DISCONNECTED
+    val age = Duration.between(lastComm, now)
+    return if (age <= Duration.ofMinutes(5)) WatchStatus.CONNECTED else WatchStatus.DISCONNECTED
 }
 
-/** 페어링/언페어링 결과 모달 상태. null = 비표시. */
+private fun parseWatchInstant(value: String?): Instant? {
+    val raw = value?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    return runCatching { Instant.parse(raw) }.getOrNull()
+        ?: runCatching { OffsetDateTime.parse(raw).toInstant() }.getOrNull()
+        ?: runCatching { LocalDateTime.parse(raw).toInstant(ZoneOffset.UTC) }.getOrNull()
+}
+
 internal data class PairResultDialog(
     val title: String,
     val message: String,
@@ -79,191 +104,211 @@ internal data class PairResultDialog(
 
 @Composable
 fun PairWatchSection(supabase: SupabaseClient) {
-    var macInput by remember { mutableStateOf("") }
-    var isError by remember { mutableStateOf(false) }
-    var pairing by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val bleBridge = remember {
+        JcWearBleBridge(context.applicationContext, startTelemetryOnConnect = false)
+    }
+    val scanState by bleBridge.uiState.collectAsState()
+    val runtime by WatchRuntimeStore.state.collectAsState()
+    val registrar = remember { JcWearDeviceRegistrar() }
+    val unpairApi = remember { buildPairApi() }
+
+    var registering by remember { mutableStateOf(false) }
+    var unpairing by remember { mutableStateOf(false) }
     var resultDialog by remember { mutableStateOf<PairResultDialog?>(null) }
     var device by remember { mutableStateOf<DeviceRow?>(null) }
-    val scope = rememberCoroutineScope()
-    val api = remember { buildPairApi() }
+    var deviceLoadComplete by remember { mutableStateOf(false) }
 
-    // 초기 fetch + Realtime 구독 (devices 의 본 user_id row UPDATE)
-    // 2026-05-19 fix: 전체 try-catch 추가 — SupabaseClient by-lazy cold-start 또는
-    // PostgREST/Realtime 첫 호출 예외가 LaunchedEffect 밖으로 propagation 되면 Compose
-    // runtime → Activity crash → 사용자 "첫 진입 시 튕김" 증상. 예외 무시 + 로그만 남김
-    // (다음 composition 또는 사용자 액션에서 재시도 가능).
-    LaunchedEffect(Unit) {
-        try {
-            val userId = UserSession.userId ?: run {
-                android.util.Log.w("PairWatchSection", "UserSession.userId is null — skip fetch")
-                return@LaunchedEffect
-            }
-            android.util.Log.i("PairWatchSection", "Initial fetch start: user_id=$userId")
-            device = runCatching {
-                supabase.from("devices").select {
-                    filter {
-                        eq("user_id", userId)
-                        eq("device_type", "WATCH")
-                    }
-                    limit(1)
-                }.decodeSingleOrNull<DeviceRow>()
-            }.getOrElse { e ->
-                android.util.Log.w("PairWatchSection", "Initial devices fetch failed: ${e.message}", e)
-                null
-            }
-            android.util.Log.i(
-                "PairWatchSection",
-                "Initial fetch result: device=${device?.let { "id=${it.deviceId} mac=${it.macAddress} last_comm_at=${it.lastCommAt}" } ?: "null"}"
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        bleBridge.refreshEnvironment()
+        if (grants.values.all { it }) {
+            bleBridge.startScan()
+        } else {
+            resultDialog = PairResultDialog(
+                title = "권한 필요",
+                message = "워치를 찾으려면 블루투스 권한을 허용해야 합니다.",
+                isSuccess = false,
             )
-
-            val ch = supabase.channel("devices_user:$userId")
-            val flow = ch.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
-                table = "devices"
-                filter("user_id", FilterOperator.EQ, userId)
-            }
-            try {
-                ch.subscribe()
-            } catch (e: Exception) {
-                android.util.Log.w("PairWatchSection", "Realtime subscribe failed: ${e.message}", e)
-                return@LaunchedEffect
-            }
-            try {
-                flow.collectLatest { action ->
-                    runCatching { device = action.decodeRecord<DeviceRow>() }
-                        .onFailure { android.util.Log.w("PairWatchSection", "decodeRecord failed", it) }
-                }
-            } finally {
-                runCatching { ch.unsubscribe() }
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("PairWatchSection", "LaunchedEffect fatal: ${e.message}", e)
         }
     }
 
+    LaunchedEffect(Unit) {
+        bleBridge.refreshEnvironment()
+        val userId = UserSession.userId
+        if (userId.isNullOrBlank()) {
+            deviceLoadComplete = true
+            return@LaunchedEffect
+        }
+        device = runCatching {
+            supabase.from("devices").select {
+                filter {
+                    eq("user_id", userId)
+                    eq("device_type", "WATCH")
+                }
+                limit(1)
+            }.decodeSingleOrNull<DeviceRow>()
+        }.getOrNull()
+        val fetchedDevice = device
+        if (fetchedDevice?.macAddress?.isNotBlank() == true && fetchedDevice.lastCommAt.isNullOrBlank()) {
+            runCatching {
+                val resp = unpairApi.callWatchPair(
+                    url = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/notifications",
+                    apiKey = BuildConfig.SUPABASE_ANON_KEY,
+                    auth = "Bearer ${BuildConfig.SUPABASE_ANON_KEY}",
+                    body = WatchPairRequest(
+                        user_id = userId,
+                        mac_address = fetchedDevice.macAddress,
+                        op = "pair",
+                    ),
+                )
+                val body = resp.body()
+                if (resp.isSuccessful && body?.ok == true) {
+                    val repairedAt = body.last_comm_at ?: Instant.now().toString()
+                    device = fetchedDevice.copy(lastCommAt = repairedAt, updatedAt = repairedAt)
+                }
+            }
+        }
+        device?.let { WatchBleServiceController.configureAndStart(context, userId, it) }
+        deviceLoadComplete = true
+
+        val ch = supabase.channel("devices_user:$userId")
+        val flow = ch.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
+            table = "devices"
+            filter("user_id", FilterOperator.EQ, userId)
+        }
+        runCatching { ch.subscribe() }.onFailure { return@LaunchedEffect }
+        try {
+            flow.collectLatest { action ->
+                runCatching { action.decodeRecord<DeviceRow>() }
+                    .onSuccess {
+                        if (it.deviceType == "WATCH") {
+                            device = it
+                            WatchBleServiceController.configureAndStart(context, userId, it)
+                        }
+                    }
+            }
+        } finally {
+            runCatching { ch.unsubscribe() }
+        }
+    }
+
+    DisposableEffect(bleBridge) {
+        onDispose { bleBridge.close() }
+    }
+
     val status = computeStatus(device)
+    val runtimeSnapshot = WatchRuntimeSnapshot.from(device, null, runtime)
+    val displayedStatus = when {
+        status == WatchStatus.UNPAIRED -> WatchStatus.UNPAIRED
+        runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.CONNECTED ||
+            runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.READING ||
+            runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.UPLOADING -> WatchStatus.CONNECTED
+        runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.CONNECTING ||
+            runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.SCANNING ||
+            runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.RETRYING -> WatchStatus.CONNECTING
+        runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.FAILED ||
+            runtimeSnapshot.runtimeStatus == WatchRuntimeStatus.DISCONNECTED -> WatchStatus.DISCONNECTED
+        else -> status
+    }
+    val selectedDevice = scanState.discoveredDevices.firstOrNull {
+        it.address == scanState.selectedAddress
+    }
+    val showUnpairedScan = deviceLoadComplete && status == WatchStatus.UNPAIRED
 
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("J2208A 워치", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("J2208A 스마트워치", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Spacer(Modifier.width(12.dp))
-            StatusBadge(status)
+            StatusBadge(displayedStatus)
         }
         Spacer(Modifier.height(8.dp))
-        if (status == WatchStatus.UNPAIRED) {
-            OutlinedTextField(
-                value = macInput,
-                onValueChange = { macInput = it; isError = false },
-                label = { Text("MAC 주소 (예: 21:02:02:06:01:69)") },
-                isError = isError,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+
+        if (!deviceLoadComplete) {
+            WatchPairLoadingPanel()
+        } else if (showUnpairedScan) {
+            WatchScanPanel(
+                devices = scanState.discoveredDevices,
+                selectedAddress = scanState.selectedAddress,
+                connectionState = scanState.connectionState,
+                errorMessage = scanState.errorMessage,
+                scanActionLabel = scanState.scanActionLabel,
+                scanning = scanState.scanning,
+                bluetoothEnabled = scanState.bluetoothEnabled,
+                onScanAction = {
+                    when {
+                        !scanState.permissionGranted -> permissionLauncher.launch(watchBlePermissions())
+                        scanState.scanning -> bleBridge.stopScan()
+                        else -> bleBridge.startScan()
+                    }
+                },
+                onIdentify = { bleBridge.identify(it) },
+                onConnect = { bleBridge.connect(it) },
             )
+
+            Spacer(Modifier.height(10.dp))
             Button(
                 onClick = {
-                    val normalized = MacAddressValidator.normalize(macInput)
-                    if (!MacAddressValidator.isValid(normalized)) {
-                        isError = true
-                        resultDialog = PairResultDialog(
-                            title = "MAC 형식 오류",
-                            message = "MAC 주소 형식이 올바르지 않습니다.\n예: 21:02:02:06:01:69 (콜론 5개)",
-                            isSuccess = false,
-                        )
-                        return@Button
-                    }
                     val userId = UserSession.userId
-                    if (userId.isNullOrBlank()) {
+                    if (userId.isNullOrBlank() || selectedDevice == null) {
                         resultDialog = PairResultDialog(
-                            title = "로그인 필요",
-                            message = "사용자 세션이 만료되었습니다. 앱을 재시작해주세요.",
+                            title = "등록 불가",
+                            message = "로그인 상태와 선택된 워치를 확인해주세요.",
                             isSuccess = false,
                         )
                         return@Button
                     }
-                    pairing = true
+                    registering = true
                     scope.launch {
                         try {
-                            val resp = api.callWatchPair(
-                                url = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/notifications",
-                                apiKey = BuildConfig.SUPABASE_ANON_KEY,
-                                auth = "Bearer ${BuildConfig.SUPABASE_ANON_KEY}",
-                                body = WatchPairRequest(
-                                    user_id = userId,
-                                    mac_address = normalized,
-                                    op = "pair",
-                                ),
-                            )
-                            resultDialog = when {
-                                resp.isSuccessful && resp.body()?.ok == true -> {
-                                    // 2026-05-19 fix: 등록 성공 시 device state 즉시 local update.
-                                    // Realtime postgresChangeFlow<Update> 가 cold-start/RLS 로
-                                    // silent fail 하면 UI 가 UNPAIRED 그대로 → "등록 후 변화 없음"
-                                    // 증상. WatchPairResponse 의 device_id 를 신뢰 + 나머지는 알고
-                                    // 있는 값 (userId, MAC, "WATCH") 으로 채움. last_comm_at 은
-                                    // null 유지 → computeStatus 가 DISCONNECTED 반환 (BLE 아직
-                                    // 통신 전, 정상).
-                                    val newDeviceId = resp.body()?.device_id ?: 0
-                                    device = DeviceRow(
-                                        deviceId = newDeviceId,
-                                        deviceType = "WATCH",
-                                        macAddress = normalized,
-                                        userId = userId,
-                                        lastCommAt = null,
-                                    )
-                                    PairResultDialog(
-                                        title = "등록 완료",
-                                        message = "워치가 정상적으로 등록되었습니다.\nMAC: $normalized",
-                                        isSuccess = true,
-                                    )
-                                }
-                                resp.code() == 409 -> PairResultDialog(
-                                    title = "등록 실패",
-                                    message = "이미 다른 사용자에게 등록된 워치입니다.\n관리자에게 문의하세요.",
-                                    isSuccess = false,
-                                )
-                                resp.code() == 400 -> PairResultDialog(
-                                    title = "등록 실패",
-                                    message = "MAC 주소 형식이 올바르지 않습니다 (서버 검증 실패).",
-                                    isSuccess = false,
-                                )
-                                else -> PairResultDialog(
-                                    title = "등록 실패",
-                                    message = "서버 오류가 발생했습니다 (HTTP ${resp.code()}).\n잠시 후 다시 시도해주세요.",
-                                    isSuccess = false,
-                                )
+                            val registered = registrar.registerWatch(userId, selectedDevice)
+                            device = registered
+                            WatchRuntimeStore.mutate { current ->
+                                current.seedForRegisteredWatch(userId, registered)
                             }
+                            bleBridge.disconnect()
+                            WatchBleServiceController.configureAndStart(context, userId, registered)
+                            resultDialog = PairResultDialog(
+                                title = "등록 완료",
+                                message = "${selectedDevice.displayName} 워치를 이 계정에 연결했습니다.",
+                                isSuccess = true,
+                            )
                         } catch (e: Exception) {
                             resultDialog = PairResultDialog(
-                                title = "네트워크 오류",
-                                message = "서버와 통신할 수 없습니다.\n인터넷 연결을 확인해주세요.\n\n상세: ${e.message ?: e.javaClass.simpleName}",
+                                title = "등록 실패",
+                                message = e.message ?: e.javaClass.simpleName,
                                 isSuccess = false,
                             )
                         } finally {
-                            pairing = false
+                            registering = false
                         }
                     }
                 },
-                enabled = !pairing && macInput.isNotBlank(),
-                modifier = Modifier.padding(top = 8.dp),
+                enabled = scanState.canRegister && !registering,
             ) {
-                Text(if (pairing) "등록 중..." else "등록")
+                Text(if (registering) "등록 중..." else "선택한 워치 등록")
             }
         } else {
-            Text("MAC: ${device?.macAddress ?: "-"}", fontSize = 13.sp, color = Color.Gray)
-            Button(
-                onClick = {
+            RegisteredWatchPanel(
+                device = device,
+                runtimeSnapshot = runtimeSnapshot,
+                unpairing = unpairing,
+                onUnpair = {
                     val userId = UserSession.userId
                     if (userId.isNullOrBlank()) {
                         resultDialog = PairResultDialog(
                             title = "로그인 필요",
-                            message = "사용자 세션이 만료되었습니다. 앱을 재시작해주세요.",
+                            message = "사용자 세션을 확인할 수 없습니다.",
                             isSuccess = false,
                         )
-                        return@Button
+                        return@RegisteredWatchPanel
                     }
-                    pairing = true
+                    unpairing = true
                     scope.launch {
                         try {
-                            val resp = api.callWatchPair(
+                            val resp = unpairApi.callWatchPair(
                                 url = BuildConfig.SUPABASE_URL.trimEnd('/') + "/functions/v1/notifications",
                                 apiKey = BuildConfig.SUPABASE_ANON_KEY,
                                 auth = "Bearer ${BuildConfig.SUPABASE_ANON_KEY}",
@@ -272,50 +317,44 @@ fun PairWatchSection(supabase: SupabaseClient) {
                                     op = "unpair",
                                 ),
                             )
-                            resultDialog = if (resp.isSuccessful) {
-                                // 2026-05-19 fix: 해제 성공 시 device state 즉시 local clear.
-                                // 등록 path 와 동일하게 Realtime 의존성 제거. device=null 로
-                                // status → UNPAIRED → 입력 필드 + 등록 버튼 재표시.
+                            if (resp.isSuccessful) {
                                 device = null
-                                PairResultDialog(
+                                WatchBleServiceController.stopAndClear(context)
+                                bleBridge.disconnect()
+                                resultDialog = PairResultDialog(
                                     title = "해제 완료",
-                                    message = "워치 페어링이 해제되었습니다.",
+                                    message = "워치 연결 등록을 해제했습니다.",
                                     isSuccess = true,
                                 )
                             } else {
-                                PairResultDialog(
+                                resultDialog = PairResultDialog(
                                     title = "해제 실패",
-                                    message = "서버 오류 (HTTP ${resp.code()})",
+                                    message = "서버 오류가 발생했습니다. HTTP ${resp.code()}",
                                     isSuccess = false,
                                 )
                             }
                         } catch (e: Exception) {
                             resultDialog = PairResultDialog(
-                                title = "네트워크 오류",
-                                message = "서버와 통신할 수 없습니다.\n상세: ${e.message ?: e.javaClass.simpleName}",
+                                title = "해제 실패",
+                                message = e.message ?: e.javaClass.simpleName,
                                 isSuccess = false,
                             )
                         } finally {
-                            pairing = false
+                            unpairing = false
                         }
                     }
                 },
-                enabled = !pairing,
-                modifier = Modifier.padding(top = 8.dp),
-            ) {
-                Text(if (pairing) "처리 중..." else "해제")
-            }
+            )
         }
     }
 
-    // 결과 모달 (성공/실패 모두 표시)
     resultDialog?.let { dialog ->
         AlertDialog(
             onDismissRequest = { resultDialog = null },
             title = {
                 Text(
                     dialog.title,
-                    color = if (dialog.isSuccess) Color(0xFF22C55E) else Color(0xFFEF4444),
+                    color = if (dialog.isSuccess) Color(0xFF16A34A) else Color(0xFFDC2626),
                     fontWeight = FontWeight.Bold,
                 )
             },
@@ -330,11 +369,158 @@ fun PairWatchSection(supabase: SupabaseClient) {
 }
 
 @Composable
+private fun WatchScanPanel(
+    devices: List<JcWearDiscoveredDevice>,
+    selectedAddress: String?,
+    connectionState: JcWearConnectionState,
+    errorMessage: String?,
+    scanActionLabel: String,
+    scanning: Boolean,
+    bluetoothEnabled: Boolean,
+    onScanAction: () -> Unit,
+    onIdentify: (JcWearDiscoveredDevice) -> Unit,
+    onConnect: (JcWearDiscoveredDevice) -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Text(
+                "스마트폰 블루투스로 주변 J2208A 워치를 찾아 연결합니다.",
+                color = Color(0xFF4B5563),
+                fontSize = 13.sp,
+            )
+            Button(onClick = onScanAction) {
+                Text(scanActionLabel)
+            }
+            if (!bluetoothEnabled) {
+                Text("블루투스가 꺼져 있습니다.", color = Color(0xFFDC2626), fontSize = 13.sp)
+            }
+            errorMessage?.let {
+                Text(it, color = Color(0xFFDC2626), fontSize = 13.sp)
+            }
+            if (devices.isEmpty()) {
+                Text(
+                    if (scanning) "주변 워치를 찾는 중입니다." else "스캔을 시작하면 발견된 워치가 여기에 표시됩니다.",
+                    color = Color.Gray,
+                    fontSize = 13.sp,
+                )
+            } else {
+                devices.forEach { discovered ->
+                    DiscoveredWatchRow(
+                        device = discovered,
+                        selected = discovered.address == selectedAddress,
+                        connectionState = connectionState,
+                        onIdentify = { onIdentify(discovered) },
+                        onConnect = { onConnect(discovered) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiscoveredWatchRow(
+    device: JcWearDiscoveredDevice,
+    selected: Boolean,
+    connectionState: JcWearConnectionState,
+    onIdentify: () -> Unit,
+    onConnect: () -> Unit,
+) {
+    val borderColor = if (selected) Color(0xFF2563EB) else Color(0xFFE5E7EB)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, borderColor, RoundedCornerShape(10.dp))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(device.displayName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("${device.address} · ${device.rssiLabel}", color = Color.Gray, fontSize = 12.sp)
+        }
+        IconButton(onClick = onIdentify, enabled = connectionState != JcWearConnectionState.CONNECTING) {
+            Icon(
+                imageVector = Icons.Default.Notifications,
+                contentDescription = "${device.displayName} 식별 진동",
+                tint = Color(0xFF6D4C9F),
+            )
+        }
+        Spacer(Modifier.width(4.dp))
+        OutlinedButton(
+            onClick = onConnect,
+            enabled = connectionState != JcWearConnectionState.CONNECTING,
+        ) {
+            val label = when {
+                selected && isConnectedWatchState(connectionState) -> "연결됨"
+                selected && connectionState == JcWearConnectionState.CONNECTING -> "연결 중"
+                else -> "연결"
+            }
+            Text(label)
+        }
+    }
+}
+
+private fun isConnectedWatchState(connectionState: JcWearConnectionState): Boolean =
+    connectionState == JcWearConnectionState.CONNECTED ||
+        connectionState == JcWearConnectionState.READING
+
+@Composable
+private fun WatchPairLoadingPanel() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("등록 정보 확인 중", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("워치 연결 상태를 불러오고 있습니다.", color = Color.Gray, fontSize = 12.sp)
+        }
+    }
+}
+
+@Composable
+private fun RegisteredWatchPanel(
+    device: DeviceRow?,
+    runtimeSnapshot: WatchRuntimeSnapshot,
+    unpairing: Boolean,
+    onUnpair: () -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("등록된 워치", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text("식별값: ${device?.serialNumber ?: device?.macAddress ?: "-"}", color = Color(0xFF4B5563), fontSize = 13.sp)
+            Text("상태: ${runtimeSnapshot.statusLabel}", color = Color(0xFF4B5563), fontSize = 13.sp)
+            Text("마지막 통신: ${runtimeSnapshot.lastCommunicationLabel}", color = Color.Gray, fontSize = 12.sp)
+            OutlinedButton(onClick = onUnpair, enabled = !unpairing) {
+                Text(if (unpairing) "해제 중..." else "등록 해제")
+            }
+        }
+    }
+}
+
+@Composable
 private fun StatusBadge(status: WatchStatus) {
     Box(
         modifier = Modifier
             .background(status.color.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .padding(horizontal = 8.dp, vertical = 2.dp),
     ) {
         Text(
             status.label,
@@ -344,6 +530,13 @@ private fun StatusBadge(status: WatchStatus) {
         )
     }
 }
+
+private fun watchBlePermissions(): Array<String> =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+    } else {
+        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
 
 private fun buildPairApi(): NotificationsFunctionsApi =
     Retrofit.Builder()

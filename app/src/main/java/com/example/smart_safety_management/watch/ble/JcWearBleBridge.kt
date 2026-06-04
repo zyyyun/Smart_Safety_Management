@@ -1,0 +1,547 @@
+package com.example.smart_safety_management.watch.ble
+
+import android.Manifest
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
+import android.bluetooth.BluetoothStatusCodes
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
+import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import androidx.core.content.ContextCompat
+import com.jstyle.blesdk2208a.Util.BleSDK
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.util.UUID
+
+class JcWearBleBridge(
+    context: Context,
+    private val startTelemetryOnConnect: Boolean = true,
+) {
+    private val appContext = context.applicationContext
+    private val bluetoothManager =
+        appContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+    private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager?.adapter
+    private var gatt: BluetoothGatt? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var telemetryLoopActive = false
+    private var bModeInitStage = BModeInitStage.IDLE
+    private var gattOperationInFlight = false
+    private var gattOperationToken = 0
+    private var pendingIdentifyCommand = false
+    private var pendingIdentifyAddress: String? = null
+
+    private val _uiState = MutableStateFlow(
+        JcWearScanUiState(
+            permissionGranted = hasBluetoothPermission(),
+            bluetoothEnabled = bluetoothAdapter?.isEnabled == true,
+        ),
+    )
+    val uiState: StateFlow<JcWearScanUiState> = _uiState.asStateFlow()
+
+    private val _healthReadings = MutableSharedFlow<JcWearHealthReading>(extraBufferCapacity = 16)
+    val healthReadings: SharedFlow<JcWearHealthReading> = _healthReadings
+
+    fun refreshEnvironment() {
+        _uiState.value = _uiState.value.copy(
+            permissionGranted = hasBluetoothPermission(),
+            bluetoothEnabled = bluetoothAdapter?.isEnabled == true,
+        )
+    }
+
+    @SuppressLint("MissingPermission")
+    fun startScan() {
+        refreshEnvironment()
+        val adapter = bluetoothAdapter
+        val current = _uiState.value
+        if (!current.permissionGranted) {
+            setError("블루투스 권한이 필요합니다.")
+            return
+        }
+        if (adapter == null || !adapter.isEnabled) {
+            _uiState.value = current.copy(
+                bluetoothEnabled = false,
+                scanning = false,
+                connectionState = JcWearConnectionState.DISCONNECTED,
+                errorMessage = "블루투스를 켜주세요.",
+            )
+            return
+        }
+        val scanner = adapter.bluetoothLeScanner ?: run {
+            setError("BLE 스캐너를 사용할 수 없습니다.")
+            return
+        }
+        _uiState.value = current.copy(
+            scanning = true,
+            connectionState = JcWearConnectionState.SCANNING,
+            errorMessage = null,
+        )
+        runCatching {
+            scanner.startScan(
+                null,
+                ScanSettings.Builder()
+                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                    .build(),
+                scanCallback,
+            )
+        }.onFailure { e ->
+            Log.w(TAG, "startScan failed", e)
+            setError("스캔을 시작하지 못했습니다: ${e.message ?: e.javaClass.simpleName}")
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    fun stopScan() {
+        if (!hasBluetoothPermission()) {
+            _uiState.value = _uiState.value.copy(scanning = false)
+            return
+        }
+        runCatching { bluetoothAdapter?.bluetoothLeScanner?.stopScan(scanCallback) }
+        _uiState.value = _uiState.value.copy(
+            scanning = false,
+            connectionState = if (_uiState.value.connectionState == JcWearConnectionState.SCANNING) {
+                JcWearConnectionState.DISCONNECTED
+            } else {
+                _uiState.value.connectionState
+            },
+        )
+    }
+
+    @SuppressLint("MissingPermission")
+    fun connect(device: JcWearDiscoveredDevice) {
+        if (!hasBluetoothPermission()) {
+            setError("블루투스 연결 권한이 필요합니다.")
+            return
+        }
+        stopScan()
+        disconnect()
+        val remoteDevice = runCatching {
+            bluetoothAdapter?.getRemoteDevice(device.address)
+        }.getOrNull()
+        if (remoteDevice == null) {
+            setError("선택한 워치를 찾을 수 없습니다.")
+            return
+        }
+        _uiState.value = _uiState.value.copy(
+            selectedAddress = device.address,
+            connectionState = JcWearConnectionState.CONNECTING,
+            errorMessage = null,
+        )
+        gatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            remoteDevice.connectGatt(appContext, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+        } else {
+            @Suppress("DEPRECATION")
+            remoteDevice.connectGatt(appContext, false, gattCallback)
+        }
+    }
+
+    fun identify(device: JcWearDiscoveredDevice) {
+        val current = _uiState.value
+        val isConnectedTarget = (
+            current.connectionState == JcWearConnectionState.CONNECTED ||
+                current.connectionState == JcWearConnectionState.READING
+            ) &&
+            current.selectedAddress.equals(device.address, ignoreCase = true)
+        if (isConnectedTarget && gatt != null) {
+            vibrateForIdentification()
+            return
+        }
+        pendingIdentifyAddress = device.address
+        connect(device)
+    }
+
+    @SuppressLint("MissingPermission")
+    fun disconnect() {
+        telemetryLoopActive = false
+        bModeInitStage = BModeInitStage.IDLE
+        gattOperationInFlight = false
+        gattOperationToken++
+        pendingIdentifyCommand = false
+        if (hasBluetoothPermission()) {
+            val activeGatt = gatt
+            runCatching { activeGatt?.disconnect() }
+            runCatching { activeGatt?.close() }
+        }
+        handler.removeCallbacksAndMessages(null)
+        gatt = null
+        _uiState.value = _uiState.value.copy(
+            connectionState = JcWearConnectionState.DISCONNECTED,
+            selectedAddress = null,
+        )
+    }
+
+    @SuppressLint("MissingPermission")
+    fun close() {
+        stopScan()
+        disconnect()
+    }
+
+    private fun vibrateForIdentification() {
+        val activeGatt = gatt ?: return
+        if (telemetryLoopActive) {
+            pendingIdentifyCommand = true
+            if (bModeInitStage == BModeInitStage.READING) {
+                processPendingIdentify(activeGatt)
+            }
+            return
+        }
+        if (gattOperationInFlight) {
+            pendingIdentifyCommand = true
+            return
+        }
+        if (!writeSdkCommand(activeGatt, BleSDK.MotorVibrationWithTimes(IDENTIFY_VIBRATION_TIMES))) {
+            pendingIdentifyCommand = true
+        }
+    }
+
+    private fun startBModeReadLoop(gatt: BluetoothGatt) {
+        if (telemetryLoopActive) return
+        telemetryLoopActive = true
+        bModeInitStage = BModeInitStage.RESET_SENT
+        _uiState.value = _uiState.value.copy(connectionState = JcWearConnectionState.READING)
+        if (!writeBModeCommand(gatt, JcWearBModeProtocol.resetCommand)) {
+            failBModeRead("B-mode reset command could not be started.")
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun scheduleBModeRead(gatt: BluetoothGatt) {
+        if (!telemetryLoopActive || gatt !== this.gatt) return
+        if (processPendingIdentify(gatt)) return
+        if (gattOperationInFlight) return
+        val characteristic = dataCharacteristic(gatt) ?: run {
+            failBModeRead("B-mode data characteristic not found.")
+            return
+        }
+        val accepted = gatt.readCharacteristic(characteristic)
+        if (accepted) {
+            markGattOperationInFlight(gatt)
+        } else {
+            failBModeRead("B-mode data read could not be started.")
+        }
+    }
+
+    private val scanCallback = object : ScanCallback() {
+        override fun onScanResult(callbackType: Int, result: ScanResult) {
+            val device = result.toJcWearDevice() ?: return
+            val current = _uiState.value
+            val merged = (current.discoveredDevices
+                .filterNot { it.address == device.address } + device)
+                .sortedByDescending { it.rssi ?: Int.MIN_VALUE }
+            _uiState.value = current.copy(discoveredDevices = merged, errorMessage = null)
+        }
+
+        override fun onScanFailed(errorCode: Int) {
+            setError("스캔 실패: $errorCode")
+        }
+    }
+
+    private val gattCallback = object : BluetoothGattCallback() {
+        @SuppressLint("MissingPermission")
+        override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
+            if (gatt !== this@JcWearBleBridge.gatt) return
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                telemetryLoopActive = false
+                bModeInitStage = BModeInitStage.IDLE
+                gattOperationInFlight = false
+                handler.removeCallbacksAndMessages(null)
+                runCatching { gatt.close() }
+                _uiState.value = _uiState.value.copy(
+                    connectionState = JcWearConnectionState.FAILED,
+                    errorMessage = "워치 연결에 실패했습니다. 다시 시도해주세요.",
+                )
+                return
+            }
+            when (newState) {
+                BluetoothProfile.STATE_CONNECTED -> runCatching { gatt.discoverServices() }
+                BluetoothProfile.STATE_DISCONNECTED -> {
+                    telemetryLoopActive = false
+                    bModeInitStage = BModeInitStage.IDLE
+                    gattOperationInFlight = false
+                    handler.removeCallbacksAndMessages(null)
+                    runCatching { gatt.close() }
+                    _uiState.value = _uiState.value.copy(
+                        connectionState = JcWearConnectionState.DISCONNECTED,
+                    )
+                }
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
+            if (gatt !== this@JcWearBleBridge.gatt) return
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                _uiState.value = _uiState.value.copy(
+                    connectionState = JcWearConnectionState.CONNECTED,
+                    errorMessage = null,
+                )
+                if (startTelemetryOnConnect) {
+                    startBModeReadLoop(gatt)
+                }
+                if (pendingIdentifyAddress.equals(_uiState.value.selectedAddress, ignoreCase = true)) {
+                    pendingIdentifyAddress = null
+                    handler.postDelayed({ vibrateForIdentification() }, IDENTIFY_VIBRATION_DELAY_MS)
+                }
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    connectionState = JcWearConnectionState.FAILED,
+                    errorMessage = "워치 서비스를 확인하지 못했습니다.",
+                )
+            }
+        }
+
+        @SuppressLint("MissingPermission")
+        override fun onCharacteristicWrite(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            status: Int,
+        ) {
+            if (gatt !== this@JcWearBleBridge.gatt) return
+            if (!completeGattOperationIfCurrent()) return
+            handleBModeWrite(gatt, characteristic, status)
+        }
+
+        @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            status: Int,
+        ) {
+            if (gatt !== this@JcWearBleBridge.gatt) return
+            if (!completeGattOperationIfCurrent()) return
+            handleBModeRead(gatt, characteristic.value, status)
+        }
+
+        override fun onCharacteristicRead(
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
+            value: ByteArray,
+            status: Int,
+        ) {
+            if (gatt !== this@JcWearBleBridge.gatt) return
+            if (!completeGattOperationIfCurrent()) return
+            handleBModeRead(gatt, value, status)
+        }
+    }
+
+    private fun handleBModeWrite(
+        gatt: BluetoothGatt,
+        characteristic: BluetoothGattCharacteristic,
+        status: Int,
+    ) {
+        if (characteristic.uuid != JcWearBModeProtocol.dataUuid) {
+            if (processPendingIdentify(gatt)) return
+            if (telemetryLoopActive && bModeInitStage == BModeInitStage.READING) {
+                handler.postDelayed({ scheduleBModeRead(gatt) }, B_MODE_READ_INTERVAL_MS)
+            }
+            return
+        }
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            failBModeRead("B-mode command write failed: $status")
+            return
+        }
+        when (bModeInitStage) {
+            BModeInitStage.RESET_SENT -> {
+                handler.postDelayed({
+                    if (!telemetryLoopActive || gatt !== this.gatt) return@postDelayed
+                    bModeInitStage = BModeInitStage.PPG_INIT_SENT
+                    if (!writeBModeCommand(gatt, JcWearBModeProtocol.ppgInitCommand)) {
+                        failBModeRead("B-mode PPG init command could not be started.")
+                    }
+                }, B_MODE_PPG_INIT_DELAY_MS)
+            }
+            BModeInitStage.PPG_INIT_SENT -> {
+                handler.postDelayed({
+                    if (!telemetryLoopActive || gatt !== this.gatt) return@postDelayed
+                    bModeInitStage = BModeInitStage.REALTIME_START_SENT
+                    if (!writeBModeCommand(gatt, JcWearBModeProtocol.realtimeStartCommand)) {
+                        failBModeRead("B-mode realtime command could not be started.")
+                    }
+                }, B_MODE_REALTIME_START_DELAY_MS)
+            }
+            BModeInitStage.REALTIME_START_SENT -> {
+                bModeInitStage = BModeInitStage.READING
+                if (processPendingIdentify(gatt)) return
+                scheduleBModeRead(gatt)
+            }
+            BModeInitStage.IDLE,
+            BModeInitStage.READING -> Unit
+        }
+    }
+
+    private fun handleBModeRead(gatt: BluetoothGatt, value: ByteArray, status: Int) {
+        if (status != BluetoothGatt.GATT_SUCCESS) {
+            failBModeRead("B-mode data read failed: $status")
+            return
+        }
+        JcWearBModeProtocol.parsePpg(value)?.let { ppg ->
+            _healthReadings.tryEmit(JcWearHealthReading(ppgValue = ppg))
+        }
+        _uiState.value = _uiState.value.copy(
+            connectionState = JcWearConnectionState.READING,
+            errorMessage = null,
+        )
+        if (processPendingIdentify(gatt)) return
+        handler.postDelayed({ scheduleBModeRead(gatt) }, B_MODE_READ_INTERVAL_MS)
+    }
+
+    private fun processPendingIdentify(gatt: BluetoothGatt): Boolean {
+        if (!pendingIdentifyCommand || gattOperationInFlight || gatt !== this.gatt) return false
+        pendingIdentifyCommand = false
+        if (!writeSdkCommand(gatt, BleSDK.MotorVibrationWithTimes(IDENTIFY_VIBRATION_TIMES))) {
+            pendingIdentifyCommand = true
+            return false
+        }
+        return true
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun writeBModeCommand(gatt: BluetoothGatt, command: ByteArray): Boolean {
+        val characteristic = dataCharacteristic(gatt) ?: return false
+        return writeCommand(gatt, characteristic, command)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun writeSdkCommand(gatt: BluetoothGatt, command: ByteArray): Boolean {
+        val characteristic = sdkCommandCharacteristic(gatt) ?: return false
+        return writeCommand(gatt, characteristic, command)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun writeCommand(
+        gatt: BluetoothGatt,
+        characteristic: BluetoothGattCharacteristic,
+        command: ByteArray,
+    ): Boolean {
+        if (gattOperationInFlight) return false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val accepted = gatt.writeCharacteristic(
+                characteristic,
+                command,
+                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT,
+            ) == BluetoothStatusCodes.SUCCESS
+            if (accepted) markGattOperationInFlight(gatt)
+            return accepted
+        } else {
+            @Suppress("DEPRECATION")
+            characteristic.value = command
+            characteristic.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+            @Suppress("DEPRECATION")
+            val accepted = gatt.writeCharacteristic(characteristic)
+            if (accepted) markGattOperationInFlight(gatt)
+            return accepted
+        }
+    }
+
+    private fun markGattOperationInFlight(gatt: BluetoothGatt) {
+        gattOperationInFlight = true
+        val token = ++gattOperationToken
+        handler.postDelayed({
+            if (token == gattOperationToken && gatt === this.gatt && gattOperationInFlight) {
+                gattOperationInFlight = false
+                failBModeRead("B-mode GATT operation timed out.")
+            }
+        }, GATT_OPERATION_TIMEOUT_MS)
+    }
+
+    private fun clearGattOperationInFlight() {
+        gattOperationInFlight = false
+        gattOperationToken++
+    }
+
+    private fun completeGattOperationIfCurrent(): Boolean {
+        if (!gattOperationInFlight) return false
+        clearGattOperationInFlight()
+        return true
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun ScanResult.toJcWearDevice(): JcWearDiscoveredDevice? {
+        val name = scanRecord?.deviceName ?: runCatching { device.name }.getOrNull()
+        if (!isLikelyJcWear(name)) return null
+        return JcWearDiscoveredDevice(
+            address = device.address,
+            name = name,
+            rssi = rssi,
+        )
+    }
+
+    private fun dataCharacteristic(gatt: BluetoothGatt): BluetoothGattCharacteristic? =
+        gatt.getService(JcWearBModeProtocol.serviceUuid)?.getCharacteristic(JcWearBModeProtocol.dataUuid)
+
+    private fun sdkCommandCharacteristic(gatt: BluetoothGatt): BluetoothGattCharacteristic? =
+        gatt.getService(JcWearBModeProtocol.serviceUuid)?.getCharacteristic(SDK_COMMAND_CHARACTERISTIC_UUID)
+
+    private fun hasBluetoothPermission(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(appContext, Manifest.permission.BLUETOOTH_SCAN) ==
+                PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(appContext, Manifest.permission.BLUETOOTH_CONNECT) ==
+                PackageManager.PERMISSION_GRANTED
+        } else {
+            ContextCompat.checkSelfPermission(appContext, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+        }
+
+    private fun setError(message: String) {
+        _uiState.value = _uiState.value.copy(
+            scanning = false,
+            connectionState = JcWearConnectionState.FAILED,
+            errorMessage = message,
+        )
+    }
+
+    private fun failBModeRead(message: String) {
+        telemetryLoopActive = false
+        bModeInitStage = BModeInitStage.IDLE
+        gattOperationInFlight = false
+        gattOperationToken++
+        _uiState.value = _uiState.value.copy(
+            connectionState = JcWearConnectionState.FAILED,
+            errorMessage = message,
+        )
+    }
+
+    companion object {
+        private const val TAG = "JcWearBleBridge"
+        private const val B_MODE_PPG_INIT_DELAY_MS = 3_000L
+        private const val B_MODE_REALTIME_START_DELAY_MS = 2_000L
+        private const val B_MODE_READ_INTERVAL_MS = 100L
+        private const val GATT_OPERATION_TIMEOUT_MS = 3_000L
+        private const val IDENTIFY_VIBRATION_TIMES = 2
+        private const val IDENTIFY_VIBRATION_DELAY_MS = 800L
+        private val SDK_COMMAND_CHARACTERISTIC_UUID: UUID =
+            UUID.fromString("0000fff6-0000-1000-8000-00805f9b34fb")
+
+        fun isLikelyJcWear(name: String?): Boolean {
+            val normalized = name?.trim()?.lowercase().orEmpty()
+            return normalized.contains("2208") ||
+                normalized.contains("jstyle") ||
+                normalized.contains("j-style") ||
+                normalized.contains("jcwear") ||
+                normalized.contains("bracelet")
+        }
+    }
+
+    private enum class BModeInitStage {
+        IDLE,
+        RESET_SENT,
+        PPG_INIT_SENT,
+        REALTIME_START_SENT,
+        READING,
+    }
+}

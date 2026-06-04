@@ -37,7 +37,7 @@ class DailyListActivity : ComponentActivity() {
                                 val y = intent.getIntExtra("year", -1)
                                 val m = intent.getIntExtra("month", -1)
                                 val d = intent.getIntExtra("day", -1)
-                                if (y != -1) "$y-$m-$d" else null
+                                if (y != -1 && m != -1 && d != -1) "%04d-%02d-%02d".format(y, m, d) else null
                             }),
                             defaultLocation = if (isEditMode) detailLocation else (intent.getStringExtra("location") ?: ""),
                             defaultRiskFactor = if (isEditMode) detailRiskFactor else (intent.getStringExtra("riskFactor") ?: ""),

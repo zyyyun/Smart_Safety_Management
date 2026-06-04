@@ -40,6 +40,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.smart_safety_management.ui.components.SettingScaffold
+import com.example.smart_safety_management.ui.components.settingScaffoldConfig
 import com.example.smart_safety_management.ui.theme.LocalSafeColors
 import com.kakao.vectormap.KakaoMap
 import com.kakao.vectormap.LatLng

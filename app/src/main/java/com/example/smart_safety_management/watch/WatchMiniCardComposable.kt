@@ -31,6 +31,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.smart_safety_management.watch.ble.WatchRuntimeSnapshot
+import com.example.smart_safety_management.watch.ble.WatchRuntimeStore
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
@@ -58,18 +60,21 @@ fun WatchMiniCardComposable(
     onCardTap: () -> Unit,
 ) {
     var snapshot by remember(deviceId) { mutableStateOf<DeviceWatchSnapshot?>(null) }
+    var device by remember(deviceId) { mutableStateOf<DeviceRow?>(null) }
     var lastWearState by remember(deviceId) { mutableStateOf<String?>(null) }
-    var lastActiveAlert by remember(deviceId) { mutableStateOf<SafetyAlertRow?>(null) }
+    var allAlerts by remember(deviceId) { mutableStateOf<List<SafetyAlertRow>>(emptyList()) }
     val realtimeStatus by supabase.realtime.status.collectAsState()
+    val runtime by WatchRuntimeStore.state.collectAsState()
     val repo = remember { WatchRealtimeRepository(supabase) }
 
     LaunchedEffect(deviceId, realtimeStatus) {
         if (realtimeStatus == Realtime.Status.CONNECTED) {
+            launch { repo.deviceFlow(deviceId).collectLatest { device = it } }
             launch { repo.deviceWatchFlow(deviceId).collectLatest { snapshot = it } }
             launch { repo.lastWearStateFlow(deviceId).collectLatest { lastWearState = it.toState } }
             launch {
                 repo.safetyAlertsFlow(deviceId).collectLatest { list ->
-                    lastActiveAlert = list.firstOrNull { it.resolvedAt == null }
+                    allAlerts = list
                 }
             }
         } else {
@@ -78,15 +83,19 @@ fun WatchMiniCardComposable(
             // try-catch 추가 — network/schema 변경 시 main thread crash 방지.
             while (true) {
                 try {
+                    device = supabase.from("devices").select {
+                        filter { eq("device_id", deviceId) }
+                        limit(1)
+                    }.decodeSingleOrNull()
                     snapshot = supabase.from("device_watches").select {
                         filter { eq("device_id", deviceId) }
                         limit(1)
                     }.decodeSingleOrNull()
-                    lastActiveAlert = supabase.from("safety_alerts").select {
+                    allAlerts = supabase.from("safety_alerts").select {
                         filter { eq("device_id", deviceId) }
                         order("raised_at", Order.DESCENDING)
                         limit(20)
-                    }.decodeList<SafetyAlertRow>().firstOrNull { it.resolvedAt == null }
+                    }.decodeList()
                 } catch (_: Exception) {
                     // silent — polling 은 best-effort. Realtime 가 곧 CONNECTED 되면 자동 복구.
                 }
@@ -95,9 +104,23 @@ fun WatchMiniCardComposable(
         }
     }
 
-    val hrLevel = WatchHealthFormatter.classifyHr(snapshot?.heartRate, lastWearState)
-    val (statusText, statusColor) = WatchHealthFormatter.overallStatus(
-        snapshot, lastWearState, lastActiveAlert,
+    val lastActiveAlert = WatchActiveAlertSelector.select(allAlerts, lastWearState)
+    val runtimeSnapshot = WatchRuntimeSnapshot.from(device, snapshot, runtime)
+    val miniPrimaryMetric =
+        if (runtimeSnapshot.heartRate == null && runtimeSnapshot.ppgDisplay != "--") {
+            "PPG ${runtimeSnapshot.ppgDisplay}"
+        } else {
+            runtimeSnapshot.hrDisplay
+        }
+    val runtimeStatusSnapshot = DeviceWatchSnapshot(
+        deviceId = snapshot?.deviceId ?: deviceId,
+        heartRate = runtimeSnapshot.heartRate,
+        bodyTemp = runtimeSnapshot.bodyTemp,
+        batteryLevel = runtimeSnapshot.batteryLevel,
+        updatedAt = snapshot?.updatedAt,
+    )
+    val (_, statusColor) = WatchHealthFormatter.overallStatus(
+        runtimeStatusSnapshot, lastWearState, lastActiveAlert,
     )
 
     Card(
@@ -124,7 +147,7 @@ fun WatchMiniCardComposable(
             Column(verticalArrangement = Arrangement.SpaceBetween) {
                 // HR 큰 숫자
                 Text(
-                    WatchHealthFormatter.hrDisplay(snapshot?.heartRate, lastWearState),
+                    miniPrimaryMetric,
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
@@ -132,7 +155,7 @@ fun WatchMiniCardComposable(
                 Spacer(Modifier.height(2.dp))
                 // 상태 텍스트 (정상 운용 중 / 주의 — / 위험 —)
                 Text(
-                    statusText,
+                    runtimeSnapshot.statusLabel,
                     color = Color.White,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,

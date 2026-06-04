@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TBM 작업자 화면 개선안</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f4f7f5;
+      color: #172018;
+    }
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 18px 48px;
+    }
+    h1 { margin: 0 0 8px; font-size: 26px; }
+    .subtitle { margin: 0 0 22px; color: #5e6b60; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 18px;
+    }
+    .option {
+      background: white;
+      border: 1px solid #dfe7df;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(25, 48, 30, 0.08);
+      overflow: hidden;
+    }
+    .option header {
+      padding: 14px 16px;
+      border-bottom: 1px solid #e6ece6;
+    }
+    .option h2 { margin: 0 0 4px; font-size: 18px; }
+    .option p { margin: 0; color: #647166; font-size: 13px; line-height: 1.45; }
+    .phone {
+      width: 300px;
+      height: 620px;
+      margin: 18px auto;
+      border: 8px solid #111;
+      border-radius: 28px;
+      background: #f9fbf8;
+      overflow: hidden;
+      position: relative;
+    }
+    .status {
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      font-size: 11px;
+      color: #202620;
+      background: #fbfcfa;
+    }
+    .screen {
+      height: 548px;
+      overflow: hidden;
+      padding: 16px 14px 80px;
+      box-sizing: border-box;
+    }
+    .bottom {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 10px 14px 14px;
+      background: rgba(249, 251, 248, 0.96);
+      border-top: 1px solid #dfe7df;
+    }
+    .button {
+      height: 46px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f8a45;
+      color: white;
+      font-weight: 800;
+      font-size: 15px;
+    }
+    .title { font-size: 22px; font-weight: 850; margin-bottom: 12px; }
+    .chiprow { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+    .chip {
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: #e7efe8;
+      color: #245436;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .card {
+      background: #e9e3ed;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd5e2;
+    }
+    .card.active { border: 2px solid #f09a00; }
+    .card h3 { margin: 0 0 4px; font-size: 16px; }
+    .meta { font-size: 13px; color: #667067; line-height: 1.45; }
+    .section-title { font-size: 17px; font-weight: 800; margin: 14px 0 8px; }
+    .ops { font-size: 13px; color: #28613c; font-weight: 800; margin: 9px 0 4px; }
+    ul { margin: 0 0 6px; padding-left: 16px; font-size: 14px; line-height: 1.35; }
+    .check { display: flex; gap: 9px; align-items: flex-start; font-size: 15px; margin: 11px 0; }
+    .box { width: 22px; height: 22px; border-radius: 5px; background: #6d57a5; color: white; display:flex; align-items:center; justify-content:center; font-weight: 800; flex: 0 0 auto; }
+    .signature {
+      height: 72px;
+      border-radius: 10px;
+      border: 1px dashed #aab6aa;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #899289;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .small-card { background:#eef3ee; border-radius:10px; padding:10px; font-size:13px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>TBM 작업자 화면 개선안</h1>
+  <p class="subtitle">핵심 요구: 스크롤 가능, 제출 버튼 노출, 다중 OPS 표시, 폰트 약간 확대</p>
+  <div class="grid">
+    <section class="option">
+      <header>
+        <h2>A. 단일 스크롤 + 하단 고정 제출</h2>
+        <p>추천. 작업자는 위에서 아래로 읽고, 서명 후 제출 버튼은 항상 하단에 보입니다.</p>
+      </header>
+      <div class="phone">
+        <div class="status"><span>3:20</span><span>◦ ▴ ▰</span></div>
+        <div class="screen">
+          <div class="title">TBM 작업자 가이드</div>
+          <div class="chiprow">
+            <div class="chip">진행중</div><div class="chip">참여 전</div><div class="chip">06:30 종료</div>
+          </div>
+          <div class="card active">
+            <h3>○ ○ ○</h3>
+            <div class="meta">지게차 + 고소작업 · 리더 testuser1</div>
+          </div>
+          <div class="section-title">위험요인</div>
+          <div class="ops">지게차</div>
+          <ul><li>보행자와 충돌</li><li>전도</li><li>협착</li></ul>
+          <div class="ops">고소작업</div>
+          <ul><li>추락</li><li>낙하물</li></ul>
+          <div class="section-title">자가 항목</div>
+          <div class="ops">지게차</div>
+          <div class="check"><div class="box">✓</div><div>운전자격 확인</div></div>
+          <div class="check"><div class="box">✓</div><div>후방경광등 동작 확인</div></div>
+          <div class="ops">고소작업</div>
+          <div class="check"><div class="box">✓</div><div>안전대 체결 확인</div></div>
+          <div class="section-title">서명</div>
+          <div class="signature">서명 영역</div>
+        </div>
+        <div class="bottom"><div class="button">참여 제출</div></div>
+      </div>
+    </section>
+
+    <section class="option">
+      <header>
+        <h2>B. 탭형 OPS 화면</h2>
+        <p>OPS가 많을 때 깔끔하지만, 작업자가 탭을 놓치면 일부 위험요인을 읽지 않을 수 있습니다.</p>
+      </header>
+      <div class="phone">
+        <div class="status"><span>3:20</span><span>◦ ▴ ▰</span></div>
+        <div class="screen">
+          <div class="title">TBM 작업자 가이드</div>
+          <div class="chiprow"><div class="chip">전체</div><div class="chip">지게차</div><div class="chip">고소작업</div></div>
+          <div class="card active"><h3>○ ○ ○</h3><div class="meta">다중 OPS 세션</div></div>
+          <div class="section-title">지게차</div>
+          <div class="two-col">
+            <div class="small-card"><b>위험요인</b><br>충돌<br>전도<br>협착</div>
+            <div class="small-card"><b>조치</b><br>유도자 배치<br>속도 제한<br>동선 분리</div>
+          </div>
+          <div class="section-title">체크</div>
+          <div class="check"><div class="box">✓</div><div>운전자격 확인</div></div>
+          <div class="check"><div class="box">✓</div><div>지게차 작업계획서 비치</div></div>
+          <div class="signature">서명 영역</div>
+        </div>
+        <div class="bottom"><div class="button">참여 제출</div></div>
+      </div>
+    </section>
+
+    <section class="option">
+      <header>
+        <h2>C. 요약 먼저 + 상세 접기</h2>
+        <p>짧고 깔끔하지만, 안전 항목을 펼치지 않고 지나갈 위험이 있어 현장 확인 화면에는 덜 적합합니다.</p>
+      </header>
+      <div class="phone">
+        <div class="status"><span>3:20</span><span>◦ ▴ ▰</span></div>
+        <div class="screen">
+          <div class="title">TBM 작업자 가이드</div>
+          <div class="card active">
+            <h3>○ ○ ○</h3>
+            <div class="meta">2개 OPS · 위험요인 12개 · 체크 8개</div>
+          </div>
+          <div class="card"><h3>위험요인 요약</h3><div class="meta">지게차 10개, 고소작업 2개</div></div>
+          <div class="card"><h3>자가 항목</h3><div class="meta">필수 확인 8개</div></div>
+          <div class="section-title">서명</div>
+          <div class="signature">서명 영역</div>
+        </div>
+        <div class="bottom"><div class="button">참여 제출</div></div>
+      </div>
+    </section>
+  </div>
+</main>
+</body>
+</html>

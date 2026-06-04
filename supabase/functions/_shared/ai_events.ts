@@ -46,11 +46,15 @@ export async function createAiEvent(
   const { data: camera, error: camErr } = await admin
     .from("cameras")
     .select(
-      "camera_id, device_name, install_area, installation_address, live_url, group_id",
+      "camera_id, device_name, install_area, installation_address, live_url, live_url_detail, group_id",
     )
     .eq("camera_id", camera_id)
     .single();
   if (camErr || !camera) return err("Camera not found", 404);
+  const eventLiveUrl =
+    (typeof camera.live_url_detail === "string" && camera.live_url_detail.trim()) ||
+    (typeof camera.live_url === "string" && camera.live_url.trim()) ||
+    null;
 
   // 2. Event type get-or-create
   let eventTypeId: number;
@@ -86,16 +90,50 @@ export async function createAiEvent(
       .select("event_id")
       .eq("camera_id", camera_id)
       .eq("type_id", eventTypeId)
+      .in("status", ["PENDING", "REQUESTED"])
       .gte("detected_at", sinceIso)
       .limit(1);
     // dup 조회 실패는 INSERT 흐름 막지 않음 — 보수적으로 진행.
     if (!dupErr && recent && recent.length > 0) {
+      let duplicateCaptureId: number | null = null;
+      if (captureImageUrl) {
+        const { data: duplicateCapture, error: duplicateCapErr } = await admin
+          .from("camera_captures")
+          .insert({
+            camera_id,
+            image_url: captureImageUrl,
+            event_type: event_name,
+          })
+          .select("capture_id")
+          .single();
+
+        if (!duplicateCapErr && duplicateCapture) {
+          duplicateCaptureId = duplicateCapture.capture_id as number;
+        }
+      }
+
+      const duplicateUpdate: Record<string, unknown> = {
+        live_url: eventLiveUrl,
+        accuracy,
+        risk_level,
+        detected_at: new Date().toISOString(),
+      };
+      if (duplicateCaptureId !== null) {
+        duplicateUpdate.capture_id = duplicateCaptureId;
+      }
+      await admin
+        .from("detection_events")
+        .update(duplicateUpdate)
+        .eq("event_id", recent[0].event_id);
+
       return ok({
         ok: true,
         skipped: true,
         reason: "dup_window",
         dup_window_min: dupWindowMin,
         existing_event_id: recent[0].event_id,
+        capture_id: duplicateCaptureId,
+        capture_image_url: captureImageUrl,
       }, 200);
     }
   }
@@ -120,7 +158,7 @@ export async function createAiEvent(
       device_name: camera.device_name,
       install_area: camera.install_area,
       installation_address: camera.installation_address,
-      live_url: camera.live_url,
+      live_url: eventLiveUrl,
       accuracy,
       risk_level,
       type_id: eventTypeId,

@@ -62,6 +62,13 @@ class SettingProfileActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_my_profile)
 
+        // Phase 11 / 11-02 Sub-task 3.2 — common_toolbar wiring (UX-03).
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.let { tb ->
+            setSupportActionBar(tb)
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            tb.setNavigationOnClickListener { finish() }
+        }
+
         loadUserData()
 
         findViewById<ImageButton>(R.id.backButton).setOnClickListener {

@@ -39,6 +39,13 @@ class SettingCreateWorkplaceActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_create_workplace)
 
+        // Phase 11 / 11-02 Sub-task 3.2 — common_toolbar wiring (UX-03).
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.let { tb ->
+            setSupportActionBar(tb)
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            tb.setNavigationOnClickListener { finish() }
+        }
+
         val backButton = findViewById<ImageButton>(R.id.backButton)
         etWorkplaceName = findViewById(R.id.et_workplace_name)
         btnCreate = findViewById(R.id.btn_create)

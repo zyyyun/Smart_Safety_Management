@@ -57,8 +57,12 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         if (data["type"] == "tbm_alert") {
             showTbmAlertNotification(
                 title = remoteMessage.notification?.title ?: "TBM 알림",
-                body = remoteMessage.notification?.body ?: data["action_in_app"] ?: "TBM 세션 알림",
+                body = remoteMessage.notification?.body
+                    ?: data["work_scope"]?.let { "$it TBM 알림" }
+                    ?: data["action_in_app"]
+                    ?: "TBM 알림",
                 sessionId = data["session_id"]?.toLongOrNull() ?: -1L,
+                workScope = data["work_scope"],
                 actionInApp = data["action_in_app"] ?: "",
             )
             return
@@ -177,6 +181,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         title: String,
         body: String,
         sessionId: Long,
+        workScope: String?,
         @Suppress("UNUSED_PARAMETER") actionInApp: String,
     ) {
         // UserRole 분기 — manager = Dashboard, worker = WorkerActivity
@@ -204,7 +209,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
-            .setContentText(body)
+            .setContentText(workScope?.let { "$it: $body" } ?: body)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

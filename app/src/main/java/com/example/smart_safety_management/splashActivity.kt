@@ -6,6 +6,7 @@ import android.animation.AnimatorListenerAdapter
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import android.view.View
 import retrofit2.Call
@@ -32,24 +33,24 @@ class SplashActivity : AppCompatActivity() {
         fadeLogo.duration = 2000
         fadeLogo.start()
 
-        // 테스트 모드: 로그인 우회 - 로고 애니메이션 후 바로 홈으로 이동
+        // 2026-05-26 — 정상 로그인 흐름 + dev 계정 picker (login Edge Function 부재 우회):
+        //   - 저장된 세션 (is_logged_in=true) 이 있으면 그대로 홈으로 진입
+        //   - 없으면 (또는 로그아웃 후) debug 빌드에서는 dev 계정 picker 표시,
+        //     release 빌드에서는 정상 Sign Up / Login 버튼 노출
+        // login Edge Function 이 운영에 미배포 상태라 LogInActivity 가 호출하는 endpoint 404.
+        // login 함수 작성·배포 후엔 isDebug 분기를 release 흐름으로 통일 권장.
         fadeLogo.addListener(object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
-                // 2026-05-20 — userId 도 seed 정합 (Plan 09-01 seed = testuser1·_w1·_w2·_w3).
-                // 직전까지 'test_user' 였는데 DB profiles 에 그 row 없어서 모든 Edge Function
-                // 호출 (홈/AI/history/location 등) 이 empty 반환 → 모든 화면 로딩 정지.
-                // testuser1 = manager owner of group_id=1 (010_watch_pipeline.sql:148).
-                UserSession.userId = "testuser1"
-                UserSession.userName = "테스트"
-                UserSession.userRole = UserRole.MANAGER
-                UserSession.isInviteChecked = true
-                UserSession.groupId = "1"  // 2026-05-19: Plan 09-01 seed (testuser1·_w1·_w2·_w3 모두 group_id=1) 정합. Phase 7·9 카드 표시용 — 'test_group' 은 toIntOrNull()=null 이라 TBM/Watch 카드 setup early-return.
-                UserSession.inviteCode = "TEST"
-                UserSession.saveSession(this@SplashActivity)
-                moveToHome()
+                if (UserSession.loadSession(this@SplashActivity)) {
+                    moveToHome()
+                } else if (BuildConfig.DEBUG) {
+                    showDevAccountPicker(logo, btnSignUp, btnLogin)
+                } else {
+                    showAuthButtons(logo, btnSignUp, btnLogin)
+                }
             }
         })
-        
+
         btnSignUp.setOnClickListener {
             val intent = Intent(this, SignUp1Activity::class.java)
             startActivity(intent)
@@ -85,5 +86,53 @@ class SplashActivity : AppCompatActivity() {
             fadeBtn2.duration = 700
             fadeBtn2.start()
         }, 1000)
+    }
+
+    /**
+     * Debug 빌드 한정 — login Edge Function 부재 우회용 dev 계정 picker.
+     *
+     * 운영의 `POST /functions/v1/login` 이 404 (Edge Function 미배포) 라 LogInActivity 가
+     * 실제 로그인 불가. login 함수 작성·배포 후엔 이 dialog 를 제거하고 isDebug 분기를
+     * showAuthButtons() 로 통일.
+     *
+     * 선택한 계정으로 UserSession 을 직접 세팅 + saveSession 호출 → 다음 진입 시 자동 로그인.
+     * 다른 계정 테스트하려면 앱 내 로그아웃 → clearSession → 재진입 → 다시 picker.
+     */
+    private fun showDevAccountPicker(logo: View, btnSignUp: View, btnLogin: View) {
+        val accounts = arrayOf(
+            "testuser1 (관리자)",
+            "testuser_w1 (작업자 1)",
+            "testuser_w2 (작업자 2)",
+            "testuser_w3 (작업자 3)",
+        )
+        AlertDialog.Builder(this)
+            .setTitle("테스트 계정 선택 (개발 빌드 전용)")
+            .setItems(accounts) { _, which ->
+                when (which) {
+                    0 -> applyDevSession("testuser1", "관리자", UserRole.MANAGER)
+                    1 -> applyDevSession("testuser_w1", "작업자 1", UserRole.WORKER)
+                    2 -> applyDevSession("testuser_w2", "작업자 2", UserRole.WORKER)
+                    3 -> applyDevSession("testuser_w3", "작업자 3", UserRole.WORKER)
+                }
+            }
+            .setOnCancelListener {
+                // Picker 취소 시 — 일반 인증 버튼으로 fallback
+                showAuthButtons(logo, btnSignUp, btnLogin)
+            }
+            .show()
+    }
+
+    private fun applyDevSession(userId: String, name: String, role: UserRole) {
+        // Phase 9 seed (010_watch_pipeline.sql + scripts/seed_tbm_demo.py) 와 정합:
+        //   testuser1 (manager) / testuser_w1·w2·w3 (worker) 모두 group_id=1.
+        UserSession.userId = userId
+        UserSession.userName = name
+        UserSession.userRole = role
+        UserSession.isInviteChecked = true
+        UserSession.groupId = "1"
+        UserSession.inviteCode = "TEST"
+        UserSession.saveSession(this)
+        Log.d("SplashActivity", "dev session applied: $userId / $role")
+        moveToHome()
     }
 }

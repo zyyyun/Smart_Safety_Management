@@ -6,6 +6,15 @@
     android:layout_height="match_parent"
     android:background="@color/base">
 
+    <!--
+      Phase 11 / 11-02 Sub-task 3.1 — D4 A 옵션. 공통 toolbar include (gone for T-11-02 회귀 가드).
+      Note: 부모가 CoordinatorLayout 이므로 layout_gravity="top" 사용 (app:layout_constraintTop 무효).
+    -->
+    <include
+        layout="@layout/common_toolbar"
+        android:visibility="gone"
+        android:layout_gravity="top"/>
+
     <!-- 상단 영역 -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/topBar"

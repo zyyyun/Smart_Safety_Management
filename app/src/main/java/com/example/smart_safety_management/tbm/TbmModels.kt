@@ -4,24 +4,43 @@ import com.google.gson.annotations.SerializedName
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+@Serializable
+data class TbmTemplateHazard(
+    val id: String,
+    val text: String,
+    @SerialName("is_custom") @SerializedName("is_custom") val isCustom: Boolean = false,
+    @SerialName("ops_template_id") @SerializedName("ops_template_id") val opsTemplateId: Int? = null,
+    @SerialName("ops_title") @SerializedName("ops_title") val opsTitle: String? = null,
+)
+
+@Serializable
+data class TbmTemplateControl(
+    val id: String,
+    @SerialName("hazard_id") @SerializedName("hazard_id") val hazardId: String? = null,
+    val level: String = "control",
+    val text: String,
+    @SerialName("is_custom") @SerializedName("is_custom") val isCustom: Boolean = false,
+    @SerialName("ops_template_id") @SerializedName("ops_template_id") val opsTemplateId: Int? = null,
+    @SerialName("ops_title") @SerializedName("ops_title") val opsTitle: String? = null,
+)
+
 /**
- * Phase 9 / 09-03 TBM-02 — supabase-kt 2.2.0 의 Realtime/PostgREST 디코딩 모델.
- * 013_tbm_schema.sql 스키마 그대로. 컬럼명은 snake_case → SerialName 매핑.
- *
- * Phase 7 WatchModels.kt 패턴 1:1 미러.
- *
- * 4 테이블:
- *   - tbm_sessions    — 일자 × 작업장 × 리더 × 작업유형 (UNIQUE group_id + session_date)
- *   - tbm_templates   — 작업유형별 체크리스트 템플릿 (JSONB)
- *   - tbm_checklists  — 세션별 체크 항목 + 체크 상태
- *   - tbm_participants — 참여 작업자 + 서명 + 체크인 시각 (UNIQUE session + user)
+ * 핵심 안전조치 1 항목. 017 schema 의 key_actions JSONB 는 `[{"id":"a1","text":"..."}]` object array.
+ * Fix 2026-05-26: 이전 keyActions: List<String> 은 runtime deserialization 실패 (P0 bug from /gsd-verify-work).
  */
+@Serializable
+data class TbmTemplateAction(
+    val id: String,
+    val text: String,
+    @SerialName("is_custom") @SerializedName("is_custom") val isCustom: Boolean = false,
+)
 
 @Serializable
 data class TbmSessionRow(
     @SerialName("session_id") val sessionId: Long,
     @SerialName("group_id") val groupId: Int,
     @SerialName("session_date") val sessionDate: String,
+    @SerialName("work_scope") val workScope: String,
     @SerialName("started_at") val startedAt: String,
     @SerialName("ended_at") val endedAt: String? = null,
     @SerialName("expected_end_at") val expectedEndAt: String,
@@ -30,6 +49,10 @@ data class TbmSessionRow(
     val location: String? = null,
     val notes: String? = null,
     @SerialName("missed_alert_at") val missedAlertAt: String? = null,
+    @SerialName("hazards_snapshot") val hazardsSnapshot: List<TbmTemplateHazard> = emptyList(),
+    @SerialName("controls_snapshot") val controlsSnapshot: List<TbmTemplateControl> = emptyList(),
+    @SerialName("key_hazard_id") val keyHazardId: String? = null,
+    @SerialName("feedback_notes") val feedbackNotes: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
 )
 
@@ -38,9 +61,75 @@ data class TbmTemplateRow(
     @SerialName("template_id") val templateId: Int,
     @SerialName("work_type") val workType: String,
     val title: String,
-    val checklist: List<String>,
+    val description: String? = null,
+    val hazards: List<TbmTemplateHazard> = emptyList(),
+    val controls: List<TbmTemplateControl> = emptyList(),
+    @SerialName("key_actions") val keyActions: List<TbmTemplateAction> = emptyList(),
+    val checks: List<String> = emptyList(),
+    @SerialName("target_detector") val targetDetector: String? = null,
+    @SerialName("is_active") val isActive: Boolean = true,
+    @SerialName("is_custom") val isCustom: Boolean = false,
     @SerialName("created_at") val createdAt: String? = null,
 )
+
+@Serializable
+data class TbmChecklistSourceItem(
+    val text: String,
+    @SerialName("ops_template_id") @SerializedName("ops_template_id") val opsTemplateId: Int,
+    @SerialName("ops_title") @SerializedName("ops_title") val opsTitle: String,
+)
+
+data class AggregatedOpsSelection(
+    val templateIds: List<Int>,
+    val opsTitles: List<String>,
+    val hazards: List<TbmTemplateHazard>,
+    val controls: List<TbmTemplateControl>,
+    val checks: List<TbmChecklistSourceItem>,
+)
+
+fun aggregateSelectedOps(templates: List<TbmTemplateRow>): AggregatedOpsSelection =
+    AggregatedOpsSelection(
+        templateIds = templates.map { it.templateId },
+        opsTitles = templates.map { it.title },
+        hazards = templates.flatMap { template ->
+            template.hazards.map {
+                it.copy(opsTemplateId = template.templateId, opsTitle = template.title)
+            }
+        },
+        controls = templates.flatMap { template ->
+            template.controls.map {
+                it.copy(opsTemplateId = template.templateId, opsTitle = template.title)
+            }
+        },
+        checks = templates.flatMap { template ->
+            template.checks.map {
+                TbmChecklistSourceItem(
+                    text = it,
+                    opsTemplateId = template.templateId,
+                    opsTitle = template.title,
+                )
+            }
+        },
+    )
+
+fun selectedOpsSessionTitle(templates: List<TbmTemplateRow>): String =
+    templates
+        .map { it.title.trim() }
+        .filter { it.isNotEmpty() }
+        .distinct()
+        .joinToString(" + ")
+        .ifBlank { "TBM 세션" }
+
+fun tbmSessionDisplayTitle(session: TbmSessionRow): String {
+    val titles = (session.hazardsSnapshot.mapNotNull { it.opsTitle } +
+        session.controlsSnapshot.mapNotNull { it.opsTitle })
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .distinct()
+    return titles.joinToString(" + ").ifBlank {
+        session.workScope.ifBlank { workTypeKorean(session.workType) }
+    }
+}
 
 @Serializable
 data class TbmChecklistRow(
@@ -63,17 +152,8 @@ data class TbmParticipantRow(
     val method: String = "signature",
 )
 
-/**
- * Pure reducer 의 변경 종류 — Phase 7 SafetyAlertReducer 의 ChangeKind 와 동일 의미.
- * tbm/ 패키지 안에서는 자체 enum 사용 (watch/ 와 격리, SC #4 코드 경로 분리).
- */
 enum class ChangeKind { INSERT, UPDATE, DELETE }
 
-/**
- * 2026-05-20 Change 1 — public.groups row (admin 의 다중 그룹 TBM 생성용).
- * 002_tables.sql:25-30 의 4 컬럼만. group_name 컬럼은 schema 에 없으므로 표시는
- * invite_code 를 사용 ("#${groupId} (${inviteCode})" 형식).
- */
 @Serializable
 data class GroupRow(
     @SerialName("group_id") val groupId: Int,
@@ -81,31 +161,34 @@ data class GroupRow(
     @SerialName("manager_id") val managerId: String,
 )
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Retrofit payload — Edge Function `/functions/v1/notifications` 4 actions
-// (Plan 09-02 의 tbm-start / tbm-checkin / tbm-end / tbm-missed)
-// ─────────────────────────────────────────────────────────────────────────────
+@Serializable
+data class ProfileGroupRow(
+    @SerialName("user_role") val userRole: String,
+    @SerialName("group_id") val groupId: Int? = null,
+)
 
-// 2026-05-19 fix: Retrofit 은 GsonConverterFactory 사용 → Gson 은 kotlinx.serialization
-// 의 @SerialName 어노테이션을 무시함. snake_case ↔ camelCase 매핑을 강제하려면 Gson
-// 의 @SerializedName 어노테이션을 dual 로 부착해야 함. 미부착 시 Gson 이 Kotlin 필드명
-// (camelCase: leaderUserId) 그대로 JSON 키로 직렬화 → Edge Function 의 snake_case 키
-// (leader_user_id) 와 mismatch → 400 "필수 항목 누락 또는 형식 오류" 응답.
 @Serializable
 data class TbmStartRequest(
     val action: String = "tbm-start",
     @SerialName("leader_user_id") @SerializedName("leader_user_id") val leaderUserId: String,
     @SerialName("group_id") @SerializedName("group_id") val groupId: Int,
     @SerialName("work_type") @SerializedName("work_type") val workType: String,
+    @SerialName("work_scope") @SerializedName("work_scope") val workScope: String,
     @SerialName("expected_end_at") @SerializedName("expected_end_at") val expectedEndAt: String,
     val location: String? = null,
     val notes: String? = null,
+    val hazards: List<TbmTemplateHazard> = emptyList(),
+    val controls: List<TbmTemplateControl> = emptyList(),
+    @SerialName("template_ids") @SerializedName("template_ids") val templateIds: List<Int> = emptyList(),
+    @SerialName("ops_titles") @SerializedName("ops_titles") val opsTitles: List<String> = emptyList(),
+    val checks: List<TbmChecklistSourceItem> = emptyList(),
 )
 
 @Serializable
 data class TbmStartResponse(
     val ok: Boolean? = null,
     @SerialName("session_id") @SerializedName("session_id") val sessionId: Long? = null,
+    @SerialName("work_scope") @SerializedName("work_scope") val workScope: String? = null,
     @SerialName("checklist_count") @SerializedName("checklist_count") val checklistCount: Int? = null,
     @SerialName("notified_count") @SerializedName("notified_count") val notifiedCount: Int? = null,
     val error: String? = null,
@@ -133,6 +216,8 @@ data class TbmEndRequest(
     val action: String = "tbm-end",
     @SerialName("session_id") @SerializedName("session_id") val sessionId: Long,
     @SerialName("leader_user_id") @SerializedName("leader_user_id") val leaderUserId: String,
+    @SerialName("key_hazard_id") @SerializedName("key_hazard_id") val keyHazardId: String? = null,
+    @SerialName("feedback_notes") @SerializedName("feedback_notes") val feedbackNotes: String? = null,
 )
 
 @Serializable
@@ -140,5 +225,53 @@ data class TbmEndResponse(
     val ok: Boolean? = null,
     @SerialName("ended_at") @SerializedName("ended_at") val endedAt: String? = null,
     @SerialName("participant_count") @SerializedName("participant_count") val participantCount: Int? = null,
+    val error: String? = null,
+)
+
+@Serializable
+data class OpsCreateRequest(
+    val action: String = "ops-create",
+    @SerialName("user_id") @SerializedName("user_id") val userId: String,
+    @SerialName("work_type") @SerializedName("work_type") val workType: String,
+    val title: String,
+    val description: String? = null,
+    val hazards: List<TbmTemplateHazard>,
+    val controls: List<TbmTemplateControl>,
+    @SerialName("key_actions") @SerializedName("key_actions") val keyActions: List<TbmTemplateAction> = emptyList(),
+    val checks: List<String> = emptyList(),
+    @SerialName("target_detector") @SerializedName("target_detector") val targetDetector: String? = null,
+    @SerialName("is_active") @SerializedName("is_active") val isActive: Boolean = true,
+)
+
+@Serializable
+data class OpsUpdateRequest(
+    val action: String = "ops-update",
+    @SerialName("user_id") @SerializedName("user_id") val userId: String,
+    @SerialName("template_id") @SerializedName("template_id") val templateId: Int,
+    val title: String? = null,
+    val description: String? = null,
+    val hazards: List<TbmTemplateHazard>? = null,
+    val controls: List<TbmTemplateControl>? = null,
+    @SerialName("key_actions") @SerializedName("key_actions") val keyActions: List<TbmTemplateAction>? = null,
+    val checks: List<String>? = null,
+    @SerialName("target_detector") @SerializedName("target_detector") val targetDetector: String? = null,
+    @SerialName("is_active") @SerializedName("is_active") val isActive: Boolean? = null,
+)
+
+@Serializable
+data class OpsToggleRequest(
+    val action: String = "ops-toggle",
+    @SerialName("user_id") @SerializedName("user_id") val userId: String,
+    @SerialName("template_id") @SerializedName("template_id") val templateId: Int,
+    @SerialName("is_active") @SerializedName("is_active") val isActive: Boolean,
+)
+
+@Serializable
+data class OpsResponse(
+    val ok: Boolean? = null,
+    @SerialName("template_id") @SerializedName("template_id") val templateId: Int? = null,
+    @SerialName("work_type") @SerializedName("work_type") val workType: String? = null,
+    @SerialName("is_active") @SerializedName("is_active") val isActive: Boolean? = null,
+    @SerialName("is_custom") @SerializedName("is_custom") val isCustom: Boolean? = null,
     val error: String? = null,
 )

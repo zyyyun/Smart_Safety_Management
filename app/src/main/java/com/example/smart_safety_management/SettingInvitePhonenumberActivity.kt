@@ -40,6 +40,13 @@ class SettingInvitePhonenumberActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_invite_phonenumber)
 
+        // Phase 11 / 11-02 Sub-task 3.2 — common_toolbar wiring (UX-03).
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.let { tb ->
+            setSupportActionBar(tb)
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            tb.setNavigationOnClickListener { finish() }
+        }
+
         val backButton = findViewById<ImageButton>(R.id.backButton)
         val searchIcon = findViewById<ImageView>(R.id.searchIcon)
         val searchEdit = findViewById<EditText>(R.id.searchEdit)

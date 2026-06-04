@@ -38,6 +38,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.smart_safety_management.watch.ble.WatchRuntimeSnapshot
+import com.example.smart_safety_management.watch.ble.WatchRuntimeStore
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
@@ -46,6 +48,7 @@ import io.github.jan.supabase.realtime.realtime
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.time.Instant
 
 @Composable
 fun WatchDetailScreen(
@@ -63,7 +66,16 @@ fun WatchDetailScreen(
     var allAlerts by remember { mutableStateOf<List<SafetyAlertRow>>(emptyList()) }
     var device by remember { mutableStateOf<DeviceRow?>(null) }
     val realtimeStatus by supabase.realtime.status.collectAsState()
+    val runtime by WatchRuntimeStore.state.collectAsState()
+    var now by remember { mutableStateOf(Instant.now()) }
     val repo = remember { WatchRealtimeRepository(supabase) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = Instant.now()
+            delay(1_000)
+        }
+    }
 
     // device 정보 (mac, last_comm_at, battery) 단발성 fetch
     LaunchedEffect(deviceId) {
@@ -79,6 +91,7 @@ fun WatchDetailScreen(
 
     LaunchedEffect(deviceId, realtimeStatus) {
         if (realtimeStatus == Realtime.Status.CONNECTED) {
+            launch { repo.deviceFlow(deviceId).collectLatest { device = it } }
             launch { repo.deviceWatchFlow(deviceId).collectLatest { snapshot = it } }
             launch { repo.lastWearStateFlow(deviceId).collectLatest { lastWearStateRow = it } }
             launch {
@@ -89,6 +102,10 @@ fun WatchDetailScreen(
             // 2026-05-21: crash 방지 try-catch + order("updated_at") 제거 (DB 컬럼 없음).
             while (true) {
                 try {
+                    device = supabase.from("devices").select {
+                        filter { eq("device_id", deviceId) }
+                        limit(1)
+                    }.decodeSingleOrNull()
                     snapshot = supabase.from("device_watches").select {
                         filter { eq("device_id", deviceId) }
                         limit(1)
@@ -107,9 +124,17 @@ fun WatchDetailScreen(
     }
 
     val wearState = lastWearStateRow?.toState
-    val activeAlert = allAlerts.firstOrNull { it.resolvedAt == null }
-    val (overallText, overallColor) = WatchHealthFormatter.overallStatus(
-        snapshot, wearState, activeAlert,
+    val activeAlert = WatchActiveAlertSelector.select(allAlerts, wearState)
+    val runtimeSnapshot = WatchRuntimeSnapshot.from(device, snapshot, runtime, now)
+    val runtimeStatusSnapshot = DeviceWatchSnapshot(
+        deviceId = snapshot?.deviceId ?: deviceId,
+        heartRate = runtimeSnapshot.heartRate,
+        bodyTemp = runtimeSnapshot.bodyTemp,
+        batteryLevel = runtimeSnapshot.batteryLevel,
+        updatedAt = snapshot?.updatedAt,
+    )
+    val (_, overallColor) = WatchHealthFormatter.overallStatus(
+        runtimeStatusSnapshot, wearState, activeAlert,
     )
 
     Column(
@@ -144,19 +169,30 @@ fun WatchDetailScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // 1) 종합 상태 헤더
-            OverallStatusCard(overallText, overallColor, device, snapshot)
+            OverallStatusCard(
+                runtimeSnapshot.statusLabel,
+                overallColor,
+                device,
+                runtimeSnapshot.lastCommunicationLabel,
+            )
 
             // 2) 심박 카드
-            HrCard(snapshot?.heartRate, wearState)
+            PpgCard(runtimeSnapshot.ppgDisplay, runtimeSnapshot.statusLabel, runtimeSnapshot.isFresh)
+
+            HrCard(runtimeSnapshot.hrDisplay, runtimeSnapshot.heartRate, wearState)
 
             // 3) 체온 카드
-            TempCard(snapshot?.bodyTemp, wearState)
+            TempCard(runtimeSnapshot.tempDisplay, runtimeSnapshot.bodyTemp, wearState)
 
             // 4) 착용 상태 카드
             WearStateCard(lastWearStateRow)
 
             // 5) 배터리 + 마지막 통신
-            DeviceMetaCard(snapshot?.batteryLevel ?: device?.batteryLevel, device?.lastCommAt)
+            DeviceMetaCard(
+                runtimeSnapshot.batteryLevel,
+                runtimeSnapshot.batteryDisplay,
+                runtimeSnapshot.lastCommunicationLabel,
+            )
 
             // 6) 최근 알림 list
             AlertHistoryCard(allAlerts.take(10))
@@ -175,7 +211,7 @@ private fun OverallStatusCard(
     text: String,
     color: Color,
     device: DeviceRow?,
-    snapshot: DeviceWatchSnapshot?,
+    lastCommunicationLabel: String,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -188,9 +224,8 @@ private fun OverallStatusCard(
             Text(text, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             val mac = device?.macAddress ?: "—"
-            val updated = snapshot?.updatedAt ?: device?.updatedAt
             Text(
-                "J2208A · MAC $mac · 마지막 측정 ${WatchHealthFormatter.relativeTime(updated)}",
+                "J2208A · MAC $mac · 마지막 통신 $lastCommunicationLabel",
                 color = Color.White.copy(alpha = 0.9f),
                 fontSize = 12.sp,
             )
@@ -199,13 +234,27 @@ private fun OverallStatusCard(
 }
 
 @Composable
-private fun HrCard(hr: Int?, wearState: String?) {
+private fun PpgCard(ppgDisplay: String, statusLabel: String, isFresh: Boolean) {
+    val color = if (isFresh) Color(0xFF16A34A) else Color.Gray
+    MetricCard(
+        title = "PPG",
+        valueText = ppgDisplay,
+        levelColor = color,
+        statusLabel = statusLabel,
+        rangeText = "Live optical signal",
+        valueRatio = null,
+        valueColor = color,
+    )
+}
+
+@Composable
+private fun HrCard(hrDisplay: String, hr: Int?, wearState: String?) {
     val level = WatchHealthFormatter.classifyHr(hr, wearState)
     val color = WatchHealthFormatter.levelToColor(level)
     val label = WatchHealthFormatter.hrLabel(level)
     MetricCard(
         title = "심박 (HR)",
-        valueText = WatchHealthFormatter.hrDisplay(hr, wearState),
+        valueText = hrDisplay,
         levelColor = color,
         statusLabel = label,
         rangeText = "정상 범위 60–100 bpm",
@@ -215,13 +264,13 @@ private fun HrCard(hr: Int?, wearState: String?) {
 }
 
 @Composable
-private fun TempCard(temp: Float?, wearState: String?) {
+private fun TempCard(tempDisplay: String, temp: Float?, wearState: String?) {
     val level = WatchHealthFormatter.classifyTemp(temp, wearState)
     val color = WatchHealthFormatter.levelToColor(level)
     val label = WatchHealthFormatter.tempLabel(level)
     MetricCard(
         title = "체온",
-        valueText = WatchHealthFormatter.tempDisplay(temp, wearState),
+        valueText = tempDisplay,
         levelColor = color,
         statusLabel = label,
         rangeText = "정상 범위 36.0–37.5°C",
@@ -316,7 +365,11 @@ private fun WearStateCard(row: WearStateEventRow?) {
 }
 
 @Composable
-private fun DeviceMetaCard(batteryLevel: Int?, lastCommAt: String?) {
+private fun DeviceMetaCard(
+    batteryLevel: Int?,
+    batteryDisplay: String,
+    lastCommunicationLabel: String,
+) {
     val battLevel = WatchHealthFormatter.batteryLevel(batteryLevel)
     val battColor = WatchHealthFormatter.levelToColor(battLevel)
     Card(
@@ -333,7 +386,7 @@ private fun DeviceMetaCard(batteryLevel: Int?, lastCommAt: String?) {
                     Text("배터리", color = Color.Gray, fontSize = 12.sp)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        WatchHealthFormatter.batteryDisplay(batteryLevel),
+                        batteryDisplay,
                         fontSize = 22.sp, fontWeight = FontWeight.Bold, color = battColor,
                     )
                 }
@@ -341,7 +394,7 @@ private fun DeviceMetaCard(batteryLevel: Int?, lastCommAt: String?) {
                     Text("마지막 통신", color = Color.Gray, fontSize = 12.sp)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        WatchHealthFormatter.relativeTime(lastCommAt),
+                        lastCommunicationLabel,
                         fontSize = 18.sp, fontWeight = FontWeight.SemiBold,
                     )
                 }

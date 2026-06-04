@@ -119,4 +119,39 @@
         app:iconPadding="8dp"
         app:iconTint="@color/white" />
 
+    <!-- 2026-05-21 — feature_rtps_test branch / plan v3.1 / S3
+         RTSP PoC frame sampler 토글. HomeActivity 가 manager 시 visible. -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_rtsp_poc"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="10dp"
+        android:visibility="gone"
+        android:text="RTSP POC START"
+        android:textColor="@color/white"
+        android:textSize="14sp"
+        android:fontFamily="@font/pretendard_bold"
+        android:gravity="center"
+        android:letterSpacing="0"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        app:backgroundTint="#33FFFFFF"
+        app:cornerRadius="12dp" />
+
+    <!-- 2026-05-22 — R3a fallback (feature_rtps_test / plan v3.1).
+         LibVLC 의 vlcVout.setVideoView(TextureView) 가 attached view 필요.
+         invisible 1×1dp 라 시각 영향 0. HomeActivity 가 SurfaceTexture 의 default
+         buffer size 를 1280×720 으로 설정 + textureView.getBitmap(w, h) 로 capture. -->
+    <TextureView
+        android:id="@+id/rtsp_poc_texture"
+        android:layout_width="1dp"
+        android:layout_height="1dp"
+        android:visibility="invisible" />
+
 </LinearLayout>

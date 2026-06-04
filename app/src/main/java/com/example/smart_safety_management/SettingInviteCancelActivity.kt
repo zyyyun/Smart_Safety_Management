@@ -38,6 +38,13 @@ class SettingInviteCancelActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_invite_cancel)
 
+        // Phase 11 / 11-02 Sub-task 3.2 — common_toolbar wiring (UX-03).
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.let { tb ->
+            setSupportActionBar(tb)
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            tb.setNavigationOnClickListener { finish() }
+        }
+
         // Intent로 전달받은 데이터 초기화
         @Suppress("DEPRECATION")
         managerList = intent.getSerializableExtra("manager_list") as? ArrayList<InviteContactItem> ?: ArrayList()

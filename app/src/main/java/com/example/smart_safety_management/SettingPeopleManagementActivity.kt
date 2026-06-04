@@ -33,6 +33,13 @@ class SettingPeopleManagementActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_people_management)
 
+        // Phase 11 / 11-02 Sub-task 3.2 — common_toolbar wiring (UX-03).
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.let { tb ->
+            setSupportActionBar(tb)
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            tb.setNavigationOnClickListener { finish() }
+        }
+
         val backButton = findViewById<ImageButton>(R.id.backButton)
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
         val filterSpinner = findViewById<Spinner>(R.id.filterSpinner)

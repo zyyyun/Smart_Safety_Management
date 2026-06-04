@@ -181,7 +181,9 @@ def main(argv: list[str] | None = None) -> int:
         elif args.once_fall:
             need_fall, need_detect = True, False
         else:
-            need_fall = not args.no_fall
+            need_fall = (
+                not args.no_fall and len(settings.fall_enabled_camera_ids) > 0
+            )
             need_detect = (
                 not args.no_detect and len(settings.detectors_enabled) > 0
             )
@@ -193,7 +195,20 @@ def main(argv: list[str] | None = None) -> int:
 
         if need_fall:
             log.info("FallDetector eager load 중…")
-            detector = _load_fall_detector(settings)
+            try:
+                detector = _load_fall_detector(settings)
+            except FileNotFoundError as e:
+                log.error("FallDetector eager load failed: %s; continuing without fall detection", e)
+                detector = None
+                if args.once_fall:
+                    return 1
+            except Exception as e:
+                log.error("FallDetector eager load failed: %r; continuing without fall detection", e)
+                detector = None
+                if args.once_fall:
+                    return 1
+        else:
+            log.info("FallDetector eager load skipped; FALL_ENABLED_CAMERA_IDS is empty or --no-fall was set")
 
         # 1회 실행 모드
         if args.once_fall:

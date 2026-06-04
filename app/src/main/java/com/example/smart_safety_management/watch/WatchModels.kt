@@ -89,7 +89,27 @@ data class WatchPairResponse(
     val ok: Boolean? = null,
     val device_id: Int? = null,
     val mac_address: String? = null,
+    val last_comm_at: String? = null,
+    val previous_user_id: String? = null,
     val op: String? = null,
     val count: Int? = null,
+    val error: String? = null,
+)
+
+@Serializable
+data class WatchReadingRequest(
+    val action: String = "watch-reading",
+    val user_id: String,
+    val device_id: Int,
+    val heart_rate: Int? = null,
+    val body_temp: Float? = null,
+    val battery_level: Int? = null,
+)
+
+@Serializable
+data class WatchReadingResponse(
+    val ok: Boolean? = null,
+    val device_id: Int? = null,
+    val last_comm_at: String? = null,
     val error: String? = null,
 )

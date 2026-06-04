@@ -43,8 +43,11 @@ import retrofit2.Response
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import com.example.smart_safety_management.tbm.TbmDashboardCardComposable
+import com.example.smart_safety_management.ui.SsmColors
 import com.example.smart_safety_management.ui.theme.Smart_Safety_ManagementTheme
+import com.example.smart_safety_management.watch.DeviceRow
 import com.example.smart_safety_management.watch.SupabaseModule
+import com.example.smart_safety_management.watch.ble.WatchBleServiceController
 import io.github.jan.supabase.postgrest.from
 // 2026-05-21 — watch mini card delegate (by mutableStateOf) 와 LaunchedEffect 용
 import androidx.compose.runtime.getValue
@@ -52,6 +55,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
+// 2026-05-22 — feature_rtps_test / plan v3.1 / R3a — LibVLC + TextureView capture
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import io.github.jan.supabase.storage.storage
 
 class HomeActivity : AppCompatActivity() {
 
@@ -81,6 +89,7 @@ class HomeActivity : AppCompatActivity() {
 
         // 2026-05-21 — Sprint A.2: profile_bar 좌측 카메라 페어링 미니카드 (manager 전용)
         setupCameraMiniCard()
+
     }
 
     private fun launchCameraPairing() {
@@ -117,6 +126,175 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
+    // ────────────────────────────────────────
+    // 2026-05-22 — feature_rtps_test / plan v3.1 / R3a (LibVLC + TextureView)
+    // ────────────────────────────────────────
+    //
+    // R1 (ExoPlayer + ImageReader) 가 Android 10 buffer format mismatch (0x7fa30c06
+    // vs 0x1 RGBA) 로 fail. R3 (LibVLC + takeSnapshot) 도 LibVLC Android Java
+    // wrapper 가 takeSnapshot 미노출로 compile fail. R3a = LibVLC + invisible
+    // TextureView(1x1dp) + lifecycleScope + textureView.getBitmap(w, h).
+    //
+    // Activity-bound: HomeActivity 가 살아있고 화면 ON 상태에서만 capture (plan
+    // v3.1 risk #5 = 화면 ON 유지 가정과 align).
+    // RtspPocService.kt 는 삭제됨 (R3a 에서 Service 무용).
+    //
+    // design doc : .planning/explorations/2026-05-21_rtsp_mobile_relay_architecture.md (Approach 5)
+    // plan       : ~/.claude/plans/feature-rtps-test-shimmering-fiddle.md (v3.1)
+
+    private var rtspPocLibVlc: org.videolan.libvlc.LibVLC? = null
+    private var rtspPocPlayer: org.videolan.libvlc.MediaPlayer? = null
+    private var rtspPocJob: kotlinx.coroutines.Job? = null
+    private var rtspPocCycleCount: Int = 0
+    private var rtspPocUploadCount: Int = 0
+
+    private fun setupRtspPocToggle() {
+        val btn = findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_rtsp_poc)
+            ?: return
+        btn.visibility = View.VISIBLE
+        btn.text = if (rtspPocJob?.isActive == true) "RTSP POC STOP" else "RTSP POC START"
+
+        btn.setOnClickListener {
+            if (rtspPocJob?.isActive == true) {
+                stopRtspPoc()
+                btn.text = "RTSP POC START"
+                Toast.makeText(this, "RTSP PoC 중지", Toast.LENGTH_SHORT).show()
+            } else {
+                startRtspPoc()
+                btn.text = "RTSP POC STOP"
+                Toast.makeText(this, "RTSP PoC 시작 (cycle 5초, 화면 ON 유지 필요)", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun startRtspPoc() {
+        val textureView = findViewById<android.view.TextureView>(R.id.rtsp_poc_texture) ?: run {
+            Toast.makeText(this, "rtsp_poc_texture not found", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val options = arrayListOf(
+            "--rtsp-tcp",
+            "--no-audio",
+            "--network-caching=200",
+            "--avcodec-hw=any",
+        )
+        val vlc = org.videolan.libvlc.LibVLC(this, options)
+        rtspPocLibVlc = vlc
+
+        val rtspUrl = "rtsp://192.168.0.13/live"
+        val media = org.videolan.libvlc.Media(vlc, android.net.Uri.parse(rtspUrl)).apply {
+            setHWDecoderEnabled(true, false)
+        }
+
+        val player = org.videolan.libvlc.MediaPlayer(vlc).apply {
+            setMedia(media)
+        }
+        media.release()
+
+        // TextureView 의 SurfaceTexture 가 attached 후에 setVideoView 가능. 이미 attached
+        // (HomeActivity setContentView 이후). invisible 이라도 surfaceTexture 는 valid.
+        val vout = player.vlcVout
+        vout.setVideoView(textureView)
+        vout.setWindowSize(1280, 720)
+        vout.attachViews()
+
+        player.setEventListener { event ->
+            when (event.type) {
+                org.videolan.libvlc.MediaPlayer.Event.EncounteredError ->
+                    Log.e("RtspPoc", "VLC EncounteredError")
+                org.videolan.libvlc.MediaPlayer.Event.Vout ->
+                    Log.i("RtspPoc", "VLC vout active count=${event.voutCount}")
+                org.videolan.libvlc.MediaPlayer.Event.Playing ->
+                    Log.i("RtspPoc", "VLC playing")
+                org.videolan.libvlc.MediaPlayer.Event.EndReached ->
+                    Log.w("RtspPoc", "VLC EndReached")
+            }
+        }
+
+        rtspPocPlayer = player
+        player.play()
+
+        rtspPocCycleCount = 0
+        rtspPocUploadCount = 0
+
+        rtspPocJob = lifecycleScope.launch {
+            // first frame decode + TextureView 의 SurfaceTexture 가 frame 받기 대기
+            kotlinx.coroutines.delay(3000L)
+            while (isActive) {
+                try {
+                    captureAndUploadOneFrame(textureView)
+                } catch (e: Exception) {
+                    Log.e("RtspPoc", "cycle 예외", e)
+                }
+                kotlinx.coroutines.delay(5000L)
+            }
+        }
+        Log.i("RtspPoc", "started cam=1 url=$rtspUrl (R3a LibVLC + TextureView)")
+    }
+
+    private suspend fun captureAndUploadOneFrame(textureView: android.view.TextureView) {
+        rtspPocCycleCount += 1
+        val bitmap = textureView.getBitmap(1280, 720) ?: run {
+            Log.w("RtspPoc", "getBitmap null cycle=$rtspPocCycleCount (SurfaceTexture 미수신?)")
+            return
+        }
+
+        val jpegBytes = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val out = java.io.ByteArrayOutputStream(64 * 1024)
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, out)
+            bitmap.recycle()
+            out.toByteArray()
+        }
+        if (jpegBytes.isEmpty()) {
+            Log.w("RtspPoc", "JPEG empty cycle=$rtspPocCycleCount")
+            return
+        }
+
+        try {
+            val ts = System.currentTimeMillis()
+            val path = "cam1/$ts.jpg"
+            val client = SupabaseModule.client(this@HomeActivity)
+            client.storage.from("rtsp-poc").upload(path = path, data = jpegBytes, upsert = false)
+            rtspPocUploadCount += 1
+            Log.i("RtspPoc", "upload OK cycle=$rtspPocCycleCount size=${jpegBytes.size} path=$path")
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_rtsp_poc)
+                    ?.text = "RTSP POC STOP ($rtspPocUploadCount)"
+            }
+        } catch (e: Exception) {
+            Log.e("RtspPoc", "Storage upload 실패", e)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (rtspPocJob != null || rtspPocPlayer != null) {
+            Log.i("RtspPoc", "Activity onDestroy → stopRtspPoc")
+            stopRtspPoc()
+        }
+    }
+
+    private fun stopRtspPoc() {
+        rtspPocJob?.cancel()
+        rtspPocJob = null
+
+        try { rtspPocPlayer?.stop() } catch (e: Exception) { Log.w("RtspPoc", "stop: ${e.message}") }
+        try { rtspPocPlayer?.vlcVout?.detachViews() } catch (e: Exception) {
+            Log.w("RtspPoc", "detachViews: ${e.message}")
+        }
+        try { rtspPocPlayer?.release() } catch (e: Exception) {
+            Log.w("RtspPoc", "player release: ${e.message}")
+        }
+        rtspPocPlayer = null
+
+        try { rtspPocLibVlc?.release() } catch (e: Exception) {
+            Log.w("RtspPoc", "libvlc release: ${e.message}")
+        }
+        rtspPocLibVlc = null
+        Log.i("RtspPoc", "stopped (cycles=$rtspPocCycleCount uploads=$rtspPocUploadCount)")
+    }
+
     /**
      * 2026-05-21 — view_profile_bar.xml 의 watch_mini_card_compose ComposeView 에
      * WatchMiniCardComposable (paired) 또는 EmptyWatchMiniCard (unpaired) 표시.
@@ -137,18 +315,19 @@ class HomeActivity : AppCompatActivity() {
                 LaunchedEffect(Unit) {
                     val uid = UserSession.userId
                     if (uid != null) {
-                        pairedDeviceId = try {
+                        val row = try {
                             supabase.from("devices").select {
                                 filter {
                                     eq("user_id", uid)
                                     eq("device_type", "WATCH")
                                 }
                                 limit(1)
-                            }.decodeSingleOrNull<com.example.smart_safety_management.watch.DeviceRow>()
-                                ?.deviceId
+                            }.decodeSingleOrNull<DeviceRow>()
                         } catch (_: Exception) {
                             null
                         }
+                        pairedDeviceId = row?.deviceId
+                        row?.let { WatchBleServiceController.configureAndStart(this@HomeActivity, uid, it) }
                     }
                     loaded = true
                 }
@@ -496,6 +675,7 @@ class HomeActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         updateProfile()
+        setupWatchMiniCard()
         fetchDailyChecks()
         updateAlarmDotVisibility()
         fetchUserInfo()
@@ -619,13 +799,11 @@ class HomeActivity : AppCompatActivity() {
                     val checks = response.body()?.checks ?: emptyList()
                     
                     checks.forEach { dto ->
-                        // created_at 기준으로 날짜 파싱 (YYYY-MM-DD HH:mm:ss)
-                        // createdAt이 없으면 checkDate를 사용하도록 예외 처리
-                        val targetDate = dto.createdAt ?: dto.checkDate
+                        // Prefer the selected checklist date over the creation timestamp.
                         val day = try {
-                            targetDate.substring(8, 10).toInt()
+                            dailyChecklistDisplayDate(dto.checkDate, dto.createdAt).dayOfMonth
                         } catch (e: Exception) {
-                            targetDate.split("-").getOrNull(2)?.take(2)?.toIntOrNull()
+                            null
                         }
 
                         if (day != null) {

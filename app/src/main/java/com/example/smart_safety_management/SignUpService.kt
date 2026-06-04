@@ -161,7 +161,9 @@ data class CCTVItemResponse(
     @SerializedName("live_url") val liveUrl: String?,
     @SerializedName("live_url_detail") val liveUrlDetail: String?,
     @SerializedName("latitude") val latitude: Double?,
-    @SerializedName("longitude") val longitude: Double?
+    @SerializedName("longitude") val longitude: Double?,
+    @SerializedName("health_state") val healthState: String? = null,
+    @SerializedName("last_frame_at") val lastFrameAt: String? = null
 )
 
 data class GetCCTVListResponse(
@@ -235,7 +237,11 @@ data class DetectionEventDTO(
     val accuracy: Double?,
     val status: String,
     @SerializedName("worker_name") val workerName: String?,
-    @SerializedName("completed_at") val actionTime: String?
+    @SerializedName("completed_at") val actionTime: String?,
+    // 2026-05-27 Issue 2A: AI 감지 리스트 thumbnail 표시용.
+    // backend SELECT 절에 image_url 가 포함되면 자동 propagate.
+    // default null → 기존 호출처/backend 미반환 회귀 0.
+    @SerializedName("image_url") val imageUrl: String? = null
 )
 
 data class GetDetectionEventsResponse(

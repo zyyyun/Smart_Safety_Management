@@ -21,6 +21,13 @@ class SettingInviteCodeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.setting_invite_code)
 
+        // Phase 11 / 11-02 Sub-task 3.2 — common_toolbar wiring (UX-03).
+        findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)?.let { tb ->
+            setSupportActionBar(tb)
+            supportActionBar?.setDisplayHomeAsUpEnabled(true)
+            tb.setNavigationOnClickListener { finish() }
+        }
+
         val backButton = findViewById<ImageButton>(R.id.backButton)
         val etInviteCode = findViewById<EditText>(R.id.et_invite_code)
         val btnSubmit = findViewById<AppCompatButton>(R.id.btn_submit)

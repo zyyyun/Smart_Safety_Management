@@ -1,7 +1,7 @@
 package com.example.smart_safety_management.tbm
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,20 +9,31 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Assignment
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -34,29 +45,51 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.smart_safety_management.BuildConfig
+import com.example.smart_safety_management.ui.SsmColors
+import com.example.smart_safety_management.ui.components.SectionHeader
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-/**
- * Phase 9 / 09-03 TBM-02 — TbmDashboardActivity 의 메인 화면.
- *
- * 2026-05-20 Change 1+2 (plan tbm-linear-dragonfly):
- *   - 다중 그룹 dashboard: fetchGroupsForManager + todaySessionsFlow(groupIds)
- *     → 그룹별 세션 카드 N개 동시 렌더 + inline 체크리스트 toggle
- *   - 체크리스트 "추가 작업 사항" row 분기: item_text == FREETEXT_ITEM_TEXT 면
- *     OutlinedTextField (note 컬럼 PATCH) + Checkbox. 500ms debounce.
- *   - is_checked / note 모두 supabase-kt 직접 PATCH (014 의 UPDATE RLS 통과).
- *
- * 구조:
- *   1. 상단: TbmStartSection (다중 그룹 폼)
- *   2. 하단: 그룹별 GroupSessionCard 컬럼
- *      - 세션 없음 그룹 → "오늘 세션 없음" + 폼으로 안내
- *      - 세션 active → 체크리스트 (collapsible) + 참여자 + 세션 종료 버튼
- */
 private const val FREETEXT_ITEM_TEXT = "추가 작업 사항"
+
+data class OpsTitleGroup<T>(
+    val opsTitle: String?,
+    val items: List<T>,
+)
+
+data class ChecklistDisplayItem(
+    val row: TbmChecklistRow,
+    val displayText: String,
+    val opsTitle: String?,
+)
+
+internal fun <T> groupByOpsTitle(
+    items: List<T>,
+    labelOf: (T) -> String?,
+): List<OpsTitleGroup<T>> {
+    val ordered = linkedMapOf<String?, MutableList<T>>()
+    items.forEach { item ->
+        val title = labelOf(item)?.takeIf { it.isNotBlank() }
+        ordered.getOrPut(title) { mutableListOf() }.add(item)
+    }
+    return ordered.map { (title, groupedItems) -> OpsTitleGroup(title, groupedItems) }
+}
+
+internal fun checklistDisplayItem(row: TbmChecklistRow): ChecklistDisplayItem {
+    val match = Regex("""^\[([^\]]+)]\s*(.+)$""").find(row.itemText)
+    return if (match == null) {
+        ChecklistDisplayItem(row = row, displayText = row.itemText, opsTitle = null)
+    } else {
+        ChecklistDisplayItem(
+            row = row,
+            displayText = match.groupValues[2],
+            opsTitle = match.groupValues[1].takeIf { it.isNotBlank() },
+        )
+    }
+}
 
 @Composable
 fun TbmDashboardScreen(
@@ -66,19 +99,25 @@ fun TbmDashboardScreen(
     val scope = rememberCoroutineScope()
     val repo = remember { TbmRepository(supabase) }
 
-    var groups by remember { mutableStateOf<List<GroupRow>>(emptyList()) }
-    var sessions by remember { mutableStateOf<Map<Int, TbmSessionRow?>>(emptyMap()) }
+    var managerGroup by remember { mutableStateOf<GroupRow?>(null) }
+    var todaySessions by remember { mutableStateOf<List<TbmSessionRow>>(emptyList()) }
+    var sessionRefreshNonce by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(leaderUserId) {
-        groups = runCatching { repo.fetchGroupsForManager(leaderUserId) }.getOrElse { emptyList() }
+        managerGroup = runCatching { repo.fetchGroupsForManager(leaderUserId) }
+            .getOrNull()?.firstOrNull()
     }
-    LaunchedEffect(groups.map { it.groupId }) {
-        if (groups.isEmpty()) {
-            sessions = emptyMap()
-            return@LaunchedEffect
+    LaunchedEffect(managerGroup?.groupId, sessionRefreshNonce) {
+        val gid = managerGroup?.groupId
+        if (gid == null) {
+            todaySessions = emptyList()
+        } else {
+            repo.todaySessionFlow(gid).collectLatest { todaySessions = it }
         }
-        repo.todaySessionsFlow(groups.map { it.groupId }).collectLatest { sessions = it }
     }
+
+    val activeSessions = todaySessions.filter { it.endedAt == null }
+    val endedSessions = todaySessions.filter { it.endedAt != null }
 
     Column(
         modifier = Modifier
@@ -86,153 +125,356 @@ fun TbmDashboardScreen(
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
-        Text("TBM 대시보드", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.Assignment,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text("TBM 현장 운영", fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                Text("오늘 세션과 빠른 시작", fontSize = 12.sp, color = SsmColors.TextMuted)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+
+        TbmDashboardSummary(
+            activeCount = activeSessions.size,
+            endedCount = endedSessions.size,
+            totalCount = todaySessions.size,
+        )
+        Spacer(Modifier.height(12.dp))
+
+        TbmQuickStartContainer {
+            TbmStartSection(
+                leaderUserId = leaderUserId,
+                supabase = supabase,
+                onSubmitted = { sessionRefreshNonce++ },
+            )
+        }
         Spacer(Modifier.height(16.dp))
 
-        // ── 폼 (다중 그룹 생성) ──────────────────────────────────────────
-        TbmStartSection(
-            leaderUserId = leaderUserId,
-            supabase = supabase,
-            onSubmitted = { /* Realtime 으로 자동 갱신 */ },
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-
-        // ── 오늘 세션 목록 ───────────────────────────────────────────────
-        Text("오늘 세션 목록 (${sessions.values.count { it != null }}/${groups.size} 그룹)",
-             fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-        Spacer(Modifier.height(8.dp))
-
-        if (groups.isEmpty()) {
-            Text("그룹 로드 중...", fontSize = 13.sp, color = Color(0xFF6B7280))
+        if (managerGroup == null) {
+            Text("그룹 정보 불러오는 중..", fontSize = 13.sp, color = SsmColors.TextMuted)
         } else {
-            groups.forEach { g ->
-                val s = sessions[g.groupId]
-                GroupSessionCard(
-                    group = g,
-                    session = s,
-                    leaderUserId = leaderUserId,
-                    repo = repo,
-                    scope = scope,
+            SessionsSection(
+                activeSessions = activeSessions,
+                endedSessions = endedSessions,
+                leaderUserId = leaderUserId,
+                repo = repo,
+                scope = scope,
+                onSessionChanged = { sessionRefreshNonce++ },
+            )
+        }
+    }
+}
+
+@Composable
+private fun TbmDashboardSummary(
+    activeCount: Int,
+    endedCount: Int,
+    totalCount: Int,
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        SummaryMetricCard(
+            label = "진행중",
+            value = activeCount.toString(),
+            color = SsmColors.ActiveOrange,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        SummaryMetricCard(
+            label = "완료",
+            value = endedCount.toString(),
+            color = SsmColors.TextMuted,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        SummaryMetricCard(
+            label = "전체",
+            value = totalCount.toString(),
+            color = SsmColors.TextInfo,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun SummaryMetricCard(
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = SsmColors.EndedBg),
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Text(label, fontSize = 11.sp, color = SsmColors.TextMuted)
+            Text(value, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = color)
+        }
+    }
+}
+
+@Composable
+private fun TbmQuickStartContainer(content: @Composable () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, SsmColors.TextMuted.copy(alpha = 0.18f)),
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
+                    contentDescription = if (expanded) "접기" else "펼치기",
+                    modifier = Modifier.size(20.dp),
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.width(6.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("빠른 TBM 시작", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("여러 OPS를 선택해 하나의 세션으로 시작", fontSize = 12.sp, color = SsmColors.TextMuted)
+                }
+            }
+            if (expanded) {
+                content()
             }
         }
     }
 }
 
-/**
- * 한 그룹의 세션 카드 — 헤더 + (있으면) 체크리스트/참여자/종료 버튼.
- * 펼침/접힘 토글 (default 펼침).
- */
 @Composable
-private fun GroupSessionCard(
-    group: GroupRow,
-    session: TbmSessionRow?,
+private fun SessionsSection(
+    activeSessions: List<TbmSessionRow>,
+    endedSessions: List<TbmSessionRow>,
     leaderUserId: String,
     repo: TbmRepository,
     scope: CoroutineScope,
+    onSessionChanged: () -> Unit,
 ) {
-    var expanded by remember(group.groupId) { mutableStateOf(true) }
-    var participants by remember(session?.sessionId) { mutableStateOf<List<TbmParticipantRow>>(emptyList()) }
-    var checklists by remember(session?.sessionId) { mutableStateOf<List<TbmChecklistRow>>(emptyList()) }
-    var endResultMsg by remember(session?.sessionId) { mutableStateOf<String?>(null) }
-    var ending by remember(session?.sessionId) { mutableStateOf(false) }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (activeSessions.isEmpty() && endedSessions.isEmpty()) {
+            Text("오늘 TBM 세션 없음", fontSize = 13.sp, color = SsmColors.TextMuted)
+        } else {
+            SectionHeader(
+                icon = Icons.Default.Schedule,
+                label = "진행중",
+                count = activeSessions.size,
+                iconTint = SsmColors.ActiveOrange,
+            )
+            if (activeSessions.isEmpty()) {
+                Text("진행중 세션 없음", fontSize = 12.sp, color = SsmColors.TextMuted)
+            } else {
+                activeSessions.forEach { session ->
+                    Spacer(Modifier.height(6.dp))
+                    SessionDetailCard(
+                        session = session,
+                        isActive = true,
+                        leaderUserId = leaderUserId,
+                        repo = repo,
+                        scope = scope,
+                        onSessionChanged = onSessionChanged,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            SectionHeader(
+                icon = Icons.Default.CheckCircle,
+                label = "완료",
+                count = endedSessions.size,
+                iconTint = SsmColors.TextMuted,
+            )
+            if (endedSessions.isEmpty()) {
+                Text("완료 세션 없음", fontSize = 12.sp, color = SsmColors.TextMuted)
+            } else {
+                endedSessions.forEach { session ->
+                    Spacer(Modifier.height(6.dp))
+                    SessionDetailCard(
+                        session = session,
+                        isActive = false,
+                        leaderUserId = leaderUserId,
+                        repo = repo,
+                        scope = scope,
+                        onSessionChanged = onSessionChanged,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SessionDetailCard(
+    session: TbmSessionRow,
+    isActive: Boolean,
+    leaderUserId: String,
+    repo: TbmRepository,
+    scope: CoroutineScope,
+    onSessionChanged: () -> Unit,
+) {
+    var expanded by remember(session.sessionId) { mutableStateOf(isActive) }
+    var participants by remember(session.sessionId) { mutableStateOf<List<TbmParticipantRow>>(emptyList()) }
+    var checklists by remember(session.sessionId) { mutableStateOf<List<TbmChecklistRow>>(emptyList()) }
+    var keyHazardId by remember(session.sessionId) { mutableStateOf(session.keyHazardId ?: "") }
+    var feedbackNotes by remember(session.sessionId) { mutableStateOf(session.feedbackNotes ?: "") }
+    var endResultMsg by remember(session.sessionId) { mutableStateOf<String?>(null) }
+    var pdfResultMsg by remember(session.sessionId) { mutableStateOf<String?>(null) }
+    var ending by remember(session.sessionId) { mutableStateOf(false) }
+    var detailRefreshNonce by remember(session.sessionId) { mutableIntStateOf(0) }
     val api = remember { buildTbmFunctionsApi() }
 
-    LaunchedEffect(session?.sessionId, expanded) {
-        val sid = session?.sessionId
-        if (sid != null && expanded) {
-            repo.participantsFlow(sid).collectLatest { participants = it }
-        } else {
-            participants = emptyList()
-        }
+    LaunchedEffect(session.sessionId, expanded, detailRefreshNonce) {
+        if (expanded) repo.participantsFlow(session.sessionId).collectLatest { participants = it }
     }
-    LaunchedEffect(session?.sessionId, expanded) {
-        val sid = session?.sessionId
-        if (sid != null && expanded) {
-            repo.checklistsFlow(sid).collectLatest { checklists = it }
-        } else {
-            checklists = emptyList()
-        }
+    LaunchedEffect(session.sessionId, expanded, detailRefreshNonce) {
+        if (expanded) repo.checklistsFlow(session.sessionId).collectLatest { checklists = it }
     }
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+    val cardBorder = if (isActive) BorderStroke(2.dp, SsmColors.ActiveOrange) else null
+    val cardColors = if (isActive) {
+        CardDefaults.cardColors()
+    } else {
+        CardDefaults.cardColors(containerColor = SsmColors.EndedBg)
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        border = cardBorder,
+        colors = cardColors,
+    ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // 헤더 — 클릭으로 펼침/접힘
             Row(
                 modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(if (expanded) "▼" else "▶", fontSize = 14.sp)
+                Icon(
+                    if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight,
+                    contentDescription = if (expanded) "접기" else "펼치기",
+                    modifier = Modifier.size(20.dp),
+                )
                 Spacer(Modifier.width(6.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "#${group.groupId} (${group.inviteCode})",
+                        session.workScope,
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
+                        color = if (isActive) Color.Black else SsmColors.TextMuted,
                     )
-                    if (session == null) {
-                        Text("오늘 세션 없음", fontSize = 12.sp, color = Color(0xFF6B7280))
-                    } else {
-                        val statusTxt = if (session.endedAt != null) "종료" else "진행 중"
-                        val checked = checklists.count { it.isChecked }
-                        val total = checklists.size
-                        Text(
-                            "${workTypeKorean(session.workType)} · $statusTxt" +
-                                if (total > 0) " · ✓ $checked/$total" else "",
-                            fontSize = 12.sp,
-                            color = Color(0xFF6B7280),
-                        )
-                    }
+                    val statusText = if (isActive) "진행중" else "완료"
+                    Text(
+                        "${workTypeKorean(session.workType)} · $statusText · 참여자 ${participants.size}명",
+                        fontSize = 12.sp,
+                        color = SsmColors.TextMuted,
+                    )
                 }
             }
 
-            if (expanded && session != null) {
+            if (expanded) {
                 Spacer(Modifier.height(8.dp))
-                // 세션 메타 ────────────────────────────────────────
-                Text("리더: ${session.leaderUserId}", fontSize = 12.sp, color = Color.Gray)
-                Text("예정 종료: ${formatTimeShort(session.expectedEndAt)}",
-                     fontSize = 12.sp, color = Color.Gray)
-                session.location?.let { Text("위치: $it", fontSize = 12.sp, color = Color.Gray) }
-                if (session.missedAlertAt != null) {
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.AccessTime,
+                        contentDescription = null,
+                        tint = SsmColors.TextMuted,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
                     Text(
-                        "⚠ 미참여 알림 발송됨 (${formatTimeShort(session.missedAlertAt)})",
-                        color = Color(0xFFEF4444),
+                        "예상 종료 ${formatTimeShort(session.expectedEndAt)}",
                         fontSize = 12.sp,
+                        color = SsmColors.TextMuted,
                     )
                 }
-                Spacer(Modifier.height(8.dp))
-
-                // 체크리스트 ──────────────────────────────────────
-                Text(
-                    "체크리스트 (${checklists.count { it.isChecked }}/${checklists.size})",
-                    fontWeight = FontWeight.SemiBold, fontSize = 14.sp,
-                )
-                Spacer(Modifier.height(4.dp))
-                checklists.forEach { item ->
-                    ChecklistRow(item = item, repo = repo, scope = scope)
+                session.location?.let { loc ->
+                    Spacer(Modifier.height(2.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Place,
+                            contentDescription = null,
+                            tint = SsmColors.TextMuted,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("위치: $loc", fontSize = 12.sp, color = SsmColors.TextMuted)
+                    }
                 }
+                Spacer(Modifier.height(10.dp))
+
+                GroupedSnapshotList(
+                    title = "위험요인",
+                    grouped = groupByOpsTitle(session.hazardsSnapshot) { it.opsTitle },
+                    textOf = { it.text },
+                )
                 Spacer(Modifier.height(8.dp))
 
-                // 참여자 ──────────────────────────────────────────
+                GroupedSnapshotList(
+                    title = "조치",
+                    grouped = groupByOpsTitle(session.controlsSnapshot) { it.opsTitle },
+                    textOf = { it.text },
+                )
+                Spacer(Modifier.height(8.dp))
+
+                Text(
+                    "평가 항목 (${checklists.count { it.isChecked }}/${checklists.size})",
+                    fontWeight = FontWeight.SemiBold,
+                )
+                GroupedChecklistList(
+                    grouped = groupByOpsTitle(checklists.map(::checklistDisplayItem)) { it.opsTitle },
+                    repo = repo,
+                    scope = scope,
+                    onChecklistChanged = { detailRefreshNonce++ },
+                )
+                Spacer(Modifier.height(8.dp))
+
                 if (participants.isNotEmpty()) {
-                    Text("참여자 (${participants.size}명)",
-                         fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.People,
+                            contentDescription = null,
+                            tint = SsmColors.TextMuted,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text("참여자", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                    }
                     participants.forEach { p ->
-                        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
-                            Text(p.userId, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                            Spacer(Modifier.width(8.dp))
-                            Text("(${formatTimeShort(p.signedAt)})",
-                                 fontSize = 11.sp, color = Color.Gray)
-                        }
+                        Text(
+                            "${p.userId} (${formatTimeShort(p.signedAt)})",
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(start = 20.dp),
+                        )
                     }
                     Spacer(Modifier.height(8.dp))
                 }
 
-                // 세션 종료 버튼 ──────────────────────────────────
                 if (session.endedAt == null) {
+                    OutlinedTextField(
+                        value = keyHazardId,
+                        onValueChange = { keyHazardId = it },
+                        label = { Text("중점위험 id") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = feedbackNotes,
+                        onValueChange = { feedbackNotes = it },
+                        label = { Text("후속 조치 메모") },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(8.dp))
                     Button(
                         onClick = {
                             ending = true
@@ -245,14 +487,17 @@ private fun GroupSessionCard(
                                         body = TbmEndRequest(
                                             sessionId = session.sessionId,
                                             leaderUserId = leaderUserId,
+                                            keyHazardId = keyHazardId.ifBlank { null },
+                                            feedbackNotes = feedbackNotes.ifBlank { null },
                                         ),
                                     )
                                     endResultMsg = when {
                                         resp.isSuccessful && resp.body()?.ok == true ->
-                                            "✓ 세션 종료됨 (참여 ${resp.body()?.participantCount ?: 0}명)"
-                                        resp.code() == 404 -> "리더 권한 없음 또는 이미 종료"
-                                        else -> "오류 (${resp.code()})"
+                                            "종료 완료 (참여자 ${resp.body()?.participantCount ?: 0}명)"
+                                        resp.code() == 404 -> "리더가 아니거나 이미 종료됨"
+                                        else -> "오류 ${resp.code()}"
                                     }
+                                    if (resp.isSuccessful && resp.body()?.ok == true) onSessionChanged()
                                 } catch (e: Exception) {
                                     endResultMsg = "네트워크 오류: ${e.message}"
                                 } finally {
@@ -263,15 +508,24 @@ private fun GroupSessionCard(
                         enabled = !ending,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(if (ending) "종료 중..." else "세션 종료")
+                        Text(if (ending) "종료 중.." else "세션 종료")
                     }
                     endResultMsg?.let {
                         Spacer(Modifier.height(4.dp))
-                        Text(
-                            it,
-                            color = if (it.startsWith("✓")) Color(0xFF22C55E) else Color(0xFFEF4444),
-                            fontSize = 12.sp,
-                        )
+                        Text(it, color = SsmColors.TextInfo, fontSize = 12.sp)
+                    }
+                } else {
+                    OutlinedButton(
+                        onClick = {
+                            pdfResultMsg = "PDF 출력 기능은 다음 단계에서 실제 파일 생성으로 연결됩니다."
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("PDF 출력")
+                    }
+                    pdfResultMsg?.let {
+                        Spacer(Modifier.height(4.dp))
+                        Text(it, color = SsmColors.TextMuted, fontSize = 12.sp)
                     }
                 }
             }
@@ -279,43 +533,97 @@ private fun GroupSessionCard(
     }
 }
 
-/**
- * 체크리스트 단일 row.
- *
- * - item_text == "추가 작업 사항" 이면 OutlinedTextField (note 직접 입력) + Checkbox
- *   - 500ms debounce 로 PATCH 폭주 방지
- * - 그 외에는 Text(item_text) + Checkbox
- *
- * 두 경우 모두 Checkbox onCheckedChange → updateChecklistItem(isChecked=...).
- */
+@Composable
+private fun <T> GroupedSnapshotList(
+    title: String,
+    grouped: List<OpsTitleGroup<T>>,
+    textOf: (T) -> String,
+) {
+    Text(title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+    if (grouped.isEmpty()) {
+        Text("없음", fontSize = 12.sp, color = SsmColors.TextMuted)
+    } else {
+        val hasOpsMetadata = grouped.any { it.opsTitle != null }
+        grouped.forEach { group ->
+            if (hasOpsMetadata) {
+                Text(
+                    group.opsTitle ?: "기타",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SsmColors.TextInfo,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            group.items.forEach { item ->
+                Text(
+                    "- ${textOf(item)}",
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = if (hasOpsMetadata) 8.dp else 0.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GroupedChecklistList(
+    grouped: List<OpsTitleGroup<ChecklistDisplayItem>>,
+    repo: TbmRepository,
+    scope: CoroutineScope,
+    onChecklistChanged: () -> Unit,
+) {
+    if (grouped.isEmpty()) {
+        Text("없음", fontSize = 12.sp, color = SsmColors.TextMuted)
+    } else {
+        val hasOpsMetadata = grouped.any { it.opsTitle != null }
+        grouped.forEach { group ->
+            if (hasOpsMetadata) {
+                Text(
+                    group.opsTitle ?: "기타",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = SsmColors.TextInfo,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            group.items.forEach { item ->
+                ChecklistRow(
+                    item = item.row,
+                    repo = repo,
+                    scope = scope,
+                    onChecklistChanged = onChecklistChanged,
+                    displayText = item.displayText,
+                    indent = if (hasOpsMetadata) 8.dp else 0.dp,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun ChecklistRow(
     item: TbmChecklistRow,
     repo: TbmRepository,
     scope: CoroutineScope,
+    onChecklistChanged: () -> Unit,
+    displayText: String = item.itemText,
+    indent: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val isFreetext = item.itemText == FREETEXT_ITEM_TEXT
-
-    // Local checkbox state — server 응답 (Realtime) 으로 자동 reset.
     val isChecked = item.isChecked
 
     if (isFreetext) {
-        // 자유 입력 row — note 컬럼 PATCH (debounced)
         var draft by remember(item.checklistId) { mutableStateOf(item.note ?: "") }
-        // Realtime 으로 note 가 바뀌면 local draft 도 갱신 (다른 디바이스가 수정한 경우)
         LaunchedEffect(item.note) {
-            if ((item.note ?: "") != draft) {
-                draft = item.note ?: ""
-            }
+            if ((item.note ?: "") != draft) draft = item.note ?: ""
         }
-        // Debounced PATCH — 마지막 입력 후 500ms 멈춤 시 send
         LaunchedEffect(draft) {
             if (draft != (item.note ?: "")) {
                 delay(500)
                 runCatching { repo.updateChecklistItem(item.checklistId, note = draft) }
+                    .onSuccess { onChecklistChanged() }
             }
         }
-
         Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
@@ -323,27 +631,22 @@ fun ChecklistRow(
                     onCheckedChange = { newChecked ->
                         scope.launch {
                             runCatching { repo.updateChecklistItem(item.checklistId, isChecked = newChecked) }
+                                .onSuccess { onChecklistChanged() }
                         }
                     },
                 )
-                Text(
-                    "추가 작업 사항",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                    color = Color(0xFF3B82F6),
-                )
+                Text("추가 작업 사항", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
             }
             OutlinedTextField(
                 value = draft,
                 onValueChange = { draft = it },
-                label = { Text("자유 입력 (admin/워커 누구나 작성)") },
+                label = { Text("메모") },
                 modifier = Modifier.fillMaxWidth().padding(start = 32.dp),
             )
         }
     } else {
-        // 정형 row — 정적 텍스트 + 체크박스
         Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+            modifier = Modifier.fillMaxWidth().padding(start = indent, top = 2.dp, bottom = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Checkbox(
@@ -351,14 +654,11 @@ fun ChecklistRow(
                 onCheckedChange = { newChecked ->
                     scope.launch {
                         runCatching { repo.updateChecklistItem(item.checklistId, isChecked = newChecked) }
+                            .onSuccess { onChecklistChanged() }
                     }
                 },
             )
-            Text(
-                item.itemText,
-                fontSize = 13.sp,
-                color = if (isChecked) Color.Black else Color(0xFF6B7280),
-            )
+            Text(displayText, fontSize = 13.sp)
         }
     }
 }

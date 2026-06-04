@@ -51,7 +51,7 @@ echo "=== Test 3: 정상 (leader_user_id=testuser1) ==="
 HTTP=$(curl -sS -o /tmp/tbm_end_3.json -w "%{http_code}" -X POST "$URL" \
     -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
     -H "Content-Type: application/json" \
-    -d "{\"action\":\"tbm-end\",\"session_id\":$SESSION_ID,\"leader_user_id\":\"testuser1\"}")
+    -d "{\"action\":\"tbm-end\",\"session_id\":$SESSION_ID,\"leader_user_id\":\"testuser1\",\"key_hazard_id\":\"h1\",\"feedback_notes\":\"smoke test complete\"}")
 echo "  HTTP $HTTP"; head -c 500 /tmp/tbm_end_3.json; echo
 [[ "$HTTP" == "200" ]] || { echo "EXPECTED 200" >&2; exit 6; }
 grep -q '"ok":true' /tmp/tbm_end_3.json || { echo "EXPECTED ok:true" >&2; exit 7; }

@@ -23,7 +23,7 @@ val kakaoNativeAppKey: String =
     (localProperties.getProperty("kakao.nativeAppKey") ?: "b5282649bc815793990d92669375ea72").trim()
 
 val kakaoRestApiKey: String =
-    (localProperties.getProperty("kakao.restApiKey") ?: "").trim()
+    (localProperties.getProperty("kakao.restApiKey") ?: "549ef0580861ccd75dc20bc5858e349f").trim()
 
 android {
     namespace = "com.example.smart_safety_management"
@@ -134,6 +134,12 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-exoplayer-rtsp:1.4.1")
     implementation("androidx.media3:media3-ui:1.4.1")
+    // 2026-05-22 — R3 fallback (feature_rtps_test / plan v3.1) RTSP PoC 용.
+    // Android 10 (API 29) 에서 ExoPlayer + ImageReader 가 buffer format mismatch
+    // (producer output 0x7fa30c06 vs ImageReader RGBA_8888) 로 first frame 캡처
+    // 실패 → VideoLAN 공식 LibVLC 의 MediaPlayer.takeSnapshot 으로 교체. ABI 전체
+    // 포함 (~25-30MB APK 증가). RtspPocService.kt 만 사용.
+    implementation("org.videolan.android:libvlc-all:3.6.0")
     implementation("com.google.android.gms:play-services-maps:18.2.0")
     implementation("com.google.maps.android:maps-compose:4.4.1")
     implementation("org.osmdroid:osmdroid-android:6.1.18")
@@ -199,6 +205,7 @@ dependencies {
     //   A.1 sprint 가 끝날 때까지 2.7.x 라인 유지. 향후 전체 Kotlin 2.x 마이그레이션
     //   시점에 한꺼번에 bump.
     implementation("no.nordicsemi.android:ble-ktx:2.7.5")
+    implementation(files("libs/2208asdk2.0.jar"))
 
     // 2026-05-21 — 트랜지티브 stdlib defensive lock (모든 dep 의 transitive Kotlin stdlib
     // 을 1.9.22 로 강제). 새 dep 추가 시 위 metadata 충돌 재발 방지.

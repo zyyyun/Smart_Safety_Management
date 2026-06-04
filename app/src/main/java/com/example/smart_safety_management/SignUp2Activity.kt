@@ -22,6 +22,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.example.smart_safety_management.auth.SignUpField
+import com.example.smart_safety_management.auth.SignUpFieldError
+import com.example.smart_safety_management.auth.SignUpValidator
+import com.example.smart_safety_management.ui.components.errorBannerMessage
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.common.api.Status
@@ -264,8 +268,11 @@ class SignUp2Activity : AppCompatActivity() {
         val name = findViewById<TextInputEditText>(R.id.et_name).text.toString().trim()
         val phoneNum = findViewById<TextInputEditText>(R.id.et_phone_number).text.toString().trim().replace("-", "")
 
-        if (name.isEmpty()) {
-            ToastUtil.showShort(this, "이름을 입력해주세요.")
+        // Phase 11 / 11-02 Sub-task 2.3 — 공통 SignUpValidator + errorBannerMessage wiring.
+        // 기존 검증 흐름 보존 + 공통 validator 로 결과 동등성 확보 (UX-01).
+        val nameError: SignUpFieldError? = SignUpValidator.validate(SignUpField.NAME, name)
+        if (nameError != null) {
+            ToastUtil.showShort(this, errorBannerMessage(SignUpField.NAME, nameError))
             return
         }
 

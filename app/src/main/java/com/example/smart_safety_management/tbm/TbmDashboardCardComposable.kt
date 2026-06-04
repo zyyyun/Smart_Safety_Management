@@ -1,6 +1,5 @@
 package com.example.smart_safety_management.tbm
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,55 +21,37 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.smart_safety_management.ui.SsmColors
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.flow.collectLatest
 
-/**
- * Phase 9 / 09-03 TBM-02 — HomeActivity 의 manager TBM 대시보드 카드 (D-06).
- *
- * 3줄 layout (CONTEXT D-06):
- *   (a) 상태 badge: "세션 없음" 회색 / "진행 중 ({checked}/{total})" 노랑 / "완료" 초록
- *                   / "⚠ 미참여 알림 발사됨" 빨강
- *   (b) 참여 카운트: "{참여}/{대상}" (예: "5/8 명") — 대상은 본 plan 에선 참여 수만 (대상은
- *                   tbm-missed 호출 시점에서만 계산, 카드에선 참여수 표시).
- *   (c) 미참여 알림 상태: missed_alert_at NOT NULL 시 "⚠ 미참여 알림 발송됨 {time}"
- *
- * 클릭 시 onClickDashboard() — TbmDashboardActivity 진입.
- *
- * Phase 7 WatchCardComposable 직접 미러 + 3 색상 badge + 추가 1색상.
- */
 @Composable
 fun TbmDashboardCardComposable(
     groupId: Int,
     supabase: SupabaseClient,
     onClickDashboard: () -> Unit,
 ) {
-    var session by remember { mutableStateOf<TbmSessionRow?>(null) }
+    var sessions by remember { mutableStateOf<List<TbmSessionRow>>(emptyList()) }
     var participants by remember { mutableStateOf<List<TbmParticipantRow>>(emptyList()) }
     var checklists by remember { mutableStateOf<List<TbmChecklistRow>>(emptyList()) }
     val repo = remember { TbmRepository(supabase) }
+    val firstSession = sessions.firstOrNull()
 
     LaunchedEffect(groupId) {
-        repo.todaySessionFlow(groupId).collectLatest { session = it }
+        repo.todaySessionFlow(groupId).collectLatest { sessions = it }
     }
-    LaunchedEffect(session?.sessionId) {
-        val sid = session?.sessionId
-        if (sid != null) {
-            repo.participantsFlow(sid).collectLatest { participants = it }
-        } else {
-            participants = emptyList()
-        }
+    LaunchedEffect(firstSession?.sessionId) {
+        val sid = firstSession?.sessionId
+        if (sid != null) repo.participantsFlow(sid).collectLatest { participants = it }
+        else participants = emptyList()
     }
-    LaunchedEffect(session?.sessionId) {
-        val sid = session?.sessionId
-        if (sid != null) {
-            repo.checklistsFlow(sid).collectLatest { checklists = it }
-        } else {
-            checklists = emptyList()
-        }
+    LaunchedEffect(firstSession?.sessionId) {
+        val sid = firstSession?.sessionId
+        if (sid != null) repo.checklistsFlow(sid).collectLatest { checklists = it }
+        else checklists = emptyList()
     }
 
-    val state = computeDashboardCardState(session, checklists)
+    val state = computeDashboardCardState(firstSession, checklists)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -78,32 +59,21 @@ fun TbmDashboardCardComposable(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("오늘 TBM 현황", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("오늘의 TBM", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Spacer(Modifier.width(12.dp))
                 TbmStatusBadge(state.label, state.color)
             }
             Spacer(Modifier.height(8.dp))
-            session?.let { s ->
-                Text(
-                    "작업유형: ${workTypeKorean(s.workType)}  ·  예정 종료: ${formatTimeShort(s.expectedEndAt)}",
-                    fontSize = 13.sp,
-                    color = Color.Gray,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "참여: ${participants.size}명",
-                    fontSize = 13.sp,
-                    color = Color.Gray,
-                )
-                if (s.missedAlertAt != null) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "⚠ 미참여 알림 발송됨 (${formatTimeShort(s.missedAlertAt)})",
-                        color = Color(0xFFEF4444),
-                        fontSize = 12.sp,
-                    )
+            firstSession?.let { session ->
+                Text("${session.workScope} / ${workTypeKorean(session.workType)}", fontSize = 13.sp, color = Color.Gray)
+                Text("참여자: ${participants.size}명", fontSize = 13.sp, color = Color.Gray)
+                if (sessions.size > 1) {
+                    Text("오늘 ${sessions.size}개 세션", fontSize = 12.sp, color = SsmColors.TextInfo)
                 }
-            } ?: Text("탭하여 오늘 TBM 세션 시작", fontSize = 13.sp, color = Color.Gray)
+                if (session.missedAlertAt != null) {
+                    Text("미참여 알림 발송 ${formatTimeShort(session.missedAlertAt)}", color = SsmColors.TextDanger)
+                }
+            } ?: Text("탭하여 TBM 시작", fontSize = 13.sp, color = Color.Gray)
         }
     }
 }
@@ -111,9 +81,9 @@ fun TbmDashboardCardComposable(
 sealed class TbmDashboardCardState(val label: String, val color: Color) {
     object NoSession : TbmDashboardCardState("세션 없음", Color.Gray)
     class InProgress(checked: Int, total: Int) :
-        TbmDashboardCardState("진행 중 ($checked/$total)", Color(0xFFFBBF24))
-    object Completed : TbmDashboardCardState("완료", Color(0xFF22C55E))
-    object MissedAlertSent : TbmDashboardCardState("⚠ 미참여 알림 발사됨", Color(0xFFEF4444))
+        TbmDashboardCardState("진행중 ($checked/$total)", SsmColors.ActiveOrange)
+    object Completed : TbmDashboardCardState("종료", SsmColors.SuccessGreen)
+    object MissedAlertSent : TbmDashboardCardState("미참여 알림", SsmColors.TextDanger)
 }
 
 internal fun computeDashboardCardState(

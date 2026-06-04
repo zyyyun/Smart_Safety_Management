@@ -8,6 +8,10 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.smart_safety_management.auth.SignUpField
+import com.example.smart_safety_management.auth.SignUpFieldError
+import com.example.smart_safety_management.auth.SignUpValidator
+import com.example.smart_safety_management.ui.components.errorBannerMessage
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -38,8 +42,16 @@ class LogInActivity : AppCompatActivity() {
             val id = etId.text.toString()
             val pw = etPw.text.toString()
 
-            if (id.isBlank() || pw.isBlank()) {
-                ToastUtil.showShort(this, "아이디와 비밀번호를 입력해주세요.")
+            // Phase 11 / 11-02 Sub-task 2.3 — 공통 SignUpValidator + errorBannerMessage wiring (UX-01).
+            // 로그인 ID 필드는 NAME 분기로 EMPTY 검증 (서버에서 형식 verify).
+            val idError: SignUpFieldError? = SignUpValidator.validate(SignUpField.NAME, id)
+            if (idError != null) {
+                ToastUtil.showShort(this, errorBannerMessage(SignUpField.NAME, idError).replace("이름", "아이디"))
+                return@setOnClickListener
+            }
+            val pwError: SignUpFieldError? = SignUpValidator.validate(SignUpField.PASSWORD, pw)
+            if (pwError != null) {
+                ToastUtil.showShort(this, errorBannerMessage(SignUpField.PASSWORD, pwError))
                 return@setOnClickListener
             }
 

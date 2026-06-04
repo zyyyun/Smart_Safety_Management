@@ -7,6 +7,10 @@ import android.text.TextWatcher
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import com.example.smart_safety_management.auth.SignUpField
+import com.example.smart_safety_management.auth.SignUpFieldError
+import com.example.smart_safety_management.auth.SignUpValidator
+import com.example.smart_safety_management.ui.components.errorBannerMessage
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -89,7 +93,15 @@ class SignUp3Activity : AppCompatActivity() {
             return
         }
 
-        // 비밀번호 유효성 체크
+        // 비밀번호 유효성 체크 — Phase 11 / 11-02 Sub-task 2.3 공통 SignUpValidator 우선 적용.
+        // 공통 validator 가 EMPTY/TOO_SHORT 를 잡고, 기존 getPasswordErrorMessage 가
+        // 추가 도메인 규칙 (예: 특수문자) 검증. UX-01 단일 규약.
+        val pwSharedError: SignUpFieldError? = SignUpValidator.validate(SignUpField.PASSWORD, pw)
+        if (pwSharedError != null) {
+            tvNotice.text = errorBannerMessage(SignUpField.PASSWORD, pwSharedError)
+            llNotice.visibility = View.VISIBLE
+            return
+        }
         val pwError = getPasswordErrorMessage(pw)
         if (pwError != null) {
             tvNotice.text = pwError
