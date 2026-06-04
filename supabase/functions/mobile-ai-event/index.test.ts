@@ -13,8 +13,22 @@ Deno.test("normalizeAccuracy clamps to zero through one", () => {
   assertEquals(normalizeAccuracy(2), 1);
 });
 
+Deno.test("index uses canonical Korean fire event name", async () => {
+  const text = await Deno.readTextFile(
+    new URL("./index.ts", import.meta.url),
+  );
+
+  assertIncludes(text, 'const FIRE_EVENT_NAME = "화재";');
+});
+
 function assertEquals(actual: unknown, expected: unknown) {
   if (actual !== expected) {
     throw new Error(`Expected ${String(expected)}, got ${String(actual)}`);
+  }
+}
+
+function assertIncludes(actual: string, expected: string) {
+  if (!actual.includes(expected)) {
+    throw new Error(`Expected source to contain ${expected}`);
   }
 }
