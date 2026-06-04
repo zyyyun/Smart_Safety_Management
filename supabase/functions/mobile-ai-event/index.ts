@@ -1,10 +1,11 @@
-import { createAdminClient } from "../_shared/supabase.ts";
+import { createAdminClient, createUserClient } from "../_shared/supabase.ts";
 import { err, optionsResponse } from "../_shared/response.ts";
 import { createAiEvent } from "../_shared/ai_events.ts";
 import { buildCapturePath, normalizeAccuracy } from "./helpers.ts";
 
 type Body = Record<string, unknown>;
 type Admin = ReturnType<typeof createAdminClient>;
+type UserClient = ReturnType<typeof createUserClient>;
 
 const CAPTURE_BUCKET = "camera-captures";
 const MIN_JPEG_BYTES = 1024;
@@ -33,6 +34,10 @@ Deno.serve(async (req: Request) => {
     if (!isValidJpegPayload(jpegBytes)) {
       return err("jpeg_base64 must contain a valid JPEG image", 400);
     }
+
+    const user = createUserClient(req);
+    const visibilityError = await requireVisibleCamera(user, cameraId);
+    if (visibilityError) return visibilityError;
 
     const accuracy = normalizeAccuracy(body.accuracy);
     const admin = createAdminClient();
@@ -113,6 +118,19 @@ function isValidJpegPayload(bytes: Uint8Array) {
 
 function exactArrayBuffer(bytes: Uint8Array) {
   return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+}
+
+async function requireVisibleCamera(user: UserClient, cameraId: number) {
+  const { data, error } = await user
+    .from("cameras")
+    .select("camera_id")
+    .eq("camera_id", cameraId)
+    .maybeSingle();
+
+  if (error || !data) {
+    return err("Camera not visible for current user", 403);
+  }
+  return null;
 }
 
 async function updateCameraLastFrameAt(admin: Admin, cameraId: number) {

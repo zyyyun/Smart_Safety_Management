@@ -11,6 +11,7 @@ Deno.test("normalizeAccuracy clamps to zero through one", () => {
   assertEquals(normalizeAccuracy(-1), 0);
   assertEquals(normalizeAccuracy(0.75), 0.75);
   assertEquals(normalizeAccuracy(2), 1);
+  assertEquals(normalizeAccuracy(Infinity), 1);
 });
 
 Deno.test("index uses canonical Korean fire event name", async () => {
@@ -19,6 +20,16 @@ Deno.test("index uses canonical Korean fire event name", async () => {
   );
 
   assertIncludes(text, 'const FIRE_EVENT_NAME = "화재";');
+});
+
+Deno.test("index checks authenticated camera visibility before service-role upload", async () => {
+  const text = await Deno.readTextFile(
+    new URL("./index.ts", import.meta.url),
+  );
+
+  assertIncludes(text, 'createUserClient(req)');
+  assertIncludes(text, 'select("camera_id")');
+  assertIncludes(text, 'return err("Camera not visible for current user", 403)');
 });
 
 function assertEquals(actual: unknown, expected: unknown) {
