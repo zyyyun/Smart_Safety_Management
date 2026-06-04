@@ -149,7 +149,8 @@ class SupabaseRoutingInterceptor : Interceptor {
         "/delete_geofence_zone" to Route("location", "delete_zone"),
         "/update_geofence_zone" to Route("location", "update_zone"),
         "/send_verification_code" to Route("verification", "send_code"),
-        "/check_verification_code" to Route("verification", "check_code")
+        "/check_verification_code" to Route("verification", "check_code"),
+        "/create_mobile_fire_event" to Route("mobile-ai-event", "create_mobile_fire_event")
     )
 
     /** Multipart endpoints that need images uploaded to Storage first. */

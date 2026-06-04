@@ -269,6 +269,20 @@ data class DetectionEventDetailResponse(
     @SerializedName("action_images") val actionImages: List<String>?
 )
 
+data class CreateMobileFireEventRequest(
+    @SerializedName("camera_id") val cameraId: Int,
+    @SerializedName("accuracy") val accuracy: Double,
+    @SerializedName("jpeg_base64") val jpegBase64: String
+)
+
+data class CreateMobileFireEventResponse(
+    @SerializedName("event_id") val eventId: Int?,
+    @SerializedName("capture_id") val captureId: Int?,
+    @SerializedName("capture_image_url") val captureImageUrl: String?,
+    @SerializedName("skipped") val skipped: Boolean? = null,
+    @SerializedName("reason") val reason: String? = null
+)
+
 data class WorkplaceResponseItem(
     @SerializedName("name") val name: String
 )
@@ -685,6 +699,9 @@ interface SignUpService {
 
     @GET("/get_detection_event_detail")
     fun getDetectionEventDetail(@Query("event_id") eventId: Int): Call<DetectionEventDetailResponse>
+
+    @POST("/create_mobile_fire_event")
+    fun createMobileFireEvent(@Body request: CreateMobileFireEventRequest): Call<CreateMobileFireEventResponse>
 
     @GET("/get_workplace")
     fun getWorkplace(@Query("user_id") userId: String): Call<GetWorkplaceResponse>
