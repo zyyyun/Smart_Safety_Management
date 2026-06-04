@@ -125,4 +125,14 @@ class JcWearBleBridgeVibrationContractTest {
         assertTrue(src.contains("clearGattOperationInFlight()"))
         assertTrue(src.contains("if (!gattOperationInFlight) return false"))
     }
+
+    @Test
+    fun bridgeCanConnectWithoutStartingTelemetryForPairingUi() {
+        val src = bridge.readText()
+
+        assertTrue(src.contains("startTelemetryOnConnect: Boolean = true"))
+        assertTrue(src.contains("private val startTelemetryOnConnect"))
+        assertTrue(src.contains("if (startTelemetryOnConnect) {"))
+        assertTrue(src.contains("startBModeReadLoop(gatt)"))
+    }
 }

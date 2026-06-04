@@ -28,7 +28,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
 
-class JcWearBleBridge(context: Context) {
+class JcWearBleBridge(
+    context: Context,
+    private val startTelemetryOnConnect: Boolean = true,
+) {
     private val appContext = context.applicationContext
     private val bluetoothManager =
         appContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
@@ -286,7 +289,9 @@ class JcWearBleBridge(context: Context) {
                     connectionState = JcWearConnectionState.CONNECTED,
                     errorMessage = null,
                 )
-                startBModeReadLoop(gatt)
+                if (startTelemetryOnConnect) {
+                    startBModeReadLoop(gatt)
+                }
                 if (pendingIdentifyAddress.equals(_uiState.value.selectedAddress, ignoreCase = true)) {
                     pendingIdentifyAddress = null
                     handler.postDelayed({ vibrateForIdentification() }, IDENTIFY_VIBRATION_DELAY_MS)

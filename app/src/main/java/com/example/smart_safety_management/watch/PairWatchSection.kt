@@ -106,7 +106,9 @@ internal data class PairResultDialog(
 fun PairWatchSection(supabase: SupabaseClient) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val bleBridge = remember { JcWearBleBridge(context.applicationContext) }
+    val bleBridge = remember {
+        JcWearBleBridge(context.applicationContext, startTelemetryOnConnect = false)
+    }
     val scanState by bleBridge.uiState.collectAsState()
     val runtime by WatchRuntimeStore.state.collectAsState()
     val registrar = remember { JcWearDeviceRegistrar() }

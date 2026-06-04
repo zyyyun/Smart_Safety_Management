@@ -70,6 +70,7 @@ class PairWatchSectionIdentifyUiContractTest {
     fun pairingUiDoesNotOwnHealthReadCollectionOrMeasurementRequests() {
         val src = section.readText()
 
+        assertTrue(src.contains("JcWearBleBridge(context.applicationContext, startTelemetryOnConnect = false)"))
         assertFalse(src.contains("bleBridge.healthReadings.collect"))
         assertFalse(src.contains("requestCurrentMeasurements"))
     }
