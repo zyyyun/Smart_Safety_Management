@@ -58,6 +58,10 @@ android {
         manifestPlaceholders["kakaoNativeAppKey"] = kakaoNativeAppKey
     }
 
+    androidResources {
+        noCompress += listOf("tflite")
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -172,6 +176,7 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.2.1")
     implementation("androidx.media3:media3-ui:1.2.1")
     implementation("androidx.media3:media3-exoplayer-hls:1.2.1")
+    implementation("org.tensorflow:tensorflow-lite:2.16.1")
 
     // 카카오맵
     implementation("com.kakao.maps.open:android:2.12.8")
