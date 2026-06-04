@@ -7,6 +7,36 @@
 
 ## Shipped
 
+### v1.1 — 앱 전체 완성도 (scope-reduced close)
+
+- **Status**: Shipped (scope-reduced)
+- **Started**: 2026-05-23
+- **Completed**: 2026-06-04
+- **Duration**: ~13일
+- **Phases complete**: 1/5 — Phase 11 (일관 시각 언어 정립)
+- **Phases partial**: 2 — Phase 12 (TBM 재설계), Phase 13 성격의 quick fixes (일일점검 날짜 / AI 이벤트 화면)
+- **Phases not completed**: 2 — Phase 15 Docker 전환, Phase 14 설치 사전 UAT
+- **Requirements outcome**: strict GSD 기준 0/16 fully satisfied, code evidence 기준 8/16 partial-or-better. Known gaps accepted at close. See `.planning/milestones/v1.1-MILESTONE-AUDIT.md`.
+- **Delivered / stabilized**:
+  - Phase 11 UI 공통 토큰·컴포넌트·Setting scaffold 적용
+  - TBM 다중 OPS, 작업자 제출 후 홈 이동, 세션 시작/종료 즉시 갱신, worker/manager Compose crash 안정화
+  - 일일 안전점검 selected date 저장 mismatch fix
+  - AI 이벤트 캡처가 Supabase Storage에 저장된 실제 capture URL을 반환하도록 보강
+  - Drift X3 YOLO watch PowerShell 자동 실행/재시도 경로 보강
+  - J2208A 워치 B-mode read loop, runtime state, stale callback 방지, pairing telemetry 억제 등 안정화
+- **Known gaps accepted at close**:
+  - Phase 11/12 formal `*-VERIFICATION.md` 없음
+  - Phase 13/14/15 산출물 디렉터리 없음
+  - Docker 요구사항은 실제 운영 방향인 visible PowerShell scheduled task와 충돌, 다음 마일스톤에서 정식 scope 결정 필요
+  - KOSHA TBM PDF/export, 검단·포천 UAT, 3-role walkthrough 미완료
+- **Archives**:
+  - `.planning/milestones/v1.1-ROADMAP.md`
+  - `.planning/milestones/v1.1-REQUIREMENTS.md`
+  - `.planning/milestones/v1.1-MILESTONE-AUDIT.md`
+- **Next milestone**: not opened. Run `$gsd-new-milestone` when ready.
+
+---
+
 ### v1.0 — 5월 PPT 데모 (scope-reduced close)
 
 - **Status**: Shipped (scope-reduced)

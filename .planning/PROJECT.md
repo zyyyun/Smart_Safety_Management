@@ -2,7 +2,7 @@
 
 > **Project Code**: SSM
 > **Bootstrapped from existing context** on 2026-04-29 (sources: `docs/PROJECT_SPEC.md`, `docs/J2208A_안전관리_시스템_PLAN.md`, memory files, prior plan `iridescent-percolating-fox.md`, 25+ commits).
-> **Last updated**: 2026-05-22 (**v1.0 milestone ✓ SHIPPED** — scope-reduced close. 6/10 phases complete (1·2·3·8·9·10) + 2 partial (4·7), Phase 5·6 v1.1 이월. 25/28 REQ validated.)
+> **Last updated**: 2026-06-04 (**v1.1 milestone shipped as scope-reduced close** — Phase 11 complete, Phase 12/13 partial by code evidence, Docker/UAT deferred. See `.planning/milestones/v1.1-MILESTONE-AUDIT.md`.)
 
 ---
 
@@ -56,10 +56,11 @@
 - **test 브랜치 로그인 우회** — `SplashActivity` 직접 홈 진입 (`f5283ec`).
 - **J2208A BLE 프로토콜 분석 + 1인 raw 수신 PoC** — S1 Decode 통과
   (`scripts/j2208a_sensor_reader.py`), raw notification 5–6 Hz 안정 수신.
+- **v1.1 앱 안정화 묶음** — UI 공통 토큰/Setting scaffold, TBM 다중 OPS·작업자 제출 흐름·즉시 갱신, 일일점검 선택 날짜 저장, AI 이벤트 실제 capture URL 반환, Drift X3 visible PowerShell YOLO watch, J2208A B-mode runtime state 안정화가 코드로 반영됨. Formal GSD verification은 v1.1 scope-reduced close에서 deferred.
 
 ## Active Requirements
 
-(v1.0 시작 시점, 첫 마일스톤 — `.planning/REQUIREMENTS.md` 참조)
+No active requirements file is open. Start the next milestone with `$gsd-new-milestone`.
 
 ## Validated Requirements (이전 마일스톤 v0.1~v0.5)
 
@@ -122,25 +123,30 @@
   확인됨 (Suspect 5 — RTSP 동시 접속 경합 + admin PowerShell 요구 + service status 불투명).
   Docker 컨테이너화로 architectural fix. ai_agent only scope (j2208a·Supabase 는 그대로).
   코드 (`scheduler.py` 의 RTSP autodetect job 등) 보존, deployment 방식만 NSSM → Docker.
+- **2026-06-04**: v1.1 scope-reduced close 결정 — 사용자가 남은 갭을 인정하고 현재 상태로 마일스톤 종료를 선택. Docker 요구사항은 실제 운영 방향인 visible PowerShell scheduled task와 충돌하므로 다음 마일스톤에서 유지/교체를 정식 결정해야 함.
 
-## Current Milestone: v1.1 앱 전체 완성도
+## Current State: after v1.1 scope-reduced close
 
-**Goal:** 검단·포천 6월 설치 전, 앱이 사용자에게 "완성된 제품" 으로 보이도록 **UX 일관성·신뢰성·TBM 정합성** 끌어올림. v1.0 의 deferred phase 들은 별 milestone (v1.2) 으로 분리, 본 milestone 은 앱 완성도에만 집중.
+v1.1 is closed. The product is more stable than at v1.0, but the milestone is intentionally archived with known gaps rather than treated as fully verified.
 
-**Sources**: 2026-05-22 ~ 2026-05-23 `/office-hours` brainstorm 7 backlog items + KOSHA `230209 작업 전 안전점검회의 가이드`
+**What changed in practice:**
+- App visual consistency improved through shared UI tokens/components.
+- TBM UX and flows were redesigned and repeatedly stabilized after device feedback.
+- Daily checklist date handling and AI event capture source mapping were fixed.
+- RTSP YOLO startup moved toward a visible PowerShell/task-scheduler operation model.
+- Watch integration moved toward JcWear-style B-mode runtime reading with reactive UI state.
 
-**Target features:**
-- **Phase 11** 일관 시각 언어 정립 — 입구 (Splash → SignUp → LogIn → Home) · Home 카드 4종 · Setting* Activity 시리즈의 시각 언어 통일
-- **Phase 12** TBM 재설계 (KOSHA 가이드 흡수) — 작업·공정별 다중 세션 (UNIQUE 제거 + work_scope 추가) + 회의록 양식 핵심 필드 schema mapping + SLAM 행동요령 + 도금/금속가공 도메인 OPS 3종 seed + 관리자 OPS 카탈로그 UI
-- **Phase 13** 데이터 신뢰성 + 정보구조 — 일일 안전점검 등록 날짜 mismatch fix + 실시간 카메라 전경/현장 분리 → 단일 통합
-- **Phase 15** ai_agent Docker 컨테이너화 (신규 2026-05-23) — Phase 10 NSSM 서비스 폐기, Docker container 로 전환. `docker ps` 한 줄로 운영 검증 + admin PowerShell 의존 제거 + 6월 설치 image deploy. debug session `fire-only-grey-light` Suspect 5 architectural fix.
-- **Phase 14** 6월 설치 사전 UAT — Phase 11·12·13·15 변경분 + v1.0 deferred 항목 종합 회귀 (Docker 환경) + 현장 환경 사전 점검표 + 3 역할 (manager/worker/general_manager) 1일 사이클 walkthrough 캡처
+**Known gaps carried forward:**
+- Formal v1.1 phase verification artifacts are missing.
+- KOSHA TBM PDF/export is not verified.
+- Docker scope is unresolved and likely needs replacement with the visible task-scheduler approach.
+- 검단/포천 pre-install UAT and 3-role walkthrough are not complete.
 
-**Out of scope (v1.1 명시 제외):**
-- v1.0 의 deferred phases (Phase 4·04 24h 워치 실측 / Phase 5 평가 / Phase 6 PPT / Phase 7·04 / Phase 9·04) → v1.2
-- 가이드 12종 OPS 中 도금/금속가공 비도메인 (크레인·컨베이어·후크·샤클·혼합기 등) → 6월 현장 조사 후 OPS 카탈로그 추가
-- YOLO26 전면 마이그레이션 (FIRE-ADV BACKLOG) → v2.0
-- 워치 트랙 Phase 2 (J2208A 다중 작업자) → v1.2
+**Next milestone candidates:**
+- Field-readiness UAT: TBM, watch, RTSP, daily checklist, AI event capture.
+- Watch runtime hardening and multi-watch identification.
+- ai_agent operation model decision: Docker vs visible PowerShell scheduled task.
+- KOSHA TBM PDF/export.
 
 ## Evolution
 
