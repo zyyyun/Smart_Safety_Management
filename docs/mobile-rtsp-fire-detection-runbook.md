@@ -29,7 +29,8 @@ If the `.tflite` asset is missing, the mobile detection path must show an error 
 
 ## Supabase Deploy
 
-Deploy the mobile event endpoint:
+Deploy the mobile event endpoint. Also deploy or update the existing `auth`
+function so the `login` action returns `access_token` or `auth_token`.
 
 ```powershell
 supabase functions deploy mobile-ai-event
