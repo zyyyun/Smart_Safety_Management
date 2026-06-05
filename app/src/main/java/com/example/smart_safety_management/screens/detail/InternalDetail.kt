@@ -54,6 +54,7 @@ import retrofit2.Callback
 import retrofit2.Response
 import kotlinx.coroutines.delay
 import com.example.smart_safety_management.LivePlaybackController
+import com.example.smart_safety_management.mobileai.RtspMobileDetectionPlayer
 
 /**
  * ✅ 지금은 CCTV/시그널링이 없으니:
@@ -274,7 +275,8 @@ fun InternalDetailScreen(
                 isLive = true,
                 imageUrl = finalOverviewUrl,
                 streamId = overviewStreamId,
-                label = overviewLabel
+                label = overviewLabel,
+                cameraId = cameraId
             )
 
             if (showSite) {
@@ -299,7 +301,8 @@ fun InternalDetailScreen(
                     isLive = true,
                     imageUrl = finalSiteUrl,
                     streamId = siteStreamId,
-                    label = "현장"
+                    label = "현장",
+                    cameraId = cameraId
                 )
             }
 
@@ -387,7 +390,8 @@ private fun SmartPreviewCard(
     isLive: Boolean = true,
     imageUrl: String? = null,
     streamId: String?,
-    label: String
+    label: String,
+    cameraId: Int = 0
 ) {
     val c = LocalSafeColors.current
     val bg = if (c.isDark) c.surface else Color.White
@@ -402,7 +406,20 @@ private fun SmartPreviewCard(
             .background(bg)
     ) {
         if (isVideo) {
-            VideoPlayer(url = imageUrl!!.trim(), modifier = Modifier.fillMaxSize())
+            val trimmedUrl = imageUrl!!.trim()
+            if (
+                trimmedUrl.startsWith("rtsp://", ignoreCase = true) ||
+                trimmedUrl.startsWith("rtsps://", ignoreCase = true)
+            ) {
+                // RtspMobileDetectionPlayer owns the MobileFireDetectionBadge( overlay.
+                RtspMobileDetectionPlayer(
+                    url = trimmedUrl,
+                    cameraId = cameraId,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                VideoPlayer(url = trimmedUrl, modifier = Modifier.fillMaxSize())
+            }
         } else {
             if (!imageUrl.isNullOrBlank()) {
                 AsyncImage(
