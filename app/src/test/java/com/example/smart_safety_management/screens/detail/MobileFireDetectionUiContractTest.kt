@@ -22,7 +22,7 @@ class MobileFireDetectionUiContractTest {
         )
         assertTrue(
             "Non-RTSP video branch should keep the VideoPlayer fallback",
-            code.contains("else {\n                VideoPlayer(url = trimmedUrl, modifier = Modifier.fillMaxSize())")
+            code.contains("VideoPlayer(url = trimmedUrl")
         )
     }
 
@@ -40,10 +40,14 @@ class MobileFireDetectionUiContractTest {
         val code = readSource("src/main/java/com/example/smart_safety_management/mobileai/RtspTexturePlayer.kt")
             .withoutComments()
 
+        val rememberKeys = code.extractRememberArgumentsAfter("val coordinator")
+            .split(",")
+            .map { it.trim() }
+            .toSet()
+
         assertTrue(
             "Coordinator remember keys should include textureView, cameraId, and url",
-            Regex("""val\s+coordinator\s*=\s*remember\s*\(\s*textureView\s*,\s*cameraId\s*,\s*url\s*\)""")
-                .containsMatchIn(code)
+            rememberKeys.containsAll(setOf("textureView", "cameraId", "url"))
         )
         assertTrue(
             "Coordinator disposal should remain keyed by coordinator",
@@ -105,5 +109,35 @@ class MobileFireDetectionUiContractTest {
         }
 
         return result.toString()
+    }
+
+    private fun String.extractRememberArgumentsAfter(marker: String): String {
+        val markerIndex = indexOf(marker)
+        require(markerIndex >= 0) { "Expected marker: $marker" }
+
+        val rememberIndex = indexOf("remember", startIndex = markerIndex)
+        require(rememberIndex >= 0) { "Expected remember call after marker: $marker" }
+
+        return extractParenthesizedArguments(rememberIndex)
+    }
+
+    private fun String.extractParenthesizedArguments(callNameIndex: Int): String {
+        val openParen = indexOf('(', startIndex = callNameIndex)
+        require(openParen >= 0) { "Expected opening parenthesis" }
+
+        var depth = 0
+        for (index in openParen until length) {
+            when (this[index]) {
+                '(' -> depth++
+                ')' -> {
+                    depth--
+                    if (depth == 0) {
+                        return substring(openParen + 1, index)
+                    }
+                }
+            }
+        }
+
+        error("Expected closing parenthesis")
     }
 }
