@@ -130,11 +130,36 @@ async function readJsonBody(req: Request): Promise<Body | Response> {
   const contentLengthError = rejectOversizedContentLength(req);
   if (contentLengthError) return contentLengthError;
 
-  const text = await req.text();
-  const byteLength = new TextEncoder().encode(text).length;
-  if (byteLength > MAX_REQUEST_BYTES) {
-    return err("jpeg_base64 payload is too large", 413);
+  const reader = req.body?.getReader();
+  if (!reader) return err("Invalid JSON request body", 400);
+
+  const chunks: Uint8Array[] = [];
+  let totalByteLength = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+
+      totalByteLength += value.byteLength;
+      if (totalByteLength > MAX_REQUEST_BYTES) {
+        await reader.cancel();
+        return err("jpeg_base64 payload is too large", 413);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
   }
+
+  const bytes = new Uint8Array(totalByteLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  const text = new TextDecoder().decode(bytes);
 
   try {
     return JSON.parse(text) as Body;

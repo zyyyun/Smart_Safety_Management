@@ -55,15 +55,26 @@ Deno.test("index uses bounded request body read before parsing JSON", async () =
     new URL("./index.ts", import.meta.url),
   );
 
+  assertNotIncludes(text, "await req.text()");
+  assertNotIncludes(text, "req.text()");
   assertNotIncludes(text, "await req.json()");
+  assertNotIncludes(text, "req.json()");
   assertIncludes(text, "const bodyResult = await readJsonBody(req);");
   assertIncludes(text, "async function readJsonBody(req: Request): Promise<Body | Response>");
   assertIncludes(text, "rejectOversizedContentLength(req)");
-  assertIncludes(text, "const text = await req.text();");
-  assertIncludes(text, "new TextEncoder().encode(text).length");
+  assertIncludes(text, "const reader = req.body?.getReader();");
+  assertIncludes(text, 'if (!reader) return err("Invalid JSON request body", 400);');
+  assertIncludes(text, "const { done, value } = await reader.read();");
+  assertIncludes(text, "totalByteLength += value.byteLength;");
+  assertIncludes(text, "if (totalByteLength > MAX_REQUEST_BYTES)");
+  assertIncludes(text, "await reader.cancel();");
+  assertIncludes(text, "reader.releaseLock();");
+  assertIncludes(text, "const bytes = new Uint8Array(totalByteLength);");
+  assertIncludes(text, "new TextDecoder().decode(bytes)");
   assertIncludes(text, "JSON.parse(text) as Body");
   assertBefore(text, "const bodyResult = await readJsonBody(req);", "body.action");
-  assertBefore(text, "const text = await req.text();", "JSON.parse(text) as Body");
+  assertBefore(text, "if (totalByteLength > MAX_REQUEST_BYTES)", "JSON.parse(text) as Body");
+  assertBefore(text, "const text = new TextDecoder().decode(bytes);", "JSON.parse(text) as Body");
 });
 
 Deno.test("index rejects oversized JPEG payloads before decoding", async () => {
