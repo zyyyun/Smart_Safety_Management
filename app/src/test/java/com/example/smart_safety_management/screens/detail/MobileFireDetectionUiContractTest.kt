@@ -26,13 +26,18 @@ class MobileFireDetectionUiContractTest {
     @Test
     fun rtspBadgeUsesRealKoreanLabels() {
         val text = readSource("src/main/java/com/example/smart_safety_management/mobileai/RtspTexturePlayer.kt")
+        val expectedLabels = listOf(
+            "모바일 감지 꺼짐",
+            "모바일 감지 준비 중",
+            "모바일 감지 실행 중",
+            "화재 감지",
+            "모바일 감지 대기",
+            "감지 오류"
+        )
 
-        assertTrue(text.contains("모바일 감지 꺼짐"))
-        assertTrue(text.contains("모바일 감지 준비 중"))
-        assertTrue(text.contains("모바일 감지 실행 중"))
-        assertTrue(text.contains("화재 감지"))
-        assertTrue(text.contains("모바일 감지 대기"))
-        assertTrue(text.contains("감지 오류"))
+        expectedLabels.forEach { label ->
+            assertTrue("Expected badge label: $label", text.contains(label))
+        }
     }
 
     private fun readSource(path: String): String {
