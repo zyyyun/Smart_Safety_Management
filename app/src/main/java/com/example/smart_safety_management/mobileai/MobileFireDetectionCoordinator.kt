@@ -5,6 +5,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,12 +59,21 @@ class MobileFireDetectionCoordinator(
 
             val currentState = state.value
             if (currentState.canUpload && result.confidence != null) {
-                val eventId = uploader.upload(cameraId, frame, result.confidence)
-                reduce(MobileFireDetectionAction.UploadComplete(eventId))
+                try {
+                    val eventId = uploader.upload(cameraId, frame, result.confidence)
+                    reduce(MobileFireDetectionAction.UploadComplete(eventId))
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    reduce(MobileFireDetectionAction.Error(e.message ?: e.javaClass.simpleName))
+                }
             }
-        } catch (e: Throwable) {
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
             reduce(MobileFireDetectionAction.Error(e.message ?: e.javaClass.simpleName))
         } finally {
+            // RtspFrameSampler returns a caller-owned frame for this cycle.
             frame?.let { sampledFrame ->
                 if (!sampledFrame.isRecycled) {
                     sampledFrame.recycle()

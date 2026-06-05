@@ -22,6 +22,7 @@ object MobileFireDetectionReducer {
             is MobileFireDetectionAction.Error -> state.copy(
                 status = MobileFireDetectionStatus.ERROR,
                 canUpload = false,
+                cooldownUntilMs = 0L,
                 message = action.message
             )
         }

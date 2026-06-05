@@ -65,11 +65,13 @@ class MobileFireDetectionReducerTest {
     @Test
     fun errorStateKeepsMessage() {
         val state = MobileFireDetectionReducer.reduce(
-            MobileFireDetectionState(cameraId = 3),
+            MobileFireDetectionState(cameraId = 3, cooldownUntilMs = 12_000L, canUpload = true),
             MobileFireDetectionAction.Error("model load failed")
         )
 
         assertEquals(MobileFireDetectionStatus.ERROR, state.status)
         assertEquals("model load failed", state.message)
+        assertEquals(0L, state.cooldownUntilMs)
+        assertFalse(state.canUpload)
     }
 }

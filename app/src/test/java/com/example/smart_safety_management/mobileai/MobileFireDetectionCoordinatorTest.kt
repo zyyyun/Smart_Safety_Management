@@ -6,6 +6,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,7 +20,7 @@ class MobileFireDetectionCoordinatorTest {
         val frame = Bitmap.createBitmap(12, 12, Bitmap.Config.ARGB_8888).apply {
             eraseColor(Color.RED)
         }
-        val sampler = FakeSampler(frame)
+        val sampler = FakeSampler { frame }
         val detector = FakeDetector(MobileFireResult(detected = true, confidence = 0.82f))
         val uploader = FakeUploader(eventId = 123)
         val coordinator = MobileFireDetectionCoordinator(
@@ -46,14 +47,55 @@ class MobileFireDetectionCoordinatorTest {
         coordinator.close()
     }
 
+    @Test
+    fun failedUploadClearsCooldownAndAllowsNextDetectionCycleToRetry() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val frames = ArrayDeque(
+            listOf(
+                Bitmap.createBitmap(12, 12, Bitmap.Config.ARGB_8888),
+                Bitmap.createBitmap(12, 12, Bitmap.Config.ARGB_8888)
+            )
+        )
+        val sampler = FakeSampler { frames.removeFirstOrNull() }
+        val detector = FakeDetector(MobileFireResult(detected = true, confidence = 0.9f))
+        val uploader = FakeUploader(eventId = 321, failFirstUpload = true)
+        val coordinator = MobileFireDetectionCoordinator(
+            cameraId = 5,
+            sampler = sampler,
+            detector = detector,
+            uploader = uploader,
+            sampleIntervalMs = 1_000L,
+            cooldownMs = 10_000L,
+            nowMs = { 1_000L },
+            loopDispatcher = dispatcher,
+            samplerDispatcher = dispatcher
+        )
+
+        coordinator.runOneCycle()
+
+        assertEquals(MobileFireDetectionStatus.ERROR, coordinator.state.value.status)
+        assertEquals(0L, coordinator.state.value.cooldownUntilMs)
+        assertFalse(coordinator.state.value.canUpload)
+        assertEquals(1, uploader.uploads.size)
+
+        coordinator.runOneCycle()
+
+        assertEquals(2, sampler.sampleCount)
+        assertEquals(2, detector.detectCount)
+        assertEquals(2, uploader.uploads.size)
+        assertEquals(321, coordinator.state.value.lastUploadEventId)
+
+        coordinator.close()
+    }
+
     private class FakeSampler(
-        private val frame: Bitmap
+        private val nextFrame: () -> Bitmap?
     ) : RtspFrameSampler {
         var sampleCount = 0
 
         override fun sampleFrame(width: Int, height: Int): Bitmap? {
             sampleCount += 1
-            return frame
+            return nextFrame()
         }
     }
 
@@ -71,12 +113,16 @@ class MobileFireDetectionCoordinatorTest {
     }
 
     private class FakeUploader(
-        private val eventId: Int
+        private val eventId: Int,
+        private val failFirstUpload: Boolean = false
     ) : MobileFireUploader {
         val uploads = mutableListOf<Upload>()
 
         override suspend fun upload(cameraId: Int, frame: Bitmap, confidence: Float): Int? {
             uploads += Upload(cameraId = cameraId, confidence = confidence)
+            if (failFirstUpload && uploads.size == 1) {
+                throw IllegalStateException("upload failed")
+            }
             return eventId
         }
     }
