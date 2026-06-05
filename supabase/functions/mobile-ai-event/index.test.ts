@@ -29,32 +29,44 @@ Deno.test("index uses canonical Korean fire event name", async () => {
   assertIncludes(text, 'const FIRE_EVENT_NAME = "화재";');
 });
 
-Deno.test("index checks authenticated camera visibility before service-role upload", async () => {
+Deno.test("index binds authenticated camera visibility to registered device token before upload", async () => {
   const text = await Deno.readTextFile(
     new URL("./index.ts", import.meta.url),
   );
 
   assertIncludes(text, 'const userId = nonEmptyString(body.user_id);');
   assertIncludes(text, 'if (!userId) return err("user_id is required");');
-  assertIncludes(text, 'await requireVisibleCamera(admin, userId, cameraId)');
+  assertIncludes(text, 'const fcmToken = nonEmptyString(body.fcm_token);');
+  assertIncludes(text, 'if (!fcmToken) return err("fcm_token is required");');
+  assertIncludes(text, "fcmToken,");
   assertIncludes(text, 'from("profiles")');
-  assertIncludes(text, 'select("group_id,user_role")');
+  assertIncludes(text, 'select("group_id,user_role,fcm_token")');
   assertIncludes(text, 'select("camera_id,group_id")');
+  assertIncludes(text, "String((profile as Row).fcm_token) !== fcmToken");
   assertIncludes(text, 'return err("Camera not visible for current user", 403)');
   assertBefore(text, "await requireVisibleCamera", "decodeJpegBase64");
   assertBefore(text, "await requireVisibleCamera", ".upload(path");
 });
 
-Deno.test("index rejects oversized payloads before decoding", async () => {
+Deno.test("index rejects oversized content length before parsing JSON", async () => {
+  const text = await Deno.readTextFile(
+    new URL("./index.ts", import.meta.url),
+  );
+
+  assertIncludes(text, "rejectOversizedContentLength(req)");
+  assertBefore(text, "rejectOversizedContentLength(req)", "await req.json()");
+});
+
+Deno.test("index rejects oversized JPEG payloads before decoding", async () => {
   const text = await Deno.readTextFile(
     new URL("./index.ts", import.meta.url),
   );
 
   assertIncludes(text, "MAX_JPEG_BYTES");
   assertIncludes(text, "MAX_JPEG_BASE64_LENGTH");
-  assertIncludes(text, "content-length");
+  assertIncludes(text, "rejectOversizedJpegBase64");
   assertIncludes(text, "jpeg_base64 payload is too large");
-  assertBefore(text, "rejectOversizedRequest", "decodeJpegBase64");
+  assertBefore(text, "rejectOversizedJpegBase64", "decodeJpegBase64");
 });
 
 function assertEquals(actual: unknown, expected: unknown) {

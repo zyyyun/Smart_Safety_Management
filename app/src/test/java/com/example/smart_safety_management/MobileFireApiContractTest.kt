@@ -19,6 +19,7 @@ class MobileFireApiContractTest {
 
         assertTrue(text.contains("data class CreateMobileFireEventRequest"))
         assertTrue(text.contains("@SerializedName(\"user_id\") val userId: String"))
+        assertTrue(text.contains("@SerializedName(\"fcm_token\") val fcmToken: String"))
         assertTrue(text.contains("fun createMobileFireEvent"))
     }
 

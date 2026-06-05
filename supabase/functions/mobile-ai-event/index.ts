@@ -22,6 +22,9 @@ Deno.serve(async (req: Request) => {
     const authError = authenticateRequest(req);
     if (authError) return authError;
 
+    const contentLengthError = rejectOversizedContentLength(req);
+    if (contentLengthError) return contentLengthError;
+
     const body = await req.json() as Body;
     if (body.action !== "create_mobile_fire_event") {
       return err(`Unknown action: ${String(body.action ?? "")}`);
@@ -33,14 +36,22 @@ Deno.serve(async (req: Request) => {
     const userId = nonEmptyString(body.user_id);
     if (!userId) return err("user_id is required");
 
+    const fcmToken = nonEmptyString(body.fcm_token);
+    if (!fcmToken) return err("fcm_token is required");
+
     const jpegBase64 = nonEmptyString(body.jpeg_base64);
     if (!jpegBase64) return err("jpeg_base64 is required");
 
-    const sizeError = rejectOversizedRequest(req, jpegBase64);
+    const sizeError = rejectOversizedJpegBase64(jpegBase64);
     if (sizeError) return sizeError;
 
     const admin = createAdminClient();
-    const visibilityError = await requireVisibleCamera(admin, userId, cameraId);
+    const visibilityError = await requireVisibleCamera(
+      admin,
+      userId,
+      fcmToken,
+      cameraId,
+    );
     if (visibilityError) return visibilityError;
 
     const jpegBytes = decodeJpegBase64(jpegBase64);
@@ -105,7 +116,7 @@ function nonEmptyString(value: unknown) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function rejectOversizedRequest(req: Request, jpegBase64: string) {
+function rejectOversizedContentLength(req: Request) {
   const contentLength = req.headers.get("content-length");
   if (contentLength) {
     const parsed = Number(contentLength);
@@ -113,6 +124,10 @@ function rejectOversizedRequest(req: Request, jpegBase64: string) {
       return err("jpeg_base64 payload is too large", 413);
     }
   }
+  return null;
+}
+
+function rejectOversizedJpegBase64(jpegBase64: string) {
   if (jpegBase64.length > MAX_JPEG_BASE64_LENGTH) {
     return err("jpeg_base64 payload is too large", 413);
   }
@@ -149,10 +164,15 @@ function randomPathSuffix() {
   return crypto.randomUUID().replaceAll("-", "").slice(0, 12);
 }
 
-async function requireVisibleCamera(admin: Admin, userId: string, cameraId: number) {
+async function requireVisibleCamera(
+  admin: Admin,
+  userId: string,
+  fcmToken: string,
+  cameraId: number,
+) {
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("group_id,user_role")
+    .select("group_id,user_role,fcm_token")
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -167,6 +187,7 @@ async function requireVisibleCamera(admin: Admin, userId: string, cameraId: numb
     cameraError ||
     !profile ||
     !camera ||
+    String((profile as Row).fcm_token) !== fcmToken ||
     String((profile as Row).group_id) !== String((camera as Row).group_id)
   ) {
     return err("Camera not visible for current user", 403);

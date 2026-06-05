@@ -272,6 +272,7 @@ data class DetectionEventDetailResponse(
 data class CreateMobileFireEventRequest(
     @SerializedName("camera_id") val cameraId: Int,
     @SerializedName("user_id") val userId: String,
+    @SerializedName("fcm_token") val fcmToken: String,
     @SerializedName("accuracy") val accuracy: Double,
     @SerializedName("jpeg_base64") val jpegBase64: String
 )
