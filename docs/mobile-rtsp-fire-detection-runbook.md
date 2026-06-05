@@ -35,6 +35,11 @@ Deploy the mobile event endpoint:
 supabase functions deploy mobile-ai-event
 ```
 
+The endpoint requires a real authenticated user bearer token. The app stores
+`access_token` or `auth_token` from the login response and sends it only for the
+mobile fire upload call. Requests that only carry the public Supabase anon key
+must be rejected before any JPEG decode, Storage upload, or event creation.
+
 The function creates the same AI event contract used by the existing AI Event UI and stores detected frames under:
 
 ```text
@@ -45,6 +50,7 @@ camera-captures/detection/{cameraId}/fire_{cameraId}_{timestamp}_*.jpg
 
 1. Install the debug APK on the Android test phone.
 2. Log in as a manager account that has access to the target camera group.
+   The login response must include `access_token` or `auth_token`.
 3. Open `AI감지` once to confirm the current event list loads.
 4. Open `실시간상황`.
 5. Tap the Drift RTSP camera.

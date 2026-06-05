@@ -11,15 +11,23 @@ class MobileFireApiContractTest {
         val text = sourceText("src/main/java/com/example/smart_safety_management/RetrofitClient.kt")
 
         assertTrue(text.contains("\"/create_mobile_fire_event\" to Route(\"mobile-ai-event\", \"create_mobile_fire_event\")"))
+        assertTrue(
+            Regex("""private\s+fun\s+buildPostWithAction[\s\S]*?return\s+original\.newBuilder\(\)""")
+                .containsMatchIn(text)
+        )
     }
 
     @Test
     fun signUpServiceDefinesMobileFireEventApi() {
         val text = sourceText("src/main/java/com/example/smart_safety_management/SignUpService.kt")
 
+        assertTrue(text.contains("@SerializedName(\"access_token\") val accessToken: String? = null"))
+        assertTrue(text.contains("@SerializedName(\"auth_token\") val authToken: String? = null"))
+        assertTrue(text.contains("@SerializedName(\"token\") val token: String? = null"))
         assertTrue(text.contains("data class CreateMobileFireEventRequest"))
         assertTrue(text.contains("@SerializedName(\"user_id\") val userId: String"))
         assertTrue(text.contains("@SerializedName(\"fcm_token\") val fcmToken: String"))
+        assertTrue(text.contains("@Header(\"Authorization\") authorization: String"))
         assertTrue(text.contains("fun createMobileFireEvent"))
     }
 

@@ -34,18 +34,29 @@ Deno.test("index binds authenticated camera visibility to registered device toke
     new URL("./index.ts", import.meta.url),
   );
 
+  assertIncludes(text, "const admin = createAdminClient();");
+  assertIncludes(text, "const authResult = await authenticateRequest(req, admin);");
+  assertIncludes(text, "if (authResult instanceof Response) return authResult;");
+  assertIncludes(text, "token === Deno.env.get(\"SUPABASE_ANON_KEY\")");
+  assertIncludes(text, "admin.auth.getUser(token)");
+  assertIncludes(text, "return { authUserId };");
   assertIncludes(text, 'const userId = nonEmptyString(body.user_id);');
   assertIncludes(text, 'if (!userId) return err("user_id is required");');
   assertIncludes(text, 'const fcmToken = nonEmptyString(body.fcm_token);');
   assertIncludes(text, 'if (!fcmToken) return err("fcm_token is required");');
+  assertIncludes(text, "authResult.authUserId,");
   assertIncludes(text, "fcmToken,");
   assertIncludes(text, 'from("profiles")');
-  assertIncludes(text, 'select("group_id,user_role,fcm_token")');
+  assertIncludes(text, 'select("id,user_id,group_id,user_role,fcm_token")');
+  assertIncludes(text, '.eq("id", authUserId)');
   assertIncludes(text, 'select("camera_id,group_id")');
   assertIncludes(text, "const profileFcmToken = nonEmptyString((profile as Row).fcm_token);");
+  assertIncludes(text, "const profileUserId = nonEmptyString((profile as Row).user_id);");
+  assertIncludes(text, "profileUserId !== userId && profileAuthId !== userId");
   assertIncludes(text, "!profileFcmToken ||");
   assertIncludes(text, "profileFcmToken !== fcmToken");
   assertIncludes(text, 'return err("Camera not visible for current user", 403)');
+  assertBefore(text, "await authenticateRequest", "const bodyResult = await readJsonBody(req);");
   assertBefore(text, "await requireVisibleCamera", "decodeJpegBase64");
   assertBefore(text, "await requireVisibleCamera", ".upload(path");
 });

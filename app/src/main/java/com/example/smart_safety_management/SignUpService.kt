@@ -7,6 +7,7 @@ import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
@@ -66,7 +67,10 @@ data class LoginRequest(
 
 data class LoginResponse(
     val message: String,
-    val user: UserData?
+    val user: UserData?,
+    @SerializedName("access_token") val accessToken: String? = null,
+    @SerializedName("auth_token") val authToken: String? = null,
+    @SerializedName("token") val token: String? = null
 )
 
 data class UserData(
@@ -703,7 +707,10 @@ interface SignUpService {
     fun getDetectionEventDetail(@Query("event_id") eventId: Int): Call<DetectionEventDetailResponse>
 
     @POST("/create_mobile_fire_event")
-    fun createMobileFireEvent(@Body request: CreateMobileFireEventRequest): Call<CreateMobileFireEventResponse>
+    fun createMobileFireEvent(
+        @Header("Authorization") authorization: String,
+        @Body request: CreateMobileFireEventRequest
+    ): Call<CreateMobileFireEventResponse>
 
     @GET("/get_workplace")
     fun getWorkplace(@Query("user_id") userId: String): Call<GetWorkplaceResponse>

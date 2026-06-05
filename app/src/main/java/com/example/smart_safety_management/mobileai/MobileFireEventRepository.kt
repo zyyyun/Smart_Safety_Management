@@ -22,12 +22,16 @@ interface MobileFireUploader {
 
 class MobileFireEventRepository(
     private val userIdProvider: () -> String? = { UserSession.userId },
+    private val authTokenProvider: () -> String? = { UserSession.authToken },
     private val fcmTokenProvider: suspend () -> String? = { fetchFirebaseMessagingToken() },
     private val serviceProvider: () -> SignUpService = { RetrofitClient.instance }
 ) : MobileFireUploader {
     override suspend fun upload(cameraId: Int, frame: Bitmap, confidence: Float): Int? {
         val userId = userIdProvider()?.trim()
         require(!userId.isNullOrEmpty()) { "userId is required" }
+
+        val authorization = bearerAuthHeader(authTokenProvider()?.trim())
+        require(!authorization.isNullOrEmpty()) { "authenticated user token is required" }
 
         val fcmToken = fcmTokenProvider()?.trim()
         require(!fcmToken.isNullOrEmpty()) { "fcmToken is required" }
@@ -41,7 +45,7 @@ class MobileFireEventRepository(
         )
 
         return suspendCancellableCoroutine { continuation ->
-            val call = serviceProvider().createMobileFireEvent(request)
+            val call = serviceProvider().createMobileFireEvent(authorization, request)
             continuation.invokeOnCancellation { call.cancel() }
             call.enqueue(object : Callback<CreateMobileFireEventResponse> {
                 override fun onResponse(
@@ -82,6 +86,16 @@ class MobileFireEventRepository(
                         )
                     }
                 }
+            }
+        }
+
+        fun bearerAuthHeader(token: String?): String? {
+            val trimmed = token?.trim()
+            if (trimmed.isNullOrEmpty()) return null
+            return if (trimmed.startsWith("Bearer ", ignoreCase = true)) {
+                trimmed
+            } else {
+                "Bearer $trimmed"
             }
         }
     }

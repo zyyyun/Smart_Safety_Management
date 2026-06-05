@@ -6,6 +6,7 @@ import { buildCapturePath, normalizeAccuracy } from "./helpers.ts";
 type Body = Record<string, unknown>;
 type Admin = ReturnType<typeof createAdminClient>;
 type Row = Record<string, unknown>;
+type AuthenticatedCaller = { authUserId: string };
 
 const CAPTURE_BUCKET = "camera-captures";
 const MIN_JPEG_BYTES = 1024;
@@ -19,8 +20,9 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return err("Method not allowed", 405);
 
   try {
-    const authError = authenticateRequest(req);
-    if (authError) return authError;
+    const admin = createAdminClient();
+    const authResult = await authenticateRequest(req, admin);
+    if (authResult instanceof Response) return authResult;
 
     const bodyResult = await readJsonBody(req);
     if (bodyResult instanceof Response) return bodyResult;
@@ -44,9 +46,9 @@ Deno.serve(async (req: Request) => {
     const sizeError = rejectOversizedJpegBase64(jpegBase64);
     if (sizeError) return sizeError;
 
-    const admin = createAdminClient();
     const visibilityError = await requireVisibleCamera(
       admin,
+      authResult.authUserId,
       userId,
       fcmToken,
       cameraId,
@@ -90,12 +92,30 @@ Deno.serve(async (req: Request) => {
   }
 });
 
-function authenticateRequest(req: Request) {
+async function authenticateRequest(
+  req: Request,
+  admin: Admin,
+): Promise<AuthenticatedCaller | Response> {
   const authHeader = req.headers.get("Authorization")?.trim();
   if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
     return err("Authorization bearer token is required", 401);
   }
-  return null;
+  const token = authHeader.slice("Bearer ".length).trim();
+  if (
+    !token ||
+    token === Deno.env.get("SUPABASE_ANON_KEY") ||
+    token === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+  ) {
+    return err("Authenticated user token is required", 401);
+  }
+
+  const { data, error: authError } = await admin.auth.getUser(token);
+  const authUserId = data?.user?.id;
+  if (authError || !authUserId) {
+    return err("Authenticated user token is invalid", 401);
+  }
+
+  return { authUserId };
 }
 
 function positiveInteger(value: unknown) {
@@ -207,14 +227,15 @@ function randomPathSuffix() {
 
 async function requireVisibleCamera(
   admin: Admin,
+  authUserId: string,
   userId: string,
   fcmToken: string,
   cameraId: number,
 ) {
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("group_id,user_role,fcm_token")
-    .eq("user_id", userId)
+    .select("id,user_id,group_id,user_role,fcm_token")
+    .eq("id", authUserId)
     .maybeSingle();
 
   const { data: camera, error: cameraError } = await admin
@@ -233,8 +254,12 @@ async function requireVisibleCamera(
   }
 
   const profileFcmToken = nonEmptyString((profile as Row).fcm_token);
+  const profileUserId = nonEmptyString((profile as Row).user_id);
+  const profileAuthId = nonEmptyString((profile as Row).id);
 
   if (
+    !profileUserId ||
+    (profileUserId !== userId && profileAuthId !== userId) ||
     !profileFcmToken ||
     profileFcmToken !== fcmToken ||
     String((profile as Row).group_id) !== String((camera as Row).group_id)

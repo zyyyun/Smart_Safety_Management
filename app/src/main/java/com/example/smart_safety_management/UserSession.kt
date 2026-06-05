@@ -14,6 +14,7 @@ object UserSession {
     private const val KEY_GROUP_ID = "group_id"
     private const val KEY_INVITE_CODE = "invite_code" // 추가
     private const val KEY_IS_LOGGED_IN = "is_logged_in"
+    private const val KEY_AUTH_TOKEN = "auth_token"
     
     private const val KEY_INVITE_CHECKED_PREFIX = "invite_checked_"
 
@@ -25,6 +26,7 @@ object UserSession {
     var profileImageUri: String? = null
     var groupId: String? = null
     var inviteCode: String? = null // 현재 사용자의 초대코드 (관리자용)
+    var authToken: String? = null
     
     var isInviteChecked: Boolean = false
 
@@ -39,6 +41,7 @@ object UserSession {
             putString(KEY_PROFILE_IMAGE, profileImageUri)
             putString(KEY_GROUP_ID, groupId)
             putString(KEY_INVITE_CODE, inviteCode) // 저장
+            putString(KEY_AUTH_TOKEN, authToken)
             putBoolean(KEY_IS_LOGGED_IN, true)
             
             userId?.let {
@@ -58,6 +61,7 @@ object UserSession {
             userEmail = prefs.getString(KEY_USER_EMAIL, null)
             groupId = prefs.getString(KEY_GROUP_ID, null)
             inviteCode = prefs.getString(KEY_INVITE_CODE, null) // 로드
+            authToken = prefs.getString(KEY_AUTH_TOKEN, null)
             val roleStr = prefs.getString(KEY_USER_ROLE, UserRole.MANAGER.name)
             userRole = if (roleStr == UserRole.WORKER.name) UserRole.WORKER else UserRole.MANAGER
             profileImageUri = prefs.getString(KEY_PROFILE_IMAGE, null)
@@ -81,6 +85,7 @@ object UserSession {
         profileImageUri = null
         groupId = null
         inviteCode = null
+        authToken = null
         isInviteChecked = false
     }
 }

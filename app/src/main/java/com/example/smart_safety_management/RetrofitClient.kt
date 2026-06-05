@@ -257,10 +257,10 @@ class SupabaseRoutingInterceptor : Interceptor {
             .query(null) // drop query params
             .build()
 
-        return Request.Builder()
+        return original.newBuilder()
             .url(newUrl)
             .post(json.toString().toRequestBody(jsonMediaType))
-            .addHeader("Content-Type", "application/json")
+            .header("Content-Type", "application/json")
             .build()
     }
 
@@ -290,10 +290,10 @@ class SupabaseRoutingInterceptor : Interceptor {
             .query(null)
             .build()
 
-        return Request.Builder()
+        return original.newBuilder()
             .url(newUrl)
             .post(json.toString().toRequestBody(jsonMediaType))
-            .addHeader("Content-Type", "application/json")
+            .header("Content-Type", "application/json")
             .build()
     }
 

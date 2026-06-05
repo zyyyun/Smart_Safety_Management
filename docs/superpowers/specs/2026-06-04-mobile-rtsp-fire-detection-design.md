@@ -109,6 +109,8 @@ Responsibilities:
 
 The upload contract should match the PC `ai_agent` output as closely as possible. The AI Event detail screen should not need a new data model for this PoC.
 
+The mobile endpoint must fail closed unless the request includes an authenticated user bearer token. The token subject must resolve to the same `profiles` row as the body `user_id`, and the profile's registered FCM token and camera group must match before any image decode, Storage upload, or event creation happens.
+
 ## UI Placement
 
 The PoC belongs in the real-time RTSP card/detail flow.

@@ -70,6 +70,7 @@ class LogInActivity : AppCompatActivity() {
                             UserSession.groupId = body.user.groupId
                             UserSession.inviteCode = body.user.inviteCode // 초대코드 저장 추가
                             UserSession.isInviteChecked = body.user.isInviteChecked // DB 값으로 동기화
+                            UserSession.authToken = body.accessToken ?: body.authToken ?: body.token
 
                             // 2. 역할 설정
                             if (body.user.userRole == "manager" || body.user.userRole == "general_manager") {
