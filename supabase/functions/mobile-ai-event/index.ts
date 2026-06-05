@@ -22,10 +22,9 @@ Deno.serve(async (req: Request) => {
     const authError = authenticateRequest(req);
     if (authError) return authError;
 
-    const contentLengthError = rejectOversizedContentLength(req);
-    if (contentLengthError) return contentLengthError;
-
-    const body = await req.json() as Body;
+    const bodyResult = await readJsonBody(req);
+    if (bodyResult instanceof Response) return bodyResult;
+    const body = bodyResult;
     if (body.action !== "create_mobile_fire_event") {
       return err(`Unknown action: ${String(body.action ?? "")}`);
     }
@@ -127,6 +126,23 @@ function rejectOversizedContentLength(req: Request) {
   return null;
 }
 
+async function readJsonBody(req: Request): Promise<Body | Response> {
+  const contentLengthError = rejectOversizedContentLength(req);
+  if (contentLengthError) return contentLengthError;
+
+  const text = await req.text();
+  const byteLength = new TextEncoder().encode(text).length;
+  if (byteLength > MAX_REQUEST_BYTES) {
+    return err("jpeg_base64 payload is too large", 413);
+  }
+
+  try {
+    return JSON.parse(text) as Body;
+  } catch {
+    return err("Invalid JSON request body", 400);
+  }
+}
+
 function rejectOversizedJpegBase64(jpegBase64: string) {
   if (jpegBase64.length > MAX_JPEG_BASE64_LENGTH) {
     return err("jpeg_base64 payload is too large", 413);
@@ -186,8 +202,16 @@ async function requireVisibleCamera(
     profileError ||
     cameraError ||
     !profile ||
-    !camera ||
-    String((profile as Row).fcm_token) !== fcmToken ||
+    !camera
+  ) {
+    return err("Camera not visible for current user", 403);
+  }
+
+  const profileFcmToken = nonEmptyString((profile as Row).fcm_token);
+
+  if (
+    !profileFcmToken ||
+    profileFcmToken !== fcmToken ||
     String((profile as Row).group_id) !== String((camera as Row).group_id)
   ) {
     return err("Camera not visible for current user", 403);

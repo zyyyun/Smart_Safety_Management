@@ -42,19 +42,28 @@ Deno.test("index binds authenticated camera visibility to registered device toke
   assertIncludes(text, 'from("profiles")');
   assertIncludes(text, 'select("group_id,user_role,fcm_token")');
   assertIncludes(text, 'select("camera_id,group_id")');
-  assertIncludes(text, "String((profile as Row).fcm_token) !== fcmToken");
+  assertIncludes(text, "const profileFcmToken = nonEmptyString((profile as Row).fcm_token);");
+  assertIncludes(text, "!profileFcmToken ||");
+  assertIncludes(text, "profileFcmToken !== fcmToken");
   assertIncludes(text, 'return err("Camera not visible for current user", 403)');
   assertBefore(text, "await requireVisibleCamera", "decodeJpegBase64");
   assertBefore(text, "await requireVisibleCamera", ".upload(path");
 });
 
-Deno.test("index rejects oversized content length before parsing JSON", async () => {
+Deno.test("index uses bounded request body read before parsing JSON", async () => {
   const text = await Deno.readTextFile(
     new URL("./index.ts", import.meta.url),
   );
 
+  assertNotIncludes(text, "await req.json()");
+  assertIncludes(text, "const bodyResult = await readJsonBody(req);");
+  assertIncludes(text, "async function readJsonBody(req: Request): Promise<Body | Response>");
   assertIncludes(text, "rejectOversizedContentLength(req)");
-  assertBefore(text, "rejectOversizedContentLength(req)", "await req.json()");
+  assertIncludes(text, "const text = await req.text();");
+  assertIncludes(text, "new TextEncoder().encode(text).length");
+  assertIncludes(text, "JSON.parse(text) as Body");
+  assertBefore(text, "const bodyResult = await readJsonBody(req);", "body.action");
+  assertBefore(text, "const text = await req.text();", "JSON.parse(text) as Body");
 });
 
 Deno.test("index rejects oversized JPEG payloads before decoding", async () => {
@@ -78,6 +87,12 @@ function assertEquals(actual: unknown, expected: unknown) {
 function assertIncludes(actual: string, expected: string) {
   if (!actual.includes(expected)) {
     throw new Error(`Expected source to contain ${expected}`);
+  }
+}
+
+function assertNotIncludes(actual: string, expected: string) {
+  if (actual.includes(expected)) {
+    throw new Error(`Expected source not to contain ${expected}`);
   }
 }
 
