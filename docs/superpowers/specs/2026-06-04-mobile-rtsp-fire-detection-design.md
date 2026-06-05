@@ -120,8 +120,9 @@ Initial UI:
   - `모바일 감지 꺼짐`
   - `모바일 감지 준비 중`
   - `모바일 감지 실행 중`
-  - `화재 감지됨`
-  - `모바일 감지 오류`
+  - `화재 감지`
+  - `모바일 감지 대기`
+  - `감지 오류`
 - Optional compact diagnostics for development builds:
   - last inference milliseconds
   - last sampled time
@@ -141,7 +142,7 @@ The UI should not introduce a separate lab screen for the first build. This keep
    - upload it to Supabase Storage,
    - create/register the capture,
    - create/register the detection event,
-   - update UI to `화재 감지됨`,
+   - update UI to `화재 감지`,
    - enter cooldown.
 7. Existing AI Event UI displays the new event using the stored capture image.
 
@@ -149,7 +150,7 @@ The UI should not introduce a separate lab screen for the first build. This keep
 
 - RTSP playback unavailable:
   - keep the existing playback error UI,
-  - show `모바일 감지 오류`,
+  - show `감지 오류`,
   - do not attempt inference.
 - Model missing or load failure:
   - disable mobile detection for that session,
@@ -200,6 +201,11 @@ The UI should not introduce a separate lab screen for the first build. This keep
   - record inference time,
   - run 3-5 minutes,
   - observe app stability, battery drain, and device heat.
+
+## Implementation Plan
+
+Implementation is tracked in `docs/superpowers/plans/2026-06-04-mobile-rtsp-fire-detection.md`.
+Operational verification steps are tracked in `docs/mobile-rtsp-fire-detection-runbook.md`.
 
 ## References
 
