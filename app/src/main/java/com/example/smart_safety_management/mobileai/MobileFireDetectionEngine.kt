@@ -12,7 +12,7 @@ import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 
-class MobileFireDetectionEngine(context: Context) : AutoCloseable {
+class MobileFireDetectionEngine(context: Context) : MobileFireDetector {
     private val appContext = context.applicationContext
     private var interpreter: Interpreter? = null
     private var loadError: Throwable? = null
@@ -68,6 +68,8 @@ class MobileFireDetectionEngine(context: Context) : AutoCloseable {
             sampledAtMs = sampledAtMs
         )
     }
+
+    override fun detectFrame(frame: Bitmap): MobileFireResult = detect(frame)
 
     @Synchronized
     override fun close() {
