@@ -8,10 +8,22 @@ import java.nio.file.Paths
 class MobileFireDetectionUiContractTest {
     @Test
     fun internalDetailUsesRtspMobileDetectionPlayerForRtspUrls() {
-        val text = readSource("src/main/java/com/example/smart_safety_management/screens/detail/InternalDetail.kt")
+        val source = readSource("src/main/java/com/example/smart_safety_management/screens/detail/InternalDetail.kt")
+        val code = source.withoutComments()
 
-        assertTrue(text.contains("RtspMobileDetectionPlayer("))
-        assertTrue(text.contains("MobileFireDetectionBadge("))
+        assertTrue(
+            "RTSP and RTSPS URL branches should be detected in code",
+            code.contains("trimmedUrl.startsWith(\"rtsp://\", ignoreCase = true)") &&
+                code.contains("trimmedUrl.startsWith(\"rtsps://\", ignoreCase = true)")
+        )
+        assertTrue(
+            "RTSP/RSTPS branch should route through mobile detection",
+            code.contains("RtspMobileDetectionPlayer(")
+        )
+        assertTrue(
+            "Non-RTSP video branch should keep the VideoPlayer fallback",
+            code.contains("else {\n                VideoPlayer(url = trimmedUrl, modifier = Modifier.fillMaxSize())")
+        )
     }
 
     @Test
@@ -21,6 +33,26 @@ class MobileFireDetectionUiContractTest {
         assertTrue(text.contains("TextureView"))
         assertTrue(text.contains("TextureViewFrameSampler"))
         assertTrue(text.contains("MobileFireDetectionCoordinator"))
+    }
+
+    @Test
+    fun rtspCoordinatorResetsWhenUrlChanges() {
+        val code = readSource("src/main/java/com/example/smart_safety_management/mobileai/RtspTexturePlayer.kt")
+            .withoutComments()
+
+        assertTrue(
+            "Coordinator remember keys should include textureView, cameraId, and url",
+            Regex("""val\s+coordinator\s*=\s*remember\s*\(\s*textureView\s*,\s*cameraId\s*,\s*url\s*\)""")
+                .containsMatchIn(code)
+        )
+        assertTrue(
+            "Coordinator disposal should remain keyed by coordinator",
+            code.contains("DisposableEffect(coordinator)")
+        )
+        assertTrue(
+            "Coordinator start should restart when coordinator changes",
+            code.contains("LaunchedEffect(coordinator)")
+        )
     }
 
     @Test
@@ -42,5 +74,36 @@ class MobileFireDetectionUiContractTest {
 
     private fun readSource(path: String): String {
         return String(Files.readAllBytes(Paths.get(path)), Charsets.UTF_8)
+    }
+
+    private fun String.withoutComments(): String {
+        val result = StringBuilder(length)
+        var index = 0
+        var inString = false
+
+        while (index < length) {
+            val current = this[index]
+            val next = getOrNull(index + 1)
+
+            when {
+                !inString && current == '/' && next == '/' -> {
+                    index = indexOf('\n', startIndex = index).takeIf { it >= 0 } ?: length
+                }
+                !inString && current == '/' && next == '*' -> {
+                    index = indexOf("*/", startIndex = index + 2).takeIf { it >= 0 }?.plus(2) ?: length
+                }
+                current == '"' && (index == 0 || this[index - 1] != '\\') -> {
+                    inString = !inString
+                    result.append(current)
+                    index++
+                }
+                else -> {
+                    result.append(current)
+                    index++
+                }
+            }
+        }
+
+        return result.toString()
     }
 }

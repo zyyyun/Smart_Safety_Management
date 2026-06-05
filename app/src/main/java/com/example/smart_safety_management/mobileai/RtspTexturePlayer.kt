@@ -40,7 +40,7 @@ fun RtspMobileDetectionPlayer(
     val context = LocalContext.current
     var textureView by remember { mutableStateOf<TextureView?>(null) }
     val defaultState = remember { MutableStateFlow(MobileFireDetectionState()) }
-    val coordinator = remember(textureView, cameraId) {
+    val coordinator = remember(textureView, cameraId, url) {
         val view = textureView
         if (view != null && cameraId > 0) {
             MobileFireDetectionCoordinator(
