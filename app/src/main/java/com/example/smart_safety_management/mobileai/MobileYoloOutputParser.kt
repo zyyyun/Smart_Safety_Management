@@ -1,6 +1,51 @@
 package com.example.smart_safety_management.mobileai
 
 object MobileYoloOutputParser {
+    fun summarizeRows(rows: Array<FloatArray>): MobileYoloScoreSummary {
+        var maxScore = Float.NEGATIVE_INFINITY
+        var maxClassValue = Float.NEGATIVE_INFINITY
+        var maxCombinedScore = Float.NEGATIVE_INFINITY
+        var scoreAbove02 = 0
+        var scoreAbove03 = 0
+        var scoreAbove05 = 0
+        var bestScoreRow: FloatArray? = null
+        var bestCombinedRow: FloatArray? = null
+
+        for (row in rows) {
+            if (row.size < ROW_SIZE) continue
+
+            val score = row[SCORE_INDEX]
+            val classValue = row[CLASS_ID_INDEX]
+            val combined = score * classValue
+
+            if (score >= 0.20f) scoreAbove02 += 1
+            if (score >= 0.30f) scoreAbove03 += 1
+            if (score >= 0.50f) scoreAbove05 += 1
+            if (score > maxScore) {
+                maxScore = score
+                bestScoreRow = row
+            }
+            if (classValue > maxClassValue) {
+                maxClassValue = classValue
+            }
+            if (combined > maxCombinedScore) {
+                maxCombinedScore = combined
+                bestCombinedRow = row
+            }
+        }
+
+        return MobileYoloScoreSummary(
+            maxScore = if (maxScore.isFinite()) maxScore else 0f,
+            maxClassValue = if (maxClassValue.isFinite()) maxClassValue else 0f,
+            maxCombinedScore = if (maxCombinedScore.isFinite()) maxCombinedScore else 0f,
+            scoreAbove02 = scoreAbove02,
+            scoreAbove03 = scoreAbove03,
+            scoreAbove05 = scoreAbove05,
+            bestScoreRow = bestScoreRow,
+            bestCombinedRow = bestCombinedRow
+        )
+    }
+
     fun parseNmsRows(
         rows: Array<FloatArray>,
         labels: List<String>,
@@ -42,3 +87,14 @@ object MobileYoloOutputParser {
     private const val SCORE_INDEX = 4
     private const val CLASS_ID_INDEX = 5
 }
+
+data class MobileYoloScoreSummary(
+    val maxScore: Float,
+    val maxClassValue: Float,
+    val maxCombinedScore: Float,
+    val scoreAbove02: Int,
+    val scoreAbove03: Int,
+    val scoreAbove05: Int,
+    val bestScoreRow: FloatArray?,
+    val bestCombinedRow: FloatArray?
+)

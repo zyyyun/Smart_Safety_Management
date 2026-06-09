@@ -86,7 +86,7 @@ fun RtspMobileDetectionPlayer(
         if (view == null) {
             onDispose { }
         } else {
-            val libVlc = LibVLC(context, listOf("--rtsp-tcp", "--network-caching=300"))
+            val libVlc = LibVLC(context, arrayListOf("--rtsp-tcp", "--network-caching=300"))
             val media = Media(libVlc, Uri.parse(url)).apply {
                 setHWDecoderEnabled(true, false)
                 addOption(":rtsp-tcp")
@@ -129,10 +129,22 @@ fun MobileFireDetectionBadge(
     val label = when (state.status) {
         MobileFireDetectionStatus.OFF -> "모바일 감지 꺼짐"
         MobileFireDetectionStatus.WARMING_UP -> "모바일 감지 준비 중"
-        MobileFireDetectionStatus.RUNNING -> "모바일 감지 실행 중"
+        MobileFireDetectionStatus.RUNNING -> {
+            if (state.message == "waiting for video frame") {
+                "영상 대기 중"
+            } else {
+                "모바일 감지 실행 중"
+            }
+        }
         MobileFireDetectionStatus.DETECTED -> "화재 감지"
         MobileFireDetectionStatus.COOLDOWN -> "모바일 감지 대기"
-        MobileFireDetectionStatus.ERROR -> "감지 오류"
+        MobileFireDetectionStatus.ERROR -> {
+            if (state.message?.contains("mobile fire model asset unavailable") == true) {
+                "모델 파일 없음"
+            } else {
+                "감지 오류"
+            }
+        }
     }
     val background = when (state.status) {
         MobileFireDetectionStatus.DETECTED -> Color(0xFFE53935).copy(alpha = 0.88f)

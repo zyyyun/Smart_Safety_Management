@@ -50,4 +50,27 @@ class MobileYoloOutputParserTest {
         assertEquals(0.3f, result.box!!.right, 0.001f)
         assertEquals(1.0f, result.box!!.bottom, 0.001f)
     }
+
+    @Test
+    fun summarizesRawScoresForDiagnostics() {
+        val bestScore = floatArrayOf(0.1f, 0.2f, 0.3f, 0.4f, 0.52f, 0.5f)
+        val bestCombined = floatArrayOf(0.1f, 0.2f, 0.3f, 0.4f, 0.40f, 0.9f)
+        val rows = arrayOf(
+            floatArrayOf(0.1f, 0.2f, 0.3f, 0.4f, 0.19f, 1f),
+            floatArrayOf(0.1f, 0.2f, 0.3f, 0.4f, 0.31f, 0.5f),
+            bestScore,
+            bestCombined
+        )
+
+        val summary = MobileYoloOutputParser.summarizeRows(rows)
+
+        assertEquals(0.52f, summary.maxScore, 0.001f)
+        assertEquals(1.0f, summary.maxClassValue, 0.001f)
+        assertEquals(0.36f, summary.maxCombinedScore, 0.001f)
+        assertEquals(3, summary.scoreAbove02)
+        assertEquals(3, summary.scoreAbove03)
+        assertEquals(1, summary.scoreAbove05)
+        assertTrue(summary.bestScoreRow === bestScore)
+        assertTrue(summary.bestCombinedRow === bestCombined)
+    }
 }

@@ -76,6 +76,14 @@ class MobileFireDetectionUiContractTest {
         }
     }
 
+    @Test
+    fun rtspBadgeExplainsMissingMobileModelAsset() {
+        val text = readSource("src/main/java/com/example/smart_safety_management/mobileai/RtspTexturePlayer.kt")
+
+        assertTrue(text.contains("모델 파일 없음"))
+        assertTrue(text.contains("mobile fire model asset unavailable"))
+    }
+
     private fun readSource(path: String): String {
         return String(Files.readAllBytes(Paths.get(path)), Charsets.UTF_8)
     }

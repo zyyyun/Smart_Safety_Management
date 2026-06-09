@@ -45,6 +45,7 @@ sealed interface MobileFireDetectionAction {
         val nowMs: Long,
         val cooldownMs: Long
     ) : MobileFireDetectionAction
+    data object FrameUnavailable : MobileFireDetectionAction
     data class UploadComplete(val eventId: Int?) : MobileFireDetectionAction
     data class Error(val message: String) : MobileFireDetectionAction
 }

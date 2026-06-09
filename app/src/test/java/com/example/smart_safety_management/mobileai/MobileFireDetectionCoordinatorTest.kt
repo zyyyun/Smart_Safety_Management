@@ -88,6 +88,37 @@ class MobileFireDetectionCoordinatorTest {
         coordinator.close()
     }
 
+    @Test
+    fun transientTextureSamplingFailureKeepsDetectionRunning() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val sampler = FakeSampler {
+            throw IllegalStateException("Unable to draw content from GPU into the provided bitmap")
+        }
+        val detector = FakeDetector(MobileFireResult(detected = true, confidence = 0.9f))
+        val uploader = FakeUploader(eventId = 321)
+        val coordinator = MobileFireDetectionCoordinator(
+            cameraId = 5,
+            sampler = sampler,
+            detector = detector,
+            uploader = uploader,
+            sampleIntervalMs = 1_000L,
+            cooldownMs = 10_000L,
+            nowMs = { 1_000L },
+            loopDispatcher = dispatcher,
+            samplerDispatcher = dispatcher
+        )
+
+        coordinator.start(this)
+        runCurrent()
+
+        assertEquals(MobileFireDetectionStatus.RUNNING, coordinator.state.value.status)
+        assertEquals("waiting for video frame", coordinator.state.value.message)
+        assertEquals(0, detector.detectCount)
+        assertTrue(uploader.uploads.isEmpty())
+
+        coordinator.close()
+    }
+
     private class FakeSampler(
         private val nextFrame: () -> Bitmap?
     ) : RtspFrameSampler {

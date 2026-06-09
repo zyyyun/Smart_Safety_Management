@@ -14,6 +14,11 @@ object MobileFireDetectionReducer {
             )
             MobileFireDetectionAction.Stop -> MobileFireDetectionState()
             is MobileFireDetectionAction.InferenceResult -> reduceInferenceResult(state, action)
+            MobileFireDetectionAction.FrameUnavailable -> state.copy(
+                status = MobileFireDetectionStatus.RUNNING,
+                canUpload = false,
+                message = "waiting for video frame"
+            )
             is MobileFireDetectionAction.UploadComplete -> state.copy(
                 lastUploadEventId = action.eventId,
                 canUpload = false,
